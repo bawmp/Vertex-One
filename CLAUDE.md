@@ -21,7 +21,9 @@ Suite de gestion multi-tenant pour entreprises de services au Cameroun. Spécifi
 
 ## Latence de connexion Neon — à connaître avant de crier au bug
 
-La toute première connexion WebSocket qu'un process établit vers Neon via `drizzle-orm/neon-serverless` peut prendre 10 à 15 secondes (mesuré : 13,4s), contre ~1s pour les connexions suivantes une fois le pool "chaud". Symptômes déjà rencontrés à cause de ça : un test E2E qui échoue juste après un redémarrage du serveur de dev ou dans une nouvelle session, avec un timeout générique et aucune trace d'erreur applicative. Avant de chercher un bug dans le code : relancer une deuxième fois (le pool du process encore actif reste chaud), et prévoir un timeout de test généreux (60s, voir `playwright.config.ts`) pour les parcours qui enchaînent plusieurs transactions réelles.
+La toute première connexion WebSocket qu'un process établit vers Neon via `drizzle-orm/neon-serverless` peut prendre 10 à 15 secondes (mesuré : 13,4s), contre ~1s pour les connexions suivantes une fois le pool "chaud". Symptômes déjà rencontrés à cause de ça : un test E2E qui échoue juste après un redémarrage du serveur de dev ou dans une nouvelle session, avec un timeout générique et aucune trace d'erreur applicative. Avant de chercher un bug dans le code : relancer une deuxième fois (le pool du process encore actif reste chaud), et prévoir un timeout de test généreux (60s minimum, voir `playwright.config.ts`) pour les parcours qui enchaînent plusieurs transactions réelles.
+
+Au-delà du pool froid : sous sollicitation intensive prolongée (plusieurs heures de tests répétés), une requête isolée peut ponctuellement prendre 20 à 30 secondes même sur un pool déjà chaud (mesuré : 26s pour un simple `UPDATE`) — vraisemblablement le plan Neon gratuit qui régule/suspend le compute. Pour un parcours E2E qui enchaîne plusieurs Server Actions réelles (inscription, création, plusieurs transactions), donner un timeout par test bien au-delà de la somme attendue des étapes (`test.setTimeout(150_000)` par exemple) plutôt que de suspecter une régression dès qu'un test dépasse son budget habituel.
 
 ## Règles métier — sans exception
 

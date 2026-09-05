@@ -9,6 +9,11 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export const db = drizzle(pool, { schema });
 
+// Type de la transaction Drizzle ouverte par avecEntreprise() — exporté pour
+// que les fonctions appelées à l'intérieur (ex: genererNumeroFacture) soient
+// typées correctement sans dépendre d'un chemin d'import propre au driver.
+export type TransactionDrizzle = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Toute requête vers une table métier protégée par Row-Level Security doit
  * passer par ce helper : set_config() et la requête s'exécutent dans la même
@@ -27,7 +32,7 @@ export const db = drizzle(pool, { schema });
  */
 export async function avecEntreprise<T>(
   entrepriseId: string,
-  fn: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>
+  fn: (tx: TransactionDrizzle) => Promise<T>
 ): Promise<T> {
   return db.transaction(async (tx) => {
     await tx.execute(sql`SELECT set_config('app.entreprise_id', ${entrepriseId}, true)`);

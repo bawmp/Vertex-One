@@ -22,6 +22,20 @@
       "when": 1788593425182,
       "tag": "0002_skinny_vapor",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788607051402,
+      "tag": "0003_goofy_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788607083335,
+      "tag": "0004_force_rls_palier1",
+      "breakpoints": true
     }
   ]
 }
