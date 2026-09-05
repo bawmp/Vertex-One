@@ -1,6 +1,6 @@
 {
-  "id": "700299d5-3461-4fcf-aa7c-329059a4a671",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "872d6fd3-4775-4ccb-8785-85f698efa7e1",
+  "prevId": "700299d5-3461-4fcf-aa7c-329059a4a671",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -107,24 +107,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "account_user_id_utilisateur_id_fk": {
           "name": "account_user_id_utilisateur_id_fk",
           "tableFrom": "account",
-          "tableTo": "utilisateur",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "utilisateur",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -199,34 +199,34 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "domaine_email_entreprise_id_entreprise_id_fk": {
           "name": "domaine_email_entreprise_id_entreprise_id_fk",
           "tableFrom": "domaine_email",
-          "tableTo": "entreprise",
           "columnsFrom": [
             "entreprise_id"
           ],
+          "tableTo": "entreprise",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "domaine_email_domaine_unique": {
           "name": "domaine_email_domaine_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "domaine"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -297,47 +297,47 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "dossier_rh_entreprise_id_entreprise_id_fk": {
           "name": "dossier_rh_entreprise_id_entreprise_id_fk",
           "tableFrom": "dossier_rh",
-          "tableTo": "entreprise",
           "columnsFrom": [
             "entreprise_id"
           ],
+          "tableTo": "entreprise",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "dossier_rh_utilisateur_id_utilisateur_id_fk": {
           "name": "dossier_rh_utilisateur_id_utilisateur_id_fk",
           "tableFrom": "dossier_rh",
-          "tableTo": "utilisateur",
           "columnsFrom": [
             "utilisateur_id"
           ],
+          "tableTo": "utilisateur",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "dossier_rh_utilisateur_id_unique": {
           "name": "dossier_rh_utilisateur_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "utilisateur_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -485,34 +485,34 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "invitation_entreprise_id_entreprise_id_fk": {
           "name": "invitation_entreprise_id_entreprise_id_fk",
           "tableFrom": "invitation",
-          "tableTo": "entreprise",
           "columnsFrom": [
             "entreprise_id"
           ],
+          "tableTo": "entreprise",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "invitation_jeton_unique": {
           "name": "invitation_jeton_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "jeton"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -624,34 +624,34 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "session_user_id_utilisateur_id_fk": {
           "name": "session_user_id_utilisateur_id_fk",
           "tableFrom": "session",
-          "tableTo": "utilisateur",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "utilisateur",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -765,9 +765,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "utilisateur_entreprise_idx": {
           "name": "utilisateur_entreprise_idx",
@@ -780,24 +780,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "utilisateur_entreprise_id_entreprise_id_fk": {
           "name": "utilisateur_entreprise_id_entreprise_id_fk",
           "tableFrom": "utilisateur",
-          "tableTo": "entreprise",
           "columnsFrom": [
             "entreprise_id"
           ],
+          "tableTo": "entreprise",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -900,10 +900,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

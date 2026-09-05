@@ -51,8 +51,9 @@ export const utilisateur = pgTable("utilisateur", {
   entrepriseId: text("entreprise_id").notNull().references(() => entreprise.id),
   email: text("email").notNull(),
   // Pas de champ mot de passe ici : Better-Auth stocke le mot de passe (haché
-  // argon2) dans sa propre table "account" (providerId "credential"), liée à
-  // cet utilisateur par son id — jamais sur cette table.
+  // scrypt, son algorithme par défaut) dans sa propre table "account"
+  // (providerId "credential"), liée à cet utilisateur par son id — jamais
+  // sur cette table.
   nomComplet: text("nom_complet").notNull(),
   role: roleSysteme("role").notNull().default("EMPLOYE"),
   statut: statutUtilisateur("statut").notNull().default("ACTIF"),
@@ -181,11 +182,16 @@ Le même principe s'applique ensuite identiquement aux Projets/Dossiers du Palie
 La vérification des droits dans le code (`peut()`, filtrage par `portee()`) est nécessaire mais repose sur le fait que le code est écrit sans erreur partout, tout le temps — un pari risqué sur la durée d'un projet qui grossit. En complément, PostgreSQL permet d'appliquer une deuxième barrière indépendante, directement dans la base : la Row-Level Security (RLS). Concrètement, chaque requête vers la base positionne d'abord l'identifiant de l'entreprise courante, puis une politique de sécurité empêche physiquement la base de renvoyer une ligne appartenant à une autre entreprise, même si une erreur de code oubliait le filtre `entrepriseId` :
 
 ```sql
-ALTER TABLE "Utilisateur" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Prospect" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Prospect" FORCE ROW LEVEL SECURITY; -- indispensable : sans cette
+-- ligne, la policy ne s'applique pas au propriétaire de la table, précisément
+-- le rôle utilisé par la connexion applicative (Neon) — voir CLAUDE.md.
 
-CREATE POLICY isolation_entreprise ON "Utilisateur"
-  USING ("entrepriseId" = current_setting('app.entreprise_id')::text);
+CREATE POLICY isolation_entreprise ON "Prospect"
+  USING ("entrepriseId" = current_setting('app.entreprise_id', true));
 ```
+
+(Exemple donné ici sur une table métier générique — pas sur `Utilisateur`, voir le cas particulier ci-dessous.)
 
 Cette politique est à répliquer sur chaque table métier ajoutée aux paliers suivants (Prospects, Factures, Projets, Documents...). C'est un peu plus de travail à la mise en place de chaque module, mais c'est la garantie la plus solide contre le scénario le plus dommageable pour la confiance de vos clients : qu'une entreprise voie, même par accident, les données d'une autre.
 
@@ -194,7 +200,7 @@ Cette politique est à répliquer sur chaque table métier ajoutée aux paliers 
 ```typescript
 async function avecEntreprise<T>(entrepriseId: string, fn: (tx: DrizzleTransaction) => Promise<T>): Promise<T> {
   return db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL app.entreprise_id = ${entrepriseId}`);
+    await tx.execute(sql`SELECT set_config('app.entreprise_id', ${entrepriseId}, true)`);
     return fn(tx);
   });
 }
@@ -206,9 +212,20 @@ const prospects = await avecEntreprise(session.entrepriseId, (tx) =>
 );
 ```
 
-`SET LOCAL` (plutôt que `SET`) confine en plus la variable à la transaction en cours : elle disparaît automatiquement au commit, sans risque qu'une connexion réutilisée par le pool garde par erreur l'`entrepriseId` d'une requête précédente.
+`set_config('app.entreprise_id', valeur, true)` — pas `SET LOCAL app.entreprise_id = ${entrepriseId}` : cette dernière syntaxe échoue avec une erreur `syntax error at or near "$1"`, car la commande `SET` de Postgres n'accepte pas de paramètre lié côté protocole préparé, seulement `set_config()`, qui est un appel de fonction normal. Erreur rencontrée et corrigée en testant réellement ce helper contre une base Neon, pas seulement supposée en lisant la documentation Postgres — une bonne illustration de pourquoi l'étape 5 ci-dessous doit être exécutée pour de vrai. Le troisième argument (`true`) confine l'effet à la transaction en cours (équivalent de `LOCAL`) : il disparaît automatiquement au commit, sans risque qu'une connexion réutilisée par le pool garde par erreur l'`entrepriseId` d'une requête précédente.
 
-**Piège de driver à ne pas rater avec Neon.** Le driver `neon-http` (HTTP, sans connexion persistante) ne supporte pas `db.transaction()` — donc pas `SET LOCAL` du tout. Le client Drizzle applicatif doit être créé avec `drizzle-orm/neon-serverless` (pool WebSocket) ou `node-postgres`, jamais `neon-http`, sous peine que le helper `avecEntreprise()` ci-dessus échoue silencieusement ou plante.
+**Piège de driver à ne pas rater avec Neon.** Le driver `neon-http` (HTTP, sans connexion persistante) ne supporte pas `db.transaction()` — donc pas ce mécanisme du tout. Le client Drizzle applicatif doit être créé avec `drizzle-orm/neon-serverless` (pool WebSocket) ou `node-postgres`, jamais `neon-http`, sous peine que le helper `avecEntreprise()` ci-dessus échoue silencieusement ou plante.
+
+**Piège encore plus sournois, propre à Neon : le rôle de connexion par défaut ignore silencieusement toute la RLS.** Le rôle "owner" créé automatiquement par Neon pour chaque nouveau projet (`xxx_owner`) porte l'attribut `BYPASSRLS` — et un rôle avec cet attribut ignore purement et simplement `ENABLE`/`FORCE ROW LEVEL SECURITY`, sans la moindre erreur : les requêtes fonctionnent normalement, elles renvoient juste les données de toutes les entreprises comme si la RLS n'existait pas. Aucune revue de code ne peut détecter ce problème, seule l'exécution réelle du test de fuite (étape 5) le révèle. La correction : créer un second rôle Postgres dédié à l'application, avec `NOBYPASSRLS` explicite, ne disposant que des droits `SELECT`/`INSERT`/`UPDATE`/`DELETE` (pas de droits DDL) :
+
+```sql
+CREATE ROLE app_vertexone WITH LOGIN PASSWORD '...' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
+GRANT USAGE ON SCHEMA public TO app_vertexone;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_vertexone;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_vertexone;
+```
+
+`DATABASE_URL` (utilisé par l'application et par les tests) pointe exclusivement vers ce rôle restreint. Le rôle owner par défaut de Neon n'est plus utilisé que pour les migrations (`DATABASE_URL_MIGRATIONS`, droits DDL nécessaires pour créer/modifier les tables) — jamais par du code qui sert du trafic applicatif.
 
 **Le cas particulier des tables d'authentification.** Better-Auth (section 8) exécute ses propres requêtes (connexion, création de session) directement via le client Drizzle applicatif, **en dehors** du wrapper `avecEntreprise()` — logique, puisqu'au moment de se connecter l'`entrepriseId` de la session n'est pas encore connu. Appliquer une politique RLS stricte sur la table `utilisateur` casserait donc la connexion elle-même. La bonne pratique : une politique RLS permissive (ou un rôle Postgres dédié sans policy) sur les tables consultées par Better-Auth (utilisateur, session, compte), et la politique RLS stricte réservée aux tables métier (Prospects, Factures, Projets...) qui ne sont jamais interrogées avant qu'une session authentifiée n'existe.
 
@@ -282,7 +299,7 @@ async function surUtilisateurActive(utilisateur: Utilisateur, invitation: Invita
 
 Cette création ne dépend volontairement pas de `disponible(entreprise, "RH")` : le module RH (ses écrans, ses actions de gestion des congés, etc.) reste verrouillé au forfait Business comme prévu, mais la donnée brute existe dès le premier jour pour tout le monde, à coût nul. Un client Starter ou Pro qui monte en gamme plus tard retrouve donc l'historique réel d'embauche de chaque employé plutôt qu'une date artificielle correspondant à sa mise à niveau — c'est le même raisonnement que celui déjà appliqué à la Facturation, où l'on préfère collecter une donnée correcte dès qu'elle existe plutôt que d'attendre qu'elle devienne "utile" à l'écran.
 
-**Connexion.** Email et mot de passe (haché avec argon2 par Better-Auth, pas un algorithme plus faible), qui donne une session contenant l'identifiant utilisateur, l'identifiant entreprise, et le rôle. Chaque requête vers le serveur revérifie ces trois informations — jamais fait confiance à ce que le navigateur prétend être le rôle de l'utilisateur, uniquement à ce que la session signée par le serveur contient.
+**Connexion.** Email et mot de passe (haché avec scrypt par Better-Auth — son algorithme par défaut, résistant aux attaques GPU/ASIC — pas un algorithme plus faible), qui donne une session contenant l'identifiant utilisateur, l'identifiant entreprise, et le rôle. Chaque requête vers le serveur revérifie ces trois informations — jamais fait confiance à ce que le navigateur prétend être le rôle de l'utilisateur, uniquement à ce que la session signée par le serveur contient.
 
 ## 8bis. Boîte mail professionnelle : provisioning et domaine propre
 
@@ -310,10 +327,11 @@ Point d'isolation à ne pas oublier : chaque sous-domaine (ou domaine propre) po
 
 ## 9. Ordre de construction concret pour ce palier
 
-1. Schéma Drizzle (Entreprise, Utilisateur, Invitation, DomaineEmail) et première migration.
-2. Inscription d'entreprise + connexion via Better-Auth (sans encore d'invitation, un seul compte Administrateur pour commencer à tester) + provisioning automatique de la boîte mail sur sous-domaine Vertex One.
-3. Fonctions `peut()` et `portee()`, avec une première page protégée qui affiche des menus différents selon le rôle connecté — la preuve concrète que le socle fonctionne avant de construire quoi que ce soit d'autre par-dessus.
-4. Flux d'invitation complet (Manager/Employé).
-5. Politiques RLS sur les tables déjà créées, testées en essayant délibérément de faire fuiter une donnée entre deux entreprises de test — ce test doit échouer pour valider le socle.
+1. Schéma Drizzle (Entreprise, Utilisateur, Invitation, DomaineEmail) et première migration, appliquée avec le rôle owner (`DATABASE_URL_MIGRATIONS`).
+2. **Créer le rôle Postgres applicatif restreint (`NOBYPASSRLS`, section 6) avant toute autre chose** — `DATABASE_URL` doit pointer dessus dès le premier test, jamais vers le rôle owner par défaut de Neon, sous peine de valider un socle qui ne protège en réalité rien.
+3. Inscription d'entreprise + connexion via Better-Auth (sans encore d'invitation, un seul compte Administrateur pour commencer à tester) + provisioning automatique de la boîte mail sur sous-domaine Vertex One.
+4. Fonctions `peut()` et `portee()`, avec une première page protégée qui affiche des menus différents selon le rôle connecté — la preuve concrète que le socle fonctionne avant de construire quoi que ce soit d'autre par-dessus.
+5. Flux d'invitation complet (Manager/Employé).
+6. Politiques RLS sur les tables déjà créées, testées en essayant délibérément de faire fuiter une donnée entre deux entreprises de test — ce test doit échouer pour valider le socle.
 
-Une fois ces cinq étapes validées, le Palier 1 (CRM, Devis/Facturation) peut commencer en réutilisant `peut()`, `portee()` et le modèle `entrepriseId` sans rien reconstruire.
+Une fois ces six étapes validées, le Palier 1 (CRM, Devis/Facturation) peut commencer en réutilisant `peut()`, `portee()` et le modèle `entrepriseId` sans rien reconstruire.

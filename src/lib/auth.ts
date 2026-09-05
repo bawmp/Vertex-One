@@ -20,6 +20,13 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    // La création de compte ne passe jamais par l'endpoint public de
+    // Better-Auth : entrepriseId/role sont en input:false (voir plus bas),
+    // donc un client ne peut de toute façon pas se les attribuer via cet
+    // endpoint — on le désactive complètement pour ne garder qu'un seul
+    // chemin de création de compte, nos propres Server Actions
+    // (src/lib/actions), qui insèrent directement utilisateur+account.
+    disableSignUp: true,
   },
   user: {
     // Champs "core" Better-Auth mappés sur nos colonnes françaises — email et

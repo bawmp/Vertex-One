@@ -58,7 +58,7 @@ Le document de stratégie (`strategie-suite-locale-entreprises-services.md`) con
 
 ## 7. Instructions de démarrage pour Claude Code
 
-**Étape 1 — Initialiser le projet.** `create-next-app` avec TypeScript et Tailwind, ajout de Drizzle ORM et connexion à une base Postgres de développement (Neon), installation de shadcn/ui et de Better-Auth.
+**Étape 1 — Initialiser le projet.** `create-next-app` avec TypeScript et Tailwind, ajout de Drizzle ORM et connexion à une base Postgres de développement (Neon), installation de shadcn/ui et de Better-Auth. **Créer immédiatement un rôle Postgres applicatif `NOBYPASSRLS`** (le rôle owner par défaut de Neon a `BYPASSRLS`, qui rend toute politique RLS silencieusement inactive) — `DATABASE_URL` pointe sur ce rôle restreint, `DATABASE_URL_MIGRATIONS` sur le rôle owner pour les migrations uniquement (voir le document du Palier 0, section 6).
 
 **Étape 2 — Palier 0 d'abord, intégralement, avant tout autre module.** Schéma Drizzle (`Entreprise`, `Utilisateur`, `Invitation`, `DomaineEmail`), inscription et connexion, fonctions `peut()`/`portee()`, flux d'invitation complet avec création automatique du Dossier RH et provisioning automatique de la boîte mail (sous-domaine Vertex One), politiques RLS testées avec un scénario de fuite délibérée entre deux entreprises fictives (voir le document du Palier 0, section 9). Ne pas avancer au Palier 1 tant que ce test ne réussit pas.
 

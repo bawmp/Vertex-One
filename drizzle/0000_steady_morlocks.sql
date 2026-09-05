@@ -18,6 +18,7 @@ CREATE TABLE "account" (
 	"password" text
 );
 --> statement-breakpoint
+ALTER TABLE "account" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "domaine_email" (
 	"id" text PRIMARY KEY NOT NULL,
 	"entreprise_id" text NOT NULL,
@@ -28,6 +29,18 @@ CREATE TABLE "domaine_email" (
 	CONSTRAINT "domaine_email_domaine_unique" UNIQUE("domaine")
 );
 --> statement-breakpoint
+ALTER TABLE "domaine_email" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "dossier_rh" (
+	"id" text PRIMARY KEY NOT NULL,
+	"entreprise_id" text NOT NULL,
+	"utilisateur_id" text NOT NULL,
+	"poste" text NOT NULL,
+	"type_contrat" text NOT NULL,
+	"date_embauche" timestamp NOT NULL,
+	CONSTRAINT "dossier_rh_utilisateur_id_unique" UNIQUE("utilisateur_id")
+);
+--> statement-breakpoint
+ALTER TABLE "dossier_rh" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "entreprise" (
 	"id" text PRIMARY KEY NOT NULL,
 	"nom" text NOT NULL,
@@ -51,6 +64,7 @@ CREATE TABLE "invitation" (
 	CONSTRAINT "invitation_jeton_unique" UNIQUE("jeton")
 );
 --> statement-breakpoint
+ALTER TABLE "invitation" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -63,6 +77,7 @@ CREATE TABLE "session" (
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
+ALTER TABLE "session" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "utilisateur" (
 	"id" text PRIMARY KEY NOT NULL,
 	"entreprise_id" text NOT NULL,
@@ -77,6 +92,7 @@ CREATE TABLE "utilisateur" (
 	"mis_a_jour_le" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "utilisateur" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "verification" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -88,12 +104,24 @@ CREATE TABLE "verification" (
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_utilisateur_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."utilisateur"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "domaine_email" ADD CONSTRAINT "domaine_email_entreprise_id_entreprise_id_fk" FOREIGN KEY ("entreprise_id") REFERENCES "public"."entreprise"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "dossier_rh" ADD CONSTRAINT "dossier_rh_entreprise_id_entreprise_id_fk" FOREIGN KEY ("entreprise_id") REFERENCES "public"."entreprise"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "dossier_rh" ADD CONSTRAINT "dossier_rh_utilisateur_id_utilisateur_id_fk" FOREIGN KEY ("utilisateur_id") REFERENCES "public"."utilisateur"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_entreprise_id_entreprise_id_fk" FOREIGN KEY ("entreprise_id") REFERENCES "public"."entreprise"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_utilisateur_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."utilisateur"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "utilisateur" ADD CONSTRAINT "utilisateur_entreprise_id_entreprise_id_fk" FOREIGN KEY ("entreprise_id") REFERENCES "public"."entreprise"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_user_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "domaine_email_entreprise_idx" ON "domaine_email" USING btree ("entreprise_id");--> statement-breakpoint
+CREATE INDEX "dossier_rh_entreprise_idx" ON "dossier_rh" USING btree ("entreprise_id");--> statement-breakpoint
 CREATE INDEX "invitation_entreprise_idx" ON "invitation" USING btree ("entreprise_id");--> statement-breakpoint
 CREATE INDEX "session_user_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "utilisateur_entreprise_email_unique" ON "utilisateur" USING btree ("entreprise_id","email");--> statement-breakpoint
-CREATE INDEX "utilisateur_entreprise_idx" ON "utilisateur" USING btree ("entreprise_id");
+CREATE INDEX "utilisateur_entreprise_idx" ON "utilisateur" USING btree ("entreprise_id");--> statement-breakpoint
+CREATE POLICY "permissif_better_auth" ON "account" AS PERMISSIVE FOR ALL TO public USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "isolation_entreprise" ON "domaine_email" AS PERMISSIVE FOR ALL TO public USING ("domaine_email"."entreprise_id" = current_setting('app.entreprise_id', true)) WITH CHECK ("domaine_email"."entreprise_id" = current_setting('app.entreprise_id', true));--> statement-breakpoint
+CREATE POLICY "isolation_entreprise" ON "dossier_rh" AS PERMISSIVE FOR ALL TO public USING ("dossier_rh"."entreprise_id" = current_setting('app.entreprise_id', true)) WITH CHECK ("dossier_rh"."entreprise_id" = current_setting('app.entreprise_id', true));--> statement-breakpoint
+CREATE POLICY "isolation_entreprise_lecture" ON "invitation" AS PERMISSIVE FOR SELECT TO public USING ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true) OR current_setting('app.entreprise_id', true) IS NULL);--> statement-breakpoint
+CREATE POLICY "isolation_entreprise_ecriture" ON "invitation" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true));--> statement-breakpoint
+CREATE POLICY "isolation_entreprise_modification" ON "invitation" AS PERMISSIVE FOR UPDATE TO public USING ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true)) WITH CHECK ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true));--> statement-breakpoint
+CREATE POLICY "isolation_entreprise_suppression" ON "invitation" AS PERMISSIVE FOR DELETE TO public USING ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true));--> statement-breakpoint
+CREATE POLICY "permissif_better_auth" ON "session" AS PERMISSIVE FOR ALL TO public USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "permissif_better_auth" ON "utilisateur" AS PERMISSIVE FOR ALL TO public USING (true) WITH CHECK (true);
