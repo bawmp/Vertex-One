@@ -77,6 +77,14 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
   await page.waitForURL(/\/app\/facturation\/devis\/(?!nouveau)/);
 
   await expect(page.getByRole("heading", { name: /^DEV-\d{4}-\d{6}$/ })).toBeVisible();
+
+  const urlDevis = page.url();
+  const reponsePdfDevis = await page.request.get(`${urlDevis}/pdf`);
+  expect(reponsePdfDevis.status()).toBe(200);
+  expect(reponsePdfDevis.headers()["content-type"]).toBe("application/pdf");
+  const octetsPdfDevis = await reponsePdfDevis.body();
+  expect(octetsPdfDevis.subarray(0, 4).toString("latin1")).toBe("%PDF");
+
   await page.click('button:has-text("Envoyer au client")');
   await expect(page.getByText("Envoyé")).toBeVisible();
 
@@ -85,6 +93,13 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
 
   await expect(page.getByRole("heading", { name: /^FAC-\d{4}-\d{6}$/ })).toBeVisible();
   await expect(page.getByText("119")).toBeVisible();
+
+  const urlFacture = page.url();
+  const reponsePdfFacture = await page.request.get(`${urlFacture}/pdf`);
+  expect(reponsePdfFacture.status()).toBe(200);
+  expect(reponsePdfFacture.headers()["content-type"]).toBe("application/pdf");
+  const octetsPdfFacture = await reponsePdfFacture.body();
+  expect(octetsPdfFacture.subarray(0, 4).toString("latin1")).toBe("%PDF");
 
   await page.click('button:has-text("Marquer comme payée")');
   await expect(page.getByText("Payée")).toBeVisible();

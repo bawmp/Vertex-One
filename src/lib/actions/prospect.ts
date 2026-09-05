@@ -59,6 +59,8 @@ export async function creerProspect(_etat: EtatProspect, formData: FormData): Pr
       .returning({ id: prospect.id })
   );
 
+  revalidatePath("/app"); // pipeline commercial affiché au tableau de bord
+
   redirect(`/app/crm/${nouveauProspect.id}`);
 }
 
@@ -114,4 +116,5 @@ export async function changerStatutProspect(prospectId: string, statut: (typeof 
 
   revalidatePath(`/app/crm/${prospectId}`);
   revalidatePath("/app/crm");
+  revalidatePath("/app"); // pipeline commercial affiché au tableau de bord
 }

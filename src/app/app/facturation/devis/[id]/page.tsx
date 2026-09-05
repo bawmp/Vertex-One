@@ -50,9 +50,14 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
             {leProspect?.societeCliente ? ` — ${leProspect.societeCliente}` : ""}
           </p>
         </div>
-        <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
-          {LIBELLE_STATUT[leDevis.statut]}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+            {LIBELLE_STATUT[leDevis.statut]}
+          </span>
+          <Button variant="outline" size="sm" render={<a href={`/app/facturation/devis/${leDevis.id}/pdf`} target="_blank" rel="noopener noreferrer" />} nativeButton={false}>
+            Télécharger le PDF
+          </Button>
+        </div>
       </div>
 
       <table className="w-full text-sm">

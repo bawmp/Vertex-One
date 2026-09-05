@@ -16,6 +16,7 @@
     "@better-auth/drizzle-adapter": "^1.7.2",
     "@neondatabase/serverless": "^1.1.0",
     "@paralleldrive/cuid2": "^3.3.0",
+    "@react-pdf/renderer": "^4.9.0",
     "better-auth": "^1.7.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.5",

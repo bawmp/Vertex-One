@@ -158,6 +158,7 @@ export async function accepterDevis(devisId: string) {
 
   revalidatePath(`/app/facturation/devis/${devisId}`);
   revalidatePath("/app/facturation");
+  revalidatePath("/app");
 
   if (idFactureCreee) redirect(`/app/facturation/factures/${idFactureCreee}`);
 }

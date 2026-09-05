@@ -55,9 +55,14 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           </p>
           {monEntreprise.niu ? <p className="text-xs text-muted-foreground">NIU émetteur : {monEntreprise.niu}</p> : null}
         </div>
-        <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
-          {LIBELLE_STATUT[laFacture.statut]}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+            {LIBELLE_STATUT[laFacture.statut]}
+          </span>
+          <Button variant="outline" size="sm" render={<a href={`/app/facturation/factures/${laFacture.id}/pdf`} target="_blank" rel="noopener noreferrer" />} nativeButton={false}>
+            Télécharger le PDF
+          </Button>
+        </div>
       </div>
 
       <table className="w-full text-sm">

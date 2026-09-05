@@ -36,6 +36,11 @@ export async function marquerFacturePayee(factureId: string) {
 
   revalidatePath(`/app/facturation/factures/${factureId}`);
   revalidatePath("/app/facturation");
+  // Le tableau de bord agrège le CA du mois à partir des paiements — sans
+  // cette ligne, il restait sur sa version en cache (Router Cache Next.js)
+  // et affichait 0 FCFA après un paiement pourtant bien enregistré. Bug
+  // réel trouvé par un test E2E, pas anticipé en écrivant le code.
+  revalidatePath("/app");
 }
 
 /**
@@ -64,6 +69,7 @@ export async function annulerFacture(factureId: string, motif: string) {
 
   revalidatePath(`/app/facturation/factures/${factureId}`);
   revalidatePath("/app/facturation");
+  revalidatePath("/app"); // affecte les factures en retard affichées au tableau de bord
 }
 
 /**
