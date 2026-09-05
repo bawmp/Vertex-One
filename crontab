@@ -1,0 +1,6 @@
+# Format graphile-worker : <motif cron> <identifiant de tâche> [options]
+# Voir https://worker.graphile.org/docs/cron
+
+# Vérifie quotidiennement à 6h les factures en retard, toutes entreprises
+# confondues (docs/palier-1-*, section 6, étape 6).
+0 6 * * * verifier-relances
