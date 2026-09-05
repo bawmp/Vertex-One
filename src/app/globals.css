@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -39,6 +39,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand-gold-foreground: var(--brand-gold-foreground);
+  --color-brand-gold: var(--brand-gold);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,73 +50,87 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Palette de marque Vertex One — pas de charte graphique officielle chez
+ * Vertex Technology à ce jour (voir conversation), palette proposée en
+ * attendant : émeraude profond (croissance, confiance financière, écho
+ * discret à "Vertex"/ascension) en couleur principale, doré chaud en accent
+ * ponctuel (Mobile Money, mises en avant "Pro"). Neutres chauds (stone)
+ * plutôt que gris froid, pour rester moins clinique. Valeurs tirées de la
+ * palette Tailwind v4 (node_modules/tailwindcss/theme.css) plutôt
+ * qu'inventées à la main.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: var(--color-stone-50);
+  --foreground: var(--color-stone-900);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: var(--color-stone-900);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: var(--color-stone-900);
+  --primary: var(--color-emerald-700);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--color-stone-100);
+  --secondary-foreground: var(--color-stone-900);
+  --muted: var(--color-stone-100);
+  --muted-foreground: var(--color-stone-500);
+  --accent: var(--color-emerald-50);
+  --accent-foreground: var(--color-emerald-800);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: var(--color-stone-200);
+  --input: var(--color-stone-200);
+  --ring: var(--color-emerald-600);
+  --brand-gold: var(--color-amber-500);
+  --brand-gold-foreground: var(--color-amber-950);
+  --chart-1: var(--color-emerald-600);
+  --chart-2: var(--color-amber-500);
+  --chart-3: var(--color-emerald-800);
+  --chart-4: var(--color-stone-400);
+  --chart-5: var(--color-stone-600);
+  --radius: 0.75rem;
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: var(--color-stone-900);
+  --sidebar-primary: var(--color-emerald-700);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: var(--color-emerald-50);
+  --sidebar-accent-foreground: var(--color-emerald-800);
+  --sidebar-border: var(--color-stone-200);
+  --sidebar-ring: var(--color-emerald-600);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: var(--color-stone-950);
+  --foreground: var(--color-stone-100);
+  --card: var(--color-stone-900);
+  --card-foreground: var(--color-stone-100);
+  --popover: var(--color-stone-900);
+  --popover-foreground: var(--color-stone-100);
+  --primary: var(--color-emerald-500);
+  --primary-foreground: var(--color-stone-950);
+  --secondary: var(--color-stone-800);
+  --secondary-foreground: var(--color-stone-100);
+  --muted: var(--color-stone-800);
+  --muted-foreground: var(--color-stone-400);
+  --accent: var(--color-emerald-950);
+  --accent-foreground: var(--color-emerald-200);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: var(--color-emerald-500);
+  --brand-gold: var(--color-amber-400);
+  --brand-gold-foreground: var(--color-amber-950);
+  --chart-1: var(--color-emerald-400);
+  --chart-2: var(--color-amber-400);
+  --chart-3: var(--color-emerald-600);
+  --chart-4: var(--color-stone-500);
+  --chart-5: var(--color-stone-300);
+  --sidebar: var(--color-stone-900);
+  --sidebar-foreground: var(--color-stone-100);
+  --sidebar-primary: var(--color-emerald-500);
+  --sidebar-primary-foreground: var(--color-stone-950);
+  --sidebar-accent: var(--color-emerald-950);
+  --sidebar-accent-foreground: var(--color-emerald-200);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--color-emerald-500);
 }
 
 @layer base {

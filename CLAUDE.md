@@ -19,6 +19,10 @@ Suite de gestion multi-tenant pour entreprises de services au Cameroun. Spécifi
 - Après chaque nouveau module touchant à des données d'entreprise, un test délibéré doit vérifier qu'une entreprise fictive ne peut techniquement pas accéder aux données d'une autre.
 - Tout identifiant transmis à un service externe partagé entre plusieurs entreprises clientes (Migadu, NotchPay, le prestataire de chat...) est préfixé par l'`entrepriseId`.
 
+## Latence de connexion Neon — à connaître avant de crier au bug
+
+La toute première connexion WebSocket qu'un process établit vers Neon via `drizzle-orm/neon-serverless` peut prendre 10 à 15 secondes (mesuré : 13,4s), contre ~1s pour les connexions suivantes une fois le pool "chaud". Symptômes déjà rencontrés à cause de ça : un test E2E qui échoue juste après un redémarrage du serveur de dev ou dans une nouvelle session, avec un timeout générique et aucune trace d'erreur applicative. Avant de chercher un bug dans le code : relancer une deuxième fois (le pool du process encore actif reste chaud), et prévoir un timeout de test généreux (60s, voir `playwright.config.ts`) pour les parcours qui enchaînent plusieurs transactions réelles.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.
