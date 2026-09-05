@@ -25,6 +25,10 @@ La toute première connexion WebSocket qu'un process établit vers Neon via `dri
 
 Au-delà du pool froid : sous sollicitation intensive prolongée (plusieurs heures de tests répétés), une requête isolée peut ponctuellement prendre 20 à 30 secondes même sur un pool déjà chaud (mesuré : 26s pour un simple `UPDATE`) — vraisemblablement le plan Neon gratuit qui régule/suspend le compute. Pour un parcours E2E qui enchaîne plusieurs Server Actions réelles (inscription, création, plusieurs transactions), donner un timeout par test bien au-delà de la somme attendue des étapes (`test.setTimeout(150_000)` par exemple) plutôt que de suspecter une régression dès qu'un test dépasse son budget habituel.
 
+## Resend — domaine non vérifié tant que ce n'est pas fait explicitement
+
+`RESEND_API_KEY` est configurée, mais **aucun domaine Vertex One n'est vérifié sur le compte** : Resend refuse (403 `validation_error`) tout envoi vers une adresse autre que celle du propriétaire du compte, quel que soit le destinataire réel demandé — confirmé par un envoi réel. L'expéditeur `src/lib/email/client.ts` utilise donc `onboarding@resend.dev` (bac à sable Resend), qui fonctionne pour tester la mécanique d'envoi mais ne peut pas atteindre de vrais clients. Avant toute mise en production (ou tout test destiné à un vrai prospect) : vérifier un domaine sur resend.com/domains, puis changer `EXPEDITEUR_PAR_DEFAUT` pour une adresse sur ce domaine. Un test automatisé qui envoie à une adresse `@*.test` échouera donc toujours avec ce message précis — normal, pas un bug.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.

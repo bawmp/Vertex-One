@@ -4,8 +4,10 @@ import { inArray, desc } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { devis, facture, prospect } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { DeclencheurRelances } from "./declencheur-relances";
 
 const LIBELLE_STATUT_DEVIS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -61,6 +63,8 @@ export default async function PageFacturation() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Facturation</h1>
       </div>
+
+      {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Devis</h2>
