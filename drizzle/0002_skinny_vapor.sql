@@ -1,0 +1,1 @@
+ALTER POLICY "isolation_entreprise_lecture" ON "invitation" TO public USING ("invitation"."entreprise_id" = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL);

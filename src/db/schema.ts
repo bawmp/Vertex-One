@@ -92,7 +92,12 @@ export const invitation = pgTable(
     // à l'entreprise de la session — jamais les deux à la fois.
     pgPolicy("isolation_entreprise_lecture", {
       for: "select",
-      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR current_setting('app.entreprise_id', true) IS NULL`,
+      // nullif(..., '') IS NULL plutôt que IS NULL seul : sur une connexion
+      // Neon fraîche (via le pooler), current_setting(..., true) renvoie une
+      // chaîne vide, pas SQL NULL — confirmé par test réel (le lien
+      // d'invitation était introuvable en anonyme malgré une policy qui
+      // semblait correcte sur le papier). Voir CLAUDE.md.
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
     }),
     // Écriture : toujours stricte, y compris pour la mise à jour qui marque
     // une invitation "utilisée" — cette opération s'exécute dans

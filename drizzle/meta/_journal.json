@@ -15,6 +15,13 @@
       "when": 1788590435661,
       "tag": "0001_force_row_level_security",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788593425182,
+      "tag": "0002_skinny_vapor",
+      "breakpoints": true
     }
   ]
 }
