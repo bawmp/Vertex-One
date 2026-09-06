@@ -1246,11 +1246,166 @@ export const ecritureComptable = pgTable(
     // manquer un jour).
     factureId: text("facture_id"),
     paiementId: text("paiement_id"),
+    // Ajouté pour le cycle Achats (échange du 2026-09-06) — même raisonnement
+    // que factureId/paiementId ci-dessus : jamais de FK stricte.
+    depenseId: text("depense_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
     index("ecriture_comptable_entreprise_idx").on(table.entrepriseId),
     index("ecriture_comptable_compte_idx").on(table.compteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Documents financiers (inspiré du module "Documents" de Zoho Books,
+// échange du 2026-09-06) — distinct de `document` (Palier 3, rattaché à un
+// Dossier/Projet, avec classification de sensibilité PIECE_IDENTITE/
+// DONNEES_SANTE) : ceux-ci sont des pièces comptables (reçus, factures
+// fournisseurs, relevés bancaires) rattachées à une Facture ou un Paiement,
+// sans notion de sensibilité. `classeurId` NULL signifie "Boîte de
+// réception" (pas encore classé), comme l'Inbox de Zoho Books. Pas
+// d'autoscan/OCR ni de forwarding email automatique ici (nécessiteraient un
+// fournisseur externe non configuré, voir docs/crm-roadmap-post-
+// commercialisation.md) — fournisseurOuVendeur/montant/dateDocument sont
+// saisis manuellement, à la place de l'extraction automatique.
+export const classeurDocumentFinancier = pgTable(
+  "classeur_document_financier",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("classeur_document_financier_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const documentFinancier = pgTable(
+  "document_financier",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    // Chemin de l'objet dans Cloudflare R2 — voir src/lib/documents/stockage.ts
+    // (helper déjà générique, réutilisé tel quel).
+    cleStockage: text("cle_stockage").notNull(),
+    typeMime: text("type_mime").notNull(),
+    tailleOctets: integer("taille_octets").notNull(),
+    classeurId: text("classeur_id").references(() => classeurDocumentFinancier.id),
+    factureId: text("facture_id").references(() => facture.id),
+    paiementId: text("paiement_id").references(() => paiement.id),
+    fournisseurOuVendeur: text("fournisseur_ou_vendeur"),
+    montant: integer("montant"), // FCFA entier, voir CLAUDE.md
+    dateDocument: timestamp("date_document"),
+    televerseParId: text("televerse_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("document_financier_entreprise_idx").on(table.entrepriseId),
+    index("document_financier_classeur_idx").on(table.classeurId),
+    index("document_financier_facture_idx").on(table.factureId),
+    index("document_financier_paiement_idx").on(table.paiementId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Cycle Achats (inspiré de Zoho Books, échange du 2026-09-06 — spécification
+// complète "zoho-books-full-spec.md") — miroir du cycle Ventes côté
+// fournisseurs. Cette première tranche couvre Fournisseurs + Dépenses (la
+// transaction d'achat la plus simple, "hors cycle bill complet" selon la
+// doc) ; Bons de commande, Factures fournisseurs, Paiements effectués et
+// Avoirs fournisseurs suivent dans une tranche séparée (voir
+// docs/crm-roadmap-post-commercialisation.md).
+export const fournisseur = pgTable(
+  "fournisseur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    niu: text("niu"), // NIU du fournisseur — utile pour la déductibilité TVA
+    telephone: text("telephone").notNull(),
+    email: text("email"),
+    adresse: text("adresse"),
+    notes: text("notes"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("fournisseur_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Saisie rapide d'une dépense — génère systématiquement ses écritures
+// comptables (charge + TVA récupérable au débit, trésorerie au crédit),
+// même principe que Facture/Paiement au Palier 4
+// (src/lib/comptabilite/ecritures.ts). Jamais supprimée une fois créée,
+// comme Facture (voir CLAUDE.md) — seule la correction par une nouvelle
+// écriture serait envisageable, pas construite ici.
+export const depense = pgTable(
+  "depense",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    libelle: text("libelle").notNull(),
+    compteComptableId: text("compte_comptable_id")
+      .notNull()
+      .references(() => compteComptable.id), // catégorie de charge (classe 6 du plan SYSCOHADA)
+    fournisseurId: text("fournisseur_id").references(() => fournisseur.id),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0), // TVA récupérable, 0 si non applicable
+    montantTTC: integer("montant_ttc").notNull(),
+    moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
+    // Refacturable à un client (Deal) — "Billable Expense" chez Zoho.
+    // Stocké pour ne rien perdre, mais pas encore repris automatiquement
+    // dans une ligne de Devis/Facture (voir docs/crm-roadmap-post-
+    // commercialisation.md).
+    refacturable: boolean("refacturable").notNull().default(false),
+    dealId: text("deal_id").references(() => deal.id),
+    datePaiement: timestamp("date_paiement").notNull(),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("depense_entreprise_idx").on(table.entrepriseId),
+    index("depense_assigne_idx").on(table.assigneAId),
+    index("depense_fournisseur_idx").on(table.fournisseurId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

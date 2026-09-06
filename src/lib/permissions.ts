@@ -13,6 +13,7 @@ export type Module =
   | "SIGNATURE"
   | "CONTRATS"
   | "COMPTABILITE"
+  | "ACHATS"
   | "RH"
   | "MARKETING"
   | "PARAMETRES";
@@ -36,8 +37,17 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     CONTRATS: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Réservé à l'Administrateur seul (docs/palier-4-*, section 5) — une
     // fuite ou une erreur sur les finances de l'entreprise a des
-    // conséquences plus larges qu'un dossier client individuel.
-    COMPTABILITE: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
+    // conséquences plus larges qu'un dossier client individuel. SUPPRIMER ne
+    // s'applique jamais aux factures/écritures elles-mêmes (jamais
+    // supprimées, voir CLAUDE.md) mais aux pièces jointes du module
+    // Documents financiers (reçus mal téléversés) — droit à l'effacement
+    // réel, comme pour Documents (Palier 3).
+    COMPTABILITE: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
+    // Cycle Achats (Fournisseurs/Dépenses, inspiré de Zoho Books, échange du
+    // 2026-09-06) — même règle que FACTURATION : pas de SUPPRIMER sur une
+    // pièce financière déjà enregistrée (voir CLAUDE.md), seul Fournisseur
+    // (référentiel, pas une transaction) pourrait l'être un jour.
+    ACHATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
     // Portée sur QUEL dossier RH — le salaire reste une restriction de champ
     // à part, vérifiée séparément par peutVoirSalaire() même pour un
     // Manager qui a par ailleurs VOIR/MODIFIER sur le dossier de son équipe
@@ -64,6 +74,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     SIGNATURE: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     CONTRATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
+    ACHATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     // Un Manager approuve les congés de son équipe et voit ses pointages,
     // mais ne voit jamais le salaire d'un subordonné (restriction de champ,
     // pas de portée — docs/palier-5-*, section 5).
@@ -82,6 +93,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     SIGNATURE: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
     CONTRATS: { actions: ["VOIR"], portee: "PROPRE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
+    ACHATS: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
     // Voit son propre dossier RH, demande ses congés, pointe — jamais un
     // dossier collègue (portée PROPRE, pas EQUIPE ici).
     RH: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
@@ -102,6 +114,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     SIGNATURE: { actions: ["VOIR"], portee: "PROPRE" },
     CONTRATS: { actions: ["VOIR"], portee: "PROPRE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
+    ACHATS: { actions: [], portee: "PROPRE" },
     // Un compte CLIENT (portail restreint, Palier 4) n'est jamais un salarié
     // de l'entreprise cliente — pas de Dossier RH pour ce rôle (docs/palier-5-*,
     // section 2).

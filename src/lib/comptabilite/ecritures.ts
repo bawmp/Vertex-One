@@ -1,8 +1,12 @@
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, ecritureComptable } from "@/db/schema";
 
-type LigneEcriture = { numeroCompte: string; libelle: string; debit?: number; credit?: number };
+// compteId : quand le compte est déjà connu (ex. catégorie de charge choisie
+// par l'utilisateur pour une Dépense) — évite une résolution par numéro pour
+// un compte qui n'est pas fixe dans le code appelant, contrairement à
+// numeroCompte (comptes SYSCOHADA fixes comme 411000/706000).
+type LigneEcriture = { numeroCompte?: string; compteId?: string; libelle: string; debit?: number; credit?: number };
 
 /**
  * Résout les numéros de compte en ids une seule fois par lot, puis insère
@@ -15,10 +19,13 @@ async function creerEcritures(
   entrepriseId: string,
   dateEcriture: Date,
   lignes: LigneEcriture[],
-  reference: { factureId?: string; paiementId?: string }
+  reference: { factureId?: string; paiementId?: string; depenseId?: string }
 ): Promise<void> {
-  const numeros = [...new Set(lignes.map((l) => l.numeroCompte))];
-  const comptes = await tx.select({ id: compteComptable.id, numero: compteComptable.numero }).from(compteComptable).where(inArray(compteComptable.numero, numeros));
+  const numeros = [...new Set(lignes.map((l) => l.numeroCompte).filter((n): n is string => !!n))];
+  const comptes =
+    numeros.length > 0
+      ? await tx.select({ id: compteComptable.id, numero: compteComptable.numero }).from(compteComptable).where(inArray(compteComptable.numero, numeros))
+      : [];
   const idParNumero = Object.fromEntries(comptes.map((c) => [c.numero, c.id]));
 
   const manquants = numeros.filter((n) => !idParNumero[n]);
@@ -31,11 +38,12 @@ async function creerEcritures(
       entrepriseId,
       dateEcriture,
       libelle: l.libelle,
-      compteId: idParNumero[l.numeroCompte],
+      compteId: l.compteId ?? idParNumero[l.numeroCompte!],
       debit: l.debit ?? 0,
       credit: l.credit ?? 0,
       factureId: reference.factureId,
       paiementId: reference.paiementId,
+      depenseId: reference.depenseId,
     }))
   );
 }
@@ -92,4 +100,38 @@ export async function genererEcrituresPaiement(
     ],
     { factureId: params.factureId, paiementId: params.paiementId }
   );
+}
+
+/**
+ * Cycle Achats (échange du 2026-09-06) — appelée à chaque Dépense
+ * enregistrée : la catégorie de charge choisie par l'utilisateur et la TVA
+ * récupérable (si applicable) au débit, la trésorerie au crédit. Même
+ * logique de compte de trésorerie selon le moyen de paiement que
+ * genererEcrituresPaiement(), avec "especes" traité comme la Caisse plutôt
+ * que la Banque (paiement plus courant en espèces côté achats que côté
+ * encaissement client dans ce produit).
+ */
+export async function genererEcrituresDepense(
+  tx: TransactionDrizzle,
+  depense: {
+    id: string;
+    entrepriseId: string;
+    libelle: string;
+    compteComptableId: string;
+    montantHT: number;
+    montantTVA: number;
+    montantTTC: number;
+    moyenPaiement: string;
+    datePaiement: Date;
+  }
+): Promise<void> {
+  const compteTresorerie = depense.moyenPaiement === "especes" || depense.moyenPaiement === "manuel" ? "571000" : "512000";
+
+  const lignes: LigneEcriture[] = [{ compteId: depense.compteComptableId, libelle: depense.libelle, debit: depense.montantHT }];
+  if (depense.montantTVA > 0) {
+    lignes.push({ numeroCompte: "445200", libelle: `TVA récupérable — ${depense.libelle}`, debit: depense.montantTVA });
+  }
+  lignes.push({ numeroCompte: compteTresorerie, libelle: depense.libelle, credit: depense.montantTTC });
+
+  await creerEcritures(tx, depense.entrepriseId, depense.datePaiement, lignes, { depenseId: depense.id });
 }

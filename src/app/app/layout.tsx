@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -57,6 +57,9 @@ const MODULES_MENU: ItemMenu[] = [
     ],
   },
   { module: "FACTURATION", libelle: "Facturation", href: "/app/facturation", Icone: Receipt },
+  // Cycle Achats (Fournisseurs/Dépenses), miroir du cycle Ventes côté
+  // fournisseurs — inspiré de Zoho Books, échange du 2026-09-06.
+  { module: "ACHATS", libelle: "Achats", href: "/app/achats", Icone: ShoppingCart },
   { module: "PROJETS", libelle: "Projets", href: "/app/projets", Icone: FolderKanban },
   { module: "DOCUMENTS", libelle: "Documents", href: "/app/documents", Icone: FileText },
   { module: "MESSAGERIE", libelle: "Messagerie", href: "/app/messagerie", Icone: MessageSquare },

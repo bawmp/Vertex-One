@@ -1,8 +1,8 @@
-# CRM — ce qui reste à construire après la commercialisation
+# Zoho CRM & Zoho Books — ce qui reste à construire après la commercialisation
 
 *Document de suivi, pas une spécification technique — à date du 2026-09-06.*
 
-Le CRM de Vertex One (Leads/Contacts/Comptes/Deals + Accueil) est fonctionnel et vendable en l'état. Cette page recense ce qui a été identifié comme manquant par rapport à Zoho CRM pendant sa reconstruction, pour ne rien perdre en attendant d'y revenir. Ce n'est pas un gel : rien n'empêche de reprendre l'un de ces points avant la commercialisation si un besoin se présente — cette page sert de mémoire, pas de barrière.
+Le CRM de Vertex One (Leads/Contacts/Comptes/Deals + Accueil) et le module Documents financiers (inspiré de Zoho Books) sont fonctionnels et vendables en l'état. Cette page recense ce qui a été identifié comme manquant par rapport aux vrais produits Zoho pendant leur reconstruction, pour ne rien perdre en attendant d'y revenir. Ce n'est pas un gel : rien n'empêche de reprendre l'un de ces points avant la commercialisation si un besoin se présente — cette page sert de mémoire, pas de barrière.
 
 ## 1. Modules Zoho non construits
 
@@ -44,6 +44,44 @@ Aujourd'hui, une Tâche ou une Réunion CRM ne se crée que depuis l'Accueil (`/
 - **Pas d'édition ni de suppression** d'une Tâche/Réunion CRM une fois créée (seul le statut d'une Tâche change). Zoho permet de tout modifier après coup.
 - **Pas de réassignation** de Lead/Contact/Deal à un autre utilisateur depuis l'interface (le champ `assigneAId` existe et est utilisé, mais rien ne le modifie après la création/conversion).
 - **Pas de champs personnalisés** sur Lead/Contact/Deal/Compte — le modèle est fixe, contrairement à Zoho qui permet d'en ajouter à volonté.
+
+## 4. Zoho Books — Documents financiers
+
+Construit le 2026-09-06 à partir de la page d'aide Zoho Books "Documents" (upload de reçus/factures, autoscan, dossiers, rattachement aux transactions, rapprochement bancaire assisté) : boîte de réception, classeurs, rattachement d'un fichier à une Facture ou un Paiement, métadonnées (fournisseur/montant/date) — voir `src/db/schema.ts` (`documentFinancier`/`classeurDocumentFinancier`), `src/lib/actions/document-financier.ts`, `src/app/app/comptabilite/documents/`.
+
+Deux capacités réelles de Zoho Books n'ont pas d'équivalent, faute d'infrastructure déjà configurée dans Vertex One — décision volontaire de ne pas construire une version factice :
+
+- **Autoscan (OCR)** : Zoho extrait automatiquement date/montant/fournisseur d'un reçu scanné. Nécessiterait de choisir et configurer un vrai fournisseur d'extraction (API de vision/OCR) — aucun n'est branché aujourd'hui. En attendant, ces champs se saisissent à la main sur chaque document.
+- **Adresse email dédiée pour recevoir les reçus par email** : nécessiterait une infrastructure d'email entrant (parsing de webhook), que Vertex One n'a pas — seul l'envoi sortant (Resend) existe. Le dépôt de fichier se fait donc uniquement par upload manuel dans l'interface.
+
+Autres écarts, moins prioritaires :
+- Un document ne peut se rattacher qu'à une Facture ou un Paiement existants (côté Ventes) — pas encore à une Dépense/Facture fournisseur (voir section 5, construites depuis, mais pas encore branchées à ce module Documents).
+- Pas de permissions par classeur (Zoho permet de restreindre un classeur à certains utilisateurs) — tout Admin/Manager avec accès à Comptabilité voit tous les classeurs.
+- Pas de portail client pour visualiser les documents partagés (Vertex One n'a pas de portail client du tout).
+- Pas de suggestion automatique de rapprochement entre un document et une transaction existante (Zoho propose des "matching transactions") — le rattachement reste un choix manuel dans un menu déroulant.
+
+## 5. Zoho Books — Cycle Achats (Fournisseurs/Dépenses)
+
+Construit le 2026-09-07 à partir de `zoho-books-full-spec.md` (cahier des charges complet fourni par l'utilisateur). Première tranche du cycle Achats — le pendant du cycle Ventes côté fournisseurs : **Fournisseurs** (`fournisseur`) et **Dépenses** (`depense`, saisie rapide "hors cycle bill complet" qui génère immédiatement ses écritures comptables). Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACHATS` propre (voir `src/lib/permissions.ts`).
+
+**Reste à construire pour ce cycle** (tranches séparées à venir, un sujet financier sensible traité étape par étape plutôt qu'en un seul bloc) :
+- Bons de commande fournisseur (Purchase Orders)
+- Factures fournisseur (Bills) — la vraie dette fournisseur avec échéance, contrairement à la Dépense qui suppose un paiement immédiat
+- Paiements effectués (Payments Made) — règlement d'une ou plusieurs Bills
+- Avoirs fournisseur (Vendor Credits)
+
+**Extensions Ventes non construites** (même spec) : Bons de commande client (Sales Orders), Factures récurrentes, Factures d'acompte (Retainer), Avoirs clients (Credit Notes), Reçus de vente (Sales Receipts).
+
+**Items** — catalogue Produits/Tarifs (biens/services, prix vente/achat, suivi de stock optionnel) : les lignes de Devis/Factures/Dépenses restent en texte libre, sans référentiel réutilisable.
+
+**Hors périmètre pour l'instant, chantiers structurellement différents** (pas de simples extensions) :
+- Transaction Approval (workflow d'approbation multi-niveaux)
+- Customer Portal / Vendor Portal (surface authentifiée externe)
+- Time Tracking/Timesheet (Vertex One a déjà un modèle de Tâches différent, propre à ses Projets)
+- Custom Modules/Blueprints
+- Multi-devises, Emplacements (Locations), Budgets, Immobilisations, Verrouillage de période
+- Rapports avancés (Ventes/Achats/Stock/Balances âgées) au-delà du Bilan/Compte de résultat déjà existant
+- Import/Export en masse, API publique/Webhooks, passerelles de paiement autres que NotchPay
 
 ## Quand y revenir
 

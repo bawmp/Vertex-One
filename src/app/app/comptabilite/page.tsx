@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { Calculator, Lock, AlertTriangle, Landmark } from "lucide-react";
+import { Calculator, Lock, AlertTriangle, Landmark, FolderOpen } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, ecritureComptable, compteComptable } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -76,10 +76,16 @@ export default async function PageComptabilite() {
           <Calculator className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">Comptabilité</h1>
         </div>
-        <Link href="/app/comptabilite/rapprochement" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          <Landmark data-icon="inline-start" aria-hidden />
-          Rapprochement bancaire
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/app/comptabilite/documents" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <FolderOpen data-icon="inline-start" aria-hidden />
+            Documents
+          </Link>
+          <Link href="/app/comptabilite/rapprochement" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Landmark data-icon="inline-start" aria-hidden />
+            Rapprochement bancaire
+          </Link>
+        </div>
       </div>
 
       <div className="flex items-start gap-2 rounded-md border border-amber-600/20 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">

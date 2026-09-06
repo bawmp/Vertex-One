@@ -176,6 +176,34 @@
       "when": 1788708257188,
       "tag": "0024_force_rls_activites_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788713999474,
+      "tag": "0025_documents_financiers_zoho_books",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788714037409,
+      "tag": "0026_force_rls_documents_financiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788735742692,
+      "tag": "0027_cycle_achats_fournisseurs_depenses",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788735866332,
+      "tag": "0028_force_rls_cycle_achats",
+      "breakpoints": true
     }
   ]
 }
