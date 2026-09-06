@@ -1,12 +1,33 @@
 import { test, expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "../src/db/client";
-import { entreprise, utilisateur, compte, session, prospect, devis, ligneDevis, facture, ligneFacture, paiement } from "../src/db/schema";
+import {
+  entreprise,
+  utilisateur,
+  compte,
+  session,
+  lead,
+  contact,
+  compteClient,
+  deal,
+  historiqueStatutDeal,
+  devis,
+  ligneDevis,
+  facture,
+  ligneFacture,
+  paiement,
+  ecritureComptable,
+  dossier,
+  projet,
+  canal,
+} from "../src/db/schema";
 
-// Parcours critique Palier 1, section 9 : compléter le NIU, créer un
-// prospect, créer un devis, l'envoyer, l'accepter (facture générée
-// automatiquement avec numérotation séquentielle), marquer la facture comme
-// payée — vérifié dans un vrai navigateur contre la vraie base.
+// Parcours critique Palier 1, section 9 (adapté à la reconstruction
+// Leads/Contacts/Comptes/Deals du 2026-09-06) : compléter le NIU, créer un
+// lead, le convertir en Contact/Deal, créer un devis, l'envoyer, l'accepter
+// (facture générée automatiquement avec numérotation séquentielle), marquer
+// la facture comme payée — vérifié dans un vrai navigateur contre la vraie
+// base.
 const emailAdmin = `e2e-p1-${Date.now()}@vertexone.test`;
 const motDePasse = "mot-de-passe-test-12345";
 
@@ -15,12 +36,26 @@ let entrepriseId: string;
 test.afterAll(async () => {
   if (!entrepriseId) return;
   await avecEntreprise(entrepriseId, async (tx) => {
+    // accepterDevis() ouvre toujours un Dossier + Projet (+ canal) via
+    // creerProjetDepuisDevisAccepte(), quel que soit le forfait — à
+    // supprimer avant devis/deal, sinon leurs FK bloquent le nettoyage (même
+    // bug déjà rencontré dans tests/palier-2-pont-dossier-projet.test.ts).
+    await tx.delete(canal).where(eq(canal.entrepriseId, entrepriseId));
+    await tx.delete(projet).where(eq(projet.entrepriseId, entrepriseId));
+    await tx.delete(dossier).where(eq(dossier.entrepriseId, entrepriseId));
+    // marquerFacturePayee() génère aussi une écriture comptable
+    // automatique (Palier 4) — à supprimer avant paiement/facture.
+    await tx.delete(ecritureComptable).where(eq(ecritureComptable.entrepriseId, entrepriseId));
     await tx.delete(paiement).where(eq(paiement.entrepriseId, entrepriseId));
     await tx.delete(ligneFacture).where(eq(ligneFacture.entrepriseId, entrepriseId));
     await tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId));
     await tx.delete(ligneDevis).where(eq(ligneDevis.entrepriseId, entrepriseId));
     await tx.delete(devis).where(eq(devis.entrepriseId, entrepriseId));
-    await tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId));
+    await tx.delete(historiqueStatutDeal).where(eq(historiqueStatutDeal.entrepriseId, entrepriseId));
+    await tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId));
+    await tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId));
+    await tx.delete(compteClient).where(eq(compteClient.entrepriseId, entrepriseId));
+    await tx.delete(lead).where(eq(lead.entrepriseId, entrepriseId));
   });
 
   const [u] = await db.select().from(utilisateur).where(eq(utilisateur.email, emailAdmin));
@@ -32,7 +67,7 @@ test.afterAll(async () => {
   await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));
 });
 
-test("prospect → devis → facture (numérotation) → paiement", async ({ page }) => {
+test("lead → conversion Contact/Deal → devis → facture (numérotation) → paiement", async ({ page }) => {
   // Ce parcours enchaîne 7 Server Actions réelles contre Neon ; chacune a
   // individuellement réussi lors des runs précédents mais leur somme dépasse
   // le timeout global (60s) — une requête isolée a même mis 26s sur cette
@@ -56,15 +91,18 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
   await page.fill("#niu", "M012345678901X");
   await page.fill("#rccm", "RC/DLA/2026/B/1234");
   await page.click('button[type="submit"]');
-  await page.waitForURL("/app/crm");
+  await page.waitForURL("/app/leads");
 
-  await page.goto("/app/crm/nouveau");
+  await page.goto("/app/leads/nouveau");
   await page.fill("#nom", "Garage Mbarga");
   await page.fill("#societeCliente", "Garage Mbarga SARL");
   await page.fill("#telephone", "+237600000000");
   await page.fill("#email", `e2e-p1-client-${Date.now()}@vertexone.test`);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/\/app\/crm\/.+/);
+  await page.waitForURL(/\/app\/leads\/.+/);
+
+  await page.click('button:has-text("Convertir en Contact/Deal")');
+  await page.waitForURL(/\/app\/deals\/.+/);
 
   await page.click('a:has-text("Créer un devis")');
   await page.waitForURL(/\/app\/facturation\/devis\/nouveau/);

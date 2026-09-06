@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { dossier, prospect, commentaire, entreprise } from "@/db/schema";
+import { dossier, contact, commentaire, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -16,7 +16,7 @@ import { disponible } from "@/lib/plans";
  * accepté. Le pont automatique (src/lib/projets/pont.ts) couvre le cas
  * "premier devis accepté" ; ceci couvre le reste.
  */
-export async function creerDossier(prospectId: string) {
+export async function creerDossier(contactId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte.role, "DOSSIERS", "CREER")) return;
@@ -31,18 +31,18 @@ export async function creerDossier(prospectId: string) {
     const [existant] = await tx
       .select({ id: dossier.id })
       .from(dossier)
-      .where(and(eq(dossier.entrepriseId, utilisateurConnecte.entrepriseId), eq(dossier.prospectId, prospectId)));
+      .where(and(eq(dossier.entrepriseId, utilisateurConnecte.entrepriseId), eq(dossier.contactId, contactId)));
     if (existant) return existant.id;
 
-    const [leProspect] = await tx.select({ nom: prospect.nom }).from(prospect).where(eq(prospect.id, prospectId));
-    if (!leProspect) return null;
+    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, contactId));
+    if (!leContact) return null;
 
     const [nouveau] = await tx
       .insert(dossier)
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
-        prospectId,
-        titre: leProspect.nom,
+        contactId,
+        titre: leContact.nom,
         responsableId: utilisateurConnecte.utilisateurId,
       })
       .returning({ id: dossier.id });

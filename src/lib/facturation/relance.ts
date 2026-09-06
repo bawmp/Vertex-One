@@ -1,6 +1,6 @@
 import { eq, and, lt, notInArray, inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { facture, prospect, entreprise } from "@/db/schema";
+import { facture, deal, contact, entreprise } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
@@ -37,32 +37,33 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
         notInArray(facture.statut, ["PAYEE", "ANNULEE", "EN_RETARD"])
       )
     )
-    .returning({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dateEcheance: facture.dateEcheance, prospectId: facture.prospectId });
+    .returning({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dateEcheance: facture.dateEcheance, dealId: facture.dealId });
 
   if (enRetard.length === 0) return [];
 
   const [monEntreprise] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
-  const prospects = await tx
-    .select({ id: prospect.id, nom: prospect.nom, email: prospect.email, telephone: prospect.telephone })
-    .from(prospect)
-    .where(inArray(prospect.id, enRetard.map((f) => f.prospectId)));
-  const prospectParId = new Map(prospects.map((p) => [p.id, p]));
+  const contactsParDeal = await tx
+    .select({ dealId: deal.id, nom: contact.nom, email: contact.email, telephone: contact.telephone })
+    .from(deal)
+    .innerJoin(contact, eq(deal.contactId, contact.id))
+    .where(inArray(deal.id, enRetard.map((f) => f.dealId)));
+  const contactParDealId = new Map(contactsParDeal.map((c) => [c.dealId, c]));
 
   const resultats: ResultatRelance[] = [];
 
   for (const f of enRetard) {
-    const leProspect = prospectParId.get(f.prospectId);
-    if (!leProspect) continue;
+    const leContact = contactParDealId.get(f.dealId);
+    if (!leContact) continue;
 
-    if (leProspect.email) {
+    if (leContact.email) {
       const { subject, html } = gabaritRelanceFacture({
-        nomClient: leProspect.nom,
+        nomClient: leContact.nom,
         numeroFacture: f.numero,
         montantTTC: f.montantTTC,
         dateEcheance: f.dateEcheance,
         nomEntreprise: monEntreprise.nom,
       });
-      const { envoye, erreur } = await envoyerEmail({ to: leProspect.email, subject, html });
+      const { envoye, erreur } = await envoyerEmail({ to: leContact.email, subject, html });
       resultats.push({ factureId: f.id, numero: f.numero, canal: "email", envoye, erreur });
     }
 
@@ -71,8 +72,8 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
     // documenté" que les autres intégrations externes tant que
     // WHATSAPP_ACCESS_TOKEN n'est pas configuré (voir CLAUDE.md).
     const { envoye: envoyeWhatsapp, erreur: erreurWhatsapp } = await envoyerWhatsApp(
-      leProspect.telephone,
-      `Bonjour ${leProspect.nom}, votre facture ${f.numero} d'un montant de ${formaterFCFA(f.montantTTC)} est en retard de paiement. Merci de régulariser dès que possible.`
+      leContact.telephone,
+      `Bonjour ${leContact.nom}, votre facture ${f.numero} d'un montant de ${formaterFCFA(f.montantTTC)} est en retard de paiement. Merci de régulariser dès que possible.`
     );
     resultats.push({ factureId: f.id, numero: f.numero, canal: "whatsapp", envoye: envoyeWhatsapp, erreur: erreurWhatsapp });
   }

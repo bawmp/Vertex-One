@@ -22,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     dateEcheanceOuValidite: donnees.facture.dateEcheance,
     labelDateSecondaire: "Date d'échéance",
     entreprise: donnees.entreprise,
-    client: donnees.prospect,
+    client: donnees.client,
     lignes: donnees.lignes,
     montantHT: donnees.facture.montantHT,
     montantTVA: donnees.facture.montantTVA,

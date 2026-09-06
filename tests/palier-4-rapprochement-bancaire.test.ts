@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, facture, paiement } from "@/db/schema";
+import { entreprise, utilisateur, contact, deal, facture, paiement } from "@/db/schema";
 import { parserCsvReleve, suggererCorrespondances, confirmerRapprochement } from "@/lib/comptabilite/rapprochement";
 
 describe("Palier 4 — rapprochement bancaire", () => {
@@ -34,14 +34,18 @@ describe("Palier 4 — rapprochement bancaire", () => {
       const dateLointaine = new Date("2026-06-01");
 
       const [pDansFenetre, pHorsFenetre] = await avecEntreprise(entrepriseId, async (tx) => {
-        const [pr] = await tx
-          .insert(prospect)
+        const [c] = await tx
+          .insert(contact)
           .values({ entrepriseId, nom: "Client Rapprochement", telephone: "+237600000007", assigneAId: utilisateurId })
-          .returning({ id: prospect.id });
+          .returning({ id: contact.id });
+        const [d] = await tx
+          .insert(deal)
+          .values({ entrepriseId, titre: "Deal — Client Rapprochement", contactId: c.id, assigneAId: utilisateurId })
+          .returning({ id: deal.id });
 
         const [f1] = await tx
           .insert(facture)
-          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0001", prospectId: pr.id, statut: "PAYEE", montantHT: 100000, montantTVA: 19250, montantTTC: 119250, dateEcheance: dateProche })
+          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0001", dealId: d.id, statut: "PAYEE", montantHT: 100000, montantTVA: 19250, montantTTC: 119250, dateEcheance: dateProche })
           .returning({ id: facture.id });
         const [pay1] = await tx
           .insert(paiement)
@@ -50,7 +54,7 @@ describe("Palier 4 — rapprochement bancaire", () => {
 
         const [f2] = await tx
           .insert(facture)
-          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0002", prospectId: pr.id, statut: "PAYEE", montantHT: 42017, montantTVA: 7983, montantTTC: 50000, dateEcheance: dateLointaine })
+          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0002", dealId: d.id, statut: "PAYEE", montantHT: 42017, montantTVA: 7983, montantTTC: 50000, dateEcheance: dateLointaine })
           .returning({ id: facture.id });
         const [pay2] = await tx
           .insert(paiement)
@@ -67,7 +71,8 @@ describe("Palier 4 — rapprochement bancaire", () => {
       await avecEntreprise(entrepriseId, async (tx) => {
         await tx.delete(paiement).where(eq(paiement.entrepriseId, entrepriseId));
         await tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId));
-        await tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId));
+        await tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId));
+        await tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId));
       });
       await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
       await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));

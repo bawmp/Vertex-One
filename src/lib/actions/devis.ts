@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis, facture, ligneFacture, prospect } from "@/db/schema";
+import { entreprise, devis, ligneDevis, facture, ligneFacture, deal, contact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
@@ -42,7 +42,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
     return { erreur: "Vous n'avez pas le droit de créer un devis." };
   }
 
-  const prospectId = String(formData.get("prospectId") ?? "");
+  const dealId = String(formData.get("dealId") ?? "");
   const dateValidite = String(formData.get("dateValidite") ?? "");
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
@@ -53,7 +53,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
   }));
 
   const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
-  if (!analyseLignes.success || !prospectId || !dateValidite) {
+  if (!analyseLignes.success || !dealId || !dateValidite) {
     return { erreur: analyseLignes.success ? "Formulaire invalide." : analyseLignes.error.issues[0]?.message };
   }
 
@@ -73,7 +73,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        prospectId,
+        dealId,
         dateValidite: new Date(dateValidite),
         montantHT: montants.montantHT,
         montantTVA: montants.montantTVA,
@@ -122,11 +122,14 @@ export async function accepterDevis(devisId: string) {
     const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
     if (!leDevis || leDevis.statut === "ACCEPTE") return null;
 
-    const [lignesDuDevis, [leProspect], [monEntreprise]] = await Promise.all([
+    const [lignesDuDevis, [leDeal], [monEntreprise]] = await Promise.all([
       tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
-      tx.select({ nom: prospect.nom }).from(prospect).where(eq(prospect.id, leDevis.prospectId)),
+      tx.select({ contactId: deal.contactId }).from(deal).where(eq(deal.id, leDevis.dealId)),
       tx.select({ secteurProfil: entreprise.secteurProfil }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
     ]);
+    if (!leDeal) return null; // intégrité référentielle violée — ne devrait jamais arriver
+
+    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDeal.contactId));
 
     await tx.update(devis).set({ statut: "ACCEPTE" }).where(eq(devis.id, devisId));
 
@@ -139,7 +142,7 @@ export async function accepterDevis(devisId: string) {
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        prospectId: leDevis.prospectId,
+        dealId: leDevis.dealId,
         devisOrigineId: leDevis.id,
         montantHT: leDevis.montantHT,
         montantTVA: leDevis.montantTVA,
@@ -180,8 +183,8 @@ export async function accepterDevis(devisId: string) {
     // Projet de suivi ni l'inverse.
     await creerProjetDepuisDevisAccepte(tx, {
       entrepriseId: utilisateurConnecte.entrepriseId,
-      prospectId: leDevis.prospectId,
-      prospectNom: leProspect?.nom ?? "Client",
+      contactId: leDeal.contactId,
+      contactNom: leContact?.nom ?? "Client",
       secteurProfil: monEntreprise?.secteurProfil ?? "generique",
       devisId: leDevis.id,
       numeroDevis: leDevis.numero,
@@ -221,7 +224,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const donnees = await recupererDevisPourPDF(tx, utilisateurConnecte, devisId);
     if (!donnees) return { erreur: "Devis introuvable." };
-    if (!donnees.prospect?.email) {
+    if (!donnees.client?.email) {
       return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
     }
 
@@ -234,7 +237,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
         dateEcheanceOuValidite: donnees.devis.dateValidite,
         labelDateSecondaire: "Valide jusqu'au",
         entreprise: donnees.entreprise,
-        client: donnees.prospect,
+        client: donnees.client,
         lignes: donnees.lignes,
         montantHT: donnees.devis.montantHT,
         montantTVA: donnees.devis.montantTVA,
@@ -243,14 +246,14 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
     ]);
 
     const variables = {
-      client: donnees.prospect.nom,
+      client: donnees.client.nom,
       numero: donnees.devis.numero,
       montant: formaterFCFA(donnees.devis.montantTTC),
       entreprise: donnees.entreprise.nom,
     };
 
     const { envoye, erreur } = await envoyerEmail({
-      to: donnees.prospect.email,
+      to: donnees.client.email,
       subject: interpoler(modele.objet, variables),
       html: corpsVersHtml(interpoler(modele.corps, variables)),
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],

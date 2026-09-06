@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Download, CheckCircle2, XCircle, CreditCard } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { facture, ligneFacture, prospect, paiement, entreprise, avoirFacture } from "@/db/schema";
+import { facture, ligneFacture, deal, contact, compteClient, paiement, entreprise, avoirFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -23,19 +23,21 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
     const [f] = await tx.select().from(facture).where(eq(facture.id, id));
     if (!f) return null;
 
-    const [lignes, [p], paiements, [monEntreprise], [avoir]] = await Promise.all([
+    const [lignes, [leDeal], paiements, [monEntreprise], [avoir]] = await Promise.all([
       tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, id)),
-      tx.select().from(prospect).where(eq(prospect.id, f.prospectId)),
+      tx.select().from(deal).where(eq(deal.id, f.dealId)),
       tx.select().from(paiement).where(eq(paiement.factureId, id)),
       tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
       tx.select().from(avoirFacture).where(eq(avoirFacture.factureId, id)),
     ]);
+    const [p] = leDeal ? await tx.select().from(contact).where(eq(contact.id, leDeal.contactId)) : [null];
+    const [compte] = leDeal?.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, leDeal.compteId)) : [null];
 
-    return { facture: f, lignes, prospect: p, paiements, entreprise: monEntreprise, avoir: avoir ?? null };
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, paiements, entreprise: monEntreprise, avoir } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir } = donnees;
 
   const peutModifier = peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER");
   const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
@@ -52,7 +54,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           </div>
           <p className="text-muted-foreground">
             {leProspect?.nom}
-            {leProspect?.societeCliente ? ` — ${leProspect.societeCliente}` : ""}
+            {leCompte ? ` — ${leCompte.nom}` : ""}
           </p>
           {monEntreprise.niu ? <p className="text-xs text-muted-foreground">NIU émetteur : {monEntreprise.niu}</p> : null}
         </div>

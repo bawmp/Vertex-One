@@ -1,6 +1,6 @@
 import { eq, and, inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { prospect, statutProspect } from "@/db/schema";
+import { deal, contact, statutDeal } from "@/db/schema";
 import { dossiersSansProjetActif } from "@/lib/projets/indicateurs";
 
 export type Segment = { statut?: string; sansProjetDepuisJours?: number };
@@ -12,7 +12,9 @@ export type ContactSegment = { id: string; nom: string; telephone: string; email
  * pris en charge, jamais combinés (un OR/AND arbitraire serait déjà le
  * "petit Creator" que la section met en garde de ne pas construire) :
  *
- * - { statut: "PERDU" } — tous les prospects dans cet état.
+ * - { statut: "PERDU" } — tous les Deals à cette étape du pipeline
+ *   (reconstruction Leads/Contacts/Comptes/Deals, échange du 2026-09-06 —
+ *   le statut vit désormais sur le Deal, pas directement sur le Contact).
  * - { sansProjetDepuisJours: 90 } — approximé ici comme "Dossier actif sans
  *   projet en cours, ouvert depuis au moins N jours" (réutilise
  *   dossiersSansProjetActif() du Palier 2/6) : le modèle de données ne suit
@@ -21,11 +23,12 @@ export type ContactSegment = { id: string; nom: string; telephone: string; email
  *   exacte de la durée d'inactivité.
  */
 export async function resoudreSegment(tx: TransactionDrizzle, entrepriseId: string, segment: Segment): Promise<ContactSegment[]> {
-  if (segment.statut && statutProspect.enumValues.includes(segment.statut as (typeof statutProspect.enumValues)[number])) {
+  if (segment.statut && statutDeal.enumValues.includes(segment.statut as (typeof statutDeal.enumValues)[number])) {
     return tx
-      .select({ id: prospect.id, nom: prospect.nom, telephone: prospect.telephone, email: prospect.email })
-      .from(prospect)
-      .where(and(eq(prospect.entrepriseId, entrepriseId), eq(prospect.statut, segment.statut as (typeof statutProspect.enumValues)[number])));
+      .select({ id: contact.id, nom: contact.nom, telephone: contact.telephone, email: contact.email })
+      .from(deal)
+      .innerJoin(contact, eq(deal.contactId, contact.id))
+      .where(and(eq(deal.entrepriseId, entrepriseId), eq(deal.statut, segment.statut as (typeof statutDeal.enumValues)[number])));
   }
 
   if (segment.sansProjetDepuisJours != null) {
@@ -33,13 +36,13 @@ export async function resoudreSegment(tx: TransactionDrizzle, entrepriseId: stri
     seuil.setDate(seuil.getDate() - segment.sansProjetDepuisJours);
 
     const dossiers = await dossiersSansProjetActif(tx, entrepriseId);
-    const idsProspects = dossiers.filter((d) => d.dateOuverture <= seuil).map((d) => d.prospectId);
-    if (idsProspects.length === 0) return [];
+    const idsContacts = dossiers.filter((d) => d.dateOuverture <= seuil).map((d) => d.contactId);
+    if (idsContacts.length === 0) return [];
 
     return tx
-      .select({ id: prospect.id, nom: prospect.nom, telephone: prospect.telephone, email: prospect.email })
-      .from(prospect)
-      .where(inArray(prospect.id, idsProspects));
+      .select({ id: contact.id, nom: contact.nom, telephone: contact.telephone, email: contact.email })
+      .from(contact)
+      .where(inArray(contact.id, idsContacts));
   }
 
   return [];

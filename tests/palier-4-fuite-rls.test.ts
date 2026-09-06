@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, dossier, document, demandeSignature, signataire, contrat, ecritureComptable, compteComptable } from "@/db/schema";
+import { entreprise, utilisateur, contact, dossier, document, demandeSignature, signataire, contrat, ecritureComptable, compteComptable } from "@/db/schema";
 
 /**
  * Test de fuite délibérée entre deux entreprises fictives, pour les quatre
@@ -54,12 +54,12 @@ describe("Palier 4 — isolation RLS entre entreprises (signature/contrats/compt
 
     const [docM, dS, sM, cM, eM] = await avecEntreprise(mbargaId, async (tx) => {
       const [pr] = await tx
-        .insert(prospect)
+        .insert(contact)
         .values({ entrepriseId: mbargaId, nom: "Client Mbarga", telephone: "+237600000005", assigneAId: utilisateurMbargaId })
-        .returning({ id: prospect.id });
+        .returning({ id: contact.id });
       const [d] = await tx
         .insert(dossier)
-        .values({ entrepriseId: mbargaId, prospectId: pr.id, titre: "Dossier Mbarga", responsableId: utilisateurMbargaId })
+        .values({ entrepriseId: mbargaId, contactId: pr.id, titre: "Dossier Mbarga", responsableId: utilisateurMbargaId })
         .returning({ id: dossier.id });
       const [doc] = await tx
         .insert(document)
@@ -116,7 +116,7 @@ describe("Palier 4 — isolation RLS entre entreprises (signature/contrats/compt
         await tx.delete(demandeSignature).where(eq(demandeSignature.entrepriseId, id));
         await tx.delete(document).where(eq(document.entrepriseId, id));
         await tx.delete(dossier).where(eq(dossier.entrepriseId, id));
-        await tx.delete(prospect).where(eq(prospect.entrepriseId, id));
+        await tx.delete(contact).where(eq(contact.entrepriseId, id));
       });
     }
     await db.delete(compteComptable).where(eq(compteComptable.numero, "999999"));

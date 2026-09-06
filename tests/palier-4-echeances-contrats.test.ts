@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, dossier, contrat } from "@/db/schema";
+import { entreprise, utilisateur, contact, dossier, contrat } from "@/db/schema";
 import { verifierEcheancesContrats } from "@/lib/contrats/echeances";
 
 /**
@@ -27,12 +27,12 @@ describe("Palier 4 — vérification des échéances de contrats", () => {
 
     dossierId = await avecEntreprise(entrepriseId, async (tx) => {
       const [pr] = await tx
-        .insert(prospect)
+        .insert(contact)
         .values({ entrepriseId, nom: "Client Échéances", telephone: "+237600000006", assigneAId: utilisateurId })
-        .returning({ id: prospect.id });
+        .returning({ id: contact.id });
       const [d] = await tx
         .insert(dossier)
-        .values({ entrepriseId, prospectId: pr.id, titre: "Dossier Échéances", responsableId: utilisateurId })
+        .values({ entrepriseId, contactId: pr.id, titre: "Dossier Échéances", responsableId: utilisateurId })
         .returning({ id: dossier.id });
       return d.id;
     });
@@ -42,7 +42,7 @@ describe("Palier 4 — vérification des échéances de contrats", () => {
     await avecEntreprise(entrepriseId, async (tx) => {
       await tx.delete(contrat).where(eq(contrat.entrepriseId, entrepriseId));
       await tx.delete(dossier).where(eq(dossier.entrepriseId, entrepriseId));
-      await tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId));
+      await tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId));
     });
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));

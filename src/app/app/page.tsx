@@ -2,14 +2,14 @@ import Link from "next/link";
 import { and, eq, ne, lt, gte, notInArray, sql } from "drizzle-orm";
 import { Wallet, AlertTriangle, Users, ClipboardList, FolderClock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { paiement, facture, prospect, entreprise, tache } from "@/db/schema";
+import { paiement, facture, deal, entreprise, tache } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { dossiersSansProjetActif as recupererDossiersSansProjetActif } from "@/lib/projets/indicateurs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { STATUT_PROSPECT } from "@/lib/libelles";
+import { STATUT_DEAL } from "@/lib/libelles";
 import { libelleDossier } from "@/lib/vocabulaire";
 
 export default async function PageTableauDeBord() {
@@ -33,7 +33,7 @@ export default async function PageTableauDeBord() {
       // que sur le seul statut EN_RETARD stocké, qui dépend d'une tâche
       // planifiée pas encore branchée (voir src/lib/facturation/relance.ts).
       const enRetard = await tx
-        .select({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, prospectId: facture.prospectId })
+        .select({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dealId: facture.dealId })
         .from(facture)
         .where(
           and(
@@ -44,10 +44,10 @@ export default async function PageTableauDeBord() {
         );
 
       const pipelineLignes = await tx
-        .select({ statut: prospect.statut, total: sql<string>`count(*)` })
-        .from(prospect)
-        .where(eq(prospect.entrepriseId, utilisateurConnecte.entrepriseId))
-        .groupBy(prospect.statut);
+        .select({ statut: deal.statut, total: sql<string>`count(*)` })
+        .from(deal)
+        .where(eq(deal.entrepriseId, utilisateurConnecte.entrepriseId))
+        .groupBy(deal.statut);
 
       const [monEntreprise] = await tx
         .select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
@@ -145,7 +145,7 @@ export default async function PageTableauDeBord() {
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
             {pipeline.map((p) => {
-              const info = STATUT_PROSPECT[p.statut];
+              const info = STATUT_DEAL[p.statut];
               const part = totalPipeline > 0 ? (Number(p.total) / totalPipeline) * 100 : 0;
               return (
                 <div key={p.statut} className="flex flex-col gap-1">
@@ -159,7 +159,7 @@ export default async function PageTableauDeBord() {
                 </div>
               );
             })}
-            {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">Aucun prospect.</p> : null}
+            {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">Aucun deal.</p> : null}
           </CardContent>
         </Card>
       </div>

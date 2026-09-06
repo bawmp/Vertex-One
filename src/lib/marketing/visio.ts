@@ -4,7 +4,7 @@
  * compte ni clé d'API à gérer. Le lien s'attache à une Interaction de type
  * "rendez-vous" (Palier 1) — aucun nouveau modèle de données nécessaire.
  */
-export function genererLienVisio(entrepriseId: string, prospectId: string): string {
-  const salle = `${entrepriseId}-${prospectId}-${Date.now()}`;
+export function genererLienVisio(entrepriseId: string, contactId: string): string {
+  const salle = `${entrepriseId}-${contactId}-${Date.now()}`;
   return `https://meet.jit.si/${salle}`;
 }

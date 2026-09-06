@@ -53,5 +53,5 @@ export async function enregistrerInfosLegales(
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId))
   );
 
-  redirect("/app/crm");
+  redirect("/app/leads");
 }

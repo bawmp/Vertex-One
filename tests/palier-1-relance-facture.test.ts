@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, facture } from "@/db/schema";
+import { entreprise, utilisateur, contact, deal, facture } from "@/db/schema";
 import { marquerFacturesEnRetard } from "@/lib/facturation/relance";
 
 /**
@@ -32,10 +32,14 @@ describe("Palier 1 — relance des factures en retard", () => {
     utilisateurId = u.id;
 
     await avecEntreprise(entrepriseId, async (tx) => {
-      const [p] = await tx
-        .insert(prospect)
+      const [c] = await tx
+        .insert(contact)
         .values({ entrepriseId, nom: "Client Test", telephone: "+237600000000", email: "client-test@vertexone.test", assigneAId: utilisateurId })
-        .returning({ id: prospect.id });
+        .returning({ id: contact.id });
+      const [d] = await tx
+        .insert(deal)
+        .values({ entrepriseId, titre: "Deal — Client Test", contactId: c.id, assigneAId: utilisateurId })
+        .returning({ id: deal.id });
 
       const hier = new Date();
       hier.setDate(hier.getDate() - 1);
@@ -45,7 +49,7 @@ describe("Palier 1 — relance des factures en retard", () => {
         .values({
           entrepriseId,
           numero: "FAC-TEST-RELANCE-000001",
-          prospectId: p.id,
+          dealId: d.id,
           statut: "EMISE",
           montantHT: 100000,
           montantTVA: 19250,
@@ -59,7 +63,8 @@ describe("Palier 1 — relance des factures en retard", () => {
 
   afterAll(async () => {
     await avecEntreprise(entrepriseId, (tx) => tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId)));
-    await avecEntreprise(entrepriseId, (tx) => tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId)));
+    await avecEntreprise(entrepriseId, (tx) => tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId)));
+    await avecEntreprise(entrepriseId, (tx) => tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId)));
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));
   }, 30_000);

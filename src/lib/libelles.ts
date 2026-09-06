@@ -6,12 +6,35 @@ export type VarianteBadge = NonNullable<VariantProps<typeof badgeVariants>["vari
 // Source unique du mapping statut → (libellé, couleur), pour que le CRM, la
 // liste de facturation, les fiches détail et le tableau de bord affichent
 // tous exactement la même sémantique de couleur pour un même statut.
-export const STATUT_PROSPECT: Record<string, { libelle: string; variante: VarianteBadge }> = {
+// Reconstruction Leads/Contacts/Comptes/Deals sur le modèle de Zoho CRM
+// (échange du 2026-09-06) — remplace STATUT_PROSPECT.
+export const STATUT_LEAD: Record<string, { libelle: string; variante: VarianteBadge }> = {
   NOUVEAU: { libelle: "Nouveau", variante: "info" },
-  QUALIFIE: { libelle: "Qualifié", variante: "info" },
+  CONTACTE: { libelle: "Contacté", variante: "info" },
+  QUALIFIE: { libelle: "Qualifié", variante: "success" },
+  DISQUALIFIE: { libelle: "Disqualifié", variante: "danger" },
+};
+
+export const STATUT_DEAL: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  QUALIFICATION: { libelle: "Qualification", variante: "info" },
   PROPOSITION: { libelle: "Proposition", variante: "warning" },
+  NEGOCIATION: { libelle: "Négociation", variante: "warning" },
   GAGNE: { libelle: "Gagné", variante: "success" },
   PERDU: { libelle: "Perdu", variante: "danger" },
+};
+
+// Activités CRM (Accueil, inspiré de Zoho CRM, échange du 2026-09-06).
+export const STATUT_TACHE_CRM: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  NON_COMMENCEE: { libelle: "Non commencé", variante: "neutral" },
+  EN_COURS: { libelle: "En cours", variante: "info" },
+  TERMINEE: { libelle: "Terminée", variante: "success" },
+  DIFFEREE: { libelle: "Différée", variante: "warning" },
+};
+
+export const PRIORITE_TACHE_CRM: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  BASSE: { libelle: "Basse", variante: "neutral" },
+  NORMALE: { libelle: "Normale", variante: "info" },
+  HAUTE: { libelle: "Haute", variante: "danger" },
 };
 
 export const STATUT_DEVIS: Record<string, { libelle: string; variante: VarianteBadge }> = {

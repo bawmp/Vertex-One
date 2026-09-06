@@ -143,7 +143,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const donnees = await recupererFacturePourPDF(tx, utilisateurConnecte, factureId);
     if (!donnees) return { erreur: "Facture introuvable." };
-    if (!donnees.prospect?.email) {
+    if (!donnees.client?.email) {
       return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
     }
 
@@ -156,7 +156,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
         dateEcheanceOuValidite: donnees.facture.dateEcheance,
         labelDateSecondaire: "Date d'échéance",
         entreprise: donnees.entreprise,
-        client: donnees.prospect,
+        client: donnees.client,
         lignes: donnees.lignes,
         montantHT: donnees.facture.montantHT,
         montantTVA: donnees.facture.montantTVA,
@@ -165,14 +165,14 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
     ]);
 
     const variables = {
-      client: donnees.prospect.nom,
+      client: donnees.client.nom,
       numero: donnees.facture.numero,
       montant: formaterFCFA(donnees.facture.montantTTC),
       entreprise: donnees.entreprise.nom,
     };
 
     const { envoye, erreur } = await envoyerEmail({
-      to: donnees.prospect.email,
+      to: donnees.client.email,
       subject: interpoler(modele.objet, variables),
       html: corpsVersHtml(interpoler(modele.corps, variables)),
       attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],

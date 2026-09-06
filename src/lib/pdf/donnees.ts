@@ -1,8 +1,38 @@
 import { eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { devis, ligneDevis, facture, ligneFacture, prospect, entreprise } from "@/db/schema";
+import { devis, ligneDevis, facture, ligneFacture, deal, contact, compteClient, entreprise } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
+
+export type ClientPourPDF = { nom: string; societeCliente: string | null; niu: string | null; telephone: string; email: string | null };
+
+/**
+ * Construit l'objet "client" attendu par DocumentCommercialPDF à partir du
+ * Contact (+ Compte optionnel) associé au Deal — reconstruction
+ * Leads/Contacts/Comptes/Deals (échange du 2026-09-06) : le NIU vit
+ * désormais sur le Compte (donnée de société), pas sur le Contact (donnée
+ * de personne).
+ */
+async function construireClientPourPDF(tx: TransactionDrizzle, dealId: string): Promise<{ client: ClientPourPDF; assigneAId: string } | null> {
+  const [leDeal] = await tx.select({ contactId: deal.contactId, assigneAId: deal.assigneAId }).from(deal).where(eq(deal.id, dealId));
+  if (!leDeal) return null;
+
+  const [leContact] = await tx.select().from(contact).where(eq(contact.id, leDeal.contactId));
+  if (!leContact) return null;
+
+  const [leCompte] = leContact.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, leContact.compteId)) : [null];
+
+  return {
+    assigneAId: leDeal.assigneAId,
+    client: {
+      nom: leContact.nom,
+      societeCliente: leCompte?.nom ?? null,
+      niu: leCompte?.niu ?? null,
+      telephone: leContact.telephone,
+      email: leContact.email,
+    },
+  };
+}
 
 /**
  * Extrait de la Route Handler PDF d'origine — réutilisé tel quel par
@@ -15,15 +45,16 @@ export async function recupererDevisPourPDF(tx: TransactionDrizzle, utilisateurC
   if (!d) return null;
 
   const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
-  const [p] = await tx.select().from(prospect).where(eq(prospect.id, d.prospectId));
-  if (visibles !== "TOUT" && p && !visibles.includes(p.assigneAId)) return null;
+  const infoClient = await construireClientPourPDF(tx, d.dealId);
+  if (!infoClient) return null;
+  if (visibles !== "TOUT" && !visibles.includes(infoClient.assigneAId)) return null;
 
   const [lignes, [monEntreprise]] = await Promise.all([
     tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { devis: d, lignes, prospect: p, entreprise: monEntreprise };
+  return { devis: d, lignes, client: infoClient.client, entreprise: monEntreprise };
 }
 
 export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, factureId: string) {
@@ -31,13 +62,14 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
   if (!f) return null;
 
   const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
-  const [p] = await tx.select().from(prospect).where(eq(prospect.id, f.prospectId));
-  if (visibles !== "TOUT" && p && !visibles.includes(p.assigneAId)) return null;
+  const infoClient = await construireClientPourPDF(tx, f.dealId);
+  if (!infoClient) return null;
+  if (visibles !== "TOUT" && !visibles.includes(infoClient.assigneAId)) return null;
 
   const [lignes, [monEntreprise]] = await Promise.all([
     tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { facture: f, lignes, prospect: p, entreprise: monEntreprise };
+  return { facture: f, lignes, client: infoClient.client, entreprise: monEntreprise };
 }

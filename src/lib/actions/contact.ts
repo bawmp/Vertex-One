@@ -5,68 +5,69 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { prospect, interaction, statutProspect } from "@/db/schema";
+import { contact, interaction } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererLienVisio } from "@/lib/marketing/visio";
 
-const schemaProspect = z.object({
+const schemaContact = z.object({
   nom: z.string().trim().min(2, "Le nom est trop court."),
-  societeCliente: z.string().trim().optional(),
+  compteId: z.string().trim().optional(),
+  fonction: z.string().trim().optional(),
   telephone: z.string().trim().min(6, "Numéro de téléphone invalide."),
   email: z.email().optional().or(z.literal("")),
-  niu: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
 });
 
-export type EtatProspect = { erreur?: string } | null;
+export type EtatContact = { erreur?: string } | null;
 
 /**
- * Assigné à son créateur par défaut (docs/palier-1-*, section 6, étape 1) —
- * un Manager/Administrateur pourra réassigner plus tard (hors scope v1).
+ * Création directe d'un Contact, sans passer par un Lead — pour un client
+ * déjà connu (docs de référence Zoho CRM : les Contacts peuvent aussi être
+ * créés directement, pas uniquement par conversion).
  */
-export async function creerProspect(_etat: EtatProspect, formData: FormData): Promise<EtatProspect> {
+export async function creerContact(_etat: EtatContact, formData: FormData): Promise<EtatContact> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un prospect." };
+    return { erreur: "Vous n'avez pas le droit de créer un contact." };
   }
 
-  const analyse = schemaProspect.safeParse({
+  const analyse = schemaContact.safeParse({
     nom: formData.get("nom"),
-    societeCliente: formData.get("societeCliente") || undefined,
+    compteId: formData.get("compteId") || undefined,
+    fonction: formData.get("fonction") || undefined,
     telephone: formData.get("telephone"),
     email: formData.get("email") || "",
-    niu: formData.get("niu") || undefined,
+    notes: formData.get("notes") || undefined,
   });
-
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
+  const { nom, compteId, fonction, telephone, email, notes } = analyse.data;
 
-  const { nom, societeCliente, telephone, email, niu } = analyse.data;
-
-  const [nouveauProspect] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+  const [nouveauContact] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
-      .insert(prospect)
+      .insert(contact)
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         nom,
-        societeCliente,
+        compteId: compteId || undefined,
+        fonction,
         telephone,
         email: email || undefined,
-        niu,
+        notes,
         assigneAId: utilisateurConnecte.utilisateurId,
       })
-      .returning({ id: prospect.id })
+      .returning({ id: contact.id })
   );
 
-  revalidatePath("/app"); // pipeline commercial affiché au tableau de bord
-
-  redirect(`/app/crm/${nouveauProspect.id}`);
+  revalidatePath("/app/contacts");
+  redirect(`/app/contacts/${nouveauContact.id}`);
 }
 
 const schemaInteraction = z.object({
-  prospectId: z.string(),
+  contactId: z.string(),
   type: z.enum(["appel", "whatsapp", "email", "rendez-vous", "note"]),
   contenu: z.string().trim().min(1, "Le contenu ne peut pas être vide."),
 });
@@ -81,66 +82,47 @@ export async function ajouterInteraction(_etat: EtatInteraction, formData: FormD
   }
 
   const analyse = schemaInteraction.safeParse({
-    prospectId: formData.get("prospectId"),
+    contactId: formData.get("contactId"),
     type: formData.get("type"),
     contenu: formData.get("contenu"),
   });
-
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-
-  const { prospectId, type, contenu } = analyse.data;
+  const { contactId, type, contenu } = analyse.data;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.insert(interaction).values({
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      prospectId,
-      type,
-      contenu,
-      auteurId: utilisateurConnecte.utilisateurId,
-    })
+    tx.insert(interaction).values({ entrepriseId: utilisateurConnecte.entrepriseId, contactId, type, contenu, auteurId: utilisateurConnecte.utilisateurId })
   );
 
-  revalidatePath(`/app/crm/${prospectId}`);
+  revalidatePath(`/app/contacts/${contactId}`);
   return null;
 }
 
 /**
  * Docs/palier-6-*, section 4 — génère un lien Jitsi et l'enregistre
- * directement comme une Interaction de type "rendez-vous", à partager
- * ensuite par WhatsApp/email depuis l'historique du prospect.
+ * directement comme une Interaction de type "rendez-vous".
  */
-export async function genererEtEnregistrerLienVisio(prospectId: string) {
+export async function genererEtEnregistrerLienVisio(contactId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
 
-  const lien = genererLienVisio(utilisateurConnecte.entrepriseId, prospectId);
+  const lien = genererLienVisio(utilisateurConnecte.entrepriseId, contactId);
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.insert(interaction).values({
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      prospectId,
-      type: "rendez-vous",
-      contenu: lien,
-      auteurId: utilisateurConnecte.utilisateurId,
-    })
+    tx.insert(interaction).values({ entrepriseId: utilisateurConnecte.entrepriseId, contactId, type: "rendez-vous", contenu: lien, auteurId: utilisateurConnecte.utilisateurId })
   );
 
-  revalidatePath(`/app/crm/${prospectId}`);
+  revalidatePath(`/app/contacts/${contactId}`);
 }
 
-export async function changerStatutProspect(prospectId: string, statut: (typeof statutProspect.enumValues)[number]) {
+export async function modifierNotesContact(contactId: string, notes: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.update(prospect).set({ statut }).where(eq(prospect.id, prospectId))
-  );
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(contact).set({ notes: notes || null }).where(eq(contact.id, contactId)));
 
-  revalidatePath(`/app/crm/${prospectId}`);
-  revalidatePath("/app/crm");
-  revalidatePath("/app"); // pipeline commercial affiché au tableau de bord
+  revalidatePath(`/app/contacts/${contactId}`);
 }

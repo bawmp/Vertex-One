@@ -134,6 +134,48 @@
       "when": 1788654715427,
       "tag": "0018_force_rls_palier6",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788659830473,
+      "tag": "0019_historique_statut_prospect",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788659856332,
+      "tag": "0020_force_rls_historique_statut_prospect",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788665342526,
+      "tag": "0021_leads_contacts_comptes_deals",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788701524129,
+      "tag": "0022_force_rls_leads_contacts_comptes_deals",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788708133424,
+      "tag": "0023_activites_crm_taches_reunions",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788708257188,
+      "tag": "0024_force_rls_activites_crm",
+      "breakpoints": true
     }
   ]
 }

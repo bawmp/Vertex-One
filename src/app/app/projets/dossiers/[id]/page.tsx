@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { Phone, Mail, Archive, ArchiveRestore, ShieldCheck } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { dossier, projet, prospect, entreprise, commentaire, utilisateur, document, contrat } from "@/db/schema";
+import { dossier, projet, contact, entreprise, commentaire, utilisateur, document, contrat } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -43,8 +43,8 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
     const visibles = await dossiersVisibles(tx, utilisateurConnecte);
     if (visibles !== "TOUT" && !visibles.includes(leDossier.id)) return null;
 
-    const [[leProspect], projets, commentaires, documentsDuDossier, contrats] = await Promise.all([
-      tx.select().from(prospect).where(eq(prospect.id, leDossier.prospectId)),
+    const [[leContact], projets, commentaires, documentsDuDossier, contrats] = await Promise.all([
+      tx.select().from(contact).where(eq(contact.id, leDossier.contactId)),
       tx.select().from(projet).where(eq(projet.dossierId, id)).orderBy(desc(projet.creeLe)),
       tx.select().from(commentaire).where(and(eq(commentaire.dossierId, id))).orderBy(desc(commentaire.creeLe)),
       tx.select().from(document).where(eq(document.dossierId, id)),
@@ -63,7 +63,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
     return {
       monEntreprise,
       leDossier,
-      leProspect,
+      leContact,
       projets,
       commentaires,
       documents: documentsVisibles,
@@ -73,7 +73,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
   });
 
   if (!donnees) notFound();
-  const { monEntreprise, leDossier, leProspect, projets, commentaires, documents, contrats, auteursParId } = donnees;
+  const { monEntreprise, leDossier, leContact, projets, commentaires, documents, contrats, auteursParId } = donnees;
 
   const vocabDossier = libelleDossier(monEntreprise.secteurProfil);
   const vocabProjet = libelleProjet(monEntreprise.secteurProfil);
@@ -89,16 +89,16 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
             <Badge variant={infoStatut?.variante ?? "neutral"}>{infoStatut?.libelle ?? leDossier.statut}</Badge>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {leProspect ? (
+            {leContact ? (
               <>
                 <span className="flex items-center gap-1.5">
                   <Phone className="size-3.5" aria-hidden />
-                  {leProspect.telephone}
+                  {leContact.telephone}
                 </span>
-                {leProspect.email ? (
+                {leContact.email ? (
                   <span className="flex items-center gap-1.5">
                     <Mail className="size-3.5" aria-hidden />
-                    {leProspect.email}
+                    {leContact.email}
                   </span>
                 ) : null}
               </>

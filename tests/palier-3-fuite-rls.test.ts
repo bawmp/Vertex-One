@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, dossier, projet, canal, document, journalAccesDocument, annonce } from "@/db/schema";
+import { entreprise, utilisateur, contact, dossier, projet, canal, document, journalAccesDocument, annonce } from "@/db/schema";
 
 /**
  * Test de fuite délibérée entre deux entreprises fictives, pour les quatre
@@ -41,12 +41,12 @@ describe("Palier 3 — isolation RLS entre entreprises (canal/document/journal/a
 
     const [dM, pM, cM, docM, jM, aM] = await avecEntreprise(mbargaId, async (tx) => {
       const [pr] = await tx
-        .insert(prospect)
+        .insert(contact)
         .values({ entrepriseId: mbargaId, nom: "Client Mbarga", telephone: "+237600000004", assigneAId: utilisateurMbargaId })
-        .returning({ id: prospect.id });
+        .returning({ id: contact.id });
       const [d] = await tx
         .insert(dossier)
-        .values({ entrepriseId: mbargaId, prospectId: pr.id, titre: "Dossier Mbarga", responsableId: utilisateurMbargaId })
+        .values({ entrepriseId: mbargaId, contactId: pr.id, titre: "Dossier Mbarga", responsableId: utilisateurMbargaId })
         .returning({ id: dossier.id });
       const [p] = await tx
         .insert(projet)
@@ -97,7 +97,7 @@ describe("Palier 3 — isolation RLS entre entreprises (canal/document/journal/a
         await tx.delete(annonce).where(eq(annonce.entrepriseId, id));
         await tx.delete(projet).where(eq(projet.entrepriseId, id));
         await tx.delete(dossier).where(eq(dossier.entrepriseId, id));
-        await tx.delete(prospect).where(eq(prospect.entrepriseId, id));
+        await tx.delete(contact).where(eq(contact.entrepriseId, id));
       });
     }
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurKiroId));

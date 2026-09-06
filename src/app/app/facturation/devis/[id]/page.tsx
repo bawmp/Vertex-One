@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { Download, ArrowRight } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, ligneDevis, prospect, facture } from "@/db/schema";
+import { devis, ligneDevis, deal, contact, compteClient, facture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -23,17 +23,19 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
     const [d] = await tx.select().from(devis).where(eq(devis.id, id));
     if (!d) return null;
 
-    const [l, [p], [f]] = await Promise.all([
+    const [l, [leDeal], [f]] = await Promise.all([
       tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, id)),
-      tx.select().from(prospect).where(eq(prospect.id, d.prospectId)),
+      tx.select().from(deal).where(eq(deal.id, d.dealId)),
       tx.select().from(facture).where(eq(facture.devisOrigineId, id)),
     ]);
+    const [p] = leDeal ? await tx.select().from(contact).where(eq(contact.id, leDeal.contactId)) : [null];
+    const [compte] = leDeal?.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, leDeal.compteId)) : [null];
 
-    return { leDevis: d, lignes: l, leProspect: p, laFacture: f ?? null };
+    return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null };
   });
 
   if (!donnees) notFound();
-  const { leDevis, lignes, leProspect, laFacture } = donnees;
+  const { leDevis, lignes, leProspect, leCompte, laFacture } = donnees;
 
   const peutModifier = peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER");
   const info = STATUT_DEVIS[leDevis.statut];
@@ -48,7 +50,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           </div>
           <p className="text-muted-foreground">
             {leProspect?.nom}
-            {leProspect?.societeCliente ? ` — ${leProspect.societeCliente}` : ""}
+            {leCompte ? ` — ${leCompte.nom}` : ""}
           </p>
         </div>
         <Button

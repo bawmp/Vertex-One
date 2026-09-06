@@ -87,14 +87,23 @@
   --chart-4: var(--color-stone-400);
   --chart-5: var(--color-stone-600);
   --radius: 0.75rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: var(--color-stone-900);
-  --sidebar-primary: var(--color-emerald-700);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: var(--color-emerald-50);
-  --sidebar-accent-foreground: var(--color-emerald-800);
-  --sidebar-border: var(--color-stone-200);
-  --sidebar-ring: var(--color-emerald-600);
+  /*
+   * Barre latérale volontairement sombre en permanence (pas liée au
+   * bascule .dark) — décision du 2026-09-06, à la demande explicite de
+   * reproduire le visuel de Zoho CRM (barre de navigation sombre + zone de
+   * contenu claire) sur l'ensemble de Vertex One, pas seulement le CRM.
+   * L'accent émeraude de la marque est conservé (--sidebar-primary,
+   * --sidebar-ring) plutôt qu'adopté le bleu/teal de Zoho, pour que
+   * Vertex One garde sa propre identité à l'intérieur de cette disposition.
+   */
+  --sidebar: var(--color-slate-900);
+  --sidebar-foreground: var(--color-slate-200);
+  --sidebar-primary: var(--color-emerald-500);
+  --sidebar-primary-foreground: var(--color-slate-950);
+  --sidebar-accent: var(--color-slate-800);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: var(--color-slate-700);
+  --sidebar-ring: var(--color-emerald-500);
 }
 
 .dark {

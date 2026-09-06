@@ -42,7 +42,7 @@ export function MenuUtilisateur({ nom, email }: { nom: string; email: string }) 
         onClick={deconnexion}
         disabled={enCours}
         aria-label="Se déconnecter"
-        className="shrink-0 text-sidebar-foreground/60 hover:text-destructive"
+        className="shrink-0 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-destructive"
       >
         {enCours ? <Spinner /> : <LogOut className="size-4" aria-hidden />}
       </Button>

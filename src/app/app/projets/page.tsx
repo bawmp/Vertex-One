@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, inArray } from "drizzle-orm";
 import { ListChecks, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { dossier, entreprise, prospect } from "@/db/schema";
+import { dossier, entreprise, contact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -17,14 +17,14 @@ export default async function PageProjets() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { monEntreprise, dossiers, prospectsParId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const { monEntreprise, dossiers, contactsParId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [e] = await tx
       .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement, secteurProfil: entreprise.secteurProfil })
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
     if (!disponible(e, "DOSSIERS") || !peut(utilisateurConnecte.role, "DOSSIERS", "VOIR")) {
-      return { monEntreprise: e, dossiers: null, prospectsParId: {} };
+      return { monEntreprise: e, dossiers: null, contactsParId: {} };
     }
 
     const visibles = await dossiersVisibles(tx, utilisateurConnecte);
@@ -35,10 +35,10 @@ export default async function PageProjets() {
           ? []
           : await tx.select().from(dossier).where(inArray(dossier.id, visibles));
 
-    const idsProspects = lignes.map((d) => d.prospectId);
-    const prospects = idsProspects.length > 0 ? await tx.select().from(prospect).where(inArray(prospect.id, idsProspects)) : [];
+    const idsContacts = lignes.map((d) => d.contactId);
+    const contacts = idsContacts.length > 0 ? await tx.select().from(contact).where(inArray(contact.id, idsContacts)) : [];
 
-    return { monEntreprise: e, dossiers: lignes, prospectsParId: Object.fromEntries(prospects.map((p) => [p.id, p])) };
+    return { monEntreprise: e, dossiers: lignes, contactsParId: Object.fromEntries(contacts.map((c) => [c.id, c])) };
   });
 
   const vocab = libelleDossier(monEntreprise?.secteurProfil ?? "generique");
@@ -89,7 +89,7 @@ export default async function PageProjets() {
                     <p className="font-medium">{d.titre}</p>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{prospectsParId[d.prospectId]?.telephone}</p>
+                  <p className="text-sm text-muted-foreground">{contactsParId[d.contactId]?.telephone}</p>
                 </CardContent>
               </Card>
             </Link>

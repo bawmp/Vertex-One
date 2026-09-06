@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { inArray, desc } from "drizzle-orm";
+import { inArray, desc, eq } from "drizzle-orm";
 import { FileText, Receipt } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, prospect } from "@/db/schema";
+import { devis, facture, deal, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -17,34 +17,34 @@ export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { devisVisibles, facturesVisibles, prospectsParId } = await avecEntreprise(
-    utilisateurConnecte.entrepriseId,
-    async (tx) => {
-      // La portée de Facturation suit celle de CRM (même prospect assigné) —
-      // filtrer par prospectId visible plutôt que par un assigneAId propre à
-      // Devis/Facture, qui n'existe pas dans le modèle (docs/palier-1-*, section 7).
-      const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
+  const { devisVisibles, facturesVisibles, nomParDealId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // La portée de Facturation suit celle du Deal (docs/palier-1-*, section
+    // 7, adapté à la reconstruction Leads/Contacts/Comptes/Deals du
+    // 2026-09-06) — un Devis/une Facture appartient désormais à un Deal, qui
+    // porte son propre assigneAId (le "Deal Owner").
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
 
-      const prospectsPertinents =
-        visibles === "TOUT"
-          ? await tx.select().from(prospect)
-          : await tx.select().from(prospect).where(inArray(prospect.assigneAId, visibles));
+    const baseDeals = tx
+      .select({ id: deal.id, contactNom: contact.nom, compteNom: compteClient.nom, assigneAId: deal.assigneAId })
+      .from(deal)
+      .innerJoin(contact, eq(deal.contactId, contact.id))
+      .leftJoin(compteClient, eq(deal.compteId, compteClient.id));
+    const dealsPertinents = visibles === "TOUT" ? await baseDeals : await baseDeals.where(inArray(deal.assigneAId, visibles));
 
-      const idsProspects = prospectsPertinents.map((p) => p.id);
-      if (idsProspects.length === 0) return { devisVisibles: [], facturesVisibles: [], prospectsParId: {} };
+    const idsDeals = dealsPertinents.map((d) => d.id);
+    if (idsDeals.length === 0) return { devisVisibles: [], facturesVisibles: [], nomParDealId: {} as Record<string, string> };
 
-      const [d, f] = await Promise.all([
-        tx.select().from(devis).where(inArray(devis.prospectId, idsProspects)).orderBy(desc(devis.creeLe)),
-        tx.select().from(facture).where(inArray(facture.prospectId, idsProspects)).orderBy(desc(facture.dateEmission)),
-      ]);
+    const [d, f] = await Promise.all([
+      tx.select().from(devis).where(inArray(devis.dealId, idsDeals)).orderBy(desc(devis.creeLe)),
+      tx.select().from(facture).where(inArray(facture.dealId, idsDeals)).orderBy(desc(facture.dateEmission)),
+    ]);
 
-      return {
-        devisVisibles: d,
-        facturesVisibles: f,
-        prospectsParId: Object.fromEntries(prospectsPertinents.map((p) => [p.id, p])),
-      };
-    }
-  );
+    return {
+      devisVisibles: d,
+      facturesVisibles: f,
+      nomParDealId: Object.fromEntries(dealsPertinents.map((deal_) => [deal_.id, deal_.compteNom ?? deal_.contactNom])),
+    };
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,7 +71,7 @@ export default async function PageFacturation() {
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{d.numero}</span>
-                    <span className="text-muted-foreground"> — {prospectsParId[d.prospectId]?.nom}</span>
+                    <span className="text-muted-foreground"> — {nomParDealId[d.dealId]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
@@ -102,7 +102,7 @@ export default async function PageFacturation() {
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{f.numero}</span>
-                    <span className="text-muted-foreground"> — {prospectsParId[f.prospectId]?.nom}</span>
+                    <span className="text-muted-foreground"> — {nomParDealId[f.dealId]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>

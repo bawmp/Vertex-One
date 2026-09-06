@@ -6,15 +6,21 @@ import {
   utilisateur,
   compte,
   session,
-  prospect,
+  lead,
+  contact,
+  compteClient,
+  deal,
+  historiqueStatutDeal,
   devis,
   ligneDevis,
   facture,
   ligneFacture,
+  ecritureComptable,
   dossier,
   projet,
   tache,
   commentaire,
+  canal,
 } from "../src/db/schema";
 
 // Parcours critique Palier 2 : un devis accepté ouvre automatiquement un
@@ -31,13 +37,26 @@ test.afterAll(async () => {
   await avecEntreprise(entrepriseId, async (tx) => {
     await tx.delete(commentaire).where(eq(commentaire.entrepriseId, entrepriseId));
     await tx.delete(tache).where(eq(tache.entrepriseId, entrepriseId));
+    // Depuis le Palier 3, creerProjetDepuisDevisAccepte() crée aussi un canal
+    // lié au projet (creerCanalPourProjet()) — à supprimer avant le projet,
+    // sinon la contrainte canal_projet_id_projet_id_fk bloque le nettoyage
+    // (même bug déjà rencontré et corrigé dans
+    // tests/palier-2-pont-dossier-projet.test.ts).
+    await tx.delete(canal).where(eq(canal.entrepriseId, entrepriseId));
     await tx.delete(projet).where(eq(projet.entrepriseId, entrepriseId));
     await tx.delete(dossier).where(eq(dossier.entrepriseId, entrepriseId));
+    // accepterDevis() génère aussi une écriture comptable automatique à
+    // l'émission de la facture (Palier 4) — à supprimer avant facture.
+    await tx.delete(ecritureComptable).where(eq(ecritureComptable.entrepriseId, entrepriseId));
     await tx.delete(ligneFacture).where(eq(ligneFacture.entrepriseId, entrepriseId));
     await tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId));
     await tx.delete(ligneDevis).where(eq(ligneDevis.entrepriseId, entrepriseId));
     await tx.delete(devis).where(eq(devis.entrepriseId, entrepriseId));
-    await tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId));
+    await tx.delete(historiqueStatutDeal).where(eq(historiqueStatutDeal.entrepriseId, entrepriseId));
+    await tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId));
+    await tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId));
+    await tx.delete(compteClient).where(eq(compteClient.entrepriseId, entrepriseId));
+    await tx.delete(lead).where(eq(lead.entrepriseId, entrepriseId));
   });
 
   const [u] = await db.select().from(utilisateur).where(eq(utilisateur.email, emailAdmin));
@@ -79,13 +98,16 @@ test("devis accepté → Dossier + Projet automatiques → tâche créée et ach
   await page.fill("#niu", "M012345678901X");
   await page.fill("#rccm", "RC/DLA/2026/B/1234");
   await page.click('button[type="submit"]');
-  await page.waitForURL("/app/crm");
+  await page.waitForURL("/app/leads");
 
-  await page.goto("/app/crm/nouveau");
+  await page.goto("/app/leads/nouveau");
   await page.fill("#nom", "Cabinet Fidèle");
   await page.fill("#telephone", "+237600000099");
   await page.click('button[type="submit"]');
-  await page.waitForURL(/\/app\/crm\/.+/);
+  await page.waitForURL(/\/app\/leads\/.+/);
+
+  await page.click('button:has-text("Convertir en Contact/Deal")');
+  await page.waitForURL(/\/app\/deals\/.+/);
 
   await page.click('a:has-text("Créer un devis")');
   await page.waitForURL(/\/app\/facturation\/devis\/nouveau/);

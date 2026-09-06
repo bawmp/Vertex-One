@@ -34,7 +34,6 @@ export const statutDomaineEmail = pgEnum("statut_domaine_email", [
 ]);
 
 // Palier 1 — voir docs/palier-1-crm-facturation-specification-technique.md
-export const statutProspect = pgEnum("statut_prospect", ["NOUVEAU", "QUALIFIE", "PROPOSITION", "GAGNE", "PERDU"]);
 export const statutDevis = pgEnum("statut_devis", ["BROUILLON", "ENVOYE", "ACCEPTE", "REFUSE", "EXPIRE"]);
 export const statutFacture = pgEnum("statut_facture", [
   "EMISE",
@@ -307,8 +306,23 @@ export const domaineEmail = pgTable(
 // quantite et tauxTVA restent numeric (quantités fractionnaires possibles,
 // taux à deux décimales).
 
-export const prospect = pgTable(
-  "prospect",
+// Reconstruction Leads/Contacts/Comptes/Deals sur le modèle de Zoho CRM
+// (échange du 2026-09-06), en remplacement complet de l'ancien Prospect
+// unique — aucune vraie donnée cliente n'existait encore, migration directe
+// plutôt que double système transitoire. Quatre entités reliées :
+//   Lead        — prospect non qualifié, avant tout travail commercial réel.
+//   Contact     — la personne, ancrage permanent (ce que Dossier référence),
+//                 créée à la conversion d'un Lead.
+//   Compte      — la société optionnelle (cas B2B) qui regroupe des Contacts.
+//   Deal        — l'opportunité commerciale avec un montant et une étape de
+//                 pipeline ; c'est elle que Devis/Facture référencent, pas
+//                 directement le Contact (un Contact peut avoir plusieurs
+//                 Deals au fil du temps, exactement comme chez Zoho).
+export const statutLead = pgEnum("statut_lead", ["NOUVEAU", "CONTACTE", "QUALIFIE", "DISQUALIFIE"]);
+export const statutDeal = pgEnum("statut_deal", ["QUALIFICATION", "PROPOSITION", "NEGOCIATION", "GAGNE", "PERDU"]);
+
+export const lead = pgTable(
+  "lead",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
     entrepriseId: text("entreprise_id")
@@ -316,10 +330,68 @@ export const prospect = pgTable(
       .references(() => entreprise.id),
     nom: text("nom").notNull(),
     societeCliente: text("societe_cliente"),
-    niu: text("niu"), // NIU du client — nécessaire dès qu'on facture une entreprise (B2B)
     telephone: text("telephone").notNull(), // numéro WhatsApp en priorité
     email: text("email"),
-    statut: statutProspect("statut").notNull().default("NOUVEAU"),
+    statut: statutLead("statut").notNull().default("NOUVEAU"),
+    notes: text("notes"),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    // Renseignés à la conversion (convertirLead()) — jamais modifiés après,
+    // trace de ce que ce Lead est devenu plutôt qu'une ligne supprimée.
+    convertiLe: timestamp("converti_le"),
+    contactConvertiId: text("contact_converti_id"),
+    dealConvertiId: text("deal_converti_id"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("lead_entreprise_idx").on(table.entrepriseId),
+    index("lead_assigne_a_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Nommée compteClient (pas "compte") pour éviter toute collision avec la
+// table Better-Auth "compte" (identifiants de connexion, voir plus haut
+// dans ce fichier) — deux concepts homonymes en français mais totalement
+// distincts : celui-ci est le "Account" (société) au sens Zoho CRM.
+export const compteClient = pgTable(
+  "compte_client",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    niu: text("niu"), // NIU de la société — nécessaire dès qu'on la facture (B2B)
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("compte_client_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const contact = pgTable(
+  "contact",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    compteId: text("compte_id").references(() => compteClient.id), // nullable — un client particulier n'a pas de Compte
+    nom: text("nom").notNull(),
+    telephone: text("telephone").notNull(),
+    email: text("email"),
+    fonction: text("fonction"), // ex: "Directeur achats" — utile seulement si compteId est renseigné
     notes: text("notes"),
     assigneAId: text("assigne_a_id")
       .notNull()
@@ -327,8 +399,158 @@ export const prospect = pgTable(
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
-    index("prospect_entreprise_idx").on(table.entrepriseId),
-    index("prospect_assigne_a_idx").on(table.assigneAId),
+    index("contact_entreprise_idx").on(table.entrepriseId),
+    index("contact_compte_idx").on(table.compteId),
+    index("contact_assigne_a_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const deal = pgTable(
+  "deal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    montant: integer("montant").notNull().default(0), // FCFA entier, voir CLAUDE.md
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
+    // Dénormalisé depuis contact.compteId — évite une jointure supplémentaire
+    // pour afficher "Compte" dans chaque ligne de liste (comme Zoho affiche
+    // Account Name directement sur la liste des Deals), tenu à jour à la
+    // création uniquement : un Deal ne change pas de compte après coup.
+    compteId: text("compte_id").references(() => compteClient.id),
+    statut: statutDeal("statut").notNull().default("QUALIFICATION"),
+    dateClotureEstimee: timestamp("date_cloture_estimee"),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("deal_entreprise_idx").on(table.entrepriseId),
+    index("deal_contact_idx").on(table.contactId),
+    index("deal_assigne_a_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Timeline du pipeline (inspirée du timeline de Deal dans Zoho CRM) —
+// remplace historiqueStatutProspect, maintenant attachée au Deal plutôt
+// qu'au Contact : c'est le Deal qui porte une étape de pipeline.
+export const historiqueStatutDeal = pgTable(
+  "historique_statut_deal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    ancienStatut: statutDeal("ancien_statut"), // NULL à la création du deal
+    nouveauStatut: statutDeal("nouveau_statut").notNull(),
+    modifieParId: text("modifie_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    modifieLe: timestamp("modifie_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("historique_statut_deal_entreprise_idx").on(table.entrepriseId),
+    index("historique_statut_deal_deal_idx").on(table.dealId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const statutTacheCrm = pgEnum("statut_tache_crm", ["NON_COMMENCEE", "EN_COURS", "TERMINEE", "DIFFEREE"]);
+export const prioriteTacheCrm = pgEnum("priorite_tache_crm", ["BASSE", "NORMALE", "HAUTE"]);
+
+// Activités CRM (inspirées de l'Accueil de Zoho CRM, échange du 2026-09-06)
+// — distinctes de `tache` (Palier 2, rattachée à un Projet) : celles-ci se
+// rattachent à un Lead, un Contact ou un Deal, jamais à un Projet. "Relatif
+// à" (leadId/contactId/dealId) reste nullable et non exclusif entre eux à la
+// base — même principe que dossierId/projetId sur `commentaire` — le
+// contact et le deal/lead peuvent tous les deux être renseignés (le contact
+// d'un deal précis, par exemple).
+export const tacheCrm = pgTable(
+  "tache_crm",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    objet: text("objet").notNull(),
+    statut: statutTacheCrm("statut").notNull().default("NON_COMMENCEE"),
+    priorite: prioriteTacheCrm("priorite").notNull().default("NORMALE"),
+    dateEcheance: timestamp("date_echeance"),
+    leadId: text("lead_id").references(() => lead.id),
+    contactId: text("contact_id").references(() => contact.id),
+    dealId: text("deal_id").references(() => deal.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    termineeLe: timestamp("terminee_le"),
+  },
+  (table) => [
+    index("tache_crm_entreprise_idx").on(table.entrepriseId),
+    index("tache_crm_assigne_idx").on(table.assigneAId),
+    index("tache_crm_lead_idx").on(table.leadId),
+    index("tache_crm_contact_idx").on(table.contactId),
+    index("tache_crm_deal_idx").on(table.dealId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const reunionCrm = pgTable(
+  "reunion_crm",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    dateDebut: timestamp("date_debut").notNull(),
+    dateFin: timestamp("date_fin").notNull(),
+    leadId: text("lead_id").references(() => lead.id),
+    contactId: text("contact_id").references(() => contact.id),
+    dealId: text("deal_id").references(() => deal.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("reunion_crm_entreprise_idx").on(table.entrepriseId),
+    index("reunion_crm_assigne_idx").on(table.assigneAId),
+    index("reunion_crm_lead_idx").on(table.leadId),
+    index("reunion_crm_contact_idx").on(table.contactId),
+    index("reunion_crm_deal_idx").on(table.dealId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -344,9 +566,9 @@ export const interaction = pgTable(
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
-    prospectId: text("prospect_id")
+    contactId: text("contact_id")
       .notNull()
-      .references(() => prospect.id),
+      .references(() => contact.id),
     type: text("type").notNull(), // "appel" | "whatsapp" | "email" | "rendez-vous" | "note"
     contenu: text("contenu").notNull(),
     auteurId: text("auteur_id")
@@ -356,7 +578,7 @@ export const interaction = pgTable(
   },
   (table) => [
     index("interaction_entreprise_idx").on(table.entrepriseId),
-    index("interaction_prospect_idx").on(table.prospectId),
+    index("interaction_contact_idx").on(table.contactId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -373,9 +595,9 @@ export const devis = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(), // "DEV-2026-000042" — généré à l'émission, jamais avant
-    prospectId: text("prospect_id")
+    dealId: text("deal_id")
       .notNull()
-      .references(() => prospect.id),
+      .references(() => deal.id),
     statut: statutDevis("statut").notNull().default("BROUILLON"),
     dateValidite: timestamp("date_validite").notNull(),
     montantHT: integer("montant_ht").notNull(),
@@ -431,9 +653,9 @@ export const facture = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(), // "FAC-2026-000042" — séquentiel, sans trou (section 5)
-    prospectId: text("prospect_id")
+    dealId: text("deal_id")
       .notNull()
-      .references(() => prospect.id),
+      .references(() => deal.id),
     devisOrigineId: text("devis_origine_id").references(() => devis.id),
     statut: statutFacture("statut").notNull().default("EMISE"),
     montantHT: integer("montant_ht").notNull(),
@@ -553,9 +775,9 @@ export const dossier = pgTable(
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
-    prospectId: text("prospect_id")
+    contactId: text("contact_id")
       .notNull()
-      .references(() => prospect.id),
+      .references(() => contact.id),
     titre: text("titre").notNull(),
     statut: statutDossier("statut").notNull().default("ACTIF"),
     responsableId: text("responsable_id")
@@ -572,7 +794,7 @@ export const dossier = pgTable(
     consentementDonneesLe: timestamp("consentement_donnees_le"),
   },
   (table) => [
-    uniqueIndex("dossier_entreprise_prospect_unique").on(table.entrepriseId, table.prospectId),
+    uniqueIndex("dossier_entreprise_contact_unique").on(table.entrepriseId, table.contactId),
     index("dossier_entreprise_idx").on(table.entrepriseId),
     index("dossier_responsable_idx").on(table.responsableId),
     pgPolicy("isolation_entreprise", {

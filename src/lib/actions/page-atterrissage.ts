@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, pageAtterrissage, prospect, utilisateur } from "@/db/schema";
+import { entreprise, pageAtterrissage, lead, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
@@ -84,13 +84,13 @@ const schemaContact = z.object({
 export type EtatContactPublic = { erreur?: string; succes?: boolean } | null;
 
 /**
- * Route publique, sans session — docs/palier-6-*, section 3 : "la soumission
- * du formulaire de contact... crée directement un Prospect avec statut
- * NOUVEAU, exactement comme s'il avait été saisi à la main dans le CRM."
- * entrepriseId connu et validé côté serveur (relu depuis la page trouvée par
- * slug, jamais envoyé par le client) avant d'ouvrir la transaction
- * avecEntreprise() — aucune modification de politique RLS nécessaire sur
- * `prospect` pour ce flux anonyme.
+ * Route publique, sans session — "web-to-lead" au sens Zoho CRM (échange du
+ * 2026-09-06) : la soumission du formulaire crée directement un Lead avec
+ * statut NOUVEAU, à qualifier ensuite dans le CRM comme n'importe quel
+ * autre lead. entrepriseId connu et validé côté serveur (relu depuis la
+ * page trouvée par slug, jamais envoyé par le client) avant d'ouvrir la
+ * transaction avecEntreprise() — aucune modification de politique RLS
+ * nécessaire sur `lead` pour ce flux anonyme.
  */
 export async function soumettreFormulaireContact(_etat: EtatContactPublic, formData: FormData): Promise<EtatContactPublic> {
   const analyse = schemaContact.safeParse({
@@ -119,7 +119,7 @@ export async function soumettreFormulaireContact(_etat: EtatContactPublic, formD
       .limit(1);
     if (!unAdmin) return;
 
-    await tx.insert(prospect).values({
+    await tx.insert(lead).values({
       entrepriseId: page.entrepriseId,
       nom,
       telephone,

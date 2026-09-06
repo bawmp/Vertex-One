@@ -7,15 +7,17 @@ import { creerCanalPourProjet } from "@/lib/chat/pont";
 /**
  * Palier 2, section 3 — un devis accepté ne crée jamais un deuxième Dossier
  * pour un client déjà connu : un client fidèle qui recommande réutilise son
- * Dossier existant (unique par entrepriseId+prospectId) et n'accumule que de
- * nouveaux Projets à l'intérieur.
+ * Dossier existant (unique par entrepriseId+contactId) et n'accumule que de
+ * nouveaux Projets à l'intérieur. Le Dossier s'ancre sur le Contact
+ * (permanent), pas sur le Deal ponctuel qui a généré ce devis (reconstruction
+ * Leads/Contacts/Comptes/Deals, échange du 2026-09-06).
  */
 export async function creerProjetDepuisDevisAccepte(
   tx: TransactionDrizzle,
   params: {
     entrepriseId: string;
-    prospectId: string;
-    prospectNom: string;
+    contactId: string;
+    contactNom: string;
     secteurProfil: string;
     devisId: string;
     numeroDevis: string;
@@ -25,7 +27,7 @@ export async function creerProjetDepuisDevisAccepte(
   const [dossierExistant] = await tx
     .select({ id: dossier.id })
     .from(dossier)
-    .where(and(eq(dossier.entrepriseId, params.entrepriseId), eq(dossier.prospectId, params.prospectId)));
+    .where(and(eq(dossier.entrepriseId, params.entrepriseId), eq(dossier.contactId, params.contactId)));
 
   let dossierId = dossierExistant?.id;
   if (!dossierId) {
@@ -33,8 +35,8 @@ export async function creerProjetDepuisDevisAccepte(
       .insert(dossier)
       .values({
         entrepriseId: params.entrepriseId,
-        prospectId: params.prospectId,
-        titre: params.prospectNom,
+        contactId: params.contactId,
+        titre: params.contactNom,
         responsableId: params.responsableId,
       })
       .returning({ id: dossier.id });

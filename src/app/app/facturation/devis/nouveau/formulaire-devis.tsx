@@ -14,7 +14,7 @@ type Ligne = { designation: string; quantite: string; prixUnitaire: string; taux
 
 const LIGNE_VIDE: Ligne = { designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
 
-export function FormulaireDevis({ prospectId }: { prospectId: string }) {
+export function FormulaireDevis({ dealId }: { dealId: string }) {
   const [etat, action, enCours] = useActionState(creerDevis, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
@@ -34,7 +34,7 @@ export function FormulaireDevis({ prospectId }: { prospectId: string }) {
     <Card className="mt-6">
       <CardContent>
         <form action={action} className="flex flex-col gap-6">
-          <input type="hidden" name="prospectId" value={prospectId} />
+          <input type="hidden" name="dealId" value={dealId} />
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="dateValidite">Valide jusqu&apos;au</Label>

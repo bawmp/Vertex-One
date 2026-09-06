@@ -1,19 +1,19 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, prospect, dossier, projet, devis, canal } from "@/db/schema";
+import { entreprise, utilisateur, contact, deal, dossier, projet, devis, canal } from "@/db/schema";
 import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
 
 // devisOrigineId a une contrainte de clé étrangère réelle vers devis(id) —
 // un id fictif la viole (23503), il faut donc de vraies lignes devis ici.
-async function creerDevisFictif(entrepriseId: string, prospectId: string, creeParId: string, numero: string) {
+async function creerDevisFictif(entrepriseId: string, dealId: string, creeParId: string, numero: string) {
   const [d] = await avecEntreprise(entrepriseId, (tx) =>
     tx
       .insert(devis)
       .values({
         entrepriseId,
         numero,
-        prospectId,
+        dealId,
         dateValidite: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
         montantHT: 100000,
         montantTVA: 19250,
@@ -35,7 +35,8 @@ async function creerDevisFictif(entrepriseId: string, prospectId: string, creePa
 describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
   let entrepriseId: string;
   let utilisateurId: string;
-  let prospectId: string;
+  let contactId: string;
+  let dealId: string;
 
   beforeAll(async () => {
     const [e] = await db.insert(entreprise).values({ nom: "TEST Pont Dossier Projet", secteurProfil: "cabinet" }).returning({ id: entreprise.id });
@@ -47,13 +48,21 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
       .returning({ id: utilisateur.id });
     utilisateurId = u.id;
 
-    const [p] = await avecEntreprise(entrepriseId, (tx) =>
+    const [c] = await avecEntreprise(entrepriseId, (tx) =>
       tx
-        .insert(prospect)
+        .insert(contact)
         .values({ entrepriseId, nom: "Client Fidèle", telephone: "+237600000003", assigneAId: utilisateurId })
-        .returning({ id: prospect.id })
+        .returning({ id: contact.id })
     );
-    prospectId = p.id;
+    contactId = c.id;
+
+    const [d] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(deal)
+        .values({ entrepriseId, titre: "Deal — Client Fidèle", contactId, assigneAId: utilisateurId })
+        .returning({ id: deal.id })
+    );
+    dealId = d.id;
   });
 
   afterAll(async () => {
@@ -68,20 +77,21 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
       await tx.delete(projet).where(eq(projet.entrepriseId, entrepriseId));
       await tx.delete(dossier).where(eq(dossier.entrepriseId, entrepriseId));
       await tx.delete(devis).where(eq(devis.entrepriseId, entrepriseId));
-      await tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId));
+      await tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId));
+      await tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId));
     });
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));
   }, 30_000);
 
   test("le premier devis accepté crée un Dossier et un Projet", async () => {
-    const devisId = await creerDevisFictif(entrepriseId, prospectId, utilisateurId, "DEV-2026-000001");
+    const devisId = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000001");
 
     const resultat = await avecEntreprise(entrepriseId, (tx) =>
       creerProjetDepuisDevisAccepte(tx, {
         entrepriseId,
-        prospectId,
-        prospectNom: "Client Fidèle",
+        contactId,
+        contactNom: "Client Fidèle",
         secteurProfil: "cabinet",
         devisId,
         numeroDevis: "DEV-2026-000001",
@@ -91,7 +101,7 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
 
     const [ledossier] = await avecEntreprise(entrepriseId, (tx) => tx.select().from(dossier).where(eq(dossier.id, resultat.dossierId)));
     expect(ledossier).toBeDefined();
-    expect(ledossier.prospectId).toBe(prospectId);
+    expect(ledossier.contactId).toBe(contactId);
 
     const [leProjet] = await avecEntreprise(entrepriseId, (tx) => tx.select().from(projet).where(eq(projet.id, resultat.projetId)));
     expect(leProjet).toBeDefined();
@@ -101,14 +111,14 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
   });
 
   test("un deuxième devis accepté pour le même client réutilise le Dossier existant", async () => {
-    const devisIdA = await creerDevisFictif(entrepriseId, prospectId, utilisateurId, "DEV-2026-000002");
-    const devisIdB = await creerDevisFictif(entrepriseId, prospectId, utilisateurId, "DEV-2026-000003");
+    const devisIdA = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000002");
+    const devisIdB = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000003");
 
     const premier = await avecEntreprise(entrepriseId, (tx) =>
       creerProjetDepuisDevisAccepte(tx, {
         entrepriseId,
-        prospectId,
-        prospectNom: "Client Fidèle",
+        contactId,
+        contactNom: "Client Fidèle",
         secteurProfil: "cabinet",
         devisId: devisIdA,
         numeroDevis: "DEV-2026-000002",
@@ -119,8 +129,8 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
     const deuxieme = await avecEntreprise(entrepriseId, (tx) =>
       creerProjetDepuisDevisAccepte(tx, {
         entrepriseId,
-        prospectId,
-        prospectNom: "Client Fidèle",
+        contactId,
+        contactNom: "Client Fidèle",
         secteurProfil: "cabinet",
         devisId: devisIdB,
         numeroDevis: "DEV-2026-000003",
@@ -132,7 +142,7 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
     expect(deuxieme.dossierId).toBe(premier.dossierId);
     expect(deuxieme.projetId).not.toBe(premier.projetId);
 
-    const dossiersDuClient = await avecEntreprise(entrepriseId, (tx) => tx.select().from(dossier).where(eq(dossier.prospectId, prospectId)));
+    const dossiersDuClient = await avecEntreprise(entrepriseId, (tx) => tx.select().from(dossier).where(eq(dossier.contactId, contactId)));
     expect(dossiersDuClient).toHaveLength(1);
 
     const projetsDuDossier = await avecEntreprise(entrepriseId, (tx) => tx.select().from(projet).where(eq(projet.dossierId, premier.dossierId)));

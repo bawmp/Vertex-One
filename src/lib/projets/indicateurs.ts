@@ -11,7 +11,7 @@ import { dossier, projet } from "@/db/schema";
  */
 export async function dossiersSansProjetActif(tx: TransactionDrizzle, entrepriseId: string) {
   return tx
-    .select({ id: dossier.id, titre: dossier.titre, prospectId: dossier.prospectId, dateOuverture: dossier.dateOuverture })
+    .select({ id: dossier.id, titre: dossier.titre, contactId: dossier.contactId, dateOuverture: dossier.dateOuverture })
     .from(dossier)
     .where(
       and(

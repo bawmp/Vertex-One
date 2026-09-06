@@ -7,9 +7,9 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ajouterInteraction } from "@/lib/actions/prospect";
+import { ajouterInteraction } from "@/lib/actions/contact";
 
-export function FormulaireInteraction({ prospectId }: { prospectId: string }) {
+export function FormulaireInteraction({ contactId }: { contactId: string }) {
   const [etat, action, enCours] = useActionState(ajouterInteraction, null);
 
   return (
@@ -19,7 +19,7 @@ export function FormulaireInteraction({ prospectId }: { prospectId: string }) {
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-3">
-          <input type="hidden" name="prospectId" value={prospectId} />
+          <input type="hidden" name="contactId" value={contactId} />
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="type">Type</Label>
