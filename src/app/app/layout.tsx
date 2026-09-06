@@ -11,7 +11,11 @@ import { NavLink, NavGroup } from "./nav-link";
 import { MenuUtilisateur } from "./menu-utilisateur";
 
 type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-type LienMenu = { libelle: string; href: string; Icone: IconeComposant };
+// module optionnel — un lien de sous-menu peut appartenir à un module
+// différent de celui du parent (ex. le raccourci "Documents" sous CRM >
+// Ventes reste gouverné par le module DOCUMENTS, pas CRM) ; absent, il
+// hérite implicitement de la visibilité du groupe parent.
+type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module };
 type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
   | { module: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
@@ -41,6 +45,13 @@ const MODULES_MENU: ItemMenu[] = [
           { libelle: "Contacts", href: "/app/contacts", Icone: Users },
           { libelle: "Comptes", href: "/app/comptes", Icone: Building2 },
           { libelle: "Deals", href: "/app/deals", Icone: Handshake },
+          // Raccourcis vers des modules qui existent déjà ailleurs dans la
+          // sidebar (Documents du Palier 3, Campagnes au sein de Marketing du
+          // Palier 6) — présents dans "Ventes" chez Zoho, donc dupliqués ici
+          // plutôt que déplacés, pour ne retirer l'accès direct à personne
+          // (retour utilisateur, 2026-09-06).
+          { libelle: "Documents", href: "/app/documents", Icone: FileText, module: "DOCUMENTS" },
+          { libelle: "Campagnes", href: "/app/marketing", Icone: Megaphone, module: "MARKETING" },
         ],
       },
     ],
@@ -114,11 +125,13 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 hrefAccueil={item.hrefAccueil}
                 groupes={item.groupes.map((groupe) => ({
                   categorie: groupe.categorie,
-                  liens: groupe.liens.map((lien) => ({
-                    href: lien.href,
-                    libelle: lien.libelle,
-                    icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
-                  })),
+                  liens: groupe.liens
+                    .filter((lien) => !lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR"))
+                    .map((lien) => ({
+                      href: lien.href,
+                      libelle: lien.libelle,
+                      icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
+                    })),
                 }))}
               />
             ) : (
