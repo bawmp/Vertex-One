@@ -1,0 +1,95 @@
+import { eq, inArray } from "drizzle-orm";
+import type { TransactionDrizzle } from "@/db/client";
+import { compteComptable, ecritureComptable } from "@/db/schema";
+
+type LigneEcriture = { numeroCompte: string; libelle: string; debit?: number; credit?: number };
+
+/**
+ * Résout les numéros de compte en ids une seule fois par lot, puis insère
+ * toutes les lignes de l'écriture — jamais une ligne "orpheline" sans
+ * contrepartie, toujours l'écriture complète ou rien (même transaction que
+ * l'appelant, docs/palier-4-*, section 4).
+ */
+async function creerEcritures(
+  tx: TransactionDrizzle,
+  entrepriseId: string,
+  dateEcriture: Date,
+  lignes: LigneEcriture[],
+  reference: { factureId?: string; paiementId?: string }
+): Promise<void> {
+  const numeros = [...new Set(lignes.map((l) => l.numeroCompte))];
+  const comptes = await tx.select({ id: compteComptable.id, numero: compteComptable.numero }).from(compteComptable).where(inArray(compteComptable.numero, numeros));
+  const idParNumero = Object.fromEntries(comptes.map((c) => [c.numero, c.id]));
+
+  const manquants = numeros.filter((n) => !idParNumero[n]);
+  if (manquants.length > 0) {
+    throw new Error(`Compte(s) comptable(s) introuvable(s) dans le référentiel SYSCOHADA : ${manquants.join(", ")}`);
+  }
+
+  await tx.insert(ecritureComptable).values(
+    lignes.map((l) => ({
+      entrepriseId,
+      dateEcriture,
+      libelle: l.libelle,
+      compteId: idParNumero[l.numeroCompte],
+      debit: l.debit ?? 0,
+      credit: l.credit ?? 0,
+      factureId: reference.factureId,
+      paiementId: reference.paiementId,
+    }))
+  );
+}
+
+/**
+ * Docs/palier-4-*, section 4 — appelée au moment exact où une Facture est
+ * créée (toujours à l'état EMISE, Palier 1) : Clients au débit, Prestations
+ * de services et TVA facturée au crédit. Silencieuse si l'entreprise n'est
+ * pas assujettie à la TVA (montantTVA vaut alors 0, la ligne 443200
+ * resterait à zéro — on l'omet plutôt que d'insérer une ligne nulle).
+ */
+export async function genererEcrituresFactureEmise(
+  tx: TransactionDrizzle,
+  facture: { id: string; entrepriseId: string; numero: string; dateEmission: Date; montantHT: number; montantTVA: number; montantTTC: number }
+): Promise<void> {
+  const lignes: LigneEcriture[] = [
+    { numeroCompte: "411000", libelle: `Facture ${facture.numero}`, debit: facture.montantTTC },
+    { numeroCompte: "706000", libelle: `Facture ${facture.numero}`, credit: facture.montantHT },
+  ];
+  if (facture.montantTVA > 0) {
+    lignes.push({ numeroCompte: "443200", libelle: `TVA ${facture.numero}`, credit: facture.montantTVA });
+  }
+
+  await creerEcritures(tx, facture.entrepriseId, facture.dateEmission, lignes, { factureId: facture.id });
+}
+
+/**
+ * Docs/palier-4-*, section 4 — appelée à chaque Paiement enregistré (qu'il
+ * soit pointé manuellement ou confirmé par un futur webhook Mobile Money) :
+ * le compte de trésorerie dépend du moyen de paiement, jamais codé en dur
+ * pour "manuel" uniquement.
+ */
+export async function genererEcrituresPaiement(
+  tx: TransactionDrizzle,
+  params: {
+    entrepriseId: string;
+    factureId: string;
+    paiementId: string;
+    numeroFacture: string;
+    montant: number;
+    moyenPaiement: string;
+    datePaiement: Date;
+  }
+): Promise<void> {
+  const compteTresorerie = params.moyenPaiement === "manuel" ? "571000" : "512000"; // Caisse vs Banque/Mobile Money
+
+  await creerEcritures(
+    tx,
+    params.entrepriseId,
+    params.datePaiement,
+    [
+      { numeroCompte: compteTresorerie, libelle: `Règlement ${params.numeroFacture}`, debit: params.montant },
+      { numeroCompte: "411000", libelle: `Règlement ${params.numeroFacture}`, credit: params.montant },
+    ],
+    { factureId: params.factureId, paiementId: params.paiementId }
+  );
+}

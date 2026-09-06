@@ -1,0 +1,1 @@
+ALTER TABLE "contrat" ADD COLUMN "alerte_echeance_envoyee_le" timestamp;

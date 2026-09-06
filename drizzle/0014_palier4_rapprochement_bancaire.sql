@@ -1,0 +1,1 @@
+ALTER TABLE "paiement" ADD COLUMN "rapproche_le" timestamp;
