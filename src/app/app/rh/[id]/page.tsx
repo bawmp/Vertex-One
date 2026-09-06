@@ -1,0 +1,176 @@
+import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
+import { eq, desc } from "drizzle-orm";
+import { ArrowLeft, User, Download } from "lucide-react";
+import { avecEntreprise } from "@/db/client";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage } from "@/db/schema";
+import { recupererUtilisateurConnecte } from "@/lib/session";
+import { peut } from "@/lib/permissions";
+import { disponible } from "@/lib/plans";
+import { idsVisibles } from "@/lib/portee";
+import { peutVoirSalaire as calculerPeutVoirSalaire } from "@/lib/rh/acces";
+import { debutJournee } from "@/lib/rh/pointage";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BoutonPointage } from "./bouton-pointage";
+import { FormulaireDemandeConge } from "./formulaire-demande-conge";
+import { ListeDemandesConge } from "./liste-demandes-conge";
+import { FormulaireDossierRH } from "./formulaire-dossier-rh";
+import { FormulaireEvaluation } from "./formulaire-evaluation";
+import { ListeEvaluations } from "./liste-evaluations";
+
+const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
+
+export default async function PageDossierRH({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) notFound();
+
+  const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx
+      .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
+      .from(entreprise)
+      .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    if (!disponible(monEntreprise, "RH")) return null;
+
+    const [ligne] = await tx
+      .select({
+        id: dossierRH.id,
+        utilisateurId: dossierRH.utilisateurId,
+        poste: dossierRH.poste,
+        typeContrat: dossierRH.typeContrat,
+        dateEmbauche: dossierRH.dateEmbauche,
+        dateFinContrat: dossierRH.dateFinContrat,
+        salaireBase: dossierRH.salaireBase,
+        nombrePersonnesACharge: dossierRH.nombrePersonnesACharge,
+        soldeConges: dossierRH.soldeConges,
+        nomComplet: utilisateur.nomComplet,
+      })
+      .from(dossierRH)
+      .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
+      .where(eq(dossierRH.id, id));
+    if (!ligne) return null;
+
+    const estProprietaire = ligne.utilisateurId === utilisateurConnecte.utilisateurId;
+    if (!estProprietaire) {
+      const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
+      if (ids !== "TOUT" && !ids.includes(ligne.utilisateurId)) return null;
+    }
+
+    const demandes = await tx.select().from(demandeConge).where(eq(demandeConge.dossierRHId, id)).orderBy(desc(demandeConge.creeLe));
+
+    const evaluations = await tx
+      .select({ id: evaluation.id, periode: evaluation.periode, commentaire: evaluation.commentaire, evaluateurNom: utilisateur.nomComplet, creeLe: evaluation.creeLe })
+      .from(evaluation)
+      .innerJoin(utilisateur, eq(evaluation.evaluateurId, utilisateur.id))
+      .where(eq(evaluation.dossierRHId, id))
+      .orderBy(desc(evaluation.creeLe));
+
+    const aujourdHui = debutJournee(new Date());
+    const [pointageAujourdHui] = await tx.select().from(pointage).where(eq(pointage.dossierRHId, id));
+    const pointageDuJour = pointageAujourdHui?.date.getTime() === aujourdHui.getTime() ? pointageAujourdHui : null;
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire };
+  });
+
+  if (!donnees) notFound();
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire } = donnees;
+
+  const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
+  const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
+  const peutTraiterConges = !estProprietaire && peut(utilisateurConnecte.role, "RH", "MODIFIER");
+  const peutEvaluer = !estProprietaire && peut(utilisateurConnecte.role, "RH", "MODIFIER");
+
+  return (
+    <div className="flex max-w-2xl flex-col gap-6">
+      <Link href="/app/rh" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-3.5" aria-hidden />
+        Retour
+      </Link>
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <User className="size-5" aria-hidden />
+          <h1 className="text-2xl font-semibold tracking-tight">{ligne.nomComplet}</h1>
+        </div>
+        {peutModifierDossier ? (
+          <Link href={`/app/rh/${ligne.id}/export`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <Download className="size-3.5" aria-hidden />
+            Exporter (CSV)
+          </Link>
+        ) : null}
+      </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-muted-foreground">Poste</p>
+              <p className="font-medium">{ligne.poste}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Contrat</p>
+              <p className="font-medium">
+                {LIBELLE_TYPE_CONTRAT[ligne.typeContrat] ?? ligne.typeContrat} — depuis le{" "}
+                {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateEmbauche)}
+                {ligne.dateFinContrat ? ` (jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateFinContrat)})` : ""}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Solde de congés</p>
+              <p className="font-medium">{ligne.soldeConges} jour(s)</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Personnes à charge</p>
+              <p className="font-medium">{ligne.nombrePersonnesACharge}</p>
+            </div>
+            {peutVoirSalaireIci ? (
+              <div>
+                <p className="text-muted-foreground">Salaire de base</p>
+                <p className="font-medium">
+                  {ligne.salaireBase != null ? `${new Intl.NumberFormat("fr-FR").format(ligne.salaireBase)} FCFA` : "Non renseigné"}
+                </p>
+              </div>
+            ) : null}
+          </div>
+          {peutModifierDossier ? (
+            <FormulaireDossierRH
+              dossierRHId={ligne.id}
+              poste={ligne.poste}
+              typeContrat={ligne.typeContrat}
+              dateEmbauche={ligne.dateEmbauche}
+              dateFinContrat={ligne.dateFinContrat}
+              salaireBase={ligne.salaireBase}
+              nombrePersonnesACharge={ligne.nombrePersonnesACharge}
+              peutVoirSalaire={peutVoirSalaireIci}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {estProprietaire ? (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Pointage</h2>
+          <BoutonPointage arrive={Boolean(pointageDuJour?.heureArrivee)} parti={Boolean(pointageDuJour?.heureDepart)} />
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Congés</h2>
+          {estProprietaire ? <FormulaireDemandeConge /> : null}
+        </div>
+        <ListeDemandesConge demandes={demandes} peutTraiter={peutTraiterConges} peutVoirMotifSensible={peutVoirSalaireIci} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Évaluations</h2>
+          {peutEvaluer ? <FormulaireEvaluation dossierRHId={ligne.id} /> : null}
+        </div>
+        <ListeEvaluations evaluations={evaluations} />
+      </div>
+    </div>
+  );
+}
