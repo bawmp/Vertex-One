@@ -279,3 +279,10 @@ Ce dernier indicateur est un bénéfice direct de la séparation Dossier/Projet 
 7. Ajout des requêtes de tableau de bord ci-dessus, y compris l'indicateur de clients sans projet actif.
 
 Merci d'avoir relevé cette confusion avant la construction plutôt qu'après — c'est exactement le genre de correction qui coûte quelques minutes maintenant et des semaines de refonte une fois du code réel écrit dessus.
+
+## 9. Écarts réels avec ce document, constatés à la construction
+
+- **`entrepriseId` ajouté sur `Tache` et `Commentaire`**, absents du sketch Prisma de la section 2 (qui ne portait que `projetId`/`dossierId`+`projetId`). Même raisonnement que `LigneDevis`/`LigneFacture` au Palier 1 (voir CLAUDE.md, règle "sans exception") : une politique RLS directe sur la table plutôt qu'une sous-requête vers le Projet/Dossier parent à chaque lecture/écriture.
+- **Verrouillage Pro appliqué uniquement aux routes de consultation**, jamais au pont `devis.accepte → Dossier/Projet` lui-même (conforme à la section 6 : "l'accès est vérifié au niveau de la route") — un Dossier/Projet peut donc exister en base pour une entreprise Starter (créé avant un éventuel downgrade, ou si le pont s'exécute avant toute vérification), simplement invisible tant que le forfait ne le permet pas. Comportement voulu, pas un oubli.
+- **Kanban simplifié en liste + sélecteur de statut** pour la vue Projet (section 4, "Vue Projet... kanban") : un `<select>` par tâche suffit tant qu'aucun utilisateur réel n'a demandé le drag & drop, cohérent avec l'esprit du projet de ne pas construire au-delà du besoin exprimé.
+- **Contrainte "jamais dossierId et projetId en même temps" sur `Commentaire`** appliquée à la couche action (`src/lib/actions/{dossier,projet}.ts`), pas par une contrainte SQL — cohérent avec le reste du produit, qui ne valide pas ce type de règle en base.
