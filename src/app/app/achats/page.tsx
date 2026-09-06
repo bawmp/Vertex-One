@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, inArray } from "drizzle-orm";
-import { ShoppingCart, Lock, UserPlus } from "lucide-react";
+import { ShoppingCart, Lock, UserPlus, FileText } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { depense, fournisseur, compteComptable, deal } from "@/db/schema";
+import { depense, fournisseur, compteComptable, deal, factureFournisseur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { STATUT_FACTURE_FOURNISSEUR } from "@/lib/libelles";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { FormulaireNouvelleDepense } from "./formulaire-nouvelle-depense";
+import { BoutonMarquerPayee } from "./bouton-marquer-payee";
 
 export default async function PageAchats() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -53,6 +56,23 @@ export default async function PageAchats() {
     const depenses =
       visibles === "TOUT" ? await baseDepenses : visibles.length === 0 ? [] : await baseDepenses.where(inArray(depense.assigneAId, visibles));
 
+    const baseFactures = tx
+      .select({
+        id: factureFournisseur.id,
+        numero: factureFournisseur.numero,
+        statut: factureFournisseur.statut,
+        montantTTC: factureFournisseur.montantTTC,
+        dateEcheance: factureFournisseur.dateEcheance,
+        fournisseurNom: fournisseur.nom,
+        assigneAId: factureFournisseur.assigneAId,
+      })
+      .from(factureFournisseur)
+      .innerJoin(fournisseur, eq(factureFournisseur.fournisseurId, fournisseur.id))
+      .orderBy(desc(factureFournisseur.dateFacture));
+
+    const facturesFournisseur =
+      visibles === "TOUT" ? await baseFactures : visibles.length === 0 ? [] : await baseFactures.where(inArray(factureFournisseur.assigneAId, visibles));
+
     const debutDuMois = new Date();
     debutDuMois.setDate(1);
     debutDuMois.setHours(0, 0, 0, 0);
@@ -60,7 +80,7 @@ export default async function PageAchats() {
       .filter((d) => d.datePaiement >= debutDuMois)
       .reduce((somme, d) => somme + d.montantTTC, 0);
 
-    return { fournisseurs, comptesCharge, deals, depenses, totalDuMois };
+    return { fournisseurs, comptesCharge, deals, depenses, facturesFournisseur, totalDuMois };
   });
 
   return (
@@ -82,6 +102,48 @@ export default async function PageAchats() {
         <p className="text-sm text-muted-foreground">Dépenses ce mois-ci</p>
         <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(donnees.totalDuMois)}</p>
       </Card>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Factures fournisseur</h2>
+          {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+            <Button size="sm" variant="outline" render={<Link href="/app/achats/factures/nouveau" />} nativeButton={false}>
+              <FileText data-icon="inline-start" aria-hidden />
+              Nouvelle facture fournisseur
+            </Button>
+          ) : null}
+        </div>
+
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {donnees.facturesFournisseur.map((f) => {
+              const info = STATUT_FACTURE_FOURNISSEUR[f.statut];
+              return (
+                <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {f.numero} — {f.fournisseurNom}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Échéance {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(f.dateEcheance)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="tabular-nums font-medium">{formaterFCFA(f.montantTTC)}</span>
+                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? f.statut}</Badge>
+                    {f.statut === "EN_ATTENTE" && peut(utilisateurConnecte.role, "ACHATS", "MODIFIER") ? (
+                      <BoutonMarquerPayee factureFournisseurId={f.id} />
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+            {donnees.facturesFournisseur.length === 0 ? (
+              <p className="px-4 py-8 text-center text-muted-foreground">Aucune facture fournisseur pour le moment.</p>
+            ) : null}
+          </div>
+        </Card>
+      </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

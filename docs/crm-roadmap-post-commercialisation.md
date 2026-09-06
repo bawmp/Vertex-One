@@ -60,15 +60,20 @@ Autres écarts, moins prioritaires :
 - Pas de portail client pour visualiser les documents partagés (Vertex One n'a pas de portail client du tout).
 - Pas de suggestion automatique de rapprochement entre un document et une transaction existante (Zoho propose des "matching transactions") — le rattachement reste un choix manuel dans un menu déroulant.
 
-## 5. Zoho Books — Cycle Achats (Fournisseurs/Dépenses)
+## 5. Zoho Books — Cycle Achats (Fournisseurs/Dépenses/Factures fournisseur/Paiements effectués)
 
-Construit le 2026-09-07 à partir de `zoho-books-full-spec.md` (cahier des charges complet fourni par l'utilisateur). Première tranche du cycle Achats — le pendant du cycle Ventes côté fournisseurs : **Fournisseurs** (`fournisseur`) et **Dépenses** (`depense`, saisie rapide "hors cycle bill complet" qui génère immédiatement ses écritures comptables). Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACHATS` propre (voir `src/lib/permissions.ts`).
+Construit le 2026-09-07 à partir de `zoho-books-full-spec.md` (cahier des charges complet fourni par l'utilisateur), en deux tranches vérifiées séparément (schéma → migration → écritures comptables → actions → interface → tests RLS → parcours navigateur réel) :
+
+1. **Fournisseurs** (`fournisseur`) et **Dépenses** (`depense`) — saisie rapide "hors cycle bill complet" qui génère immédiatement ses écritures comptables.
+2. **Factures fournisseur** (`factureFournisseur`/`ligneFactureFournisseur`, Bills) — la vraie dette fournisseur avec échéance, numéro DU FOURNISSEUR (texte libre, jamais généré par nous, à l'inverse de Facture client) — et **Paiements effectués** (`paiementEffectue`, Payments Made), réglés intégralement en une fois (même simplification que `marquerFacturePayee()` côté client, qui ne gère pas non plus le paiement partiel malgré `PARTIELLEMENT_PAYEE` déjà dans son enum).
+
+Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACHATS` propre (voir `src/lib/permissions.ts`). Une seule catégorie de charge par Dépense/Facture fournisseur (pas de compte par ligne), faute de catalogue Produits/Tarifs (voir ci-dessous).
 
 **Reste à construire pour ce cycle** (tranches séparées à venir, un sujet financier sensible traité étape par étape plutôt qu'en un seul bloc) :
 - Bons de commande fournisseur (Purchase Orders)
-- Factures fournisseur (Bills) — la vraie dette fournisseur avec échéance, contrairement à la Dépense qui suppose un paiement immédiat
-- Paiements effectués (Payments Made) — règlement d'une ou plusieurs Bills
 - Avoirs fournisseur (Vendor Credits)
+- Annulation/void d'une Facture fournisseur (le statut ANNULEE existe dans l'enum mais aucune action ne le pose encore)
+- Paiement partiel d'une Facture fournisseur (PARTIELLEMENT_PAYEE existe dans l'enum, non implémenté — même écart que côté Facture client)
 
 **Extensions Ventes non construites** (même spec) : Bons de commande client (Sales Orders), Factures récurrentes, Factures d'acompte (Retainer), Avoirs clients (Credit Notes), Reçus de vente (Sales Receipts).
 

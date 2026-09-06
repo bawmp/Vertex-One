@@ -1246,9 +1246,11 @@ export const ecritureComptable = pgTable(
     // manquer un jour).
     factureId: text("facture_id"),
     paiementId: text("paiement_id"),
-    // Ajouté pour le cycle Achats (échange du 2026-09-06) — même raisonnement
-    // que factureId/paiementId ci-dessus : jamais de FK stricte.
+    // Ajouté pour le cycle Achats (échange du 2026-09-06/07) — même
+    // raisonnement que factureId/paiementId ci-dessus : jamais de FK stricte.
     depenseId: text("depense_id"),
+    factureFournisseurId: text("facture_fournisseur_id"),
+    paiementEffectueId: text("paiement_effectue_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -1406,6 +1408,117 @@ export const depense = pgTable(
     index("depense_entreprise_idx").on(table.entrepriseId),
     index("depense_assigne_idx").on(table.assigneAId),
     index("depense_fournisseur_idx").on(table.fournisseurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Cycle Achats, deuxième tranche (échange du 2026-09-07) — Facture
+// fournisseur (Bill) : contrairement à Dépense, suppose une dette avec
+// échéance, pas un paiement immédiat. "numero" est le numéro DU FOURNISSEUR
+// (texte libre saisi par l'utilisateur), jamais généré par nous — à
+// l'inverse de Facture (client), où le numéro est LE NÔTRE et soumis à une
+// numérotation atomique sans trou (voir CLAUDE.md). Une seule catégorie de
+// charge par facture (compteComptableId), comme Dépense — pas de compte par
+// ligne, faute de catalogue Produits/Tarifs (voir docs/crm-roadmap-post-
+// commercialisation.md).
+export const statutFactureFournisseur = pgEnum("statut_facture_fournisseur", ["EN_ATTENTE", "PARTIELLEMENT_PAYEE", "PAYEE", "ANNULEE"]);
+
+export const factureFournisseur = pgTable(
+  "facture_fournisseur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    fournisseurId: text("fournisseur_id")
+      .notNull()
+      .references(() => fournisseur.id),
+    compteComptableId: text("compte_comptable_id")
+      .notNull()
+      .references(() => compteComptable.id),
+    statut: statutFactureFournisseur("statut").notNull().default("EN_ATTENTE"),
+    dateFacture: timestamp("date_facture").notNull(),
+    dateEcheance: timestamp("date_echeance").notNull(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0),
+    montantTTC: integer("montant_ttc").notNull(),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("facture_fournisseur_entreprise_idx").on(table.entrepriseId),
+    index("facture_fournisseur_fournisseur_idx").on(table.fournisseurId),
+    index("facture_fournisseur_assigne_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneFactureFournisseur = pgTable(
+  "ligne_facture_fournisseur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureFournisseurId: text("facture_fournisseur_id")
+      .notNull()
+      .references(() => factureFournisseur.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull().default(19.25),
+  },
+  (table) => [
+    index("ligne_facture_fournisseur_entreprise_idx").on(table.entrepriseId),
+    index("ligne_facture_fournisseur_facture_idx").on(table.factureFournisseurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Règlement d'une Facture fournisseur — miroir de `paiement` (côté client),
+// toujours pour le montant total en une fois pour l'instant, même
+// simplification que marquerFacturePayee() (aucun paiement partiel implémenté
+// non plus côté client malgré PARTIELLEMENT_PAYEE déjà dans l'enum).
+export const paiementEffectue = pgTable(
+  "paiement_effectue",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureFournisseurId: text("facture_fournisseur_id")
+      .notNull()
+      .references(() => factureFournisseur.id),
+    montant: integer("montant").notNull(),
+    moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
+    referenceTransaction: text("reference_transaction"),
+    datePaiement: timestamp("date_paiement").notNull().defaultNow(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("paiement_effectue_entreprise_idx").on(table.entrepriseId),
+    index("paiement_effectue_facture_idx").on(table.factureFournisseurId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

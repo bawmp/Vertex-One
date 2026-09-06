@@ -204,6 +204,20 @@
       "when": 1788735866332,
       "tag": "0028_force_rls_cycle_achats",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788738276303,
+      "tag": "0029_factures_fournisseur_paiements_effectues",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788738325684,
+      "tag": "0030_force_rls_factures_fournisseur",
+      "breakpoints": true
     }
   ]
 }

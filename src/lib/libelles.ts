@@ -53,6 +53,14 @@ export const STATUT_FACTURE: Record<string, { libelle: string; variante: Variant
   ANNULEE: { libelle: "Annulée", variante: "neutral" },
 };
 
+// Cycle Achats, deuxième tranche (échange du 2026-09-07).
+export const STATUT_FACTURE_FOURNISSEUR: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  EN_ATTENTE: { libelle: "En attente", variante: "info" },
+  PARTIELLEMENT_PAYEE: { libelle: "Partiellement payée", variante: "warning" },
+  PAYEE: { libelle: "Payée", variante: "success" },
+  ANNULEE: { libelle: "Annulée", variante: "neutral" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

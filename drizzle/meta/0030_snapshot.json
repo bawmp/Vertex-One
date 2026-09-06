@@ -1,0 +1,5364 @@
+{
+  "id": "32947d9a-4bad-4f1c-931c-6982af264c21",
+  "prevId": "ad760cbf-eacd-493c-b862-c872eb9810f5",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.addon_actif": {
+      "name": "addon_actif",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "addon": {
+          "name": "addon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prix_mensuel": {
+          "name": "prix_mensuel",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active_le": {
+          "name": "active_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "addon_actif_entreprise_idx": {
+          "name": "addon_actif_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "addon_actif_entreprise_addon_unique": {
+          "name": "addon_actif_entreprise_addon_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "addon",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "addon_actif_entreprise_id_entreprise_id_fk": {
+          "name": "addon_actif_entreprise_id_entreprise_id_fk",
+          "tableFrom": "addon_actif",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"addon_actif\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"addon_actif\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.annonce": {
+      "name": "annonce",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auteur_id": {
+          "name": "auteur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "epinglee": {
+          "name": "epinglee",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "annonce_entreprise_idx": {
+          "name": "annonce_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "annonce_entreprise_id_entreprise_id_fk": {
+          "name": "annonce_entreprise_id_entreprise_id_fk",
+          "tableFrom": "annonce",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "annonce_auteur_id_utilisateur_id_fk": {
+          "name": "annonce_auteur_id_utilisateur_id_fk",
+          "tableFrom": "annonce",
+          "columnsFrom": [
+            "auteur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"annonce\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"annonce\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.avoir_facture": {
+      "name": "avoir_facture",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facture_id": {
+          "name": "facture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motif": {
+          "name": "motif",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "avoir_facture_entreprise_idx": {
+          "name": "avoir_facture_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "avoir_facture_entreprise_id_entreprise_id_fk": {
+          "name": "avoir_facture_entreprise_id_entreprise_id_fk",
+          "tableFrom": "avoir_facture",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "avoir_facture_facture_id_facture_id_fk": {
+          "name": "avoir_facture_facture_id_facture_id_fk",
+          "tableFrom": "avoir_facture",
+          "columnsFrom": [
+            "facture_id"
+          ],
+          "tableTo": "facture",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "avoir_facture_facture_id_unique": {
+          "name": "avoir_facture_facture_id_unique",
+          "columns": [
+            "facture_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"avoir_facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"avoir_facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.campagne": {
+      "name": "campagne",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "canal": {
+          "name": "canal",
+          "type": "canal_campagne",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment": {
+          "name": "segment",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_campagne",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'BROUILLON'"
+        },
+        "envoyee_le": {
+          "name": "envoyee_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_par_id": {
+          "name": "cree_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "campagne_entreprise_idx": {
+          "name": "campagne_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "campagne_entreprise_id_entreprise_id_fk": {
+          "name": "campagne_entreprise_id_entreprise_id_fk",
+          "tableFrom": "campagne",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "campagne_cree_par_id_utilisateur_id_fk": {
+          "name": "campagne_cree_par_id_utilisateur_id_fk",
+          "tableFrom": "campagne",
+          "columnsFrom": [
+            "cree_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"campagne\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"campagne\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.canal": {
+      "name": "canal",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "type_canal",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projet_id": {
+          "name": "projet_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_fournisseur_chat": {
+          "name": "id_fournisseur_chat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "canal_entreprise_idx": {
+          "name": "canal_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "canal_projet_idx": {
+          "name": "canal_projet_idx",
+          "columns": [
+            {
+              "expression": "projet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "canal_entreprise_id_entreprise_id_fk": {
+          "name": "canal_entreprise_id_entreprise_id_fk",
+          "tableFrom": "canal",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "canal_projet_id_projet_id_fk": {
+          "name": "canal_projet_id_projet_id_fk",
+          "tableFrom": "canal",
+          "columnsFrom": [
+            "projet_id"
+          ],
+          "tableTo": "projet",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "canal_id_fournisseur_chat_unique": {
+          "name": "canal_id_fournisseur_chat_unique",
+          "columns": [
+            "id_fournisseur_chat"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"canal\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"canal\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.commentaire": {
+      "name": "commentaire",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_id": {
+          "name": "dossier_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projet_id": {
+          "name": "projet_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auteur_id": {
+          "name": "auteur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "commentaire_entreprise_idx": {
+          "name": "commentaire_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "commentaire_dossier_idx": {
+          "name": "commentaire_dossier_idx",
+          "columns": [
+            {
+              "expression": "dossier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "commentaire_projet_idx": {
+          "name": "commentaire_projet_idx",
+          "columns": [
+            {
+              "expression": "projet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "commentaire_entreprise_id_entreprise_id_fk": {
+          "name": "commentaire_entreprise_id_entreprise_id_fk",
+          "tableFrom": "commentaire",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "commentaire_dossier_id_dossier_id_fk": {
+          "name": "commentaire_dossier_id_dossier_id_fk",
+          "tableFrom": "commentaire",
+          "columnsFrom": [
+            "dossier_id"
+          ],
+          "tableTo": "dossier",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "commentaire_projet_id_projet_id_fk": {
+          "name": "commentaire_projet_id_projet_id_fk",
+          "tableFrom": "commentaire",
+          "columnsFrom": [
+            "projet_id"
+          ],
+          "tableTo": "projet",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "commentaire_auteur_id_utilisateur_id_fk": {
+          "name": "commentaire_auteur_id_utilisateur_id_fk",
+          "tableFrom": "commentaire",
+          "columnsFrom": [
+            "auteur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"commentaire\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"commentaire\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "issuer": {
+          "name": "issuer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "account_user_idx": {
+          "name": "account_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "account_user_id_utilisateur_id_fk": {
+          "name": "account_user_id_utilisateur_id_fk",
+          "tableFrom": "account",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "permissif_better_auth": {
+          "name": "permissif_better_auth",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.compte_comptable": {
+      "name": "compte_comptable",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "numero": {
+          "name": "numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classe": {
+          "name": "classe",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "compte_comptable_numero_unique": {
+          "name": "compte_comptable_numero_unique",
+          "columns": [
+            "numero"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contrat": {
+      "name": "contrat",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_id": {
+          "name": "dossier_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "demande_signature_id": {
+          "name": "demande_signature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin": {
+          "name": "date_fin",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renouvellement_auto": {
+          "name": "renouvellement_auto",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "preavis_jours": {
+          "name": "preavis_jours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_contrat",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIF'"
+        },
+        "alerte_echeance_envoyee_le": {
+          "name": "alerte_echeance_envoyee_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "contrat_entreprise_idx": {
+          "name": "contrat_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "contrat_dossier_idx": {
+          "name": "contrat_dossier_idx",
+          "columns": [
+            {
+              "expression": "dossier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "contrat_entreprise_id_entreprise_id_fk": {
+          "name": "contrat_entreprise_id_entreprise_id_fk",
+          "tableFrom": "contrat",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "contrat_dossier_id_dossier_id_fk": {
+          "name": "contrat_dossier_id_dossier_id_fk",
+          "tableFrom": "contrat",
+          "columnsFrom": [
+            "dossier_id"
+          ],
+          "tableTo": "dossier",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "contrat_demande_signature_id_demande_signature_id_fk": {
+          "name": "contrat_demande_signature_id_demande_signature_id_fk",
+          "tableFrom": "contrat",
+          "columnsFrom": [
+            "demande_signature_id"
+          ],
+          "tableTo": "demande_signature",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"contrat\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"contrat\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.demande_conge": {
+      "name": "demande_conge",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_rh_id": {
+          "name": "dossier_rh_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "type_conge",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin": {
+          "name": "date_fin",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre_jours": {
+          "name": "nombre_jours",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_demande_conge",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EN_ATTENTE'"
+        },
+        "approuve_par_id": {
+          "name": "approuve_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motif": {
+          "name": "motif",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "demande_conge_entreprise_idx": {
+          "name": "demande_conge_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "demande_conge_dossier_rh_idx": {
+          "name": "demande_conge_dossier_rh_idx",
+          "columns": [
+            {
+              "expression": "dossier_rh_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "demande_conge_entreprise_id_entreprise_id_fk": {
+          "name": "demande_conge_entreprise_id_entreprise_id_fk",
+          "tableFrom": "demande_conge",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "demande_conge_dossier_rh_id_dossier_rh_id_fk": {
+          "name": "demande_conge_dossier_rh_id_dossier_rh_id_fk",
+          "tableFrom": "demande_conge",
+          "columnsFrom": [
+            "dossier_rh_id"
+          ],
+          "tableTo": "dossier_rh",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "demande_conge_approuve_par_id_utilisateur_id_fk": {
+          "name": "demande_conge_approuve_par_id_utilisateur_id_fk",
+          "tableFrom": "demande_conge",
+          "columnsFrom": [
+            "approuve_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"demande_conge\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"demande_conge\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.demande_signature": {
+      "name": "demande_signature",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "type_signature",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SIMPLE'"
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_signature",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EN_ATTENTE'"
+        },
+        "empreinte_document": {
+          "name": "empreinte_document",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_par_id": {
+          "name": "cree_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "demande_signature_entreprise_idx": {
+          "name": "demande_signature_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "demande_signature_document_idx": {
+          "name": "demande_signature_document_idx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "demande_signature_entreprise_id_entreprise_id_fk": {
+          "name": "demande_signature_entreprise_id_entreprise_id_fk",
+          "tableFrom": "demande_signature",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "demande_signature_document_id_document_id_fk": {
+          "name": "demande_signature_document_id_document_id_fk",
+          "tableFrom": "demande_signature",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "tableTo": "document",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "demande_signature_cree_par_id_utilisateur_id_fk": {
+          "name": "demande_signature_cree_par_id_utilisateur_id_fk",
+          "tableFrom": "demande_signature",
+          "columnsFrom": [
+            "cree_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"demande_signature\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"demande_signature\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.devis": {
+      "name": "devis",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numero": {
+          "name": "numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prospect_id": {
+          "name": "prospect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_devis",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'BROUILLON'"
+        },
+        "date_validite": {
+          "name": "date_validite",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_ht": {
+          "name": "montant_ht",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_tva": {
+          "name": "montant_tva",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_ttc": {
+          "name": "montant_ttc",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_par_id": {
+          "name": "cree_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "devis_entreprise_numero_unique": {
+          "name": "devis_entreprise_numero_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "numero",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "devis_entreprise_idx": {
+          "name": "devis_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "devis_entreprise_id_entreprise_id_fk": {
+          "name": "devis_entreprise_id_entreprise_id_fk",
+          "tableFrom": "devis",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "devis_prospect_id_prospect_id_fk": {
+          "name": "devis_prospect_id_prospect_id_fk",
+          "tableFrom": "devis",
+          "columnsFrom": [
+            "prospect_id"
+          ],
+          "tableTo": "prospect",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "devis_cree_par_id_utilisateur_id_fk": {
+          "name": "devis_cree_par_id_utilisateur_id_fk",
+          "tableFrom": "devis",
+          "columnsFrom": [
+            "cree_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"devis\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"devis\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.document": {
+      "name": "document",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_id": {
+          "name": "dossier_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projet_id": {
+          "name": "projet_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "categorie": {
+          "name": "categorie",
+          "type": "categorie_document",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'GENERAL'"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cle_stockage": {
+          "name": "cle_stockage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_mime": {
+          "name": "type_mime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taille_octets": {
+          "name": "taille_octets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "televerse_par_id": {
+          "name": "televerse_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "document_entreprise_idx": {
+          "name": "document_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "document_dossier_idx": {
+          "name": "document_dossier_idx",
+          "columns": [
+            {
+              "expression": "dossier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "document_projet_idx": {
+          "name": "document_projet_idx",
+          "columns": [
+            {
+              "expression": "projet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "document_entreprise_id_entreprise_id_fk": {
+          "name": "document_entreprise_id_entreprise_id_fk",
+          "tableFrom": "document",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "document_dossier_id_dossier_id_fk": {
+          "name": "document_dossier_id_dossier_id_fk",
+          "tableFrom": "document",
+          "columnsFrom": [
+            "dossier_id"
+          ],
+          "tableTo": "dossier",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "document_projet_id_projet_id_fk": {
+          "name": "document_projet_id_projet_id_fk",
+          "tableFrom": "document",
+          "columnsFrom": [
+            "projet_id"
+          ],
+          "tableTo": "projet",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "document_televerse_par_id_utilisateur_id_fk": {
+          "name": "document_televerse_par_id_utilisateur_id_fk",
+          "tableFrom": "document",
+          "columnsFrom": [
+            "televerse_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"document\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"document\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.domaine_email": {
+      "name": "domaine_email",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domaine": {
+          "name": "domaine",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_domaine_email",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SOUS_DOMAINE_VERTEX'"
+        },
+        "enregistrements_dns": {
+          "name": "enregistrements_dns",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verifie_le": {
+          "name": "verifie_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "domaine_email_entreprise_idx": {
+          "name": "domaine_email_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "domaine_email_entreprise_id_entreprise_id_fk": {
+          "name": "domaine_email_entreprise_id_entreprise_id_fk",
+          "tableFrom": "domaine_email",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "domaine_email_domaine_unique": {
+          "name": "domaine_email_domaine_unique",
+          "columns": [
+            "domaine"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"domaine_email\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"domaine_email\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.dossier": {
+      "name": "dossier",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prospect_id": {
+          "name": "prospect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_dossier",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIF'"
+        },
+        "responsable_id": {
+          "name": "responsable_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_ouverture": {
+          "name": "date_ouverture",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "consentement_donnees_le": {
+          "name": "consentement_donnees_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "dossier_entreprise_prospect_unique": {
+          "name": "dossier_entreprise_prospect_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "prospect_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "dossier_entreprise_idx": {
+          "name": "dossier_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "dossier_responsable_idx": {
+          "name": "dossier_responsable_idx",
+          "columns": [
+            {
+              "expression": "responsable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "dossier_entreprise_id_entreprise_id_fk": {
+          "name": "dossier_entreprise_id_entreprise_id_fk",
+          "tableFrom": "dossier",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "dossier_prospect_id_prospect_id_fk": {
+          "name": "dossier_prospect_id_prospect_id_fk",
+          "tableFrom": "dossier",
+          "columnsFrom": [
+            "prospect_id"
+          ],
+          "tableTo": "prospect",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "dossier_responsable_id_utilisateur_id_fk": {
+          "name": "dossier_responsable_id_utilisateur_id_fk",
+          "tableFrom": "dossier",
+          "columnsFrom": [
+            "responsable_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"dossier\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"dossier\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.dossier_rh": {
+      "name": "dossier_rh",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utilisateur_id": {
+          "name": "utilisateur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "poste": {
+          "name": "poste",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_contrat": {
+          "name": "type_contrat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_embauche": {
+          "name": "date_embauche",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin_contrat": {
+          "name": "date_fin_contrat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "salaire_base": {
+          "name": "salaire_base",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nombre_personnes_a_charge": {
+          "name": "nombre_personnes_a_charge",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "solde_conges": {
+          "name": "solde_conges",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "dossier_rh_entreprise_idx": {
+          "name": "dossier_rh_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "dossier_rh_entreprise_id_entreprise_id_fk": {
+          "name": "dossier_rh_entreprise_id_entreprise_id_fk",
+          "tableFrom": "dossier_rh",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "dossier_rh_utilisateur_id_utilisateur_id_fk": {
+          "name": "dossier_rh_utilisateur_id_utilisateur_id_fk",
+          "tableFrom": "dossier_rh",
+          "columnsFrom": [
+            "utilisateur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dossier_rh_utilisateur_id_unique": {
+          "name": "dossier_rh_utilisateur_id_unique",
+          "columns": [
+            "utilisateur_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"dossier_rh\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"dossier_rh\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ecriture_comptable": {
+      "name": "ecriture_comptable",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_ecriture": {
+          "name": "date_ecriture",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "libelle": {
+          "name": "libelle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "compte_id": {
+          "name": "compte_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "debit": {
+          "name": "debit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "credit": {
+          "name": "credit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "facture_id": {
+          "name": "facture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paiement_id": {
+          "name": "paiement_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ecriture_comptable_entreprise_idx": {
+          "name": "ecriture_comptable_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "ecriture_comptable_compte_idx": {
+          "name": "ecriture_comptable_compte_idx",
+          "columns": [
+            {
+              "expression": "compte_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "ecriture_comptable_entreprise_id_entreprise_id_fk": {
+          "name": "ecriture_comptable_entreprise_id_entreprise_id_fk",
+          "tableFrom": "ecriture_comptable",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "ecriture_comptable_compte_id_compte_comptable_id_fk": {
+          "name": "ecriture_comptable_compte_id_compte_comptable_id_fk",
+          "tableFrom": "ecriture_comptable",
+          "columnsFrom": [
+            "compte_id"
+          ],
+          "tableTo": "compte_comptable",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"ecriture_comptable\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"ecriture_comptable\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.entreprise": {
+      "name": "entreprise",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "secteur_profil": {
+          "name": "secteur_profil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plan_abonnement": {
+          "name": "plan_abonnement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'starter'"
+        },
+        "statut_abonnement": {
+          "name": "statut_abonnement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'essai'"
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "niu": {
+          "name": "niu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rccm": {
+          "name": "rccm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ville": {
+          "name": "ville",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assujetti_tva": {
+          "name": "assujetti_tva",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "compteur_factures": {
+          "name": "compteur_factures",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "compteur_devis": {
+          "name": "compteur_devis",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.evaluation": {
+      "name": "evaluation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_rh_id": {
+          "name": "dossier_rh_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evaluateur_id": {
+          "name": "evaluateur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "periode": {
+          "name": "periode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commentaire": {
+          "name": "commentaire",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "evaluation_entreprise_idx": {
+          "name": "evaluation_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "evaluation_dossier_rh_idx": {
+          "name": "evaluation_dossier_rh_idx",
+          "columns": [
+            {
+              "expression": "dossier_rh_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "evaluation_entreprise_id_entreprise_id_fk": {
+          "name": "evaluation_entreprise_id_entreprise_id_fk",
+          "tableFrom": "evaluation",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "evaluation_dossier_rh_id_dossier_rh_id_fk": {
+          "name": "evaluation_dossier_rh_id_dossier_rh_id_fk",
+          "tableFrom": "evaluation",
+          "columnsFrom": [
+            "dossier_rh_id"
+          ],
+          "tableTo": "dossier_rh",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "evaluation_evaluateur_id_utilisateur_id_fk": {
+          "name": "evaluation_evaluateur_id_utilisateur_id_fk",
+          "tableFrom": "evaluation",
+          "columnsFrom": [
+            "evaluateur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"evaluation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"evaluation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.facture": {
+      "name": "facture",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numero": {
+          "name": "numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prospect_id": {
+          "name": "prospect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "devis_origine_id": {
+          "name": "devis_origine_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_facture",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EMISE'"
+        },
+        "montant_ht": {
+          "name": "montant_ht",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_tva": {
+          "name": "montant_tva",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_ttc": {
+          "name": "montant_ttc",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_emission": {
+          "name": "date_emission",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "date_echeance": {
+          "name": "date_echeance",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "facture_entreprise_numero_unique": {
+          "name": "facture_entreprise_numero_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "numero",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "facture_entreprise_idx": {
+          "name": "facture_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "facture_statut_idx": {
+          "name": "facture_statut_idx",
+          "columns": [
+            {
+              "expression": "statut",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "facture_entreprise_id_entreprise_id_fk": {
+          "name": "facture_entreprise_id_entreprise_id_fk",
+          "tableFrom": "facture",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "facture_prospect_id_prospect_id_fk": {
+          "name": "facture_prospect_id_prospect_id_fk",
+          "tableFrom": "facture",
+          "columnsFrom": [
+            "prospect_id"
+          ],
+          "tableTo": "prospect",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "facture_devis_origine_id_devis_id_fk": {
+          "name": "facture_devis_origine_id_devis_id_fk",
+          "tableFrom": "facture",
+          "columnsFrom": [
+            "devis_origine_id"
+          ],
+          "tableTo": "devis",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.historique_statut_prospect": {
+      "name": "historique_statut_prospect",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prospect_id": {
+          "name": "prospect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ancien_statut": {
+          "name": "ancien_statut",
+          "type": "statut_prospect",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nouveau_statut": {
+          "name": "nouveau_statut",
+          "type": "statut_prospect",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modifie_par_id": {
+          "name": "modifie_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modifie_le": {
+          "name": "modifie_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "historique_statut_prospect_entreprise_idx": {
+          "name": "historique_statut_prospect_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "historique_statut_prospect_prospect_idx": {
+          "name": "historique_statut_prospect_prospect_idx",
+          "columns": [
+            {
+              "expression": "prospect_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "historique_statut_prospect_entreprise_id_entreprise_id_fk": {
+          "name": "historique_statut_prospect_entreprise_id_entreprise_id_fk",
+          "tableFrom": "historique_statut_prospect",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "historique_statut_prospect_prospect_id_prospect_id_fk": {
+          "name": "historique_statut_prospect_prospect_id_prospect_id_fk",
+          "tableFrom": "historique_statut_prospect",
+          "columnsFrom": [
+            "prospect_id"
+          ],
+          "tableTo": "prospect",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "historique_statut_prospect_modifie_par_id_utilisateur_id_fk": {
+          "name": "historique_statut_prospect_modifie_par_id_utilisateur_id_fk",
+          "tableFrom": "historique_statut_prospect",
+          "columnsFrom": [
+            "modifie_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"historique_statut_prospect\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"historique_statut_prospect\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.interaction": {
+      "name": "interaction",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prospect_id": {
+          "name": "prospect_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auteur_id": {
+          "name": "auteur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "interaction_entreprise_idx": {
+          "name": "interaction_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "interaction_prospect_idx": {
+          "name": "interaction_prospect_idx",
+          "columns": [
+            {
+              "expression": "prospect_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "interaction_entreprise_id_entreprise_id_fk": {
+          "name": "interaction_entreprise_id_entreprise_id_fk",
+          "tableFrom": "interaction",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "interaction_prospect_id_prospect_id_fk": {
+          "name": "interaction_prospect_id_prospect_id_fk",
+          "tableFrom": "interaction",
+          "columnsFrom": [
+            "prospect_id"
+          ],
+          "tableTo": "prospect",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "interaction_auteur_id_utilisateur_id_fk": {
+          "name": "interaction_auteur_id_utilisateur_id_fk",
+          "tableFrom": "interaction",
+          "columnsFrom": [
+            "auteur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"interaction\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"interaction\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.invitation": {
+      "name": "invitation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_proposee": {
+          "name": "role_proposee",
+          "type": "role_systeme",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "poste_propose": {
+          "name": "poste_propose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_contrat_propose": {
+          "name": "type_contrat_propose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_embauche_propose": {
+          "name": "date_embauche_propose",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jeton": {
+          "name": "jeton",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expire_le": {
+          "name": "expire_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utilisee_le": {
+          "name": "utilisee_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "invitation_entreprise_idx": {
+          "name": "invitation_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "invitation_entreprise_id_entreprise_id_fk": {
+          "name": "invitation_entreprise_id_entreprise_id_fk",
+          "tableFrom": "invitation",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitation_jeton_unique": {
+          "name": "invitation_jeton_unique",
+          "columns": [
+            "jeton"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise_lecture": {
+          "name": "isolation_entreprise_lecture",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "\"invitation\".\"entreprise_id\" = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL"
+        },
+        "isolation_entreprise_ecriture": {
+          "name": "isolation_entreprise_ecriture",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"invitation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        },
+        "isolation_entreprise_modification": {
+          "name": "isolation_entreprise_modification",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "using": "\"invitation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"invitation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        },
+        "isolation_entreprise_suppression": {
+          "name": "isolation_entreprise_suppression",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "\"invitation\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.journal_acces_document": {
+      "name": "journal_acces_document",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utilisateur_id": {
+          "name": "utilisateur_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "journal_acces_document_entreprise_idx": {
+          "name": "journal_acces_document_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "journal_acces_document_document_idx": {
+          "name": "journal_acces_document_document_idx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "journal_acces_document_entreprise_id_entreprise_id_fk": {
+          "name": "journal_acces_document_entreprise_id_entreprise_id_fk",
+          "tableFrom": "journal_acces_document",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "journal_acces_document_utilisateur_id_utilisateur_id_fk": {
+          "name": "journal_acces_document_utilisateur_id_utilisateur_id_fk",
+          "tableFrom": "journal_acces_document",
+          "columnsFrom": [
+            "utilisateur_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"journal_acces_document\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"journal_acces_document\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ligne_devis": {
+      "name": "ligne_devis",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "devis_id": {
+          "name": "devis_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantite": {
+          "name": "quantite",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prix_unitaire": {
+          "name": "prix_unitaire",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taux_tva": {
+          "name": "taux_tva",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 19.25
+        }
+      },
+      "indexes": {
+        "ligne_devis_entreprise_idx": {
+          "name": "ligne_devis_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "ligne_devis_devis_idx": {
+          "name": "ligne_devis_devis_idx",
+          "columns": [
+            {
+              "expression": "devis_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "ligne_devis_entreprise_id_entreprise_id_fk": {
+          "name": "ligne_devis_entreprise_id_entreprise_id_fk",
+          "tableFrom": "ligne_devis",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "ligne_devis_devis_id_devis_id_fk": {
+          "name": "ligne_devis_devis_id_devis_id_fk",
+          "tableFrom": "ligne_devis",
+          "columnsFrom": [
+            "devis_id"
+          ],
+          "tableTo": "devis",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"ligne_devis\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"ligne_devis\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ligne_facture": {
+      "name": "ligne_facture",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facture_id": {
+          "name": "facture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantite": {
+          "name": "quantite",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prix_unitaire": {
+          "name": "prix_unitaire",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taux_tva": {
+          "name": "taux_tva",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 19.25
+        }
+      },
+      "indexes": {
+        "ligne_facture_entreprise_idx": {
+          "name": "ligne_facture_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "ligne_facture_facture_idx": {
+          "name": "ligne_facture_facture_idx",
+          "columns": [
+            {
+              "expression": "facture_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "ligne_facture_entreprise_id_entreprise_id_fk": {
+          "name": "ligne_facture_entreprise_id_entreprise_id_fk",
+          "tableFrom": "ligne_facture",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "ligne_facture_facture_id_facture_id_fk": {
+          "name": "ligne_facture_facture_id_facture_id_fk",
+          "tableFrom": "ligne_facture",
+          "columnsFrom": [
+            "facture_id"
+          ],
+          "tableTo": "facture",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"ligne_facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"ligne_facture\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.modele_email": {
+      "name": "modele_email",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "type_modele_email",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "objet": {
+          "name": "objet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "corps": {
+          "name": "corps",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "modele_email_entreprise_type_unique": {
+          "name": "modele_email_entreprise_type_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "modele_email_entreprise_idx": {
+          "name": "modele_email_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "modele_email_entreprise_id_entreprise_id_fk": {
+          "name": "modele_email_entreprise_id_entreprise_id_fk",
+          "tableFrom": "modele_email",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"modele_email\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"modele_email\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.page_atterrissage": {
+      "name": "page_atterrissage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "texte": {
+          "name": "texte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "texte_bouton": {
+          "name": "texte_bouton",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Nous contacter'"
+        },
+        "publiee": {
+          "name": "publiee",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "page_atterrissage_entreprise_idx": {
+          "name": "page_atterrissage_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "page_atterrissage_entreprise_id_entreprise_id_fk": {
+          "name": "page_atterrissage_entreprise_id_entreprise_id_fk",
+          "tableFrom": "page_atterrissage",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "page_atterrissage_slug_unique": {
+          "name": "page_atterrissage_slug_unique",
+          "columns": [
+            "slug"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "lecture_publique_ou_entreprise": {
+          "name": "lecture_publique_ou_entreprise",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "\"page_atterrissage\".\"entreprise_id\" = current_setting('app.entreprise_id', true) OR (\"page_atterrissage\".\"publiee\" = true AND nullif(current_setting('app.entreprise_id', true), '') IS NULL)"
+        },
+        "ecriture_entreprise": {
+          "name": "ecriture_entreprise",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"page_atterrissage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        },
+        "modification_entreprise": {
+          "name": "modification_entreprise",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "using": "\"page_atterrissage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"page_atterrissage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        },
+        "suppression_entreprise": {
+          "name": "suppression_entreprise",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "\"page_atterrissage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.paiement": {
+      "name": "paiement",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facture_id": {
+          "name": "facture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moyen_paiement": {
+          "name": "moyen_paiement",
+          "type": "moyen_paiement",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference_transaction": {
+          "name": "reference_transaction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "saisi_par_id": {
+          "name": "saisi_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_paiement": {
+          "name": "date_paiement",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "rapproche_le": {
+          "name": "rapproche_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "paiement_entreprise_idx": {
+          "name": "paiement_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "paiement_facture_idx": {
+          "name": "paiement_facture_idx",
+          "columns": [
+            {
+              "expression": "facture_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "paiement_entreprise_id_entreprise_id_fk": {
+          "name": "paiement_entreprise_id_entreprise_id_fk",
+          "tableFrom": "paiement",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "paiement_facture_id_facture_id_fk": {
+          "name": "paiement_facture_id_facture_id_fk",
+          "tableFrom": "paiement",
+          "columnsFrom": [
+            "facture_id"
+          ],
+          "tableTo": "facture",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "paiement_saisi_par_id_utilisateur_id_fk": {
+          "name": "paiement_saisi_par_id_utilisateur_id_fk",
+          "tableFrom": "paiement",
+          "columnsFrom": [
+            "saisi_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"paiement\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"paiement\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.pointage": {
+      "name": "pointage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_rh_id": {
+          "name": "dossier_rh_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heure_arrivee": {
+          "name": "heure_arrivee",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heure_depart": {
+          "name": "heure_depart",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_pointage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PRESENT'"
+        }
+      },
+      "indexes": {
+        "pointage_entreprise_idx": {
+          "name": "pointage_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "pointage_dossier_rh_date_unique": {
+          "name": "pointage_dossier_rh_date_unique",
+          "columns": [
+            {
+              "expression": "dossier_rh_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "pointage_entreprise_id_entreprise_id_fk": {
+          "name": "pointage_entreprise_id_entreprise_id_fk",
+          "tableFrom": "pointage",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "pointage_dossier_rh_id_dossier_rh_id_fk": {
+          "name": "pointage_dossier_rh_id_dossier_rh_id_fk",
+          "tableFrom": "pointage",
+          "columnsFrom": [
+            "dossier_rh_id"
+          ],
+          "tableTo": "dossier_rh",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"pointage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"pointage\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.projet": {
+      "name": "projet",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dossier_id": {
+          "name": "dossier_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_projet",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'A_FAIRE'"
+        },
+        "devis_origine_id": {
+          "name": "devis_origine_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "responsable_principal_id": {
+          "name": "responsable_principal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_echeance": {
+          "name": "date_echeance",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "champs_personnalises": {
+          "name": "champs_personnalises",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "projet_entreprise_idx": {
+          "name": "projet_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "projet_dossier_idx": {
+          "name": "projet_dossier_idx",
+          "columns": [
+            {
+              "expression": "dossier_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "projet_responsable_idx": {
+          "name": "projet_responsable_idx",
+          "columns": [
+            {
+              "expression": "responsable_principal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "projet_entreprise_id_entreprise_id_fk": {
+          "name": "projet_entreprise_id_entreprise_id_fk",
+          "tableFrom": "projet",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "projet_dossier_id_dossier_id_fk": {
+          "name": "projet_dossier_id_dossier_id_fk",
+          "tableFrom": "projet",
+          "columnsFrom": [
+            "dossier_id"
+          ],
+          "tableTo": "dossier",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "projet_devis_origine_id_devis_id_fk": {
+          "name": "projet_devis_origine_id_devis_id_fk",
+          "tableFrom": "projet",
+          "columnsFrom": [
+            "devis_origine_id"
+          ],
+          "tableTo": "devis",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "projet_responsable_principal_id_utilisateur_id_fk": {
+          "name": "projet_responsable_principal_id_utilisateur_id_fk",
+          "tableFrom": "projet",
+          "columnsFrom": [
+            "responsable_principal_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"projet\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"projet\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.prospect": {
+      "name": "prospect",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "societe_cliente": {
+          "name": "societe_cliente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "niu": {
+          "name": "niu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_prospect",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NOUVEAU'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigne_a_id": {
+          "name": "assigne_a_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "prospect_entreprise_idx": {
+          "name": "prospect_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "prospect_assigne_a_idx": {
+          "name": "prospect_assigne_a_idx",
+          "columns": [
+            {
+              "expression": "assigne_a_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "prospect_entreprise_id_entreprise_id_fk": {
+          "name": "prospect_entreprise_id_entreprise_id_fk",
+          "tableFrom": "prospect",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "prospect_assigne_a_id_utilisateur_id_fk": {
+          "name": "prospect_assigne_a_id_utilisateur_id_fk",
+          "tableFrom": "prospect",
+          "columnsFrom": [
+            "assigne_a_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"prospect\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"prospect\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "session_user_idx": {
+          "name": "session_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "session_user_id_utilisateur_id_fk": {
+          "name": "session_user_id_utilisateur_id_fk",
+          "tableFrom": "session",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "columns": [
+            "token"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "permissif_better_auth": {
+          "name": "permissif_better_auth",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.signataire": {
+      "name": "signataire",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "demande_signature_id": {
+          "name": "demande_signature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_signature",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EN_ATTENTE'"
+        },
+        "code_verification_envoye": {
+          "name": "code_verification_envoye",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "code_verification_hash": {
+          "name": "code_verification_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signe_le": {
+          "name": "signe_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse_ip": {
+          "name": "adresse_ip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "navigateur_utilisateur": {
+          "name": "navigateur_utilisateur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consentement_explicite": {
+          "name": "consentement_explicite",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "jeton_acces": {
+          "name": "jeton_acces",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference_certificat_antic": {
+          "name": "reference_certificat_antic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "signataire_entreprise_idx": {
+          "name": "signataire_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "signataire_demande_idx": {
+          "name": "signataire_demande_idx",
+          "columns": [
+            {
+              "expression": "demande_signature_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "signataire_entreprise_id_entreprise_id_fk": {
+          "name": "signataire_entreprise_id_entreprise_id_fk",
+          "tableFrom": "signataire",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "signataire_demande_signature_id_demande_signature_id_fk": {
+          "name": "signataire_demande_signature_id_demande_signature_id_fk",
+          "tableFrom": "signataire",
+          "columnsFrom": [
+            "demande_signature_id"
+          ],
+          "tableTo": "demande_signature",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "signataire_jeton_acces_unique": {
+          "name": "signataire_jeton_acces_unique",
+          "columns": [
+            "jeton_acces"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "isolation_entreprise_lecture": {
+          "name": "isolation_entreprise_lecture",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "\"signataire\".\"entreprise_id\" = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL"
+        },
+        "isolation_entreprise_ecriture": {
+          "name": "isolation_entreprise_ecriture",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"signataire\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        },
+        "isolation_entreprise_modification": {
+          "name": "isolation_entreprise_modification",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "public"
+          ],
+          "using": "\"signataire\".\"entreprise_id\" = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL",
+          "withCheck": "\"signataire\".\"entreprise_id\" = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL"
+        },
+        "isolation_entreprise_suppression": {
+          "name": "isolation_entreprise_suppression",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "public"
+          ],
+          "using": "\"signataire\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.tache": {
+      "name": "tache",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projet_id": {
+          "name": "projet_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_tache",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'A_FAIRE'"
+        },
+        "assigne_a_id": {
+          "name": "assigne_a_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "echeance": {
+          "name": "echeance",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ordre": {
+          "name": "ordre",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cree_par_id": {
+          "name": "cree_par_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "terminee_le": {
+          "name": "terminee_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "tache_entreprise_idx": {
+          "name": "tache_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "tache_projet_idx": {
+          "name": "tache_projet_idx",
+          "columns": [
+            {
+              "expression": "projet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "tache_assigne_idx": {
+          "name": "tache_assigne_idx",
+          "columns": [
+            {
+              "expression": "assigne_a_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "tache_entreprise_id_entreprise_id_fk": {
+          "name": "tache_entreprise_id_entreprise_id_fk",
+          "tableFrom": "tache",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "tache_projet_id_projet_id_fk": {
+          "name": "tache_projet_id_projet_id_fk",
+          "tableFrom": "tache",
+          "columnsFrom": [
+            "projet_id"
+          ],
+          "tableTo": "projet",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "tache_assigne_a_id_utilisateur_id_fk": {
+          "name": "tache_assigne_a_id_utilisateur_id_fk",
+          "tableFrom": "tache",
+          "columnsFrom": [
+            "assigne_a_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "tache_cree_par_id_utilisateur_id_fk": {
+          "name": "tache_cree_par_id_utilisateur_id_fk",
+          "tableFrom": "tache",
+          "columnsFrom": [
+            "cree_par_id"
+          ],
+          "tableTo": "utilisateur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "isolation_entreprise": {
+          "name": "isolation_entreprise",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"tache\".\"entreprise_id\" = current_setting('app.entreprise_id', true)",
+          "withCheck": "\"tache\".\"entreprise_id\" = current_setting('app.entreprise_id', true)"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.utilisateur": {
+      "name": "utilisateur",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entreprise_id": {
+          "name": "entreprise_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_complet": {
+          "name": "nom_complet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verifie": {
+          "name": "email_verifie",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role_systeme",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EMPLOYE'"
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_utilisateur",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIF'"
+        },
+        "manager_id": {
+          "name": "manager_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "mis_a_jour_le": {
+          "name": "mis_a_jour_le",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "utilisateur_entreprise_email_unique": {
+          "name": "utilisateur_entreprise_email_unique",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "utilisateur_entreprise_idx": {
+          "name": "utilisateur_entreprise_idx",
+          "columns": [
+            {
+              "expression": "entreprise_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "utilisateur_entreprise_id_entreprise_id_fk": {
+          "name": "utilisateur_entreprise_id_entreprise_id_fk",
+          "tableFrom": "utilisateur",
+          "columnsFrom": [
+            "entreprise_id"
+          ],
+          "tableTo": "entreprise",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "permissif_better_auth": {
+          "name": "permissif_better_auth",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.canal_campagne": {
+      "name": "canal_campagne",
+      "schema": "public",
+      "values": [
+        "EMAIL",
+        "WHATSAPP"
+      ]
+    },
+    "public.categorie_document": {
+      "name": "categorie_document",
+      "schema": "public",
+      "values": [
+        "GENERAL",
+        "PIECE_IDENTITE",
+        "DONNEES_SANTE",
+        "AUTRE_SENSIBLE"
+      ]
+    },
+    "public.moyen_paiement": {
+      "name": "moyen_paiement",
+      "schema": "public",
+      "values": [
+        "orange_money",
+        "mtn_momo",
+        "especes",
+        "virement",
+        "manuel"
+      ]
+    },
+    "public.role_systeme": {
+      "name": "role_systeme",
+      "schema": "public",
+      "values": [
+        "ADMIN",
+        "MANAGER",
+        "EMPLOYE",
+        "CLIENT"
+      ]
+    },
+    "public.statut_campagne": {
+      "name": "statut_campagne",
+      "schema": "public",
+      "values": [
+        "BROUILLON",
+        "ENVOYEE"
+      ]
+    },
+    "public.statut_contrat": {
+      "name": "statut_contrat",
+      "schema": "public",
+      "values": [
+        "ACTIF",
+        "EXPIRE",
+        "RESILIE"
+      ]
+    },
+    "public.statut_demande_conge": {
+      "name": "statut_demande_conge",
+      "schema": "public",
+      "values": [
+        "EN_ATTENTE",
+        "APPROUVEE",
+        "REFUSEE"
+      ]
+    },
+    "public.statut_devis": {
+      "name": "statut_devis",
+      "schema": "public",
+      "values": [
+        "BROUILLON",
+        "ENVOYE",
+        "ACCEPTE",
+        "REFUSE",
+        "EXPIRE"
+      ]
+    },
+    "public.statut_domaine_email": {
+      "name": "statut_domaine_email",
+      "schema": "public",
+      "values": [
+        "SOUS_DOMAINE_VERTEX",
+        "EN_ATTENTE_DNS",
+        "VERIFIE"
+      ]
+    },
+    "public.statut_dossier": {
+      "name": "statut_dossier",
+      "schema": "public",
+      "values": [
+        "ACTIF",
+        "ARCHIVE"
+      ]
+    },
+    "public.statut_facture": {
+      "name": "statut_facture",
+      "schema": "public",
+      "values": [
+        "EMISE",
+        "PARTIELLEMENT_PAYEE",
+        "PAYEE",
+        "EN_RETARD",
+        "ANNULEE"
+      ]
+    },
+    "public.statut_pointage": {
+      "name": "statut_pointage",
+      "schema": "public",
+      "values": [
+        "PRESENT",
+        "ABSENT",
+        "RETARD",
+        "CONGE"
+      ]
+    },
+    "public.statut_projet": {
+      "name": "statut_projet",
+      "schema": "public",
+      "values": [
+        "A_FAIRE",
+        "EN_COURS",
+        "EN_REVISION",
+        "TERMINE",
+        "ANNULE"
+      ]
+    },
+    "public.statut_prospect": {
+      "name": "statut_prospect",
+      "schema": "public",
+      "values": [
+        "NOUVEAU",
+        "QUALIFIE",
+        "PROPOSITION",
+        "GAGNE",
+        "PERDU"
+      ]
+    },
+    "public.statut_signature": {
+      "name": "statut_signature",
+      "schema": "public",
+      "values": [
+        "EN_ATTENTE",
+        "SIGNE",
+        "REFUSE",
+        "EXPIRE"
+      ]
+    },
+    "public.statut_tache": {
+      "name": "statut_tache",
+      "schema": "public",
+      "values": [
+        "A_FAIRE",
+        "EN_COURS",
+        "TERMINEE"
+      ]
+    },
+    "public.statut_utilisateur": {
+      "name": "statut_utilisateur",
+      "schema": "public",
+      "values": [
+        "ACTIF",
+        "INVITE",
+        "DESACTIVE"
+      ]
+    },
+    "public.type_canal": {
+      "name": "type_canal",
+      "schema": "public",
+      "values": [
+        "PROJET",
+        "EQUIPE",
+        "LIBRE"
+      ]
+    },
+    "public.type_conge": {
+      "name": "type_conge",
+      "schema": "public",
+      "values": [
+        "CONGE_PAYE",
+        "MALADIE",
+        "SANS_SOLDE",
+        "AUTRE"
+      ]
+    },
+    "public.type_modele_email": {
+      "name": "type_modele_email",
+      "schema": "public",
+      "values": [
+        "ENVOI_DEVIS",
+        "ENVOI_FACTURE"
+      ]
+    },
+    "public.type_signature": {
+      "name": "type_signature",
+      "schema": "public",
+      "values": [
+        "SIMPLE",
+        "CERTIFIEE"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

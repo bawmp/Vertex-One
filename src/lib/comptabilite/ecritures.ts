@@ -19,7 +19,7 @@ async function creerEcritures(
   entrepriseId: string,
   dateEcriture: Date,
   lignes: LigneEcriture[],
-  reference: { factureId?: string; paiementId?: string; depenseId?: string }
+  reference: { factureId?: string; paiementId?: string; depenseId?: string; factureFournisseurId?: string; paiementEffectueId?: string }
 ): Promise<void> {
   const numeros = [...new Set(lignes.map((l) => l.numeroCompte).filter((n): n is string => !!n))];
   const comptes =
@@ -44,6 +44,8 @@ async function creerEcritures(
       factureId: reference.factureId,
       paiementId: reference.paiementId,
       depenseId: reference.depenseId,
+      factureFournisseurId: reference.factureFournisseurId,
+      paiementEffectueId: reference.paiementEffectueId,
     }))
   );
 }
@@ -134,4 +136,65 @@ export async function genererEcrituresDepense(
   lignes.push({ numeroCompte: compteTresorerie, libelle: depense.libelle, credit: depense.montantTTC });
 
   await creerEcritures(tx, depense.entrepriseId, depense.datePaiement, lignes, { depenseId: depense.id });
+}
+
+/**
+ * Cycle Achats, deuxième tranche (échange du 2026-09-07) — appelée à la
+ * création d'une Facture fournisseur (Bill) : catégorie de charge et TVA
+ * récupérable au débit, Fournisseurs (401000) au crédit — miroir exact de
+ * genererEcrituresFactureEmise() (411000 Clients ↔ 401000 Fournisseurs).
+ */
+export async function genererEcrituresFactureFournisseur(
+  tx: TransactionDrizzle,
+  factureFournisseur: {
+    id: string;
+    entrepriseId: string;
+    numero: string;
+    compteComptableId: string;
+    dateFacture: Date;
+    montantHT: number;
+    montantTVA: number;
+    montantTTC: number;
+  }
+): Promise<void> {
+  const lignes: LigneEcriture[] = [
+    { compteId: factureFournisseur.compteComptableId, libelle: `Facture fournisseur ${factureFournisseur.numero}`, debit: factureFournisseur.montantHT },
+  ];
+  if (factureFournisseur.montantTVA > 0) {
+    lignes.push({ numeroCompte: "445200", libelle: `TVA récupérable — ${factureFournisseur.numero}`, debit: factureFournisseur.montantTVA });
+  }
+  lignes.push({ numeroCompte: "401000", libelle: `Facture fournisseur ${factureFournisseur.numero}`, credit: factureFournisseur.montantTTC });
+
+  await creerEcritures(tx, factureFournisseur.entrepriseId, factureFournisseur.dateFacture, lignes, { factureFournisseurId: factureFournisseur.id });
+}
+
+/**
+ * Cycle Achats, deuxième tranche — appelée à chaque Paiement effectué
+ * (règlement d'une Facture fournisseur) : Fournisseurs (401000) au débit, la
+ * trésorerie au crédit — miroir exact de genererEcrituresPaiement().
+ */
+export async function genererEcrituresPaiementEffectue(
+  tx: TransactionDrizzle,
+  params: {
+    entrepriseId: string;
+    factureFournisseurId: string;
+    paiementEffectueId: string;
+    numeroFactureFournisseur: string;
+    montant: number;
+    moyenPaiement: string;
+    datePaiement: Date;
+  }
+): Promise<void> {
+  const compteTresorerie = params.moyenPaiement === "especes" || params.moyenPaiement === "manuel" ? "571000" : "512000";
+
+  await creerEcritures(
+    tx,
+    params.entrepriseId,
+    params.datePaiement,
+    [
+      { numeroCompte: "401000", libelle: `Règlement ${params.numeroFactureFournisseur}`, debit: params.montant },
+      { numeroCompte: compteTresorerie, libelle: `Règlement ${params.numeroFactureFournisseur}`, credit: params.montant },
+    ],
+    { factureFournisseurId: params.factureFournisseurId, paiementEffectueId: params.paiementEffectueId }
+  );
 }
