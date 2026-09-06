@@ -32,7 +32,13 @@ test("inscription crée l'entreprise, connecte l'Administrateur, et affiche le m
   await page.click('button[type="submit"]');
 
   await page.waitForURL("/app");
-  await expect(page.locator("nav").getByText("ADMIN")).toBeVisible();
+  // exact: true — le pied de sidebar affiche aussi le nom complet de
+  // l'utilisateur (ex. "Admin E2E" dans ce test), qui contient "Admin" en
+  // sous-chaîne insensible à la casse et provoquait une "strict mode
+  // violation" (2 éléments correspondants) sans ce réglage. Bug réel trouvé
+  // en ajoutant le pied de sidebar (nom + email + déconnexion) à la refonte
+  // visuelle, pas anticipé en écrivant le composant.
+  await expect(page.locator("nav").getByText("ADMIN", { exact: true })).toBeVisible();
 
   // ADMIN a VOIR sur tous les modules (matrice, src/lib/permissions.ts) —
   // les cinq entrées du menu doivent être visibles.
@@ -49,5 +55,5 @@ test("connexion avec les identifiants créés ramène au tableau de bord", async
   await page.click('button[type="submit"]');
 
   await page.waitForURL("/app");
-  await expect(page.locator("nav").getByText("ADMIN")).toBeVisible();
+  await expect(page.locator("nav").getByText("ADMIN", { exact: true })).toBeVisible();
 });

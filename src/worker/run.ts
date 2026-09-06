@@ -30,6 +30,10 @@ async function main() {
   const { run } = await import("graphile-worker");
   const { default: verifierRelances } = await import("./tasks/verifier-relances");
   const { default: relancerEntreprise } = await import("./tasks/relancer-entreprise");
+  const { default: verifierEcheancesContrats } = await import("./tasks/verifier-echeances-contrats");
+  const { default: verifierEcheancesContratsEntreprise } = await import("./tasks/verifier-echeances-contrats-entreprise");
+  const { default: verifierAutomatisationsMarketing } = await import("./tasks/verifier-automatisations-marketing");
+  const { default: verifierAutomatisationsMarketingEntreprise } = await import("./tasks/verifier-automatisations-marketing-entreprise");
 
   const runner = await run({
     connectionString: process.env.DATABASE_URL_WORKER,
@@ -38,6 +42,10 @@ async function main() {
     taskList: {
       "verifier-relances": verifierRelances,
       "relancer-entreprise": relancerEntreprise,
+      "verifier-echeances-contrats": verifierEcheancesContrats,
+      "verifier-echeances-contrats-entreprise": verifierEcheancesContratsEntreprise,
+      "verifier-automatisations-marketing": verifierAutomatisationsMarketing,
+      "verifier-automatisations-marketing-entreprise": verifierAutomatisationsMarketingEntreprise,
     },
   });
 

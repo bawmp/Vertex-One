@@ -23,6 +23,12 @@ describe("Palier 0 — isolation RLS entre entreprises", () => {
     kiroId = kiro.id;
     mbargaId = mbarga.id;
 
+    // Jeton suffixé par kiroId/mbargaId (uniques par exécution, entreprise
+    // insérée sans nettoyage préalable possible) plutôt qu'une chaîne fixe :
+    // un run précédent interrompu avant afterAll (crash, Ctrl+C) laissait une
+    // ligne orpheline avec le même jeton fixe, ce qui faisait échouer toute
+    // exécution suivante sur "invitation_jeton_unique" — pas un bug
+    // applicatif, un défaut de robustesse du test lui-même.
     const [invKiro] = await avecEntreprise(kiroId, (tx) =>
       tx
         .insert(invitation)
@@ -30,7 +36,7 @@ describe("Palier 0 — isolation RLS entre entreprises", () => {
           entrepriseId: kiroId,
           email: "employe@kiro.test",
           roleProposee: "EMPLOYE",
-          jeton: "jeton-test-kiro",
+          jeton: `jeton-test-kiro-${kiroId}`,
           expireLe: new Date(Date.now() + 1000 * 60 * 60),
         })
         .returning({ id: invitation.id })
@@ -42,7 +48,7 @@ describe("Palier 0 — isolation RLS entre entreprises", () => {
           entrepriseId: mbargaId,
           email: "employe@mbarga.test",
           roleProposee: "EMPLOYE",
-          jeton: "jeton-test-mbarga",
+          jeton: `jeton-test-mbarga-${mbargaId}`,
           expireLe: new Date(Date.now() + 1000 * 60 * 60),
         })
         .returning({ id: invitation.id })

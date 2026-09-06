@@ -5,11 +5,17 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis, facture, ligneFacture } from "@/db/schema";
+import { entreprise, devis, ligneDevis, facture, ligneFacture, prospect } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { calculerMontants } from "@/lib/facturation/calcul";
+import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { genererNumeroDevis, genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { recupererDevisPourPDF } from "@/lib/pdf/donnees";
+import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
+import { envoyerEmail } from "@/lib/email/client";
+import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
+import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
+import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 
 const schemaLigne = z.object({
   designation: z.string().trim().min(1),
@@ -116,7 +122,11 @@ export async function accepterDevis(devisId: string) {
     const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
     if (!leDevis || leDevis.statut === "ACCEPTE") return null;
 
-    const lignesDuDevis = await tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId));
+    const [lignesDuDevis, [leProspect], [monEntreprise]] = await Promise.all([
+      tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
+      tx.select({ nom: prospect.nom }).from(prospect).where(eq(prospect.id, leDevis.prospectId)),
+      tx.select({ secteurProfil: entreprise.secteurProfil }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+    ]);
 
     await tx.update(devis).set({ statut: "ACCEPTE" }).where(eq(devis.id, devisId));
 
@@ -149,30 +159,109 @@ export async function accepterDevis(devisId: string) {
       }))
     );
 
-    // Point d'accroche pour le Palier 2 (ouverture Dossier/Projet à la
-    // conversion d'un devis) — aucun listener pour l'instant, voir section 6.
-    // événement : "devis.accepte", { devisId, factureId: nouvelleFacture.id }
+    // Palier 4, section 4 : la comptabilité se construit toute seule à
+    // mesure que l'entreprise facture — jamais un écran de saisie séparé à
+    // ouvrir pour ses ventes courantes. Génération non conditionnée au
+    // forfait (comme le pont Dossier/Projet ci-dessous) : seule la
+    // consultation des écritures est verrouillée au forfait Business.
+    await genererEcrituresFactureEmise(tx, {
+      id: nouvelleFacture.id,
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      numero,
+      dateEmission: new Date(),
+      montantHT: leDevis.montantHT,
+      montantTVA: leDevis.montantTVA,
+      montantTTC: leDevis.montantTTC,
+    });
+
+    // Palier 2, section 3 : ouverture (ou réutilisation) du Dossier client
+    // et création d'un nouveau Projet, dans la même transaction que la
+    // facture — un échec de l'un annule l'autre, jamais de facture sans son
+    // Projet de suivi ni l'inverse.
+    await creerProjetDepuisDevisAccepte(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      prospectId: leDevis.prospectId,
+      prospectNom: leProspect?.nom ?? "Client",
+      secteurProfil: monEntreprise?.secteurProfil ?? "generique",
+      devisId: leDevis.id,
+      numeroDevis: leDevis.numero,
+      // Celui qui a créé le devis (donc gagné le client), pas forcément
+      // celui qui clique sur "Marquer accepté" — voir docs/palier-2-*, section 3.
+      responsableId: leDevis.creeParId,
+    });
 
     return nouvelleFacture.id;
   });
 
   revalidatePath(`/app/facturation/devis/${devisId}`);
   revalidatePath("/app/facturation");
+  revalidatePath("/app/projets");
   revalidatePath("/app");
 
   if (idFactureCreee) redirect(`/app/facturation/factures/${idFactureCreee}`);
 }
 
-export async function envoyerDevis(devisId: string) {
+export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;
+
+/**
+ * Envoi réel par email (Resend), pièce jointe PDF générée à la volée —
+ * WhatsApp reste un TODO (API Meta Cloud non configurée, même traitement que
+ * les autres intégrations externes de ce projet). Le statut ne passe à
+ * ENVOYE que si l'email part effectivement : un échec (client sans email,
+ * Resend indisponible) ne doit jamais laisser croire au client interne que
+ * le devis est parti.
+ */
+export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _formData: FormData): Promise<EtatEnvoiDevis> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) {
+    return { erreur: "Vous n'avez pas le droit d'envoyer ce devis." };
+  }
 
-  // TODO Palier 1 : envoi réel par email (Resend) et WhatsApp (Meta Cloud
-  // API) — différé faute de clés API configurées, comme Migadu au Palier 0.
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, devisId))
-  );
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const donnees = await recupererDevisPourPDF(tx, utilisateurConnecte, devisId);
+    if (!donnees) return { erreur: "Devis introuvable." };
+    if (!donnees.prospect?.email) {
+      return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
+    }
+
+    const [modele, buffer] = await Promise.all([
+      recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_DEVIS"),
+      rendreDocumentCommercialPDF({
+        typeDocument: "DEVIS",
+        numero: donnees.devis.numero,
+        dateEmission: donnees.devis.creeLe,
+        dateEcheanceOuValidite: donnees.devis.dateValidite,
+        labelDateSecondaire: "Valide jusqu'au",
+        entreprise: donnees.entreprise,
+        client: donnees.prospect,
+        lignes: donnees.lignes,
+        montantHT: donnees.devis.montantHT,
+        montantTVA: donnees.devis.montantTVA,
+        montantTTC: donnees.devis.montantTTC,
+      }),
+    ]);
+
+    const variables = {
+      client: donnees.prospect.nom,
+      numero: donnees.devis.numero,
+      montant: formaterFCFA(donnees.devis.montantTTC),
+      entreprise: donnees.entreprise.nom,
+    };
+
+    const { envoye, erreur } = await envoyerEmail({
+      to: donnees.prospect.email,
+      subject: interpoler(modele.objet, variables),
+      html: corpsVersHtml(interpoler(modele.corps, variables)),
+      attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
+    });
+
+    if (!envoye) return { erreur: erreur ?? "Échec de l'envoi de l'email." };
+
+    await tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, devisId));
+    return { envoye: true };
+  });
 
   revalidatePath(`/app/facturation/devis/${devisId}`);
+  return resultat;
 }

@@ -4,3 +4,13 @@
 # Vérifie quotidiennement à 6h les factures en retard, toutes entreprises
 # confondues (docs/palier-1-*, section 6, étape 6).
 0 6 * * * verifier-relances
+
+# Vérifie quotidiennement à 6h30 les contrats arrivant à échéance
+# (préavis) ou déjà expirés, toutes entreprises confondues
+# (docs/palier-4-*, section 3).
+30 6 * * * verifier-echeances-contrats
+
+# Vérifie quotidiennement à 7h les prospects inactifs et les clients en
+# sommeil, pour les entreprises ayant activé l'addon Marketing
+# (docs/palier-6-*, section 2).
+0 7 * * * verifier-automatisations-marketing

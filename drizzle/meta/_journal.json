@@ -36,6 +36,104 @@
       "when": 1788607083335,
       "tag": "0004_force_rls_palier1",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788621832996,
+      "tag": "0005_warm_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788621849399,
+      "tag": "0006_force_rls_modele_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788630064602,
+      "tag": "0007_palier2_dossiers_projets",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788630079725,
+      "tag": "0008_force_rls_palier2",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788638871215,
+      "tag": "0009_palier3_collaboration_interne",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788638890988,
+      "tag": "0010_force_rls_palier3",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788646120435,
+      "tag": "0011_palier4_signature_contrats_comptabilite",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788646144489,
+      "tag": "0012_force_rls_palier4",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788648935249,
+      "tag": "0013_palier4_alerte_echeance_contrat",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788650726958,
+      "tag": "0014_palier4_rapprochement_bancaire",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1788653052626,
+      "tag": "0015_palier5_ressources_humaines",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788653070051,
+      "tag": "0016_force_rls_palier5",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788654693345,
+      "tag": "0017_palier6_marketing_communication",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788654715427,
+      "tag": "0018_force_rls_palier6",
+      "breakpoints": true
     }
   ]
 }

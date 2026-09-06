@@ -8,6 +8,12 @@ import { entreprise, facture, paiement, avoirFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
+import { formaterFCFA } from "@/lib/facturation/calcul";
+import { recupererFacturePourPDF } from "@/lib/pdf/donnees";
+import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
+import { envoyerEmail } from "@/lib/email/client";
+import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
+import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 
 /**
  * Forfait Starter (docs/palier-1-*, section 6, étape 5) : le client paie
@@ -23,15 +29,32 @@ export async function marquerFacturePayee(factureId: string) {
     const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
     if (!laFacture || laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE") return;
 
-    await tx.insert(paiement).values({
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      factureId,
-      montant: laFacture.montantTTC,
-      moyenPaiement: "manuel",
-      saisiParId: utilisateurConnecte.utilisateurId,
-    });
+    const datePaiement = new Date();
+    const [nouveauPaiement] = await tx
+      .insert(paiement)
+      .values({
+        entrepriseId: utilisateurConnecte.entrepriseId,
+        factureId,
+        montant: laFacture.montantTTC,
+        moyenPaiement: "manuel",
+        saisiParId: utilisateurConnecte.utilisateurId,
+        datePaiement,
+      })
+      .returning({ id: paiement.id });
 
     await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, factureId));
+
+    // Palier 4, section 4 — même principe que l'écriture de facturation :
+    // générée automatiquement, jamais ressaisie.
+    await genererEcrituresPaiement(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      factureId,
+      paiementId: nouveauPaiement.id,
+      numeroFacture: laFacture.numero,
+      montant: laFacture.montantTTC,
+      moyenPaiement: "manuel",
+      datePaiement,
+    });
   });
 
   revalidatePath(`/app/facturation/factures/${factureId}`);
@@ -97,5 +120,65 @@ export async function genererLienPaiement(_factureId: string): Promise<{ url?: s
     // TODO Palier 1 : appel réel à l'API NotchPay (Collect) pour générer une
     // authorization_url, et enregistrer le webhook de confirmation.
     return { erreur: "Intégration NotchPay à finaliser." };
+  });
+}
+
+export type EtatEnvoiFacture = { erreur?: string; envoye?: boolean } | null;
+
+/**
+ * Même mécanique que envoyerDevis() (voir src/lib/actions/devis.ts) : envoi
+ * réel par email avec le PDF en pièce jointe. Contrairement au devis,
+ * statutFacture n'a pas d'état "ENVOYE" (docs/palier-1-*, section 5) — une
+ * facture existe dans un état de règlement (EMISE/PAYEE/EN_RETARD/ANNULEE)
+ * indépendant du fait qu'elle ait été transmise ou non ; cette action ne
+ * touche donc pas le statut, elle se contente d'envoyer.
+ */
+export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture, _formData: FormData): Promise<EtatEnvoiFacture> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) {
+    return { erreur: "Vous n'avez pas le droit d'envoyer cette facture." };
+  }
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const donnees = await recupererFacturePourPDF(tx, utilisateurConnecte, factureId);
+    if (!donnees) return { erreur: "Facture introuvable." };
+    if (!donnees.prospect?.email) {
+      return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
+    }
+
+    const [modele, buffer] = await Promise.all([
+      recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_FACTURE"),
+      rendreDocumentCommercialPDF({
+        typeDocument: "FACTURE",
+        numero: donnees.facture.numero,
+        dateEmission: donnees.facture.dateEmission,
+        dateEcheanceOuValidite: donnees.facture.dateEcheance,
+        labelDateSecondaire: "Date d'échéance",
+        entreprise: donnees.entreprise,
+        client: donnees.prospect,
+        lignes: donnees.lignes,
+        montantHT: donnees.facture.montantHT,
+        montantTVA: donnees.facture.montantTVA,
+        montantTTC: donnees.facture.montantTTC,
+      }),
+    ]);
+
+    const variables = {
+      client: donnees.prospect.nom,
+      numero: donnees.facture.numero,
+      montant: formaterFCFA(donnees.facture.montantTTC),
+      entreprise: donnees.entreprise.nom,
+    };
+
+    const { envoye, erreur } = await envoyerEmail({
+      to: donnees.prospect.email,
+      subject: interpoler(modele.objet, variables),
+      html: corpsVersHtml(interpoler(modele.corps, variables)),
+      attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
+    });
+
+    if (!envoye) return { erreur: erreur ?? "Échec de l'envoi de l'email." };
+    return { envoye: true };
   });
 }

@@ -55,14 +55,14 @@ describe("Palier 1 — relance des factures en retard", () => {
         .returning({ id: facture.id });
       factureId = f.id;
     });
-  });
+  }, 30_000);
 
   afterAll(async () => {
     await avecEntreprise(entrepriseId, (tx) => tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(prospect).where(eq(prospect.entrepriseId, entrepriseId)));
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));
-  });
+  }, 30_000);
 
   test("une facture échue passe en EN_RETARD et une tentative de relance email réelle est effectuée", async () => {
     const resultats = await avecEntreprise(entrepriseId, (tx) => marquerFacturesEnRetard(tx, entrepriseId));
@@ -81,7 +81,7 @@ describe("Palier 1 — relance des factures en retard", () => {
 
     const relanceWhatsapp = resultats.find((r) => r.canal === "whatsapp");
     expect(relanceWhatsapp?.envoye).toBe(false);
-  });
+  }, 30_000);
 
   test("une facture non échue n'est pas affectée", async () => {
     await avecEntreprise(entrepriseId, (tx) => tx.update(facture).set({ statut: "EMISE" }).where(eq(facture.id, factureId)));

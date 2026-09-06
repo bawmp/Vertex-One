@@ -8,6 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { prospect, interaction, statutProspect } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { genererLienVisio } from "@/lib/marketing/visio";
 
 const schemaProspect = z.object({
   nom: z.string().trim().min(2, "Le nom est trop court."),
@@ -103,6 +104,31 @@ export async function ajouterInteraction(_etat: EtatInteraction, formData: FormD
 
   revalidatePath(`/app/crm/${prospectId}`);
   return null;
+}
+
+/**
+ * Docs/palier-6-*, section 4 — génère un lien Jitsi et l'enregistre
+ * directement comme une Interaction de type "rendez-vous", à partager
+ * ensuite par WhatsApp/email depuis l'historique du prospect.
+ */
+export async function genererEtEnregistrerLienVisio(prospectId: string) {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+
+  const lien = genererLienVisio(utilisateurConnecte.entrepriseId, prospectId);
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.insert(interaction).values({
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      prospectId,
+      type: "rendez-vous",
+      contenu: lien,
+      auteurId: utilisateurConnecte.utilisateurId,
+    })
+  );
+
+  revalidatePath(`/app/crm/${prospectId}`);
 }
 
 export async function changerStatutProspect(prospectId: string, statut: (typeof statutProspect.enumValues)[number]) {

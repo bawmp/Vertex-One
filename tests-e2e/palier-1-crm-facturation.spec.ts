@@ -62,6 +62,7 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
   await page.fill("#nom", "Garage Mbarga");
   await page.fill("#societeCliente", "Garage Mbarga SARL");
   await page.fill("#telephone", "+237600000000");
+  await page.fill("#email", `e2e-p1-client-${Date.now()}@vertexone.test`);
   await page.click('button[type="submit"]');
   await page.waitForURL(/\/app\/crm\/.+/);
 
@@ -85,7 +86,28 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
   const octetsPdfDevis = await reponsePdfDevis.body();
   expect(octetsPdfDevis.subarray(0, 4).toString("latin1")).toBe("%PDF");
 
-  await page.click('button:has-text("Envoyer au client")');
+  // Envoi réel via Resend, PDF généré et joint — comme pour la relance
+  // (voir palier-1-relance-facture.test.ts), le compte Resend n'a pas de
+  // domaine vérifié : l'API refuse tout destinataire autre que le
+  // propriétaire du compte (erreur réelle "You can only send testing
+  // emails..."). Ce test vérifie que l'appel réel a bien lieu et que
+  // l'échec est remonté proprement à l'écran, pas avalé silencieusement.
+  // Timeout local à 30s (au lieu des 15s globaux) : cette action cumule une
+  // requête Neon, un rendu PDF réel (CPU) et un appel réseau Resend — plus
+  // lent que les autres Server Actions du parcours, surtout en exécution
+  // parallèle (constaté réellement : passe seul en <15s, dépasse 15s à deux
+  // workers concurrents).
+  await page.click('button:has-text("Envoyer au client par email")');
+  await expect(page.getByText(/own email address|validation_error|RESEND_API_KEY/i)).toBeVisible({ timeout: 30_000 });
+
+  // Le statut ne peut donc pas passer à ENVOYE par un envoi réellement
+  // réussi dans cet environnement de test (même limitation que ci-dessus) —
+  // on le positionne directement pour vérifier la suite du parcours
+  // (acceptation → génération de facture), déjà couverte du côté "devis
+  // accepté" par accepterDevis lui-même.
+  const idDevis = urlDevis.split("/").pop()!;
+  await avecEntreprise(entrepriseId, (tx) => tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, idDevis)));
+  await page.reload();
   await expect(page.getByText("Envoyé")).toBeVisible();
 
   await page.click('button:has-text("Marquer accepté")');
@@ -100,6 +122,12 @@ test("prospect → devis → facture (numérotation) → paiement", async ({ pag
   expect(reponsePdfFacture.headers()["content-type"]).toBe("application/pdf");
   const octetsPdfFacture = await reponsePdfFacture.body();
   expect(octetsPdfFacture.subarray(0, 4).toString("latin1")).toBe("%PDF");
+
+  // Même vérification que pour le devis : appel Resend réel, échec attendu
+  // (domaine non vérifié) remonté proprement à l'écran — même timeout élargi
+  // pour la même raison (PDF + Resend cumulés).
+  await page.click('button:has-text("Envoyer par email")');
+  await expect(page.getByText(/own email address|validation_error|RESEND_API_KEY/i)).toBeVisible({ timeout: 30_000 });
 
   await page.click('button:has-text("Marquer comme payée")');
   await expect(page.getByText("Payée")).toBeVisible();

@@ -3,6 +3,8 @@ import type { TransactionDrizzle } from "@/db/client";
 import { facture, prospect, entreprise } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
+import { envoyerWhatsApp } from "@/lib/whatsapp/client";
+import { formaterFCFA } from "@/lib/facturation/calcul";
 
 export type ResultatRelance = {
   factureId: string;
@@ -18,8 +20,8 @@ export type ResultatRelance = {
  * projet : le déclenchement planifié est différé, cette fonction est prête
  * à être branchée dessus). Fait passer en EN_RETARD les factures dont
  * l'échéance est dépassée sans paiement complet, et envoie une relance par
- * email (et par WhatsApp — non implémenté, API Meta Cloud non configurée,
- * même traitement que Migadu/NotchPay/Resend avant configuration).
+ * email et par WhatsApp (voir src/lib/whatsapp/client.ts, Palier 6 — stub
+ * documenté tant que WHATSAPP_ACCESS_TOKEN n'est pas configuré).
  *
  * Disponible pour tous les forfaits, y compris Starter — la relance ne
  * dépend pas de disponible("PAIEMENTS_EN_LIGNE") (docs/palier-1-*, section 6).
@@ -64,10 +66,15 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
       resultats.push({ factureId: f.id, numero: f.numero, canal: "email", envoye, erreur });
     }
 
-    // TODO Palier 1 : relance WhatsApp via l'API Cloud WhatsApp Business
-    // (Meta) — différée faute de jeton configuré, même traitement que les
-    // autres intégrations externes de ce projet.
-    resultats.push({ factureId: f.id, numero: f.numero, canal: "whatsapp", envoye: false, erreur: "Non implémenté" });
+    // Palier 6 — src/lib/whatsapp/client.ts implémente réellement l'appel à
+    // l'API Cloud WhatsApp Business, avec le même traitement "stub
+    // documenté" que les autres intégrations externes tant que
+    // WHATSAPP_ACCESS_TOKEN n'est pas configuré (voir CLAUDE.md).
+    const { envoye: envoyeWhatsapp, erreur: erreurWhatsapp } = await envoyerWhatsApp(
+      leProspect.telephone,
+      `Bonjour ${leProspect.nom}, votre facture ${f.numero} d'un montant de ${formaterFCFA(f.montantTTC)} est en retard de paiement. Merci de régulariser dès que possible.`
+    );
+    resultats.push({ factureId: f.id, numero: f.numero, canal: "whatsapp", envoye: envoyeWhatsapp, erreur: erreurWhatsapp });
   }
 
   return resultats;
