@@ -22,17 +22,19 @@ export async function envoyerEmail({
   to,
   subject,
   html,
+  attachments,
 }: {
   to: string;
   subject: string;
   html: string;
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<{ envoye: boolean; erreur?: string }> {
   if (!resend) {
     console.warn(`[email] RESEND_API_KEY non configurée — email non envoyé (destinataire: ${to}, sujet: "${subject}")`);
     return { envoye: false, erreur: "RESEND_API_KEY non configurée" };
   }
 
-  const { error } = await resend.emails.send({ from: EXPEDITEUR_PAR_DEFAUT, to, subject, html });
+  const { error } = await resend.emails.send({ from: EXPEDITEUR_PAR_DEFAUT, to, subject, html, attachments });
 
   if (error) {
     console.error(`[email] échec d'envoi à ${to} :`, error.message);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 
 export default function PageConnexion() {
@@ -54,6 +55,7 @@ export default function PageConnexion() {
           {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
 
           <Button type="submit" disabled={enCours} className="w-full">
+            {enCours ? <Spinner /> : null}
             {enCours ? "Connexion…" : "Se connecter"}
           </Button>
         </form>

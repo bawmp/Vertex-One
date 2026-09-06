@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { creerProspect } from "@/lib/actions/prospect";
 
 export default function PageNouveauProspect() {
@@ -46,6 +47,7 @@ export default function PageNouveauProspect() {
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 
           <Button type="submit" disabled={enCours}>
+            {enCours ? <Spinner /> : null}
             {enCours ? "Création…" : "Créer le prospect"}
           </Button>
         </form>

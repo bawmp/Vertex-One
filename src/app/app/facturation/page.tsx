@@ -1,29 +1,17 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc } from "drizzle-orm";
+import { FileText, Receipt } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { devis, facture, prospect } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { STATUT_DEVIS, STATUT_FACTURE } from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
-
-const LIBELLE_STATUT_DEVIS: Record<string, string> = {
-  BROUILLON: "Brouillon",
-  ENVOYE: "Envoyé",
-  ACCEPTE: "Accepté",
-  REFUSE: "Refusé",
-  EXPIRE: "Expiré",
-};
-
-const LIBELLE_STATUT_FACTURE: Record<string, string> = {
-  EMISE: "Émise",
-  PARTIELLEMENT_PAYEE: "Partiellement payée",
-  PAYEE: "Payée",
-  EN_RETARD: "En retard",
-  ANNULEE: "Annulée",
-};
 
 export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -67,51 +55,67 @@ export default async function PageFacturation() {
       {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 
       <div>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Devis</h2>
-        <div className="flex flex-col gap-2">
-          {devisVisibles.map((d) => (
-            <Link
-              key={d.id}
-              href={`/app/facturation/devis/${d.id}`}
-              className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted"
-            >
-              <span>
-                {d.numero} — {prospectsParId[d.prospectId]?.nom}
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                  {LIBELLE_STATUT_DEVIS[d.statut]}
-                </span>
-              </span>
-            </Link>
-          ))}
-          {devisVisibles.length === 0 ? <p className="text-sm text-muted-foreground">Aucun devis.</p> : null}
-        </div>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <FileText className="size-4" aria-hidden />
+          Devis
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {devisVisibles.map((d) => {
+              const info = STATUT_DEVIS[d.statut];
+              return (
+                <Link
+                  key={d.id}
+                  href={`/app/facturation/devis/${d.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{d.numero}</span>
+                    <span className="text-muted-foreground"> — {prospectsParId[d.prospectId]?.nom}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
+                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
+                  </span>
+                </Link>
+              );
+            })}
+            {devisVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun devis.</p> : null}
+          </div>
+        </Card>
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Factures</h2>
-        <div className="flex flex-col gap-2">
-          {facturesVisibles.map((f) => (
-            <Link
-              key={f.id}
-              href={`/app/facturation/factures/${f.id}`}
-              className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted"
-            >
-              <span>
-                {f.numero} — {prospectsParId[f.prospectId]?.nom}
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
-                  {LIBELLE_STATUT_FACTURE[f.statut]}
-                </span>
-              </span>
-            </Link>
-          ))}
-          {facturesVisibles.length === 0 ? <p className="text-sm text-muted-foreground">Aucune facture.</p> : null}
-        </div>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Receipt className="size-4" aria-hidden />
+          Factures
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {facturesVisibles.map((f) => {
+              const info = STATUT_FACTURE[f.statut];
+              return (
+                <Link
+                  key={f.id}
+                  href={`/app/facturation/factures/${f.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{f.numero}</span>
+                    <span className="text-muted-foreground"> — {prospectsParId[f.prospectId]?.nom}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
+                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? f.statut}</Badge>
+                  </span>
+                </Link>
+              );
+            })}
+            {facturesVisibles.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture.</p>
+            ) : null}
+          </div>
+        </Card>
       </div>
     </div>
   );

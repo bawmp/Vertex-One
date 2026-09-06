@@ -4,6 +4,8 @@ import { avecEntreprise } from "@/db/client";
 import { invitation } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
 
 export default async function PageEquipe() {
@@ -27,9 +29,9 @@ export default async function PageEquipe() {
   );
 
   return (
-    <div className="flex flex-col gap-8 max-w-xl">
+    <div className="flex max-w-xl flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Équipe</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Équipe</h1>
         <p className="text-muted-foreground">Inviter un nouveau collaborateur (Manager ou Employé).</p>
       </div>
 
@@ -37,25 +39,40 @@ export default async function PageEquipe() {
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Invitations</h2>
-        <ul className="flex flex-col gap-2">
-          {invitations.map((inv) => (
-            <li key={inv.id} className="rounded-md border p-3 text-sm">
-              <p>
-                <strong>{inv.email}</strong> — {inv.roleProposee}
-              </p>
-              <p className="text-muted-foreground">
-                {inv.utiliseeLe
-                  ? "Compte activé"
-                  : inv.expireLe < new Date()
-                    ? "Expirée"
-                    : `Lien : /invitation/${inv.jeton}`}
-              </p>
-            </li>
-          ))}
-          {invitations.length === 0 ? (
-            <li className="text-sm text-muted-foreground">Aucune invitation pour le moment.</li>
-          ) : null}
-        </ul>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {invitations.map((inv) => {
+              const estUtilisee = Boolean(inv.utiliseeLe);
+              const estExpiree = !estUtilisee && inv.expireLe < new Date();
+              return (
+                <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{inv.email}</p>
+                    <p className="text-muted-foreground">
+                      {inv.roleProposee}
+                      {!estUtilisee && !estExpiree ? (
+                        <>
+                          {" — "}
+                          <span className="font-mono text-xs">/invitation/{inv.jeton}</span>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                  {estUtilisee ? (
+                    <Badge variant="success">Compte activé</Badge>
+                  ) : estExpiree ? (
+                    <Badge variant="danger">Expirée</Badge>
+                  ) : (
+                    <Badge variant="info">En attente</Badge>
+                  )}
+                </div>
+              );
+            })}
+            {invitations.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune invitation pour le moment.</p>
+            ) : null}
+          </div>
+        </Card>
       </div>
     </div>
   );

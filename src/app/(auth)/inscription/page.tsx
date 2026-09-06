@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { creerEntreprise } from "@/lib/actions/entreprise";
 
 export default function PageInscription() {
@@ -26,18 +28,12 @@ export default function PageInscription() {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="secteurProfil">Secteur</Label>
-            <select
-              id="secteurProfil"
-              name="secteurProfil"
-              required
-              defaultValue="generique"
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
-            >
+            <Select id="secteurProfil" name="secteurProfil" required defaultValue="generique">
               <option value="agence">Agence</option>
               <option value="artisan">Artisan</option>
               <option value="cabinet">Cabinet</option>
               <option value="generique">Autre</option>
-            </select>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -58,6 +54,7 @@ export default function PageInscription() {
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 
           <Button type="submit" disabled={enCours} className="w-full">
+            {enCours ? <Spinner /> : null}
             {enCours ? "Création en cours…" : "Créer mon entreprise"}
           </Button>
         </form>

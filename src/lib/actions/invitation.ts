@@ -11,6 +11,7 @@ import { invitation, utilisateur, compte, dossierRH } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { creerUtilisateurChat } from "@/lib/chat/client";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
 
@@ -110,7 +111,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
 
   const motDePasseHash = await hashPassword(motDePasse);
 
-  await avecEntreprise(invitationValide.entrepriseId, async (tx) => {
+  const idNouvelUtilisateur = await avecEntreprise(invitationValide.entrepriseId, async (tx) => {
     const [nouvelUtilisateur] = await tx
       .insert(utilisateur)
       .values({
@@ -143,7 +144,15 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
     }
 
     await tx.update(invitation).set({ utiliseeLe: new Date() }).where(eq(invitation.id, invitationValide.id));
+
+    return nouvelUtilisateur.id;
   });
+
+  // Palier 3, section 6 — provisionnement chez le prestataire de chat dès
+  // qu'un compte devient ACTIF, pour être immédiatement disponible dans les
+  // canaux de son entreprise. Hors transaction : appel externe, jamais une
+  // écriture SQL à faire échouer/annuler avec le reste.
+  await creerUtilisateurChat(invitationValide.entrepriseId, idNouvelUtilisateur, nomComplet);
 
   await auth.api.signInEmail({
     body: { email: invitationValide.email, password: motDePasse },

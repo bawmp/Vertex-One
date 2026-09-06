@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { accepterInvitation } from "@/lib/actions/invitation";
 
 export function FormulaireAcceptation({ jeton }: { jeton: string }) {
@@ -26,6 +27,7 @@ export function FormulaireAcceptation({ jeton }: { jeton: string }) {
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 
       <Button type="submit" disabled={enCours} className="w-full">
+        {enCours ? <Spinner /> : null}
         {enCours ? "Activation…" : "Activer mon compte"}
       </Button>
     </form>

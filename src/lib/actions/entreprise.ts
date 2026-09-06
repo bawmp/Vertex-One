@@ -8,6 +8,7 @@ import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { db } from "@/db/client";
 import { entreprise, utilisateur, compte } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { creerUtilisateurChat } from "@/lib/chat/client";
 
 const schemaInscription = z.object({
   nomEntreprise: z.string().trim().min(2, "Le nom de l'entreprise est trop court."),
@@ -42,8 +43,11 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
 
   const motDePasseHash = await hashPassword(motDePasse);
 
+  let idEntreprise: string;
+  let idAdmin: string;
+
   try {
-    await db.transaction(async (tx) => {
+    const resultat = await db.transaction(async (tx) => {
       const [nouvelleEntreprise] = await tx
         .insert(entreprise)
         .values({ nom: nomEntreprise, secteurProfil })
@@ -71,13 +75,22 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
       // TODO Palier 0 (8bis) : provisionner la boîte mail sur sous-domaine
       // Vertex One via l'API Migadu — différé tant que MIGADU_API_KEY n'est
       // pas configuré, pour ne pas bloquer l'inscription en développement.
+
+      return { entrepriseId: nouvelleEntreprise.id, utilisateurId: nouvelUtilisateur.id };
     });
+    idEntreprise = resultat.entrepriseId;
+    idAdmin = resultat.utilisateurId;
   } catch (erreur) {
     if (erreur instanceof Error && erreur.message.includes("utilisateur_entreprise_email_unique")) {
       return { erreur: "Cette adresse email est déjà utilisée." };
     }
     throw erreur;
   }
+
+  // Palier 3, section 6 — même provisionnement chat qu'à l'activation d'une
+  // invitation : le premier Administrateur doit lui aussi être disponible
+  // dans les canaux dès la création de son entreprise.
+  await creerUtilisateurChat(idEntreprise, idAdmin, nomComplet);
 
   // Établit la session via Better-Auth (vérifie le mot de passe qu'on vient
   // de hacher, pose le cookie de session) plutôt que de la construire nous-

@@ -29,7 +29,7 @@ export default function LayoutAuth({ children }: { children: React.ReactNode }) 
       </div>
 
       <div className="flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="mb-6 flex justify-center md:hidden">
             <Wordmark />
           </div>

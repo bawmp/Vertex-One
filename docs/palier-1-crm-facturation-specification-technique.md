@@ -212,6 +212,31 @@ async function genererNumeroFacture(entrepriseId: string): Promise<string> {
 
 Le numéro n'est généré qu'au moment exact où la facture passe à l'état `EMISE` — jamais avant, jamais à la création d'un brouillon. Une facture annulée garde son numéro d'origine pour toujours (il n'est ni réutilisé, ni comblé) ; c'est justement pour ça que l'annulation crée un `AvoirFacture` plutôt que de supprimer la ligne.
 
+### 5bis. Envoi par email — ajout réel au-delà du sketch initial
+
+Le sketch de modèle ci-dessus (section 4) ne prévoyait pas la personnalisation du message d'envoi ; en implémentation, une table dédiée a été ajoutée pour permettre à chaque entreprise de personnaliser l'objet et le corps du message sans exiger de configuration préalable (repli sur un modèle par défaut codé dans `src/lib/email/modeles.ts`) :
+
+```prisma
+enum TypeModeleEmail {
+  ENVOI_DEVIS
+  ENVOI_FACTURE
+}
+
+model ModeleEmail {
+  id            String          @id @default(cuid())
+  entrepriseId  String
+  entreprise    Entreprise      @relation(fields: [entrepriseId], references: [id])
+  type          TypeModeleEmail
+  objet         String
+  corps         String          @db.Text
+
+  @@unique([entrepriseId, type])
+  @@index([entrepriseId])
+}
+```
+
+Envoyer un devis ou une facture (`envoyerDevis`/`envoyerFacture`, `src/lib/actions/{devis,facture}.ts`) génère le PDF à la volée (même rendu que le téléchargement, `src/lib/pdf/rendu.tsx`), l'attache à un email dont le texte interpole `{{client}}`, `{{numero}}`, `{{montant}}`, `{{entreprise}}` dans le modèle (personnalisé ou par défaut), et envoie via Resend. Le statut d'un devis ne passe à `ENVOYE` que si l'envoi réussit réellement — un échec (client sans email, Resend indisponible) est remonté à l'écran plutôt que silencieusement ignoré. Une facture n'a pas d'état "envoyée" dans `StatutFacture` : l'envoi n'y touche pas au statut, qui ne reflète que l'état de règlement.
+
 ## 6. Le workflow complet, du prospect à l'encaissement
 
 1. Un employé crée une fiche `Prospect` (nom, téléphone WhatsApp, éventuellement NIU si c'est déjà une entreprise identifiée), assignée à lui-même par défaut.

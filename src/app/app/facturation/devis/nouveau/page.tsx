@@ -21,10 +21,10 @@ export default async function PageNouveauDevis({
   if (!leProspect) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">Nouveau devis</h1>
       <p className="mt-1 text-muted-foreground">
-        Pour {leProspect.nom}
+        Pour <span className="font-medium text-foreground">{leProspect.nom}</span>
         {leProspect.societeCliente ? ` — ${leProspect.societeCliente}` : ""}.
       </p>
       <FormulaireDevis prospectId={leProspect.id} />
