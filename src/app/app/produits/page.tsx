@@ -39,14 +39,18 @@ export default async function PageProduits() {
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
           {produits.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <div key={p.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="truncate font-medium">{p.nom}</p>
                   <Badge variant="neutral">{p.type === "BIEN" ? "Bien" : "Service"}</Badge>
                   {p.suiviStock ? <Badge variant="info">Stock : {p.stockActuel}</Badge> : null}
                 </div>
-                {p.description ? <p className="truncate text-xs text-muted-foreground">{p.description}</p> : null}
+                {/* Description potentiellement longue (ex. décomposition d'un
+                    montant en plusieurs frais) — jamais tronquée à une seule
+                    ligne (échange du 2026-09-08), whitespace-pre-line
+                    respecte les retours à la ligne saisis dans le Textarea. */}
+                {p.description ? <p className="whitespace-pre-line text-xs text-muted-foreground">{p.description}</p> : null}
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <div className="text-right text-xs text-muted-foreground">
