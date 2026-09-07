@@ -612,6 +612,17 @@ export const devis = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — contactId/assigneAId
+    // deviendront la seule source de vérité du client (dealId n'étant plus
+    // qu'une info accessoire quand le document vient réellement du pipeline
+    // CRM), mais restent nullable dans cette tranche additive : le temps que
+    // tout le code applicatif les lise/écrive, avant de resserrer en NOT
+    // NULL et de relâcher dealId — voir src/lib/facturation/client-document.ts.
+    contactId: text("contact_id").references(() => contact.id),
+    // Dénormalisé depuis contact.compteId, jamais saisi — même patron que
+    // deal.compteId.
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     statut: statutDevis("statut").notNull().default("BROUILLON"),
     dateValidite: timestamp("date_validite").notNull(),
     montantHT: integer("montant_ht").notNull(),
@@ -625,6 +636,8 @@ export const devis = pgTable(
   (table) => [
     uniqueIndex("devis_entreprise_numero_unique").on(table.entrepriseId, table.numero),
     index("devis_entreprise_idx").on(table.entrepriseId),
+    index("devis_contact_idx").on(table.contactId),
+    index("devis_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -673,6 +686,11 @@ export const facture = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId
+    // ci-dessus pour le raisonnement complet.
+    contactId: text("contact_id").references(() => contact.id),
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     devisOrigineId: text("devis_origine_id").references(() => devis.id),
     // Renseigné quand cette Facture a été générée automatiquement par le
     // worker de facturation récurrente plutôt que saisie/acceptée à la main
@@ -692,6 +710,8 @@ export const facture = pgTable(
     uniqueIndex("facture_entreprise_numero_unique").on(table.entrepriseId, table.numero),
     index("facture_entreprise_idx").on(table.entrepriseId),
     index("facture_statut_idx").on(table.statut),
+    index("facture_contact_idx").on(table.contactId),
+    index("facture_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -749,6 +769,10 @@ export const bonCommandeVente = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    contactId: text("contact_id").references(() => contact.id),
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     statut: statutBonCommandeVente("statut").notNull().default("BROUILLON"),
     dateCommande: timestamp("date_commande").notNull().defaultNow(),
     montantHT: integer("montant_ht").notNull(),
@@ -765,6 +789,8 @@ export const bonCommandeVente = pgTable(
   (table) => [
     index("bon_commande_vente_entreprise_idx").on(table.entrepriseId),
     index("bon_commande_vente_deal_idx").on(table.dealId),
+    index("bon_commande_vente_contact_idx").on(table.contactId),
+    index("bon_commande_vente_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -823,6 +849,10 @@ export const factureRecurrente = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    contactId: text("contact_id").references(() => contact.id),
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     libelle: text("libelle").notNull(),
     frequence: frequenceFactureRecurrente("frequence").notNull(),
     statut: statutFactureRecurrente("statut").notNull().default("ACTIF"),
@@ -841,6 +871,8 @@ export const factureRecurrente = pgTable(
     index("facture_recurrente_entreprise_idx").on(table.entrepriseId),
     index("facture_recurrente_deal_idx").on(table.dealId),
     index("facture_recurrente_prochaine_generation_idx").on(table.prochaineDateGeneration),
+    index("facture_recurrente_contact_idx").on(table.contactId),
+    index("facture_recurrente_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -898,6 +930,10 @@ export const recuVente = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    contactId: text("contact_id").references(() => contact.id),
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     statut: statutRecuVente("statut").notNull().default("EMISE"),
     dateEmission: timestamp("date_emission").notNull().defaultNow(),
     montantHT: integer("montant_ht").notNull(),
@@ -914,6 +950,8 @@ export const recuVente = pgTable(
     uniqueIndex("recu_vente_entreprise_numero_unique").on(table.entrepriseId, table.numero),
     index("recu_vente_entreprise_idx").on(table.entrepriseId),
     index("recu_vente_deal_idx").on(table.dealId),
+    index("recu_vente_contact_idx").on(table.contactId),
+    index("recu_vente_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
@@ -979,6 +1017,10 @@ export const factureAcompte = pgTable(
     dealId: text("deal_id")
       .notNull()
       .references(() => deal.id),
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    contactId: text("contact_id").references(() => contact.id),
+    compteId: text("compte_id").references(() => compteClient.id),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
     statut: statutFactureAcompte("statut").notNull().default("EMISE"),
     dateEmission: timestamp("date_emission").notNull().defaultNow(),
     montant: integer("montant").notNull(),
@@ -998,6 +1040,8 @@ export const factureAcompte = pgTable(
     uniqueIndex("facture_acompte_entreprise_numero_unique").on(table.entrepriseId, table.numero),
     index("facture_acompte_entreprise_idx").on(table.entrepriseId),
     index("facture_acompte_deal_idx").on(table.dealId),
+    index("facture_acompte_contact_idx").on(table.contactId),
+    index("facture_acompte_assigne_a_idx").on(table.assigneAId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
