@@ -22,6 +22,7 @@ import { genererEcrituresPaiementAcompte, genererEcrituresApplicationAcompte } f
 describe("Ventes — logique des Factures d'acompte", () => {
   let entrepriseId: string;
   let utilisateurId: string;
+  let contactId: string;
   let dealId: string;
 
   beforeAll(async () => {
@@ -37,6 +38,7 @@ describe("Ventes — logique des Factures d'acompte", () => {
     const [c] = await avecEntreprise(entrepriseId, (tx) =>
       tx.insert(contact).values({ entrepriseId, nom: "Contact FA Logique", telephone: "+237600000097", assigneAId: utilisateurId }).returning({ id: contact.id })
     );
+    contactId = c.id;
     const [d] = await avecEntreprise(entrepriseId, (tx) =>
       tx.insert(deal).values({ entrepriseId, titre: "Deal FA Logique", contactId: c.id, assigneAId: utilisateurId }).returning({ id: deal.id })
     );
@@ -60,7 +62,7 @@ describe("Ventes — logique des Factures d'acompte", () => {
     expect(numero).toMatch(/^ACO-\d{4}-\d{6}$/);
 
     const [acompte] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(factureAcompte).values({ entrepriseId, numero, dealId, montant: 50000, montantRestant: 50000, creeParId: utilisateurId }).returning({ id: factureAcompte.id })
+      tx.insert(factureAcompte).values({ entrepriseId, numero, dealId, contactId, assigneAId: utilisateurId, montant: 50000, montantRestant: 50000, creeParId: utilisateurId }).returning({ id: factureAcompte.id })
     );
 
     const dateEncaissement = new Date();
@@ -83,17 +85,17 @@ describe("Ventes — logique des Factures d'acompte", () => {
   test("un acompte payé s'applique sur plusieurs Factures tant que le solde les couvre, puis bascule APPLIQUEE", async () => {
     const numeroAcompte = await avecEntreprise(entrepriseId, (tx) => genererNumeroFactureAcompte(tx, entrepriseId));
     const [acompte] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(factureAcompte).values({ entrepriseId, numero: numeroAcompte, dealId, montant: 80000, montantRestant: 80000, creeParId: utilisateurId }).returning({ id: factureAcompte.id })
+      tx.insert(factureAcompte).values({ entrepriseId, numero: numeroAcompte, dealId, contactId, assigneAId: utilisateurId, montant: 80000, montantRestant: 80000, creeParId: utilisateurId }).returning({ id: factureAcompte.id })
     );
     await avecEntreprise(entrepriseId, (tx) => tx.update(factureAcompte).set({ statut: "PAYEE", dateEncaissement: new Date(), moyenPaiement: "manuel" }).where(eq(factureAcompte.id, acompte.id)));
 
     const numeroF1 = await avecEntreprise(entrepriseId, (tx) => genererNumeroFacture(tx, entrepriseId));
     const [f1] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(facture).values({ entrepriseId, numero: numeroF1, dealId, montantHT: 30000, montantTVA: 0, montantTTC: 30000, dateEcheance: new Date() }).returning({ id: facture.id })
+      tx.insert(facture).values({ entrepriseId, numero: numeroF1, dealId, contactId, assigneAId: utilisateurId, montantHT: 30000, montantTVA: 0, montantTTC: 30000, dateEcheance: new Date() }).returning({ id: facture.id })
     );
     const numeroF2 = await avecEntreprise(entrepriseId, (tx) => genererNumeroFacture(tx, entrepriseId));
     const [f2] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(facture).values({ entrepriseId, numero: numeroF2, dealId, montantHT: 50000, montantTVA: 0, montantTTC: 50000, dateEcheance: new Date() }).returning({ id: facture.id })
+      tx.insert(facture).values({ entrepriseId, numero: numeroF2, dealId, contactId, assigneAId: utilisateurId, montantHT: 50000, montantTVA: 0, montantTTC: 50000, dateEcheance: new Date() }).returning({ id: facture.id })
     );
 
     // Première application (30000 sur 80000 restants) : le solde ne tombe
@@ -158,11 +160,11 @@ describe("Ventes — logique des Factures d'acompte", () => {
   test("une Facture plus grande que le solde restant de l'acompte ne peut pas être ciblée (garde applicative)", async () => {
     const numeroAcompte = await avecEntreprise(entrepriseId, (tx) => genererNumeroFactureAcompte(tx, entrepriseId));
     const [acompte] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(factureAcompte).values({ entrepriseId, numero: numeroAcompte, dealId, montant: 20000, montantRestant: 20000, statut: "PAYEE", creeParId: utilisateurId }).returning({ id: factureAcompte.id })
+      tx.insert(factureAcompte).values({ entrepriseId, numero: numeroAcompte, dealId, contactId, assigneAId: utilisateurId, montant: 20000, montantRestant: 20000, statut: "PAYEE", creeParId: utilisateurId }).returning({ id: factureAcompte.id })
     );
     const numeroF = await avecEntreprise(entrepriseId, (tx) => genererNumeroFacture(tx, entrepriseId));
     const [f] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(facture).values({ entrepriseId, numero: numeroF, dealId, montantHT: 30000, montantTVA: 0, montantTTC: 30000, dateEcheance: new Date() }).returning({ id: facture.id })
+      tx.insert(facture).values({ entrepriseId, numero: numeroF, dealId, contactId, assigneAId: utilisateurId, montantHT: 30000, montantTVA: 0, montantTTC: 30000, dateEcheance: new Date() }).returning({ id: facture.id })
     );
 
     // Simule la garde exacte de appliquerAcompteSurFacture() : la requête ne
@@ -179,7 +181,7 @@ describe("Ventes — logique des Factures d'acompte", () => {
   test("un acompte déjà encaissé (PAYEE) ne peut plus être annulé", async () => {
     const numero = await avecEntreprise(entrepriseId, (tx) => genererNumeroFactureAcompte(tx, entrepriseId));
     const [acompte] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(factureAcompte).values({ entrepriseId, numero, dealId, montant: 10000, montantRestant: 10000, statut: "PAYEE", creeParId: utilisateurId }).returning({ id: factureAcompte.id })
+      tx.insert(factureAcompte).values({ entrepriseId, numero, dealId, contactId, assigneAId: utilisateurId, montant: 10000, montantRestant: 10000, statut: "PAYEE", creeParId: utilisateurId }).returning({ id: factureAcompte.id })
     );
 
     // Reproduit le WHERE exact de annulerFactureAcompte() : ne cible que EMISE.

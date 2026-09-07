@@ -6,7 +6,7 @@ import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
 
 // devisOrigineId a une contrainte de clé étrangère réelle vers devis(id) —
 // un id fictif la viole (23503), il faut donc de vraies lignes devis ici.
-async function creerDevisFictif(entrepriseId: string, dealId: string, creeParId: string, numero: string) {
+async function creerDevisFictif(entrepriseId: string, dealId: string, contactId: string, creeParId: string, numero: string) {
   const [d] = await avecEntreprise(entrepriseId, (tx) =>
     tx
       .insert(devis)
@@ -14,6 +14,8 @@ async function creerDevisFictif(entrepriseId: string, dealId: string, creeParId:
         entrepriseId,
         numero,
         dealId,
+        contactId,
+        assigneAId: creeParId,
         dateValidite: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
         montantHT: 100000,
         montantTVA: 19250,
@@ -85,7 +87,7 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
   }, 30_000);
 
   test("le premier devis accepté crée un Dossier et un Projet", async () => {
-    const devisId = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000001");
+    const devisId = await creerDevisFictif(entrepriseId, dealId, contactId, utilisateurId, "DEV-2026-000001");
 
     const resultat = await avecEntreprise(entrepriseId, (tx) =>
       creerProjetDepuisDevisAccepte(tx, {
@@ -111,8 +113,8 @@ describe("Palier 2 — pont devis accepté → Dossier + Projet", () => {
   });
 
   test("un deuxième devis accepté pour le même client réutilise le Dossier existant", async () => {
-    const devisIdA = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000002");
-    const devisIdB = await creerDevisFictif(entrepriseId, dealId, utilisateurId, "DEV-2026-000003");
+    const devisIdA = await creerDevisFictif(entrepriseId, dealId, contactId, utilisateurId, "DEV-2026-000002");
+    const devisIdB = await creerDevisFictif(entrepriseId, dealId, contactId, utilisateurId, "DEV-2026-000003");
 
     const premier = await avecEntreprise(entrepriseId, (tx) =>
       creerProjetDepuisDevisAccepte(tx, {

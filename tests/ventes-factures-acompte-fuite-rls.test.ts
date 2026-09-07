@@ -49,6 +49,8 @@ describe("Ventes — isolation RLS entre entreprises (facture_acompte)", () => {
           entrepriseId: mbargaId,
           numero: "ACO-MBARGA-0001",
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurMbargaId,
           montant: 50000,
           montantRestant: 50000,
           creeParId: utilisateurMbargaId,

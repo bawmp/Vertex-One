@@ -49,6 +49,8 @@ describe("Ventes — isolation RLS entre entreprises (bon_commande_vente)", () =
           entrepriseId: mbargaId,
           numero: "BCV-MBARGA-0001",
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurMbargaId,
           montantHT: 20000,
           montantTVA: 0,
           montantTTC: 20000,

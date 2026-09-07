@@ -48,6 +48,8 @@ describe("Ventes — isolation RLS entre entreprises (facture_recurrente)", () =
         .values({
           entrepriseId: mbargaId,
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurMbargaId,
           libelle: "Abonnement Mbarga",
           frequence: "MENSUEL",
           dateDebut: new Date(),

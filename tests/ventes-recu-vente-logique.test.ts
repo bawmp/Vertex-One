@@ -21,6 +21,7 @@ import { decrementerStockVente } from "@/lib/produits/stock";
 describe("Ventes — logique des Reçus de vente", () => {
   let entrepriseId: string;
   let utilisateurId: string;
+  let contactId: string;
   let dealId: string;
   let produitId: string;
 
@@ -46,6 +47,7 @@ describe("Ventes — logique des Reçus de vente", () => {
       return [contactCree, produitCree];
     });
     produitId = p.id;
+    contactId = c.id;
 
     const [d] = await avecEntreprise(entrepriseId, (tx) =>
       tx.insert(deal).values({ entrepriseId, titre: "Deal RV Logique", contactId: c.id, assigneAId: utilisateurId }).returning({ id: deal.id })
@@ -77,6 +79,8 @@ describe("Ventes — logique des Reçus de vente", () => {
           entrepriseId,
           numero,
           dealId,
+          contactId,
+          assigneAId: utilisateurId,
           montantHT: 6000,
           montantTVA: 1155,
           montantTTC: 7155,
@@ -131,6 +135,8 @@ describe("Ventes — logique des Reçus de vente", () => {
           entrepriseId,
           numero,
           dealId,
+          contactId,
+          assigneAId: utilisateurId,
           montantHT: 4000,
           montantTVA: 0,
           montantTTC: 4000,
@@ -163,7 +169,7 @@ describe("Ventes — logique des Reçus de vente", () => {
     const [recu] = await avecEntreprise(entrepriseId, (tx) =>
       tx
         .insert(recuVente)
-        .values({ entrepriseId, numero, dealId, montantHT: 2000, montantTVA: 0, montantTTC: 2000, moyenPaiement: "virement", creeParId: utilisateurId })
+        .values({ entrepriseId, numero, dealId, contactId, assigneAId: utilisateurId, montantHT: 2000, montantTVA: 0, montantTTC: 2000, moyenPaiement: "virement", creeParId: utilisateurId })
         .returning({ id: recuVente.id })
     );
 

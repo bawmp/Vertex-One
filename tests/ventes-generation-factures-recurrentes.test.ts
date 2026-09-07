@@ -31,6 +31,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
   let entrepriseSansNiuId: string;
   let utilisateurAId: string;
   let utilisateurBId: string;
+  let contactAId: string;
+  let contactBId: string;
   let dealAId: string;
   let dealBId: string;
   let produitId: string;
@@ -64,6 +66,7 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
       return [contactCree, produitCree];
     });
     produitId = pA.id;
+    contactAId = cA.id;
 
     const [dA] = await avecEntreprise(entrepriseAvecNiuId, (tx) =>
       tx.insert(deal).values({ entrepriseId: entrepriseAvecNiuId, titre: "Deal A", contactId: cA.id, assigneAId: utilisateurAId }).returning({ id: deal.id })
@@ -73,6 +76,7 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
     const [cB] = await avecEntreprise(entrepriseSansNiuId, (tx) =>
       tx.insert(contact).values({ entrepriseId: entrepriseSansNiuId, nom: "Contact B", telephone: "+237600000093", assigneAId: utilisateurBId }).returning({ id: contact.id })
     );
+    contactBId = cB.id;
     const [dB] = await avecEntreprise(entrepriseSansNiuId, (tx) =>
       tx.insert(deal).values({ entrepriseId: entrepriseSansNiuId, titre: "Deal B", contactId: cB.id, assigneAId: utilisateurBId }).returning({ id: deal.id })
     );
@@ -105,6 +109,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .values({
           entrepriseId: entrepriseAvecNiuId,
           dealId: dealAId,
+          contactId: contactAId,
+          assigneAId: utilisateurAId,
           libelle: "Abonnement mensuel",
           frequence: "MENSUEL",
           dateDebut: HIER,
@@ -160,6 +166,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .values({
           entrepriseId: entrepriseAvecNiuId,
           dealId: dealAId,
+          contactId: contactAId,
+          assigneAId: utilisateurAId,
           libelle: "Contrat trimestriel bientôt fini",
           frequence: "TRIMESTRIEL",
           dateDebut: HIER,
@@ -196,6 +204,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .values({
           entrepriseId: entrepriseAvecNiuId,
           dealId: dealAId,
+          contactId: contactAId,
+          assigneAId: utilisateurAId,
           libelle: "Pas encore dû",
           frequence: "MENSUEL",
           dateDebut: DEMAIN,
@@ -211,6 +221,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .values({
           entrepriseId: entrepriseAvecNiuId,
           dealId: dealAId,
+          contactId: contactAId,
+          assigneAId: utilisateurAId,
           libelle: "En pause",
           statut: "EN_PAUSE",
           frequence: "MENSUEL",
@@ -237,6 +249,8 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .values({
           entrepriseId: entrepriseSansNiuId,
           dealId: dealBId,
+          contactId: contactBId,
+          assigneAId: utilisateurBId,
           libelle: "Abonnement sans NIU",
           frequence: "MENSUEL",
           dateDebut: HIER,

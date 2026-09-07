@@ -49,6 +49,8 @@ describe("Ventes — isolation RLS entre entreprises (recu_vente)", () => {
           entrepriseId: mbargaId,
           numero: "REC-MBARGA-0001",
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurMbargaId,
           montantHT: 5000,
           montantTVA: 0,
           montantTTC: 5000,

@@ -45,7 +45,18 @@ describe("Palier 4 — rapprochement bancaire", () => {
 
         const [f1] = await tx
           .insert(facture)
-          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0001", dealId: d.id, statut: "PAYEE", montantHT: 100000, montantTVA: 19250, montantTTC: 119250, dateEcheance: dateProche })
+          .values({
+            entrepriseId,
+            numero: "FAC-TEST-RAPPR-0001",
+            dealId: d.id,
+            contactId: c.id,
+            assigneAId: utilisateurId,
+            statut: "PAYEE",
+            montantHT: 100000,
+            montantTVA: 19250,
+            montantTTC: 119250,
+            dateEcheance: dateProche,
+          })
           .returning({ id: facture.id });
         const [pay1] = await tx
           .insert(paiement)
@@ -54,7 +65,18 @@ describe("Palier 4 — rapprochement bancaire", () => {
 
         const [f2] = await tx
           .insert(facture)
-          .values({ entrepriseId, numero: "FAC-TEST-RAPPR-0002", dealId: d.id, statut: "PAYEE", montantHT: 42017, montantTVA: 7983, montantTTC: 50000, dateEcheance: dateLointaine })
+          .values({
+            entrepriseId,
+            numero: "FAC-TEST-RAPPR-0002",
+            dealId: d.id,
+            contactId: c.id,
+            assigneAId: utilisateurId,
+            statut: "PAYEE",
+            montantHT: 42017,
+            montantTVA: 7983,
+            montantTTC: 50000,
+            dateEcheance: dateLointaine,
+          })
           .returning({ id: facture.id });
         const [pay2] = await tx
           .insert(paiement)
