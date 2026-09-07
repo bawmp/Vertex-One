@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar } from "lucide-react";
+import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { contact, compteClient, interaction, dossier, deal, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -123,6 +123,31 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
           ) : null}
         </div>
       </div>
+
+      {peut(utilisateurConnecte.role, "FACTURATION", "CREER") ? (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" render={<Link href={`/app/facturation/devis/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
+            <FileText data-icon="inline-start" aria-hidden />
+            Créer un devis
+          </Button>
+          <Button size="sm" variant="outline" render={<Link href={`/app/facturation/bons-commande/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
+            <ClipboardList data-icon="inline-start" aria-hidden />
+            Créer un bon de commande
+          </Button>
+          <Button size="sm" variant="outline" render={<Link href={`/app/facturation/recurrentes/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
+            <Repeat data-icon="inline-start" aria-hidden />
+            Créer une facture récurrente
+          </Button>
+          <Button size="sm" variant="outline" render={<Link href={`/app/facturation/recus-vente/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
+            <Receipt data-icon="inline-start" aria-hidden />
+            Créer un reçu de vente
+          </Button>
+          <Button size="sm" variant="outline" render={<Link href={`/app/facturation/acomptes/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
+            <Wallet data-icon="inline-start" aria-hidden />
+            Créer une facture d&apos;acompte
+          </Button>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-6">

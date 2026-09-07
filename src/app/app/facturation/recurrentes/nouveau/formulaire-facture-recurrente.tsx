@@ -15,7 +15,15 @@ type Ligne = { produitId: string; designation: string; quantite: string; prixUni
 
 const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
 
-export function FormulaireFactureRecurrente({ dealId, produits }: { dealId: string; produits: { id: string; nom: string; prixVente: number }[] }) {
+export function FormulaireFactureRecurrente({
+  dealId,
+  contactId,
+  produits,
+}: {
+  dealId?: string;
+  contactId?: string;
+  produits: { id: string; nom: string; prixVente: number }[];
+}) {
   const [etat, action, enCours] = useActionState(creerFactureRecurrente, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
@@ -44,7 +52,8 @@ export function FormulaireFactureRecurrente({ dealId, produits }: { dealId: stri
     <Card className="mt-6">
       <CardContent>
         <form action={action} className="flex flex-col gap-6">
-          <input type="hidden" name="dealId" value={dealId} />
+          {dealId ? <input type="hidden" name="dealId" value={dealId} /> : null}
+          {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">

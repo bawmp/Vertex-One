@@ -8,14 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { creerFactureAcompte } from "@/lib/actions/facture-acompte";
 
-export function FormulaireFactureAcompte({ dealId }: { dealId: string }) {
+export function FormulaireFactureAcompte({ dealId, contactId }: { dealId?: string; contactId?: string }) {
   const [etat, action, enCours] = useActionState(creerFactureAcompte, null);
 
   return (
     <Card className="mt-6">
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
-          <input type="hidden" name="dealId" value={dealId} />
+          {dealId ? <input type="hidden" name="dealId" value={dealId} /> : null}
+          {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="montant">Montant de l&apos;avance (FCFA)</Label>
