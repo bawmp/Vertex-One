@@ -152,6 +152,20 @@ Construit le 2026-09-07. `produit` (BIEN/SERVICE, prix vente/achat, `suiviStock`
 - Rapports avancés (Ventes/Achats/Stock/Balances âgées) au-delà du Bilan/Compte de résultat déjà existant
 - Import/Export en masse, API publique/Webhooks, passerelles de paiement autres que NotchPay
 
+## 7. Découplage Books/CRM — construit le 2026-09-07
+
+Défaut architectural réel trouvé et corrigé (voir CLAUDE.md, section "Indépendance des modules") : les 6 tables de documents Ventes (Devis/Factures/Bons de commande/Factures récurrentes/Reçus de vente/Factures d'acompte) avaient un `dealId` **obligatoire**, rendant Facturation/Books techniquement inutilisable sans être passé par le pipeline CRM au préalable — contradiction directe avec le principe que chaque module de Vertex One doit rester vendable et utilisable individuellement.
+
+Corrigé en 8 tranches (patron expand → backfill → migrate → contract, chacune vérifiée séparément : schéma → logique métier → UI → tests → migrations 0044 à 0047) :
+
+- `contactId` (obligatoire) et `compteId` (dénormalisé, optionnel) ajoutés directement sur les 6 tables — `dealId` devient optionnel, renseigné seulement quand le document vient réellement du CRM.
+- `assigneAId` ajouté directement sur les 6 tables — la portée (`idsVisibles(..., "FACTURATION")`) se calcule désormais directement dessus, comme le fait déjà le module Achats, sans plus jamais passer par une jointure Deal.
+- Nouveau helper partagé `src/lib/facturation/client-document.ts` : `resoudreClientVente()` (résout le client via `dealId` ou `contactId`, utilisé par les 5 actions de création) et `memeClientVente()` (garde-fou de l'application d'un acompte, remplace l'ancienne comparaison sur `dealId`).
+- Les 5 boutons de création (Devis/Bon de commande/Facture récurrente/Reçu de vente/Facture d'acompte) apparaissent maintenant aussi sur la fiche Contact (`?contactId=`), pas seulement sur la fiche Deal (`?dealId=`) — Books peut émettre une facture sans jamais toucher au CRM.
+- `/app/facturation` intègre directement les composants de gestion (conversion BC, pause/reprise/arrêt de récurrence, annulation de reçu, application d'acompte) plutôt que de renvoyer vers `/app/deals/{id}`, qui n'existe pas pour un document créé sans Deal.
+
+Vérifié : suite complète (128 tests, dont de nouveaux tests dédiés à `resoudreClientVente()`/`memeClientVente()`), et les deux parcours en navigateur réel — Lead → Deal → Devis → Facture (historique, toujours vert, zéro régression) et Contact seul → Devis → Facture sans jamais passer par `/app/deals` (nouveau, l'objectif même de ce chantier).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
