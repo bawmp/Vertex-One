@@ -94,6 +94,14 @@ export const STATUT_RECU_VENTE: Record<string, { libelle: string; variante: Vari
   ANNULE: { libelle: "Annulé", variante: "danger" },
 };
 
+// Extensions Ventes, Factures d'acompte (échange du 2026-09-07).
+export const STATUT_FACTURE_ACOMPTE: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  EMISE: { libelle: "En attente de paiement", variante: "info" },
+  PAYEE: { libelle: "Encaissé", variante: "warning" },
+  APPLIQUEE: { libelle: "Appliqué", variante: "success" },
+  ANNULEE: { libelle: "Annulé", variante: "neutral" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

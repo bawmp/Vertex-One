@@ -24,6 +24,12 @@ export const PLAN_COMPTABLE_SYSCOHADA: { numero: string; libelle: string; classe
   // Classe 4 — Comptes de tiers
   { numero: "401000", libelle: "Fournisseurs", classe: 4 },
   { numero: "411000", libelle: "Clients", classe: 4 },
+  // Ajouté pour les Factures d'acompte (Retainer Invoices, échange du
+  // 2026-09-07) : une avance encaissée avant livraison n'est jamais du
+  // chiffre d'affaires ni une créance client, mais une dette envers le
+  // client tant qu'elle n'a pas été appliquée sur une vraie Facture — voir
+  // genererEcrituresPaiementAcompte()/genererEcrituresApplicationAcompte().
+  { numero: "419100", libelle: "Clients, avances et acomptes reçus", classe: 4 },
   { numero: "421000", libelle: "Personnel, avances et acomptes", classe: 4 },
   { numero: "422000", libelle: "Personnel, rémunérations dues", classe: 4 },
   { numero: "431000", libelle: "Sécurité sociale (CNPS)", classe: 4 },

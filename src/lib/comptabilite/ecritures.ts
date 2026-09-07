@@ -19,7 +19,15 @@ async function creerEcritures(
   entrepriseId: string,
   dateEcriture: Date,
   lignes: LigneEcriture[],
-  reference: { factureId?: string; paiementId?: string; depenseId?: string; factureFournisseurId?: string; paiementEffectueId?: string; recuVenteId?: string }
+  reference: {
+    factureId?: string;
+    paiementId?: string;
+    depenseId?: string;
+    factureFournisseurId?: string;
+    paiementEffectueId?: string;
+    recuVenteId?: string;
+    factureAcompteId?: string;
+  }
 ): Promise<void> {
   const numeros = [...new Set(lignes.map((l) => l.numeroCompte).filter((n): n is string => !!n))];
   const comptes =
@@ -47,6 +55,7 @@ async function creerEcritures(
       factureFournisseurId: reference.factureFournisseurId,
       paiementEffectueId: reference.paiementEffectueId,
       recuVenteId: reference.recuVenteId,
+      factureAcompteId: reference.factureAcompteId,
     }))
   );
 }
@@ -129,6 +138,55 @@ export async function genererEcrituresRecuVente(
   }
 
   await creerEcritures(tx, recuVente.entrepriseId, recuVente.dateEmission, lignes, { recuVenteId: recuVente.id });
+}
+
+/**
+ * Extensions Ventes, Factures d'acompte (échange du 2026-09-07) — appelée
+ * quand le paiement d'un acompte est encaissé : contrairement à une vraie
+ * vente, ne touche jamais 706000/443200 (l'avance n'est pas encore du
+ * chiffre d'affaires) — crédite 419100 (Clients, avances et acomptes reçus),
+ * une dette envers le client tant qu'elle n'est pas appliquée sur une
+ * Facture. Même règle de compte de trésorerie que genererEcrituresRecuVente().
+ */
+export async function genererEcrituresPaiementAcompte(
+  tx: TransactionDrizzle,
+  factureAcompte: { id: string; entrepriseId: string; numero: string; dateEncaissement: Date; montant: number; moyenPaiement: string }
+): Promise<void> {
+  const compteTresorerie = factureAcompte.moyenPaiement === "especes" || factureAcompte.moyenPaiement === "manuel" ? "571000" : "512000";
+
+  await creerEcritures(
+    tx,
+    factureAcompte.entrepriseId,
+    factureAcompte.dateEncaissement,
+    [
+      { numeroCompte: compteTresorerie, libelle: `Acompte ${factureAcompte.numero}`, debit: factureAcompte.montant },
+      { numeroCompte: "419100", libelle: `Acompte ${factureAcompte.numero}`, credit: factureAcompte.montant },
+    ],
+    { factureAcompteId: factureAcompte.id }
+  );
+}
+
+/**
+ * Extensions Ventes, Factures d'acompte (échange du 2026-09-07) — appelée
+ * quand un acompte encaissé est appliqué sur une vraie Facture : solde le
+ * compte d'avance (419100) en réduisant directement la créance client
+ * (411000) sur cette Facture, sans jamais transiter par la trésorerie (déjà
+ * encaissée au moment du paiement de l'acompte).
+ */
+export async function genererEcrituresApplicationAcompte(
+  tx: TransactionDrizzle,
+  params: { entrepriseId: string; factureAcompteId: string; factureId: string; numeroFactureAcompte: string; numeroFacture: string; montant: number; dateApplication: Date }
+): Promise<void> {
+  await creerEcritures(
+    tx,
+    params.entrepriseId,
+    params.dateApplication,
+    [
+      { numeroCompte: "419100", libelle: `${params.numeroFactureAcompte} appliqué sur ${params.numeroFacture}`, debit: params.montant },
+      { numeroCompte: "411000", libelle: `${params.numeroFactureAcompte} appliqué sur ${params.numeroFacture}`, credit: params.montant },
+    ],
+    { factureAcompteId: params.factureAcompteId, factureId: params.factureId }
+  );
 }
 
 /**

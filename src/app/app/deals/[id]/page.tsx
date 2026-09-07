@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { Building2, Phone, ArrowRightCircle, FileText, ClipboardList, Repeat, Receipt } from "lucide-react";
+import { Building2, Phone, ArrowRightCircle, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { deal, contact, compteClient, devis, facture, bonCommandeVente, factureRecurrente, recuVente, historiqueStatutDeal, utilisateur } from "@/db/schema";
+import { deal, contact, compteClient, devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, historiqueStatutDeal, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -15,6 +15,7 @@ import {
   STATUT_FACTURE_RECURRENTE,
   FREQUENCE_FACTURE_RECURRENTE,
   STATUT_RECU_VENTE,
+  STATUT_FACTURE_ACOMPTE,
 } from "@/lib/libelles";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import { ChangeurStatutDeal } from "./changeur-statut-deal";
 import { BoutonConvertirBCV } from "./bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "./boutons-facture-recurrente";
 import { BoutonAnnulerRecuVente } from "./bouton-annuler-recu-vente";
+import { GestionFactureAcompte } from "./gestion-facture-acompte";
 
 export default async function PageFicheDeal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,7 +38,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
     if (!ligne) return null;
     if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return null;
 
-    const [[leContact], compte, devisListe, facturesListe, bonsCommandeListe, facturesRecurrentesListe, recusVenteListe, historique] = await Promise.all([
+    const [[leContact], compte, devisListe, facturesListe, bonsCommandeListe, facturesRecurrentesListe, recusVenteListe, facturesAcompteListe, historique] = await Promise.all([
       tx.select().from(contact).where(eq(contact.id, ligne.contactId)),
       ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
       tx.select().from(devis).where(eq(devis.dealId, id)).orderBy(desc(devis.creeLe)),
@@ -44,6 +46,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
       tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.dealId, id)).orderBy(desc(bonCommandeVente.dateCommande)),
       tx.select().from(factureRecurrente).where(eq(factureRecurrente.dealId, id)).orderBy(desc(factureRecurrente.creeLe)),
       tx.select().from(recuVente).where(eq(recuVente.dealId, id)).orderBy(desc(recuVente.dateEmission)),
+      tx.select().from(factureAcompte).where(eq(factureAcompte.dealId, id)).orderBy(desc(factureAcompte.creeLe)),
       tx
         .select({
           id: historiqueStatutDeal.id,
@@ -67,12 +70,24 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
       bonsCommandeListe,
       facturesRecurrentesListe,
       recusVenteListe,
+      facturesAcompteListe,
       historique,
     };
   });
 
   if (!donnees) notFound();
-  const { fiche, contact: leContact, compte, devisListe, facturesListe, bonsCommandeListe, facturesRecurrentesListe, recusVenteListe, historique } = donnees;
+  const {
+    fiche,
+    contact: leContact,
+    compte,
+    devisListe,
+    facturesListe,
+    bonsCommandeListe,
+    facturesRecurrentesListe,
+    recusVenteListe,
+    facturesAcompteListe,
+    historique,
+  } = donnees;
   const info = STATUT_DEAL[fiche.statut];
   const peutModifier = peut(utilisateurConnecte.role, "CRM", "MODIFIER");
   const peutCreerDevis = peut(utilisateurConnecte.role, "FACTURATION", "CREER");
@@ -135,6 +150,15 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               <Receipt data-icon="inline-start" aria-hidden />
               Créer un reçu de vente
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href={`/app/facturation/acomptes/nouveau?dealId=${fiche.id}`} />}
+              nativeButton={false}
+            >
+              <Wallet data-icon="inline-start" aria-hidden />
+              Créer une facture d&apos;acompte
+            </Button>
           </div>
         ) : null}
       </div>
@@ -193,6 +217,47 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
             </Card>
           ) : (
             <p className="text-sm text-muted-foreground">Aucune facture récurrente pour le moment.</p>
+          )}
+
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Factures d&apos;acompte</h2>
+          {facturesAcompteListe.length > 0 ? (
+            <Card className="p-0">
+              <div className="flex flex-col divide-y divide-border">
+                {facturesAcompteListe.map((fa) => {
+                  const infoAcompte = STATUT_FACTURE_ACOMPTE[fa.statut];
+                  const facturesEmisesDuDeal = facturesListe.filter((f) => f.statut === "EMISE");
+                  const facturesEligibles = facturesEmisesDuDeal.filter((f) => f.montantTTC <= fa.montantRestant);
+                  return (
+                    <div key={fa.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium">{fa.numero}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {new Intl.NumberFormat("fr-FR").format(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)} FCFA
+                            {fa.statut !== "EMISE" ? " restant" : ""}
+                          </span>
+                          <Badge variant={infoAcompte?.variante ?? "neutral"}>{infoAcompte?.libelle ?? fa.statut}</Badge>
+                        </div>
+                      </div>
+                      {peutCreerDevis && (fa.statut === "EMISE" || fa.statut === "PAYEE") ? (
+                        <GestionFactureAcompte
+                          factureAcompteId={fa.id}
+                          statut={fa.statut}
+                          montantRestant={fa.montantRestant}
+                          facturesEligibles={
+                            fa.statut === "PAYEE"
+                              ? facturesEligibles.map((f) => ({ id: f.id, numero: f.numero, montantTTC: f.montantTTC }))
+                              : []
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucune facture d&apos;acompte pour le moment.</p>
           )}
 
           <h2 className="mt-3 text-sm font-medium text-muted-foreground">Reçus de vente</h2>

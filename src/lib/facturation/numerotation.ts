@@ -26,7 +26,13 @@ import { entreprise } from "@/db/schema";
 async function incrementerCompteur(
   tx: TransactionDrizzle,
   entrepriseId: string,
-  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat" | "compteurBonsCommandeVente" | "compteurRecusVente"
+  colonne:
+    | "compteurDevis"
+    | "compteurFactures"
+    | "compteurBonsCommandeAchat"
+    | "compteurBonsCommandeVente"
+    | "compteurRecusVente"
+    | "compteurFacturesAcompte"
 ): Promise<number> {
   const [ligne] = await tx
     .update(entreprise)
@@ -81,4 +87,14 @@ export async function genererNumeroRecuVente(tx: TransactionDrizzle, entrepriseI
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurRecusVente");
   return `REC-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/**
+ * Extensions Ventes, Factures d'acompte (échange du 2026-09-07) — série
+ * propre, jamais mêlée à celle des Factures.
+ */
+export async function genererNumeroFactureAcompte(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurFacturesAcompte");
+  return `ACO-${annee}-${String(compteur).padStart(6, "0")}`;
 }

@@ -86,6 +86,9 @@ export const entreprise = pgTable("entreprise", {
   // Reçus de vente (échange du 2026-09-07) — série distincte, jamais mêlée à
   // la numérotation des Factures.
   compteurRecusVente: integer("compteur_recus_vente").notNull().default(0),
+  // Factures d'acompte (échange du 2026-09-07) — série distincte, jamais
+  // mêlée à la numérotation des Factures.
+  compteurFacturesAcompte: integer("compteur_factures_acompte").notNull().default(0),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -946,6 +949,63 @@ export const ligneRecuVente = pgTable(
   ]
 ).enableRLS();
 
+export const statutFactureAcompte = pgEnum("statut_facture_acompte", ["EMISE", "PAYEE", "APPLIQUEE", "ANNULEE"]);
+
+/**
+ * Extensions Ventes, Factures d'acompte (Retainer Invoices, échange du
+ * 2026-09-07) — une avance demandée avant livraison. Pas de lignes ni de
+ * TVA (une avance n'est jamais du chiffre d'affaires tant qu'elle n'est pas
+ * appliquée sur une vraie Facture, qui porte sa propre ventilation HT/TVA) :
+ * juste un montant. Cycle de vie : EMISE (créée, rien n'a encore été
+ * encaissé) → PAYEE (encaissée, comptabilisée comme une dette envers le
+ * client sur 419100, montantRestant = montant) → APPLIQUEE (montantRestant
+ * tombé à zéro, appliquée en une ou plusieurs fois) ; ANNULEE uniquement
+ * depuis EMISE (voir annulerFactureAcompte() — une fois encaissée, annuler
+ * nécessiterait un remboursement, hors périmètre). Simplification connue,
+ * cohérente avec le reste du module : une application ne couvre qu'une
+ * Facture DONT le montant TTC est intégralement couvert par
+ * montantRestant (pas de paiement partiel d'une Facture, déjà non
+ * implémenté ailleurs dans ce produit) — voir
+ * src/lib/actions/facture-acompte.ts.
+ */
+export const factureAcompte = pgTable(
+  "facture_acompte",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    statut: statutFactureAcompte("statut").notNull().default("EMISE"),
+    dateEmission: timestamp("date_emission").notNull().defaultNow(),
+    montant: integer("montant").notNull(),
+    // Significatif seulement à partir de PAYEE (initialisé à `montant` dès la
+    // création pour simplifier le schéma, mais ignoré tant que le statut
+    // reste EMISE).
+    montantRestant: integer("montant_restant").notNull(),
+    moyenPaiement: moyenPaiement("moyen_paiement"), // renseigné seulement à l'encaissement
+    referenceTransaction: text("reference_transaction"),
+    dateEncaissement: timestamp("date_encaissement"),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("facture_acompte_entreprise_numero_unique").on(table.entrepriseId, table.numero),
+    index("facture_acompte_entreprise_idx").on(table.entrepriseId),
+    index("facture_acompte_deal_idx").on(table.dealId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const paiement = pgTable(
   "paiement",
   {
@@ -1497,6 +1557,11 @@ export const ecritureComptable = pgTable(
     paiementEffectueId: text("paiement_effectue_id"),
     // Reçus de vente (échange du 2026-09-07) — même raisonnement, jamais de FK stricte.
     recuVenteId: text("recu_vente_id"),
+    // Factures d'acompte (échange du 2026-09-07) — même raisonnement, jamais
+    // de FK stricte. Une écriture d'application porte à la fois
+    // factureAcompteId et factureId, les deux documents étant réellement
+    // liés par ce mouvement (voir genererEcrituresApplicationAcompte()).
+    factureAcompteId: text("facture_acompte_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [

@@ -74,7 +74,7 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 - Paiement partiel d'une Facture fournisseur (`PARTIELLEMENT_PAYEE` existe dans l'enum, non implémenté — même écart que côté Facture client).
 - Un Bon de commande annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
-**Extensions Ventes restantes** (même spec) : Factures d'acompte (Retainer). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
+**Extensions Ventes de la spec Zoho Books : toutes construites** (Bons de commande client, Factures récurrentes, Reçus de vente, Factures d'acompte — voir sous-sections ci-dessous). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
 
 ### Bons de commande client (Sales Orders) — construit le 2026-09-07
 
@@ -105,6 +105,25 @@ Une vente au comptant, encaissée intégralement à la création (`recuVente`/`l
 Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-recus-vente-fuite-rls.test.ts`), logique complète — numérotation, décrément de stock, bon compte de trésorerie selon le moyen de paiement, non-réutilisation d'un Reçu déjà ANNULE (`tests/ventes-recu-vente-logique.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → Produit avec stock → Reçu de vente → annulation).
 
 Écart volontaire, connu : comme les autres documents financiers de ce module, l'annulation d'un Reçu de vente ne contre-passe jamais les écritures d'origine (même simplification que `annulerFacture()`/`annulerBonCommandeAchat()`).
+
+### Factures d'acompte (Retainer Invoices) — construit le 2026-09-07
+
+Une avance demandée avant livraison (`factureAcompte`, pas de lignes ni de TVA — une avance n'est jamais du chiffre d'affaires tant qu'elle n'a pas été appliquée sur une vraie Facture, qui porte sa propre ventilation HT/TVA). Nouveau compte SYSCOHADA ajouté au référentiel global : **419100 "Clients, avances et acomptes reçus"** (`src/lib/comptabilite/plan-comptable-syscohada.ts` — un compte de dette envers le client, jamais une créance ni un produit).
+
+Cycle de vie en trois étapes, chacune avec sa propre écriture (ou aucune) :
+
+1. **Création** (`creerFactureAcompte`) — EMISE, numéro propre (`genererNumeroFactureAcompte`, préfixe "ACO"), aucune écriture (comme un Devis).
+2. **Encaissement** (`enregistrerPaiementFactureAcompte`) — EMISE → PAYEE, `genererEcrituresPaiementAcompte()` débite la trésorerie et crédite 419100 (jamais 706000/443200).
+3. **Application sur une Facture** (`appliquerAcompteSurFacture`) — `genererEcrituresApplicationAcompte()` débite 419100 et crédite 411000 (jamais la trésorerie, déjà encaissée à l'étape précédente), marque la Facture ciblée PAYEE, décrémente `montantRestant` de l'acompte et bascule à APPLIQUEE une fois ce solde à zéro (un acompte peut couvrir plusieurs petites Factures l'une après l'autre tant qu'il reste du solde).
+
+**Simplification volontaire, structurante** : une application n'est autorisée que si `montantRestant` couvre **intégralement** le montant TTC de la Facture ciblée (`montantRestant >= facture.montantTTC`) — jamais de paiement partiel d'une Facture, cohérent avec le reste du produit (`PARTIELLEMENT_PAYEE` existe dans l'enum `statutFacture` depuis le Palier 1 mais n'a jamais été implémenté, y compris pour les paiements en espèces normaux). Construire un vrai paiement partiel aurait nécessité d'ajouter un suivi `montantPaye`/`montantRestant` sur `facture` elle-même — un chantier transverse plus large que cette seule tranche, à réévaluer si un besoin réel de paiement partiel se présente un jour (voir section 3).
+
+Autres écarts volontaires, connus :
+
+- Annulation (`annulerFactureAcompte`) possible uniquement depuis EMISE — une fois encaissé (PAYEE), annuler nécessiterait un vrai remboursement, hors périmètre.
+- Pas de génération de PDF/envoi par email pour une Facture d'acompte (contrairement au Devis/Facture) — un document interne au produit pour l'instant, jamais transmis tel quel au client.
+
+Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-factures-acompte-fuite-rls.test.ts`), logique complète — écritures d'encaissement (419100, jamais 706000), application sur plusieurs Factures successives jusqu'à épuisement du solde, garde applicative contre une Facture trop grande, non-annulation après encaissement (`tests/ventes-facture-acompte-logique.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → Facture d'acompte → encaissement → application sur une Facture existante).
 
 ## 6. Zoho Books — Catalogue Produits/Tarifs (Items)
 

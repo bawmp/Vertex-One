@@ -1,0 +1,1 @@
+ALTER TABLE "facture_acompte" FORCE ROW LEVEL SECURITY;

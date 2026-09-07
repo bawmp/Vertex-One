@@ -295,6 +295,20 @@
       "when": 1788749026820,
       "tag": "0041_force_rls_recus_vente",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788757654016,
+      "tag": "0042_factures_acompte",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1788757679928,
+      "tag": "0043_force_rls_factures_acompte",
+      "breakpoints": true
     }
   ]
 }

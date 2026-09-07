@@ -1,23 +1,30 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc, eq } from "drizzle-orm";
-import { FileText, Receipt, Repeat, Wallet } from "lucide-react";
+import { FileText, Receipt, Repeat, Wallet, PiggyBank } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, factureRecurrente, recuVente, deal, contact, compteClient } from "@/db/schema";
+import { devis, facture, factureRecurrente, recuVente, factureAcompte, deal, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { STATUT_DEVIS, STATUT_FACTURE, STATUT_FACTURE_RECURRENTE, FREQUENCE_FACTURE_RECURRENTE, STATUT_RECU_VENTE } from "@/lib/libelles";
+import {
+  STATUT_DEVIS,
+  STATUT_FACTURE,
+  STATUT_FACTURE_RECURRENTE,
+  FREQUENCE_FACTURE_RECURRENTE,
+  STATUT_RECU_VENTE,
+  STATUT_FACTURE_ACOMPTE,
+} from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
 
 export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { devisVisibles, facturesVisibles, facturesRecurrentesVisibles, recusVenteVisibles, nomParDealId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const { devisVisibles, facturesVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParDealId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     // La portée de Facturation suit celle du Deal (docs/palier-1-*, section
     // 7, adapté à la reconstruction Leads/Contacts/Comptes/Deals du
     // 2026-09-06) — un Devis/une Facture appartient désormais à un Deal, qui
@@ -33,13 +40,21 @@ export default async function PageFacturation() {
 
     const idsDeals = dealsPertinents.map((d) => d.id);
     if (idsDeals.length === 0)
-      return { devisVisibles: [], facturesVisibles: [], facturesRecurrentesVisibles: [], recusVenteVisibles: [], nomParDealId: {} as Record<string, string> };
+      return {
+        devisVisibles: [],
+        facturesVisibles: [],
+        facturesRecurrentesVisibles: [],
+        recusVenteVisibles: [],
+        facturesAcompteVisibles: [],
+        nomParDealId: {} as Record<string, string>,
+      };
 
-    const [d, f, fr, rv] = await Promise.all([
+    const [d, f, fr, rv, fa] = await Promise.all([
       tx.select().from(devis).where(inArray(devis.dealId, idsDeals)).orderBy(desc(devis.creeLe)),
       tx.select().from(facture).where(inArray(facture.dealId, idsDeals)).orderBy(desc(facture.dateEmission)),
       tx.select().from(factureRecurrente).where(inArray(factureRecurrente.dealId, idsDeals)).orderBy(desc(factureRecurrente.creeLe)),
       tx.select().from(recuVente).where(inArray(recuVente.dealId, idsDeals)).orderBy(desc(recuVente.dateEmission)),
+      tx.select().from(factureAcompte).where(inArray(factureAcompte.dealId, idsDeals)).orderBy(desc(factureAcompte.creeLe)),
     ]);
 
     return {
@@ -47,6 +62,7 @@ export default async function PageFacturation() {
       facturesVisibles: f,
       facturesRecurrentesVisibles: fr,
       recusVenteVisibles: rv,
+      facturesAcompteVisibles: fa,
       nomParDealId: Object.fromEntries(dealsPertinents.map((deal_) => [deal_.id, deal_.compteNom ?? deal_.contactNom])),
     };
   });
@@ -184,6 +200,39 @@ export default async function PageFacturation() {
               );
             })}
             {recusVenteVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun reçu de vente.</p> : null}
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <PiggyBank className="size-4" aria-hidden />
+          Factures d&apos;acompte
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {facturesAcompteVisibles.map((fa) => {
+              const info = STATUT_FACTURE_ACOMPTE[fa.statut];
+              return (
+                <Link
+                  key={fa.id}
+                  href={`/app/deals/${fa.dealId}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{fa.numero}</span>
+                    <span className="text-muted-foreground"> — {nomParDealId[fa.dealId]}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="tabular-nums text-muted-foreground">{formaterFCFA(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)}</span>
+                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? fa.statut}</Badge>
+                  </span>
+                </Link>
+              );
+            })}
+            {facturesAcompteVisibles.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture d&apos;acompte.</p>
+            ) : null}
           </div>
         </Card>
       </div>
