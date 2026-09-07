@@ -1,0 +1,1 @@
+ALTER TABLE "minuteur_actif" FORCE ROW LEVEL SECURITY;

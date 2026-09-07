@@ -1296,6 +1296,45 @@ export const entreeTemps = pgTable(
   ]
 ).enableRLS();
 
+/**
+ * Minuteur démarrer/arrêter (échange du 2026-09-07, comparaison avec la
+ * feuille de temps Zoho Books) — une ligne = un minuteur EN COURS pour un
+ * utilisateur, supprimée dès l'arrêt (qui crée alors la véritable ligne
+ * `entreeTemps` correspondante, voir arreterMinuteur(),
+ * src/lib/actions/minuteur.ts) ou l'annulation (suppression sans création).
+ * `uniqueIndex` sur `utilisateurId` : un seul minuteur actif par
+ * utilisateur, contrainte posée en base (pas seulement vérifiée en
+ * application) contre une course concurrente sur un double démarrage.
+ */
+export const minuteurActif = pgTable(
+  "minuteur_actif",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    projetId: text("projet_id")
+      .notNull()
+      .references(() => projet.id),
+    tacheId: text("tache_id").references(() => tache.id),
+    demarreLe: timestamp("demarre_le").notNull().defaultNow(),
+    note: text("note"),
+  },
+  (table) => [
+    uniqueIndex("minuteur_actif_utilisateur_unique").on(table.utilisateurId),
+    index("minuteur_actif_entreprise_idx").on(table.entrepriseId),
+    index("minuteur_actif_projet_idx").on(table.projetId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Rattaché soit à un Dossier (historique de la relation client dans son
 // ensemble), soit à un Projet précis, jamais aux deux à la fois — contrôle
 // fait à la couche action (src/lib/actions/dossier.ts /projet.ts), pas par
