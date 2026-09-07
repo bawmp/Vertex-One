@@ -8,6 +8,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { projetsVisibles } from "@/lib/portee";
+import { recupererMinuteurActif } from "@/lib/projets/minuteur-actif";
 import { libelleProjet } from "@/lib/vocabulaire";
 import { STATUT_PROJET } from "@/lib/libelles";
 import { peutVoirDocumentSensible, estCategorieSensible } from "@/lib/documents/acces";
@@ -19,6 +20,8 @@ import { FormulaireNouvelleTache } from "./formulaire-nouvelle-tache";
 import { LigneEntreeTemps } from "./ligne-entree-temps";
 import { FormulaireEntreeTemps } from "./formulaire-entree-temps";
 import { BoutonGenererFactureHeures } from "./bouton-generer-facture-heures";
+import { BoutonDemarrerMinuteur } from "./bouton-demarrer-minuteur";
+import { MinuteurEnCours } from "../minuteur-en-cours";
 import { FormulaireCommentaire } from "../formulaire-commentaire";
 import { ListeCommentaires } from "../liste-commentaires";
 import { FormulaireDocument } from "../formulaire-document";
@@ -44,13 +47,14 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
     const visibles = await projetsVisibles(tx, utilisateurConnecte);
     if (visibles !== "TOUT" && !visibles.includes(leProjet.id)) return null;
 
-    const [[leDossier], taches, entreesTemps, commentaires, tousLesUtilisateurs, documentsDuProjet] = await Promise.all([
+    const [[leDossier], taches, entreesTemps, commentaires, tousLesUtilisateurs, documentsDuProjet, minuteurActif] = await Promise.all([
       tx.select().from(dossier).where(eq(dossier.id, leProjet.dossierId)),
       tx.select().from(tache).where(eq(tache.projetId, id)).orderBy(asc(tache.ordre), asc(tache.creeLe)),
       tx.select().from(entreeTemps).where(eq(entreeTemps.projetId, id)).orderBy(desc(entreeTemps.date)),
       tx.select().from(commentaire).where(eq(commentaire.projetId, id)).orderBy(desc(commentaire.creeLe)),
       tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)),
       tx.select().from(document).where(eq(document.projetId, id)),
+      recupererMinuteurActif(tx, utilisateurConnecte),
     ]);
 
     const idsAuteurs = [...new Set(commentaires.map((c) => c.auteurId))];
@@ -72,11 +76,12 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       auteursParId: Object.fromEntries(idsAuteurs.map((idAuteur) => [idAuteur, utilisateursParId[idAuteur]])),
       utilisateursParId,
       collegues: tousLesUtilisateurs,
+      minuteurActif,
     };
   });
 
   if (!donnees) notFound();
-  const { monEntreprise, leProjet, leDossier, taches, entreesTemps, commentaires, documents, auteursParId, utilisateursParId, collegues } = donnees;
+  const { monEntreprise, leProjet, leDossier, taches, entreesTemps, commentaires, documents, auteursParId, utilisateursParId, collegues, minuteurActif } = donnees;
 
   const vocab = libelleProjet(monEntreprise.secteurProfil);
   const info = STATUT_PROJET[leProjet.statut];
@@ -154,8 +159,25 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
                 tauxHoraireParDefaut={leProjet.tauxHoraireParDefaut}
               />
             ) : null}
+            {peutModifier && !minuteurActif ? (
+              <BoutonDemarrerMinuteur projetId={leProjet.id} taches={taches.map((t) => ({ id: t.id, titre: t.titre }))} />
+            ) : null}
           </div>
         </div>
+
+        {minuteurActif ? (
+          minuteurActif.projetId === leProjet.id ? (
+            <MinuteurEnCours demarreLe={minuteurActif.demarreLe.toISOString()} libelle={minuteurActif.tacheTitre ?? "Minuteur en cours"} projetId={leProjet.id} />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Un minuteur est en cours sur{" "}
+              <Link href={`/app/projets/${minuteurActif.projetId}`} className="underline">
+                {minuteurActif.projetTitre}
+              </Link>
+              .
+            </p>
+          )
+        ) : null}
 
         {entreesTemps.length > 0 ? (
           <Card className="p-0">
