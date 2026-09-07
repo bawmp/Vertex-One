@@ -609,15 +609,13 @@ export const devis = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(), // "DEV-2026-000042" — généré à l'émission, jamais avant
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — contactId/assigneAId
-    // deviendront la seule source de vérité du client (dealId n'étant plus
-    // qu'une info accessoire quand le document vient réellement du pipeline
-    // CRM), mais restent nullable dans cette tranche additive : le temps que
-    // tout le code applicatif les lise/écrive, avant de resserrer en NOT
-    // NULL et de relâcher dealId — voir src/lib/facturation/client-document.ts.
+    // Découplage Books/CRM (échange du 2026-09-07) — dealId devient optionnel
+    // (renseigné seulement quand ce document vient réellement du pipeline
+    // CRM) ; contactId/assigneAId ci-dessous restent nullable dans cette
+    // tranche (resserrés en NOT NULL une fois tout le code applicatif aligné
+    // — voir src/lib/facturation/client-document.ts) mais deviendront la
+    // seule source de vérité du client.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     // Dénormalisé depuis contact.compteId, jamais saisi — même patron que
     // deal.compteId.
@@ -683,11 +681,9 @@ export const facture = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(), // "FAC-2026-000042" — séquentiel, sans trou (section 5)
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId
-    // ci-dessus pour le raisonnement complet.
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/
+    // contactId ci-dessus pour le raisonnement complet.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
     assigneAId: text("assigne_a_id").references(() => utilisateur.id),
@@ -766,10 +762,8 @@ export const bonCommandeVente = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(),
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
     assigneAId: text("assigne_a_id").references(() => utilisateur.id),
@@ -846,10 +840,8 @@ export const factureRecurrente = pgTable(
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
     assigneAId: text("assigne_a_id").references(() => utilisateur.id),
@@ -927,10 +919,8 @@ export const recuVente = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(),
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
     assigneAId: text("assigne_a_id").references(() => utilisateur.id),
@@ -1014,10 +1004,8 @@ export const factureAcompte = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(),
-    dealId: text("deal_id")
-      .notNull()
-      .references(() => deal.id),
-    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.contactId.
+    // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
+    dealId: text("deal_id").references(() => deal.id),
     contactId: text("contact_id").references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
     assigneAId: text("assigne_a_id").references(() => utilisateur.id),

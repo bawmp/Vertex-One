@@ -12,6 +12,7 @@ import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroRecuVente } from "@/lib/facturation/numerotation";
 import { genererEcrituresRecuVente } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
+import { resoudreClientVente } from "@/lib/facturation/client-document";
 
 const CHEMIN = "/app/facturation";
 
@@ -40,10 +41,11 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
     return { erreur: "Vous n'avez pas le droit de créer un reçu de vente." };
   }
 
-  const dealId = String(formData.get("dealId") ?? "");
+  const dealId = String(formData.get("dealId") ?? "") || undefined;
+  const contactId = String(formData.get("contactId") ?? "") || undefined;
   const moyenPaiement = String(formData.get("moyenPaiement") ?? "");
   const referenceTransaction = String(formData.get("referenceTransaction") ?? "").trim();
-  if (!dealId) return { erreur: "Formulaire invalide." };
+  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
   if (!["orange_money", "mtn_momo", "especes", "virement", "manuel"].includes(moyenPaiement)) {
     return { erreur: "Moyen de paiement invalide." };
   }
@@ -68,6 +70,9 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
       throw new Error("NIU_MANQUANT");
     }
 
+    const client = await resoudreClientVente(tx, utilisateurConnecte, { dealId, contactId });
+    if (!client) throw new Error("CLIENT_INTROUVABLE");
+
     const numero = await genererNumeroRecuVente(tx, utilisateurConnecte.entrepriseId);
     const dateEmission = new Date();
 
@@ -76,7 +81,10 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        dealId,
+        dealId: client.dealId,
+        contactId: client.contactId,
+        compteId: client.compteId,
+        assigneAId: client.assigneAId,
         dateEmission,
         montantHT: montants.montantHT,
         montantTVA: montants.montantTVA,
@@ -114,12 +122,12 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
 
     return [recu];
   }).catch((erreur) => {
-    if (erreur instanceof Error && erreur.message === "NIU_MANQUANT") return [];
+    if (erreur instanceof Error && (erreur.message === "NIU_MANQUANT" || erreur.message === "CLIENT_INTROUVABLE")) return [];
     throw erreur;
   });
 
   if (!nouveauRecu) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales)." };
+    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
   }
 
   revalidatePath(CHEMIN);

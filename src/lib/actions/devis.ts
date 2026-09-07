@@ -5,11 +5,12 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis, facture, ligneFacture, deal, contact } from "@/db/schema";
+import { entreprise, devis, ligneDevis, facture, ligneFacture, contact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { genererNumeroDevis, genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { recupererDevisPourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
@@ -44,7 +45,8 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
     return { erreur: "Vous n'avez pas le droit de créer un devis." };
   }
 
-  const dealId = String(formData.get("dealId") ?? "");
+  const dealId = String(formData.get("dealId") ?? "") || undefined;
+  const contactId = String(formData.get("contactId") ?? "") || undefined;
   const dateValidite = String(formData.get("dateValidite") ?? "");
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
@@ -56,7 +58,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
   }));
 
   const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
-  if (!analyseLignes.success || !dealId || !dateValidite) {
+  if (!analyseLignes.success || (!dealId && !contactId) || !dateValidite) {
     return { erreur: analyseLignes.success ? "Formulaire invalide." : analyseLignes.error.issues[0]?.message };
   }
 
@@ -69,6 +71,9 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
       throw new Error("NIU_MANQUANT");
     }
 
+    const client = await resoudreClientVente(tx, utilisateurConnecte, { dealId, contactId });
+    if (!client) throw new Error("CLIENT_INTROUVABLE");
+
     const numero = await genererNumeroDevis(tx, utilisateurConnecte.entrepriseId);
 
     const [ligneDevisCree] = await tx
@@ -76,7 +81,10 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        dealId,
+        dealId: client.dealId,
+        contactId: client.contactId,
+        compteId: client.compteId,
+        assigneAId: client.assigneAId,
         dateValidite: new Date(dateValidite),
         montantHT: montants.montantHT,
         montantTVA: montants.montantTVA,
@@ -99,12 +107,12 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
 
     return [ligneDevisCree];
   }).catch((erreur) => {
-    if (erreur instanceof Error && erreur.message === "NIU_MANQUANT") return [];
+    if (erreur instanceof Error && (erreur.message === "NIU_MANQUANT" || erreur.message === "CLIENT_INTROUVABLE")) return [];
     throw erreur;
   });
 
   if (!nouveauDevis) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales)." };
+    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
   }
 
   redirect(`/app/facturation/devis/${nouveauDevis.id}`);
@@ -126,14 +134,13 @@ export async function accepterDevis(devisId: string) {
     const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
     if (!leDevis || leDevis.statut === "ACCEPTE") return null;
 
-    const [lignesDuDevis, [leDeal], [monEntreprise]] = await Promise.all([
+    const [lignesDuDevis, [monEntreprise]] = await Promise.all([
       tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
-      tx.select({ contactId: deal.contactId }).from(deal).where(eq(deal.id, leDevis.dealId)),
       tx.select({ secteurProfil: entreprise.secteurProfil }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
     ]);
-    if (!leDeal) return null; // intégrité référentielle violée — ne devrait jamais arriver
+    if (!leDevis.contactId) return null; // intégrité référentielle violée — ne devrait jamais arriver
 
-    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDeal.contactId));
+    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDevis.contactId));
 
     await tx.update(devis).set({ statut: "ACCEPTE" }).where(eq(devis.id, devisId));
 
@@ -147,6 +154,9 @@ export async function accepterDevis(devisId: string) {
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         dealId: leDevis.dealId,
+        contactId: leDevis.contactId,
+        compteId: leDevis.compteId,
+        assigneAId: leDevis.assigneAId,
         devisOrigineId: leDevis.id,
         montantHT: leDevis.montantHT,
         montantTVA: leDevis.montantTVA,
@@ -193,7 +203,7 @@ export async function accepterDevis(devisId: string) {
     // Projet de suivi ni l'inverse.
     await creerProjetDepuisDevisAccepte(tx, {
       entrepriseId: utilisateurConnecte.entrepriseId,
-      contactId: leDeal.contactId,
+      contactId: leDevis.contactId,
       contactNom: leContact?.nom ?? "Client",
       secteurProfil: monEntreprise?.secteurProfil ?? "generique",
       devisId: leDevis.id,

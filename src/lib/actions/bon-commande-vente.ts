@@ -5,13 +5,14 @@ import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { bonCommandeVente, ligneBonCommandeVente, facture, ligneFacture, deal, entreprise } from "@/db/schema";
+import { bonCommandeVente, ligneBonCommandeVente, facture, ligneFacture, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroBonCommandeVente, genererNumeroFacture } from "@/lib/facturation/numerotation";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
+import { resoudreClientVente } from "@/lib/facturation/client-document";
 
 const CHEMIN = "/app/facturation";
 
@@ -39,8 +40,9 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
     return { erreur: "Vous n'avez pas le droit de créer un bon de commande." };
   }
 
-  const dealId = String(formData.get("dealId") ?? "");
-  if (!dealId) return { erreur: "Formulaire invalide." };
+  const dealId = String(formData.get("dealId") ?? "") || undefined;
+  const contactId = String(formData.get("contactId") ?? "") || undefined;
+  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
     produitId: formData.getAll("produitId")[i] || undefined,
@@ -62,6 +64,9 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
       throw new Error("NIU_MANQUANT");
     }
 
+    const client = await resoudreClientVente(tx, utilisateurConnecte, { dealId, contactId });
+    if (!client) throw new Error("CLIENT_INTROUVABLE");
+
     const numero = await genererNumeroBonCommandeVente(tx, utilisateurConnecte.entrepriseId);
 
     const [bc] = await tx
@@ -69,7 +74,10 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        dealId,
+        dealId: client.dealId,
+        contactId: client.contactId,
+        compteId: client.compteId,
+        assigneAId: client.assigneAId,
         montantHT: montants.montantHT,
         montantTVA: montants.montantTVA,
         montantTTC: montants.montantTTC,
@@ -91,12 +99,12 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
 
     return [bc];
   }).catch((erreur) => {
-    if (erreur instanceof Error && erreur.message === "NIU_MANQUANT") return [];
+    if (erreur instanceof Error && (erreur.message === "NIU_MANQUANT" || erreur.message === "CLIENT_INTROUVABLE")) return [];
     throw erreur;
   });
 
   if (!nouveauBCV) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales)." };
+    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
   }
 
   revalidatePath(CHEMIN);
@@ -118,11 +126,9 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
     const [leBCV] = await tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.id, bonCommandeVenteId));
     if (!leBCV || leBCV.statut !== "BROUILLON") return null;
 
-    const [lignesBCV, [leDeal]] = await Promise.all([
-      tx.select().from(ligneBonCommandeVente).where(eq(ligneBonCommandeVente.bonCommandeVenteId, bonCommandeVenteId)),
-      tx.select({ contactId: deal.contactId }).from(deal).where(eq(deal.id, leBCV.dealId)),
-    ]);
-    if (!leDeal) return null;
+    if (!leBCV.contactId) return null; // intégrité référentielle violée — ne devrait jamais arriver
+
+    const lignesBCV = await tx.select().from(ligneBonCommandeVente).where(eq(ligneBonCommandeVente.bonCommandeVenteId, bonCommandeVenteId));
 
     const numero = await genererNumeroFacture(tx, utilisateurConnecte.entrepriseId);
     const dateEcheance = new Date();
@@ -134,6 +140,9 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         dealId: leBCV.dealId,
+        contactId: leBCV.contactId,
+        compteId: leBCV.compteId,
+        assigneAId: leBCV.assigneAId,
         montantHT: leBCV.montantHT,
         montantTVA: leBCV.montantTVA,
         montantTTC: leBCV.montantTTC,

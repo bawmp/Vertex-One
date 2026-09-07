@@ -50,6 +50,8 @@ describe("Palier 1 — relance des factures en retard", () => {
           entrepriseId,
           numero: "FAC-TEST-RELANCE-000001",
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurId,
           statut: "EMISE",
           montantHT: 100000,
           montantTVA: 19250,

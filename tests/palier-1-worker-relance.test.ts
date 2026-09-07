@@ -57,6 +57,8 @@ describe("Palier 1 — infrastructure graphile-worker", () => {
           entrepriseId,
           numero: "FAC-TEST-WORKER-INFRA-000001",
           dealId: d.id,
+          contactId: c.id,
+          assigneAId: utilisateurId,
           statut: "EMISE",
           montantHT: 100000,
           montantTVA: 19250,

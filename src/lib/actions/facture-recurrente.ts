@@ -9,6 +9,7 @@ import { factureRecurrente, ligneFactureRecurrente, entreprise } from "@/db/sche
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
+import { resoudreClientVente } from "@/lib/facturation/client-document";
 
 const CHEMIN = "/app/facturation";
 
@@ -39,12 +40,13 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
     return { erreur: "Vous n'avez pas le droit de créer une facture récurrente." };
   }
 
-  const dealId = String(formData.get("dealId") ?? "");
+  const dealId = String(formData.get("dealId") ?? "") || undefined;
+  const contactId = String(formData.get("contactId") ?? "") || undefined;
   const libelle = String(formData.get("libelle") ?? "").trim();
   const frequence = String(formData.get("frequence") ?? "");
   const dateDebut = String(formData.get("dateDebut") ?? "");
   const dateFin = String(formData.get("dateFin") ?? "").trim();
-  if (!dealId || !libelle) return { erreur: "Formulaire invalide." };
+  if ((!dealId && !contactId) || !libelle) return { erreur: "Formulaire invalide." };
   if (!["MENSUEL", "TRIMESTRIEL", "ANNUEL"].includes(frequence)) return { erreur: "Fréquence invalide." };
   if (!dateDebut) return { erreur: "La date de première génération est requise." };
 
@@ -68,11 +70,17 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
       throw new Error("NIU_MANQUANT");
     }
 
+    const client = await resoudreClientVente(tx, utilisateurConnecte, { dealId, contactId });
+    if (!client) throw new Error("CLIENT_INTROUVABLE");
+
     const [profil] = await tx
       .insert(factureRecurrente)
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
-        dealId,
+        dealId: client.dealId,
+        contactId: client.contactId,
+        compteId: client.compteId,
+        assigneAId: client.assigneAId,
         libelle,
         frequence: frequence as "MENSUEL" | "TRIMESTRIEL" | "ANNUEL",
         dateDebut: new Date(dateDebut),
@@ -99,12 +107,12 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
 
     return [profil];
   }).catch((erreur) => {
-    if (erreur instanceof Error && erreur.message === "NIU_MANQUANT") return [];
+    if (erreur instanceof Error && (erreur.message === "NIU_MANQUANT" || erreur.message === "CLIENT_INTROUVABLE")) return [];
     throw erreur;
   });
 
   if (!nouveauProfil) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales)." };
+    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
   }
 
   revalidatePath(CHEMIN);

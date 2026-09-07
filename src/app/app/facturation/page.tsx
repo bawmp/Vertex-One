@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { inArray, desc, eq } from "drizzle-orm";
+import { inArray, desc } from "drizzle-orm";
 import { FileText, Receipt, Repeat, Wallet, PiggyBank } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, factureRecurrente, recuVente, factureAcompte, deal, contact, compteClient } from "@/db/schema";
+import { devis, facture, factureRecurrente, recuVente, factureAcompte, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -24,48 +24,52 @@ export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { devisVisibles, facturesVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParDealId } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    // La portée de Facturation suit celle du Deal (docs/palier-1-*, section
-    // 7, adapté à la reconstruction Leads/Contacts/Comptes/Deals du
-    // 2026-09-06) — un Devis/une Facture appartient désormais à un Deal, qui
-    // porte son propre assigneAId (le "Deal Owner").
-    const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
+  const { devisVisibles, facturesVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParClientId } = await avecEntreprise(
+    utilisateurConnecte.entrepriseId,
+    async (tx) => {
+      // Découplage Books/CRM (échange du 2026-09-07) — chaque document porte
+      // désormais son propre assigneAId, la portée se filtre directement
+      // dessus (module "FACTURATION"), sans plus jamais passer par un Deal
+      // intermédiaire — même patron que src/app/app/achats/page.tsx.
+      const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
 
-    const baseDeals = tx
-      .select({ id: deal.id, contactNom: contact.nom, compteNom: compteClient.nom, assigneAId: deal.assigneAId })
-      .from(deal)
-      .innerJoin(contact, eq(deal.contactId, contact.id))
-      .leftJoin(compteClient, eq(deal.compteId, compteClient.id));
-    const dealsPertinents = visibles === "TOUT" ? await baseDeals : await baseDeals.where(inArray(deal.assigneAId, visibles));
+      const filtrer = <T extends { assigneAId: string | null }>(lignes: T[]) =>
+        visibles === "TOUT" ? lignes : lignes.filter((l) => l.assigneAId && visibles.includes(l.assigneAId));
 
-    const idsDeals = dealsPertinents.map((d) => d.id);
-    if (idsDeals.length === 0)
+      const [dBrut, fBrut, frBrut, rvBrut, faBrut] = await Promise.all([
+        tx.select().from(devis).orderBy(desc(devis.creeLe)),
+        tx.select().from(facture).orderBy(desc(facture.dateEmission)),
+        tx.select().from(factureRecurrente).orderBy(desc(factureRecurrente.creeLe)),
+        tx.select().from(recuVente).orderBy(desc(recuVente.dateEmission)),
+        tx.select().from(factureAcompte).orderBy(desc(factureAcompte.creeLe)),
+      ]);
+
+      const d = filtrer(dBrut);
+      const f = filtrer(fBrut);
+      const fr = filtrer(frBrut);
+      const rv = filtrer(rvBrut);
+      const fa = filtrer(faBrut);
+
+      const idsContacts = [...new Set([...d, ...f, ...fr, ...rv, ...fa].map((doc) => doc.contactId).filter((id): id is string => id !== null))];
+      const [contacts, comptes] = await Promise.all([
+        idsContacts.length > 0 ? tx.select({ id: contact.id, nom: contact.nom }).from(contact).where(inArray(contact.id, idsContacts)) : [],
+        tx.select({ id: compteClient.id, nom: compteClient.nom }).from(compteClient),
+      ]);
+      const nomContactParId = new Map(contacts.map((c) => [c.id, c.nom]));
+      const nomCompteParId = new Map(comptes.map((c) => [c.id, c.nom]));
+      const nomClient = (doc: { contactId: string | null; compteId: string | null }) =>
+        (doc.compteId && nomCompteParId.get(doc.compteId)) || (doc.contactId && nomContactParId.get(doc.contactId)) || "Client";
+
       return {
-        devisVisibles: [],
-        facturesVisibles: [],
-        facturesRecurrentesVisibles: [],
-        recusVenteVisibles: [],
-        facturesAcompteVisibles: [],
-        nomParDealId: {} as Record<string, string>,
+        devisVisibles: d,
+        facturesVisibles: f,
+        facturesRecurrentesVisibles: fr,
+        recusVenteVisibles: rv,
+        facturesAcompteVisibles: fa,
+        nomParClientId: Object.fromEntries([...d, ...f, ...fr, ...rv, ...fa].map((doc) => [doc.id, nomClient(doc)])),
       };
-
-    const [d, f, fr, rv, fa] = await Promise.all([
-      tx.select().from(devis).where(inArray(devis.dealId, idsDeals)).orderBy(desc(devis.creeLe)),
-      tx.select().from(facture).where(inArray(facture.dealId, idsDeals)).orderBy(desc(facture.dateEmission)),
-      tx.select().from(factureRecurrente).where(inArray(factureRecurrente.dealId, idsDeals)).orderBy(desc(factureRecurrente.creeLe)),
-      tx.select().from(recuVente).where(inArray(recuVente.dealId, idsDeals)).orderBy(desc(recuVente.dateEmission)),
-      tx.select().from(factureAcompte).where(inArray(factureAcompte.dealId, idsDeals)).orderBy(desc(factureAcompte.creeLe)),
-    ]);
-
-    return {
-      devisVisibles: d,
-      facturesVisibles: f,
-      facturesRecurrentesVisibles: fr,
-      recusVenteVisibles: rv,
-      facturesAcompteVisibles: fa,
-      nomParDealId: Object.fromEntries(dealsPertinents.map((deal_) => [deal_.id, deal_.compteNom ?? deal_.contactNom])),
-    };
-  });
+    }
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -92,7 +96,7 @@ export default async function PageFacturation() {
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{d.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParDealId[d.dealId]}</span>
+                    <span className="text-muted-foreground"> — {nomParClientId[d.id]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
@@ -123,7 +127,7 @@ export default async function PageFacturation() {
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{f.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParDealId[f.dealId]}</span>
+                    <span className="text-muted-foreground"> — {nomParClientId[f.id]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
@@ -149,21 +153,26 @@ export default async function PageFacturation() {
             {facturesRecurrentesVisibles.map((fr) => {
               const infoStatut = STATUT_FACTURE_RECURRENTE[fr.statut];
               const infoFrequence = FREQUENCE_FACTURE_RECURRENTE[fr.frequence];
-              return (
-                <Link
-                  key={fr.id}
-                  href={`/app/deals/${fr.dealId}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
-                >
+              const contenu = (
+                <>
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{fr.libelle}</span>
-                    <span className="text-muted-foreground"> — {nomParDealId[fr.dealId]} · {infoFrequence?.libelle ?? fr.frequence}</span>
+                    <span className="text-muted-foreground"> — {nomParClientId[fr.id]} · {infoFrequence?.libelle ?? fr.frequence}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(fr.montantTTC)}</span>
                     <Badge variant={infoStatut?.variante ?? "neutral"}>{infoStatut?.libelle ?? fr.statut}</Badge>
                   </span>
+                </>
+              );
+              return fr.dealId ? (
+                <Link key={fr.id} href={`/app/deals/${fr.dealId}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
+                  {contenu}
                 </Link>
+              ) : (
+                <div key={fr.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  {contenu}
+                </div>
               );
             })}
             {facturesRecurrentesVisibles.length === 0 ? (
@@ -182,21 +191,26 @@ export default async function PageFacturation() {
           <div className="flex flex-col divide-y divide-border">
             {recusVenteVisibles.map((rv) => {
               const info = STATUT_RECU_VENTE[rv.statut];
-              return (
-                <Link
-                  key={rv.id}
-                  href={`/app/deals/${rv.dealId}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
-                >
+              const contenu = (
+                <>
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{rv.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParDealId[rv.dealId]}</span>
+                    <span className="text-muted-foreground"> — {nomParClientId[rv.id]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(rv.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? rv.statut}</Badge>
                   </span>
+                </>
+              );
+              return rv.dealId ? (
+                <Link key={rv.id} href={`/app/deals/${rv.dealId}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
+                  {contenu}
                 </Link>
+              ) : (
+                <div key={rv.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  {contenu}
+                </div>
               );
             })}
             {recusVenteVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun reçu de vente.</p> : null}
@@ -213,21 +227,26 @@ export default async function PageFacturation() {
           <div className="flex flex-col divide-y divide-border">
             {facturesAcompteVisibles.map((fa) => {
               const info = STATUT_FACTURE_ACOMPTE[fa.statut];
-              return (
-                <Link
-                  key={fa.id}
-                  href={`/app/deals/${fa.dealId}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
-                >
+              const contenu = (
+                <>
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{fa.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParDealId[fa.dealId]}</span>
+                    <span className="text-muted-foreground"> — {nomParClientId[fa.id]}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? fa.statut}</Badge>
                   </span>
+                </>
+              );
+              return fa.dealId ? (
+                <Link key={fa.id} href={`/app/deals/${fa.dealId}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
+                  {contenu}
                 </Link>
+              ) : (
+                <div key={fa.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  {contenu}
+                </div>
               );
             })}
             {facturesAcompteVisibles.length === 0 ? (

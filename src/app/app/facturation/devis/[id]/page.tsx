@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { Download, ArrowRight } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, ligneDevis, deal, contact, compteClient, facture } from "@/db/schema";
+import { devis, ligneDevis, contact, compteClient, facture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -23,13 +23,12 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
     const [d] = await tx.select().from(devis).where(eq(devis.id, id));
     if (!d) return null;
 
-    const [l, [leDeal], [f]] = await Promise.all([
+    const [l, [f]] = await Promise.all([
       tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, id)),
-      tx.select().from(deal).where(eq(deal.id, d.dealId)),
       tx.select().from(facture).where(eq(facture.devisOrigineId, id)),
     ]);
-    const [p] = leDeal ? await tx.select().from(contact).where(eq(contact.id, leDeal.contactId)) : [null];
-    const [compte] = leDeal?.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, leDeal.compteId)) : [null];
+    const [p] = d.contactId ? await tx.select().from(contact).where(eq(contact.id, d.contactId)) : [null];
+    const [compte] = d.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, d.compteId)) : [null];
 
     return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null };
   });

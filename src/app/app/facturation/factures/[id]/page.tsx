@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Download, CheckCircle2, XCircle, CreditCard } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { facture, ligneFacture, deal, contact, compteClient, paiement, entreprise, avoirFacture } from "@/db/schema";
+import { facture, ligneFacture, contact, compteClient, paiement, entreprise, avoirFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -23,15 +23,14 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
     const [f] = await tx.select().from(facture).where(eq(facture.id, id));
     if (!f) return null;
 
-    const [lignes, [leDeal], paiements, [monEntreprise], [avoir]] = await Promise.all([
+    const [lignes, paiements, [monEntreprise], [avoir]] = await Promise.all([
       tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, id)),
-      tx.select().from(deal).where(eq(deal.id, f.dealId)),
       tx.select().from(paiement).where(eq(paiement.factureId, id)),
       tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
       tx.select().from(avoirFacture).where(eq(avoirFacture.factureId, id)),
     ]);
-    const [p] = leDeal ? await tx.select().from(contact).where(eq(contact.id, leDeal.contactId)) : [null];
-    const [compte] = leDeal?.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, leDeal.compteId)) : [null];
+    const [p] = f.contactId ? await tx.select().from(contact).where(eq(contact.id, f.contactId)) : [null];
+    const [compte] = f.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, f.compteId)) : [null];
 
     return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null };
   });

@@ -9,6 +9,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererNumeroFactureAcompte } from "@/lib/facturation/numerotation";
 import { genererEcrituresPaiementAcompte, genererEcrituresApplicationAcompte } from "@/lib/comptabilite/ecritures";
+import { resoudreClientVente, memeClientVente } from "@/lib/facturation/client-document";
 
 const CHEMIN = "/app/facturation";
 
@@ -28,9 +29,10 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
     return { erreur: "Vous n'avez pas le droit de créer une facture d'acompte." };
   }
 
-  const dealId = String(formData.get("dealId") ?? "");
+  const dealId = String(formData.get("dealId") ?? "") || undefined;
+  const contactId = String(formData.get("contactId") ?? "") || undefined;
   const montant = Number(formData.get("montant"));
-  if (!dealId) return { erreur: "Formulaire invalide." };
+  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
   if (!Number.isInteger(montant) || montant <= 0) return { erreur: "Le montant doit être un entier positif." };
 
   const [nouvelAcompte] = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -39,6 +41,9 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
       throw new Error("NIU_MANQUANT");
     }
 
+    const client = await resoudreClientVente(tx, utilisateurConnecte, { dealId, contactId });
+    if (!client) throw new Error("CLIENT_INTROUVABLE");
+
     const numero = await genererNumeroFactureAcompte(tx, utilisateurConnecte.entrepriseId);
 
     const [acompte] = await tx
@@ -46,7 +51,10 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
-        dealId,
+        dealId: client.dealId,
+        contactId: client.contactId,
+        compteId: client.compteId,
+        assigneAId: client.assigneAId,
         montant,
         montantRestant: montant,
         creeParId: utilisateurConnecte.utilisateurId,
@@ -55,12 +63,12 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
 
     return [acompte];
   }).catch((erreur) => {
-    if (erreur instanceof Error && erreur.message === "NIU_MANQUANT") return [];
+    if (erreur instanceof Error && (erreur.message === "NIU_MANQUANT" || erreur.message === "CLIENT_INTROUVABLE")) return [];
     throw erreur;
   });
 
   if (!nouvelAcompte) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales)." };
+    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
   }
 
   revalidatePath(CHEMIN);
@@ -135,8 +143,9 @@ export async function appliquerAcompteSurFacture(factureAcompteId: string, factu
     const [acompte] = await tx.select().from(factureAcompte).where(and(eq(factureAcompte.id, factureAcompteId), eq(factureAcompte.statut, "PAYEE")));
     if (!acompte) return null;
 
-    const [laFacture] = await tx.select().from(facture).where(and(eq(facture.id, factureId), eq(facture.dealId, acompte.dealId), eq(facture.statut, "EMISE")));
+    const [laFacture] = await tx.select().from(facture).where(and(eq(facture.id, factureId), eq(facture.statut, "EMISE")));
     if (!laFacture) return null;
+    if (!memeClientVente(acompte, laFacture)) return null;
     if (acompte.montantRestant < laFacture.montantTTC) return null;
 
     const dateApplication = new Date();

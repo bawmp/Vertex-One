@@ -1,6 +1,6 @@
 import { eq, and, lt, notInArray, inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { facture, deal, contact, entreprise } from "@/db/schema";
+import { facture, contact, entreprise } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
@@ -37,22 +37,21 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
         notInArray(facture.statut, ["PAYEE", "ANNULEE", "EN_RETARD"])
       )
     )
-    .returning({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dateEcheance: facture.dateEcheance, dealId: facture.dealId });
+    .returning({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dateEcheance: facture.dateEcheance, contactId: facture.contactId });
 
   if (enRetard.length === 0) return [];
 
   const [monEntreprise] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
-  const contactsParDeal = await tx
-    .select({ dealId: deal.id, nom: contact.nom, email: contact.email, telephone: contact.telephone })
-    .from(deal)
-    .innerJoin(contact, eq(deal.contactId, contact.id))
-    .where(inArray(deal.id, enRetard.map((f) => f.dealId)));
-  const contactParDealId = new Map(contactsParDeal.map((c) => [c.dealId, c]));
+  const idsContacts = enRetard.map((f) => f.contactId).filter((id): id is string => id !== null);
+  const contactsTrouves = idsContacts.length > 0
+    ? await tx.select({ id: contact.id, nom: contact.nom, email: contact.email, telephone: contact.telephone }).from(contact).where(inArray(contact.id, idsContacts))
+    : [];
+  const contactParId = new Map(contactsTrouves.map((c) => [c.id, c]));
 
   const resultats: ResultatRelance[] = [];
 
   for (const f of enRetard) {
-    const leContact = contactParDealId.get(f.dealId);
+    const leContact = f.contactId ? contactParId.get(f.contactId) : undefined;
     if (!leContact) continue;
 
     if (leContact.email) {

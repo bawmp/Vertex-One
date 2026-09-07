@@ -323,6 +323,13 @@
       "when": 1788763364998,
       "tag": "0045_backfill_client_ventes",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788764784181,
+      "tag": "0046_deal_id_optionnel_ventes",
+      "breakpoints": true
     }
   ]
 }
