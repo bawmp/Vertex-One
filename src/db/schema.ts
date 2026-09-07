@@ -634,6 +634,9 @@ export const ligneDevis = pgTable(
     devisId: text("devis_id")
       .notNull()
       .references(() => devis.id),
+    // Nullable — une ligne de Devis peut rester en texte libre, comme
+    // avant le catalogue Produits (échange du 2026-09-07). Voir produit.
+    produitId: text("produit_id").references(() => produit.id),
     designation: text("designation").notNull(),
     quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
     prixUnitaire: integer("prix_unitaire").notNull(),
@@ -691,6 +694,9 @@ export const ligneFacture = pgTable(
     factureId: text("facture_id")
       .notNull()
       .references(() => facture.id),
+    // Copié depuis ligne_devis à l'acceptation — permet le mouvement de
+    // stock (échange du 2026-09-07, voir accepterDevis()).
+    produitId: text("produit_id").references(() => produit.id),
     designation: text("designation").notNull(),
     quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
     prixUnitaire: integer("prix_unitaire").notNull(),
@@ -1628,6 +1634,43 @@ export const avoirFournisseur = pgTable(
   },
   (table) => [
     index("avoir_fournisseur_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Catalogue Produits/Tarifs (Items chez Zoho Books, échange du 2026-09-07)
+// — référentiel partagé Ventes/Achats : une ligne de Devis/Facture peut
+// s'y rattacher (prixVente pré-rempli) comme une ligne de Bon de commande/
+// Facture fournisseur (prixAchat pré-rempli), sans obligation — le texte
+// libre reste toujours possible (produitId nullable sur chaque ligne).
+// stockActuel n'est auto-mouvementé que pour les BIEN avec suiviStock actif
+// (une vente le diminue, un achat facturé l'augmente, comme documenté dans
+// zoho-books-full-spec.md section 5.3) — voir les lignes de Facture/Facture
+// fournisseur pour l'intégration réelle du mouvement de stock.
+export const typeProduit = pgEnum("type_produit", ["BIEN", "SERVICE"]);
+
+export const produit = pgTable(
+  "produit",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    type: typeProduit("type").notNull().default("SERVICE"),
+    nom: text("nom").notNull(),
+    description: text("description"),
+    prixVente: integer("prix_vente").notNull().default(0),
+    prixAchat: integer("prix_achat").notNull().default(0),
+    suiviStock: boolean("suivi_stock").notNull().default(false),
+    stockActuel: integer("stock_actuel").notNull().default(0),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("produit_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

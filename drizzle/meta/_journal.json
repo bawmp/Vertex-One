@@ -232,6 +232,20 @@
       "when": 1788739607459,
       "tag": "0032_force_rls_bons_commande_avoirs",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788741420242,
+      "tag": "0033_catalogue_produits_tarifs",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788741456583,
+      "tag": "0034_force_rls_produit",
+      "breakpoints": true
     }
   ]
 }

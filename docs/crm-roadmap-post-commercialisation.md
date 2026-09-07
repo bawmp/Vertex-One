@@ -76,7 +76,19 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 
 **Extensions Ventes non construites** (même spec) : Bons de commande client (Sales Orders), Factures récurrentes, Factures d'acompte (Retainer), Avoirs clients (Credit Notes), Reçus de vente (Sales Receipts).
 
-**Items** — catalogue Produits/Tarifs (biens/services, prix vente/achat, suivi de stock optionnel) : les lignes de Devis/Factures/Dépenses restent en texte libre, sans référentiel réutilisable.
+## 6. Zoho Books — Catalogue Produits/Tarifs (Items)
+
+Construit le 2026-09-07. `produit` (BIEN/SERVICE, prix vente/achat, `suiviStock` optionnel — un SERVICE n'a jamais de stock) — module "Produits" dédié (`src/app/app/produits/`), permission `PRODUITS` (référentiel partagé Ventes/Achats, portée toujours TOUT).
+
+**Intégré** (une ligne de Devis peut piocher dans le catalogue, sans obligation — le texte libre reste toujours possible) :
+- `ligneDevis`/`ligneFacture` portent un `produitId` nullable ; choisir un produit dans le formulaire de Devis pré-remplit désignation/prix.
+- Mouvement de stock réel à l'acceptation d'un Devis (`decrementerStockVente()`, `src/lib/produits/stock.ts`) : une vente facturée diminue le stock des BIEN suivis, jamais au stade Devis (simple intention). Aucun mouvement au stade Devis lui-même, ni blocage si le stock devient négatif (vente possible même en rupture, comme Zoho).
+
+**Pas encore intégré** (tranche séparée à venir) :
+- `ligneFactureFournisseur`/`ligneBonCommandeAchat` ne portent pas encore de `produitId` — une Facture fournisseur ne peut pas encore augmenter le stock (`incrementerStockAchat()`, symétrique de `decrementerStockVente()`, pas construite pour ne pas exporter un mouvement jamais appelé).
+- Pas de Listes de prix (Price Lists, tarification différenciée par client/segment).
+- Pas d'alerte de réapprovisionnement (Reorder Point/Preferred Vendor).
+- Pas d'ajustement d'inventaire manuel (Inventory Adjustments) — seule la vente/l'achat facturé mouvemente le stock.
 
 **Hors périmètre pour l'instant, chantiers structurellement différents** (pas de simples extensions) :
 - Transaction Approval (workflow d'approbation multi-niveaux)

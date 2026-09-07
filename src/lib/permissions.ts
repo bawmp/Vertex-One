@@ -14,6 +14,7 @@ export type Module =
   | "CONTRATS"
   | "COMPTABILITE"
   | "ACHATS"
+  | "PRODUITS"
   | "RH"
   | "MARKETING"
   | "PARAMETRES";
@@ -48,6 +49,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // pièce financière déjà enregistrée (voir CLAUDE.md), seul Fournisseur
     // (référentiel, pas une transaction) pourrait l'être un jour.
     ACHATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
+    // Référentiel partagé Ventes/Achats (Items chez Zoho Books, échange du
+    // 2026-09-07) — portée toujours TOUT, comme Marketing : un catalogue de
+    // produits/tarifs s'adresse à toute l'entreprise, pas à un sous-ensemble
+    // par utilisateur.
+    PRODUITS: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Portée sur QUEL dossier RH — le salaire reste une restriction de champ
     // à part, vérifiée séparément par peutVoirSalaire() même pour un
     // Manager qui a par ailleurs VOIR/MODIFIER sur le dossier de son équipe
@@ -75,6 +81,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     CONTRATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
     ACHATS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
+    PRODUITS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
     // Un Manager approuve les congés de son équipe et voit ses pointages,
     // mais ne voit jamais le salaire d'un subordonné (restriction de champ,
     // pas de portée — docs/palier-5-*, section 5).
@@ -94,6 +101,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     CONTRATS: { actions: ["VOIR"], portee: "PROPRE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
     ACHATS: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
+    PRODUITS: { actions: ["VOIR"], portee: "TOUT" },
     // Voit son propre dossier RH, demande ses congés, pointe — jamais un
     // dossier collègue (portée PROPRE, pas EQUIPE ici).
     RH: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
@@ -115,6 +123,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     CONTRATS: { actions: ["VOIR"], portee: "PROPRE" },
     COMPTABILITE: { actions: [], portee: "PROPRE" },
     ACHATS: { actions: [], portee: "PROPRE" },
+    PRODUITS: { actions: [], portee: "PROPRE" },
     // Un compte CLIENT (portail restreint, Palier 4) n'est jamais un salarié
     // de l'entreprise cliente — pas de Dossier RH pour ce rôle (docs/palier-5-*,
     // section 2).

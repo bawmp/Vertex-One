@@ -6,20 +6,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerDevis } from "@/lib/actions/devis";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 
-type Ligne = { designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
+type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
-const LIGNE_VIDE: Ligne = { designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
+const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
 
-export function FormulaireDevis({ dealId }: { dealId: string }) {
+export function FormulaireDevis({ dealId, produits }: { dealId: string; produits: { id: string; nom: string; prixVente: number }[] }) {
   const [etat, action, enCours] = useActionState(creerDevis, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
   function majLigne(index: number, champ: keyof Ligne, valeur: string) {
     setLignes((precedent) => precedent.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
+  }
+
+  // Choisir un produit du catalogue pré-remplit désignation/prix, sans
+  // empêcher l'ajustement manuel ensuite — le texte libre reste toujours
+  // possible en laissant "Aucun produit" (échange du 2026-09-07).
+  function choisirProduit(index: number, produitId: string) {
+    const p = produits.find((p) => p.id === produitId);
+    setLignes((precedent) =>
+      precedent.map((l, i) =>
+        i === index ? { ...l, produitId, designation: p ? p.nom : l.designation, prixUnitaire: p ? String(p.prixVente) : l.prixUnitaire } : l
+      )
+    );
   }
 
   const montants = calculerMontants(
@@ -45,8 +58,20 @@ export function FormulaireDevis({ dealId }: { dealId: string }) {
             {lignes.map((ligne, index) => (
               <div
                 key={index}
-                className="grid grid-cols-[1fr_5rem_7rem_5rem_auto] items-end gap-2 rounded-lg border border-transparent p-1 transition-colors focus-within:border-border"
+                className="grid grid-cols-[9rem_1fr_5rem_7rem_5rem_auto] items-end gap-2 rounded-lg border border-transparent p-1 transition-colors focus-within:border-border"
               >
+                <input type="hidden" name="produitId" value={ligne.produitId} />
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>Produit</Label> : null}
+                  <Select value={ligne.produitId} onChange={(e) => choisirProduit(index, e.target.value)}>
+                    <option value="">Texte libre</option>
+                    {produits.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nom}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
                 <div className="flex flex-col gap-1">
                   {index === 0 ? <Label>Désignation</Label> : null}
                   <Input

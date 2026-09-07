@@ -16,8 +16,10 @@ import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
+import { decrementerStockVente } from "@/lib/produits/stock";
 
 const schemaLigne = z.object({
+  produitId: z.string().trim().optional(),
   designation: z.string().trim().min(1),
   quantite: z.coerce.number().positive(),
   prixUnitaire: z.coerce.number().int().nonnegative(),
@@ -46,6 +48,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
   const dateValidite = String(formData.get("dateValidite") ?? "");
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
+    produitId: formData.getAll("produitId")[i] || undefined,
     designation: formData.getAll("designation")[i],
     quantite: formData.getAll("quantite")[i],
     prixUnitaire: formData.getAll("prixUnitaire")[i],
@@ -86,6 +89,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
       lignes.map((l) => ({
         entrepriseId: utilisateurConnecte.entrepriseId,
         devisId: ligneDevisCree.id,
+        produitId: l.produitId || undefined,
         designation: l.designation,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
@@ -155,12 +159,18 @@ export async function accepterDevis(devisId: string) {
       lignesDuDevis.map((l) => ({
         entrepriseId: utilisateurConnecte.entrepriseId,
         factureId: nouvelleFacture.id,
+        produitId: l.produitId,
         designation: l.designation,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
         tauxTVA: l.tauxTVA,
       }))
     );
+
+    // Catalogue Produits/Tarifs (échange du 2026-09-07) — une vente facturée
+    // diminue le stock des BIEN suivis, jamais au stade Devis (simple
+    // intention, pas encore une transaction réalisée), voir schema.ts.
+    await decrementerStockVente(tx, lignesDuDevis);
 
     // Palier 4, section 4 : la comptabilité se construit toute seule à
     // mesure que l'entreprise facture — jamais un écran de saisie séparé à
