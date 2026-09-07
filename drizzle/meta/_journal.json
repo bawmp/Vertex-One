@@ -337,6 +337,20 @@
       "when": 1788767742743,
       "tag": "0047_contact_assigne_obligatoires_ventes",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788770042155,
+      "tag": "0048_suivi_des_heures",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788770074241,
+      "tag": "0049_force_rls_entree_temps",
+      "breakpoints": true
     }
   ]
 }

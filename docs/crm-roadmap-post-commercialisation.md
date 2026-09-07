@@ -146,7 +146,6 @@ Construit le 2026-09-07. `produit` (BIEN/SERVICE, prix vente/achat, `suiviStock`
 **Hors périmètre pour l'instant, chantiers structurellement différents** (pas de simples extensions) :
 - Transaction Approval (workflow d'approbation multi-niveaux)
 - Customer Portal / Vendor Portal (surface authentifiée externe)
-- Time Tracking/Timesheet (Vertex One a déjà un modèle de Tâches différent, propre à ses Projets)
 - Custom Modules/Blueprints
 - Multi-devises, Emplacements (Locations), Budgets, Immobilisations, Verrouillage de période
 - Rapports avancés (Ventes/Achats/Stock/Balances âgées) au-delà du Bilan/Compte de résultat déjà existant
@@ -165,6 +164,23 @@ Corrigé en 8 tranches (patron expand → backfill → migrate → contract, cha
 - `/app/facturation` intègre directement les composants de gestion (conversion BC, pause/reprise/arrêt de récurrence, annulation de reçu, application d'acompte) plutôt que de renvoyer vers `/app/deals/{id}`, qui n'existe pas pour un document créé sans Deal.
 
 Vérifié : suite complète (128 tests, dont de nouveaux tests dédiés à `resoudreClientVente()`/`memeClientVente()`), et les deux parcours en navigateur réel — Lead → Deal → Devis → Facture (historique, toujours vert, zéro régression) et Contact seul → Devis → Facture sans jamais passer par `/app/deals` (nouveau, l'objectif même de ce chantier).
+
+## 8. Suivi des heures (Time Tracking) — construit le 2026-09-07
+
+Catégorie "Suivi des heures" de l'arborescence Zoho Books (échange du 2026-09-07, "CONSTRUIT CELA") — jusque-là volontairement omise de FACO faute de page équivalente. Construit en s'appuyant sur le module Projets existant (Palier 2) plutôt qu'en dupliquant un second concept de "Projet" propre à Books, conformément à la note laissée en section 1 ("vérifier un jour si les deux devraient converger").
+
+- Nouvelle table `entreeTemps` : une entrée de temps sur un Projet (obligatoire) et éventuellement une Tâche précise (optionnelle), enregistrée par un utilisateur — `facturable`/`tauxHoraire` déterminent si et comment elle alimente une Facture. Module de permission réutilisé : `PROJETS` (comme Tâche), pas de nouveau module dédié.
+- `projet.tauxHoraireParDefaut` (nullable) pré-remplit le formulaire d'une nouvelle entrée, jamais imposé — chaque entrée garde son propre taux, modifiable au cas par cas.
+- Section "Feuille de temps" ajoutée à la fiche Projet existante (`src/app/app/projets/[id]/page.tsx`) : liste des entrées, formulaire d'ajout, suppression tant qu'une entrée n'est pas facturée. Nouvelle page transverse `/app/projets/feuille-temps` (même patron que `/app/projets/mes-taches`), portée filtrée directement sur `entreeTemps.utilisateurId` (comme le fait déjà le module Achats sur `assigneAId`, jamais via une jointure).
+- `genererFactureDepuisHeures()` (`src/lib/actions/entree-temps.ts`) génère une Facture à partir de **toutes** les entrées facturables non encore facturées d'un Projet, en une fois. Client retrouvé via `projet.dossierId → dossier.contactId` (Projet n'a pas de `contactId` propre) et `resoudreClientVente()` (voir section 7) — une Facture générée depuis les heures n'a donc jamais de `dealId`, exactement comme un Devis créé depuis un Contact directement. Une ligne de Facture par entrée ; `entreeTemps.factureId` renseigné empêche toute double-facturation.
+- "Projets" et "Feuille de temps" ajoutés comme raccourcis dans FACO > Suivi des heures (module `PROJETS`), en plus de l'entrée racine "Projets" déjà existante — même principe de raccourci dupliqué que Clients/Documents/Campagnes ailleurs dans la sidebar.
+
+Écarts volontaires, connus :
+- Pas de sélection ligne par ligne des entrées à facturer (comme le paiement partiel, jamais implémenté ailleurs dans ce produit) — toujours la totalité du non-facturé d'un Projet en une fois.
+- Aucun message d'erreur affiché si la génération échoue silencieusement (NIU manquant, Dossier introuvable) — bouton simple sans formulaire, même simplification que d'autres actions de bascule de statut de ce produit (ex. `annulerBonCommandeVente()`).
+- Pas de minuteur (start/stop) ni d'application mobile de pointage — saisie manuelle a posteriori uniquement.
+
+Testé : fuite RLS entre deux entreprises fictives (`tests/suivi-heures-fuite-rls.test.ts`), logique complète — génération correcte, exclusion des entrées non facturables, non-double-facturation, garde contre la suppression d'une entrée déjà facturée (`tests/suivi-heures-logique.test.ts`), parcours complet vérifié dans un vrai navigateur (Projet → enregistrement d'heures → génération d'une Facture → Feuille de temps transverse).
 
 ## Quand y revenir
 

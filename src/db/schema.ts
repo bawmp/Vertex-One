@@ -1186,6 +1186,10 @@ export const projet = pgTable(
       .references(() => utilisateur.id),
     dateDebut: timestamp("date_debut"),
     dateEcheance: timestamp("date_echeance"),
+    // Suivi des heures (échange du 2026-09-07) — pré-remplit le formulaire
+    // d'une nouvelle entrée de temps, jamais imposé : chaque entrée garde son
+    // propre tauxHoraire, modifiable au cas par cas.
+    tauxHoraireParDefaut: integer("taux_horaire_par_defaut"),
     // Échappatoire volontaire (Palier 0, section Creator) — pas de forme
     // imposée, jamais lu par une contrainte métier du produit lui-même.
     champsPersonnalises: json("champs_personnalises"),
@@ -1237,6 +1241,53 @@ export const tache = pgTable(
     index("tache_entreprise_idx").on(table.entrepriseId),
     index("tache_projet_idx").on(table.projetId),
     index("tache_assigne_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Suivi des heures (Time Tracking, échange du 2026-09-07) — une entrée de
+ * temps enregistrée par un utilisateur sur un Projet, éventuellement une
+ * Tâche précise. `facturable`/`tauxHoraire` déterminent si et comment elle
+ * alimente une Facture (voir genererFactureDepuisHeures(),
+ * src/lib/actions/entree-temps.ts) : jamais du chiffre d'affaires tant
+ * qu'elle n'a pas été effectivement facturée (`factureId` renseigné à ce
+ * moment, jamais réutilisable pour une deuxième facture — même patron que
+ * bonCommandeVente.factureId). Comme Projet, aucun `contactId` propre : le
+ * client facturable se retrouve via `projet.dossierId → dossier.contactId`.
+ * Module de permission réutilisé : "PROJETS" (comme Tache), pas de nouveau
+ * module dédié.
+ */
+export const entreeTemps = pgTable(
+  "entree_temps",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    projetId: text("projet_id")
+      .notNull()
+      .references(() => projet.id),
+    tacheId: text("tache_id").references(() => tache.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    date: timestamp("date").notNull(),
+    dureeHeures: numeric("duree_heures", { precision: 5, scale: 2, mode: "number" }).notNull(),
+    facturable: boolean("facturable").notNull().default(true),
+    tauxHoraire: integer("taux_horaire").notNull().default(0), // FCFA/heure, 0 si non facturable ou taux non renseigné
+    note: text("note"),
+    factureId: text("facture_id").references(() => facture.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("entree_temps_entreprise_idx").on(table.entrepriseId),
+    index("entree_temps_projet_idx").on(table.projetId),
+    index("entree_temps_utilisateur_idx").on(table.utilisateurId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

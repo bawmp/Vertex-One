@@ -1,0 +1,1 @@
+ALTER TABLE "entree_temps" FORCE ROW LEVEL SECURITY;

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc, asc } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { projet, dossier, entreprise, tache, commentaire, utilisateur, document } from "@/db/schema";
+import { projet, dossier, entreprise, tache, entreeTemps, commentaire, utilisateur, document } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -16,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { ChangeurStatutProjet } from "./changeur-statut-projet";
 import { LigneTache } from "./ligne-tache";
 import { FormulaireNouvelleTache } from "./formulaire-nouvelle-tache";
+import { LigneEntreeTemps } from "./ligne-entree-temps";
+import { FormulaireEntreeTemps } from "./formulaire-entree-temps";
+import { BoutonGenererFactureHeures } from "./bouton-generer-facture-heures";
 import { FormulaireCommentaire } from "../formulaire-commentaire";
 import { ListeCommentaires } from "../liste-commentaires";
 import { FormulaireDocument } from "../formulaire-document";
@@ -41,9 +44,10 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
     const visibles = await projetsVisibles(tx, utilisateurConnecte);
     if (visibles !== "TOUT" && !visibles.includes(leProjet.id)) return null;
 
-    const [[leDossier], taches, commentaires, tousLesUtilisateurs, documentsDuProjet] = await Promise.all([
+    const [[leDossier], taches, entreesTemps, commentaires, tousLesUtilisateurs, documentsDuProjet] = await Promise.all([
       tx.select().from(dossier).where(eq(dossier.id, leProjet.dossierId)),
       tx.select().from(tache).where(eq(tache.projetId, id)).orderBy(asc(tache.ordre), asc(tache.creeLe)),
+      tx.select().from(entreeTemps).where(eq(entreeTemps.projetId, id)).orderBy(desc(entreeTemps.date)),
       tx.select().from(commentaire).where(eq(commentaire.projetId, id)).orderBy(desc(commentaire.creeLe)),
       tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)),
       tx.select().from(document).where(eq(document.projetId, id)),
@@ -62,6 +66,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       leProjet,
       leDossier,
       taches,
+      entreesTemps,
       commentaires,
       documents: documentsVisibles,
       auteursParId: Object.fromEntries(idsAuteurs.map((idAuteur) => [idAuteur, utilisateursParId[idAuteur]])),
@@ -71,11 +76,13 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
   });
 
   if (!donnees) notFound();
-  const { monEntreprise, leProjet, leDossier, taches, commentaires, documents, auteursParId, utilisateursParId, collegues } = donnees;
+  const { monEntreprise, leProjet, leDossier, taches, entreesTemps, commentaires, documents, auteursParId, utilisateursParId, collegues } = donnees;
 
   const vocab = libelleProjet(monEntreprise.secteurProfil);
   const info = STATUT_PROJET[leProjet.statut];
   const peutModifier = peut(utilisateurConnecte.role, "PROJETS", "MODIFIER");
+  const peutFacturer = peut(utilisateurConnecte.role, "FACTURATION", "CREER");
+  const aDesHeuresAFacturer = entreesTemps.some((e) => e.facturable && !e.factureId);
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -132,6 +139,45 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
           </Card>
         ) : (
           <p className="text-sm text-muted-foreground">Aucune tâche pour le moment dans ce {vocab.singulier.toLowerCase()}.</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Feuille de temps</h2>
+          <div className="flex items-center gap-2">
+            {peutFacturer && aDesHeuresAFacturer ? <BoutonGenererFactureHeures projetId={leProjet.id} /> : null}
+            {peutModifier ? (
+              <FormulaireEntreeTemps
+                projetId={leProjet.id}
+                taches={taches.map((t) => ({ id: t.id, titre: t.titre }))}
+                tauxHoraireParDefaut={leProjet.tauxHoraireParDefaut}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        {entreesTemps.length > 0 ? (
+          <Card className="p-0">
+            <div className="flex flex-col divide-y divide-border">
+              {entreesTemps.map((e) => (
+                <LigneEntreeTemps
+                  key={e.id}
+                  id={e.id}
+                  date={e.date}
+                  dureeHeures={e.dureeHeures}
+                  tauxHoraire={e.tauxHoraire}
+                  facturable={e.facturable}
+                  facturee={e.factureId !== null}
+                  note={e.note}
+                  tacheTitre={e.tacheId ? (taches.find((t) => t.id === e.tacheId)?.titre ?? null) : null}
+                  peutModifier={peutModifier}
+                />
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <p className="text-sm text-muted-foreground">Aucune heure enregistrée pour le moment sur ce {vocab.singulier.toLowerCase()}.</p>
         )}
       </div>
 

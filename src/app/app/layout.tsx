@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3 } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -70,10 +70,10 @@ const MODULES_MENU: ItemMenu[] = [
   // CRM"), ces modules existaient jusque-là en items racine séparés. Les
   // catégories reprennent l'arborescence réelle de Zoho Books communiquée
   // par l'utilisateur (Articles/Ventes/Achats/Suivi des heures/Banque/
-  // Comptable/Rapports/Documents) — seule "Suivi des heures" est omise, car
-  // Vertex One n'a aucune page équivalente (le module "Projets" existant est
-  // un concept différent, propre au CRM, pas du suivi de temps). Plusieurs
-  // catégories pointent vers la même page qu'une autre (Comptable/Rapports →
+  // Comptable/Rapports/Documents), y compris "Suivi des heures" (échange du
+  // 2026-09-07, "CONSTRUIT CELA") — Feuille de temps sur un Projet existant,
+  // voir src/db/schema.ts (entreeTemps) et src/lib/actions/entree-temps.ts.
+  // Plusieurs catégories pointent vers la même page qu'une autre (Comptable/Rapports →
   // /app/comptabilite, qui affiche à la fois le Plan comptable et le
   // Bilan/Compte de résultat) : même principe de raccourci dupliqué déjà
   // utilisé pour Documents/Campagnes sous CRM > Ventes, pour rester fidèle
@@ -104,6 +104,18 @@ const MODULES_MENU: ItemMenu[] = [
       {
         categorie: "Achats",
         liens: [{ libelle: "Achats", href: "/app/achats", Icone: ShoppingCart, module: "ACHATS" }],
+      },
+      // Suivi des heures (échange du 2026-09-07) — anciennement omis faute
+      // de page équivalente, désormais construit : une entrée de temps sur
+      // un Projet (module PROJETS existant), facturable sur une vraie
+      // Facture. "Projets" est un raccourci vers le module qui existe déjà
+      // en item racine séparé, même principe que Clients ci-dessus.
+      {
+        categorie: "Suivi des heures",
+        liens: [
+          { libelle: "Projets", href: "/app/projets", Icone: FolderKanban, module: "PROJETS" },
+          { libelle: "Feuille de temps", href: "/app/projets/feuille-temps", Icone: Clock, module: "PROJETS" },
+        ],
       },
       {
         categorie: "Banque",
