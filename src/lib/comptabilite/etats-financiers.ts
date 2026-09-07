@@ -1,4 +1,4 @@
-import { eq, lte, and } from "drizzle-orm";
+import { eq, lte, gte, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { ecritureComptable, compteComptable } from "@/db/schema";
 
@@ -11,10 +11,16 @@ export type LigneBalance = { numero: string; libelle: string; classe: number; de
  * (actif, charge), négatif pour un compte à solde créditeur normal (passif,
  * produit) — l'appelant sait déjà, par la classe SYSCOHADA, quel signe
  * attendre pour chaque section.
+ *
+ * `dateDebut` (échange du 2026-09-07, tableau de bord FACO) borne la fenêtre
+ * par le bas — utile pour isoler les mouvements d'une seule période
+ * (l'exercice en cours) plutôt que le cumul depuis toujours. Optionnel,
+ * n'affecte aucun appelant existant.
  */
-export async function calculerBalance(tx: TransactionDrizzle, entrepriseId: string, dateArret?: Date): Promise<LigneBalance[]> {
+export async function calculerBalance(tx: TransactionDrizzle, entrepriseId: string, dateArret?: Date, dateDebut?: Date): Promise<LigneBalance[]> {
   const conditions = [eq(ecritureComptable.entrepriseId, entrepriseId)];
   if (dateArret) conditions.push(lte(ecritureComptable.dateEcriture, dateArret));
+  if (dateDebut) conditions.push(gte(ecritureComptable.dateEcriture, dateDebut));
 
   const lignes = await tx
     .select({

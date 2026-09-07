@@ -8,6 +8,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { memeClientVente } from "@/lib/facturation/client-document";
+import { recupererTableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import {
   STATUT_FACTURE_ACOMPTE,
 } from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
+import { TableauDeBord } from "./tableau-de-bord";
 import { BoutonConvertirBCV } from "../deals/[id]/bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "../deals/[id]/boutons-facture-recurrente";
 import { BoutonAnnulerRecuVente } from "../deals/[id]/bouton-annuler-recu-vente";
@@ -30,7 +32,7 @@ export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { devisVisibles, facturesVisibles, bonsCommandeVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParClientId } =
+  const { devisVisibles, facturesVisibles, bonsCommandeVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParClientId, tableauDeBord } =
     await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
       // Découplage Books/CRM (échange du 2026-09-07) — chaque document porte
       // désormais son propre assigneAId, la portée se filtre directement
@@ -67,6 +69,8 @@ export default async function PageFacturation() {
       const nomClient = (doc: { contactId: string | null; compteId: string | null }) =>
         (doc.compteId && nomCompteParId.get(doc.compteId)) || (doc.contactId && nomContactParId.get(doc.contactId)) || "Client";
 
+      const tableauDeBord = await recupererTableauDeBordFaco(tx, utilisateurConnecte);
+
       return {
         devisVisibles: d,
         facturesVisibles: f,
@@ -75,6 +79,7 @@ export default async function PageFacturation() {
         recusVenteVisibles: rv,
         facturesAcompteVisibles: fa,
         nomParClientId: Object.fromEntries([...d, ...f, ...bc, ...fr, ...rv, ...fa].map((doc) => [doc.id, nomClient(doc)])),
+        tableauDeBord,
       };
     });
 
@@ -91,9 +96,7 @@ export default async function PageFacturation() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Facturation</h1>
-      </div>
+      <TableauDeBord donnees={tableauDeBord} facturesClientVisibles={facturesVisibles} />
 
       {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 

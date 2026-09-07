@@ -77,13 +77,15 @@ const MODULES_MENU: ItemMenu[] = [
   // /app/comptabilite, qui affiche à la fois le Plan comptable et le
   // Bilan/Compte de résultat) : même principe de raccourci dupliqué déjà
   // utilisé pour Documents/Campagnes sous CRM > Ventes, pour rester fidèle
-  // aux intitulés attendus sans construire de nouvelle page. Pas de
-  // hrefAccueil (contrairement à CRM) : Comptabilité est réservée à
-  // l'Administrateur (voir permissions.ts) alors que Facturation/Achats/
-  // Produits sont largement partagés — aucune page ne convient comme
-  // "accueil" commun à tous les rôles qui voient FACO.
+  // aux intitulés attendus sans construire de nouvelle page. hrefAccueil
+  // pointe vers /app/facturation (échange du 2026-09-07, "l'accueil de FACO
+  // a un tableau de bord") : cette page héberge désormais un vrai tableau de
+  // bord (src/app/app/facturation/tableau-de-bord.tsx) dont chaque section
+  // vérifie sa propre permission — jamais une page entièrement verrouillée à
+  // l'Administrateur comme /app/comptabilite l'est.
   {
     libelle: "FACO",
+    hrefAccueil: "/app/facturation",
     Icone: Landmark,
     groupes: [
       {

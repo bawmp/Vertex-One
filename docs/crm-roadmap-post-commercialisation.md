@@ -182,6 +182,22 @@ Catégorie "Suivi des heures" de l'arborescence Zoho Books (échange du 2026-09-
 
 Testé : fuite RLS entre deux entreprises fictives (`tests/suivi-heures-fuite-rls.test.ts`), logique complète — génération correcte, exclusion des entrées non facturables, non-double-facturation, garde contre la suppression d'une entrée déjà facturée (`tests/suivi-heures-logique.test.ts`), parcours complet vérifié dans un vrai navigateur (Projet → enregistrement d'heures → génération d'une Facture → Feuille de temps transverse).
 
+## 9. Tableau de bord d'accueil FACO — construit le 2026-09-07
+
+Échange du 2026-09-07, "l'accueil de FACO(books) a un tableau de bord" — l'utilisateur a collé le contenu exact de l'accueil Zoho Books (comptes clients/fournisseurs, flux de trésorerie, revenu et dépense, dépenses principales, projets à suivre, banque et cartes de crédit). `/app/facturation` affichait jusque-là un simple `<h1>Facturation</h1>` avant la liste des documents.
+
+- `src/lib/facturation/tableau-de-bord.ts` (`recupererTableauDeBordFaco()`) — chaque section respecte sa propre permission/portée indépendamment des autres, pas un blocage en tout-ou-rien : comptes clients toujours visible (dérivé des Factures déjà visibles pour ce rôle) ; comptes fournisseurs/dépenses principales gated par `ACHATS`+portée ; flux de trésorerie/revenu-dépense gated par `COMPTABILITE`+`disponible(..., "COMPTABILITE_COMPLETE")` (plan Business uniquement) ; projets à suivre gated par `PROJETS`+portée.
+- `calculerBalance()` (`src/lib/comptabilite/etats-financiers.ts`) étend d'un paramètre optionnel `dateDebut` pour isoler les mouvements de l'exercice en cours, sans casser son unique appelant existant (Bilan/Compte de résultat à date).
+- `src/app/app/facturation/tableau-de-bord.tsx` — présentation en tuiles (patron déjà utilisé par l'accueil CRM).
+- FACO gagne un `hrefAccueil` (`/app/facturation`) dans la sidebar : cliquer le libellé du module ouvre désormais directement ce tableau de bord, comme CRM le fait déjà vers `/app/crm`.
+
+Écarts volontaires, connus (jamais de fonctionnalité fabriquée sans donnée réelle derrière) :
+- "Votre logo"/"Démarrage"/"Mises à jour récentes" (chrome d'onboarding Zoho) — non construits, aucune donnée réelle possible derrière.
+- Graphiques mensuels (Flux de trésorerie/Revenu et dépense) — réduits à des totaux sur l'exercice en cours : ce projet n'a aucune bibliothèque de graphiques (voir section 6, "Rapports avancés... hors périmètre"). Les chiffres restent réels, seule la visualisation mois par mois est différée.
+- "Banque et cartes de crédit" renvoie vers le Rapprochement bancaire déjà construit (import de relevé CSV, Palier 4) avec un texte explicite — jamais une vraie connexion bancaire automatique, aucun agrégateur bancaire n'étant configuré.
+
+Testé : `tsc`/`eslint`/`npm test` (132 tests) verts, parcours vérifié dans un vrai navigateur (inscription, upgrade Business, affichage de toutes les sections, navigation FACO → tableau de bord depuis la sidebar).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
