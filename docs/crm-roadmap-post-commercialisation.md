@@ -234,6 +234,21 @@ Suite directe de la section 11 (même échange, "continuer FACO/Books") — mêm
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (les 6 liens Achats naviguent vers la bonne ancre, un enchaînement Ventes → Achats sans recliquer sur "FACO" confirme que le groupe reste déplié).
 
+## 13. FACO > Comptable : Plan comptable — construit le 2026-09-07
+
+Suite directe des sections 11-12 (même échange) — sur les 6 onglets Zoho Books > Comptable (Journaux manuels, Mise à jour en bloc, Ajustements de la devise, Plan comptable, Budgets, Verrouillage de transactions), seul un a un équivalent bon marché à construire immédiatement :
+
+- **Plan comptable** (nouveau) — `src/app/app/comptabilite/plan-comptable/page.tsx`, lecture seule sur `compteComptable` (référentiel SYSCOHADA **global**, partagé entre toutes les entreprises, sans `entrepriseId` ni RLS — voir schema.ts) groupé par classe, avec le solde propre à l'entreprise connectée (`calculerBalance()`). Jamais de création de compte personnalisé : contrairement à Zoho, ajouter un compte engagerait un changement de schéma plus large (compteComptable devrait alors distinguer un compte global d'un compte propre à une entreprise), pas fait sans besoin réel.
+- **Journal** — pas une nouvelle page, juste un raccourci (`#journal`) vers le journal des écritures déjà affiché sur `/app/comptabilite`.
+
+**Les 4 autres onglets restent des lacunes réelles, pas construites** (contrairement à Plan comptable, ce sont de vraies fonctionnalités neuves, pas de la donnée déjà là à afficher) :
+- Journaux manuels — aucune écriture n'est aujourd'hui saisissable à la main, `ecritureComptable` n'est alimentée qu'automatiquement (facture émise, paiement, dépense...).
+- Budgets — aucune table, aucun suivi budget/réalisé.
+- Verrouillage de transactions — aucune date de clôture empêchant la modification d'une période déjà close.
+- Mise à jour en bloc / Ajustements de la devise — non pertinents pour ce produit (devise unique XAF, pas de multi-devise) ou faible valeur perçue pour une petite entreprise ; à ne construire que sur demande explicite.
+
+Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (Journal et Plan comptable naviguent correctement, les comptes SYSCOHADA s'affichent groupés par classe avec leur solde).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

@@ -134,7 +134,7 @@ export default async function PageComptabilite() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div id="journal" className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Journal des écritures (50 plus récentes)</h2>
         {dernieresEcritures.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune écriture pour le moment.</p>

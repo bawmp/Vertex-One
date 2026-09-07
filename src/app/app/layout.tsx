@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2 } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -150,9 +150,22 @@ const MODULES_MENU: ItemMenu[] = [
         categorie: "Banque",
         liens: [{ libelle: "Rapprochement bancaire", href: "/app/comptabilite/rapprochement", Icone: Wallet, module: "COMPTABILITE" }],
       },
+      // 2 des 6 onglets Zoho Books > Comptable (échange du 2026-09-07) —
+      // "Journaux manuels" (saisie d'écriture hors facture/paiement),
+      // "Budgets", "Verrouillage de transactions" et "Mise à jour en bloc"/
+      // "Ajustements de la devise" n'ont pas d'équivalent construit (le
+      // journal actuel n'affiche que des écritures auto-générées ; devise
+      // unique XAF, pas de multi-devise). "Journal" pointe vers le journal
+      // déjà existant sur /app/comptabilite ; "Plan comptable" est une
+      // nouvelle page (src/app/app/comptabilite/plan-comptable/page.tsx),
+      // lecture seule sur le référentiel SYSCOHADA global — voir
+      // docs/crm-roadmap-post-commercialisation.md.
       {
         categorie: "Comptable",
-        liens: [{ libelle: "Comptabilité", href: "/app/comptabilite", Icone: Calculator, module: "COMPTABILITE" }],
+        liens: [
+          { libelle: "Journal", href: "/app/comptabilite#journal", Icone: Calculator, module: "COMPTABILITE" },
+          { libelle: "Plan comptable", href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
+        ],
       },
       {
         categorie: "Rapports",
