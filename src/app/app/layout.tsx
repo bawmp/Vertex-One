@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2 } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -93,6 +93,14 @@ const MODULES_MENU: ItemMenu[] = [
         liens: [{ libelle: "Produits", href: "/app/produits", Icone: Package, module: "PRODUITS" }],
       },
       {
+        // Les 8 onglets exacts de Zoho Books > Ventes (échange du
+        // 2026-09-07) — tous sauf Clients pointent vers une ancre d'une
+        // section de /app/facturation (une seule page qui liste tous les
+        // documents Ventes, pas une page dédiée par type de document, voir
+        // src/app/app/facturation/page.tsx). "Paiements reçus"/"Factures
+        // d'avoir" (tables paiement/avoirFacture, déjà construites au
+        // Palier 1 mais jusque-là seulement visibles depuis la fiche
+        // Facture) gagnent ici leur première liste agrégée dédiée.
         categorie: "Ventes",
         liens: [
           // Raccourci vers un module qui existe déjà ailleurs dans la
@@ -100,7 +108,13 @@ const MODULES_MENU: ItemMenu[] = [
           // "Clients", dupliqué ici plutôt que déplacé, même principe que
           // Documents/Campagnes sous CRM > Ventes.
           { libelle: "Clients", href: "/app/contacts", Icone: Users, module: "CRM" },
-          { libelle: "Facturation", href: "/app/facturation", Icone: Receipt, module: "FACTURATION" },
+          { libelle: "Devis", href: "/app/facturation#devis", Icone: FileText, module: "FACTURATION" },
+          { libelle: "Commandes client", href: "/app/facturation#commandes-client", Icone: ClipboardList, module: "FACTURATION" },
+          { libelle: "Factures", href: "/app/facturation#factures", Icone: Receipt, module: "FACTURATION" },
+          { libelle: "Tickets de vente", href: "/app/facturation#tickets-de-vente", Icone: Wallet, module: "FACTURATION" },
+          { libelle: "Factures périodiques", href: "/app/facturation#factures-periodiques", Icone: Repeat, module: "FACTURATION" },
+          { libelle: "Paiements reçus", href: "/app/facturation#paiements-recus", Icone: CreditCard, module: "FACTURATION" },
+          { libelle: "Factures d'avoir", href: "/app/facturation#factures-avoir", Icone: Undo2, module: "FACTURATION" },
         ],
       },
       {

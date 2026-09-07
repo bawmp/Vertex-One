@@ -214,6 +214,15 @@ Testé : `tsc`/`eslint`/`npm test` (132 tests) verts, parcours vérifié dans un
 
 Testé : `tsc`/`eslint`/`vitest` (138 tests, dont `tests/minuteur-logique.test.ts` et `tests/minuteur-fuite-rls.test.ts`) verts, parcours complet vérifié dans un vrai navigateur (démarrage sur la fiche Projet, visible et arrêtable depuis la page transverse — preuve que l'état est bien côté serveur —, entrée créée, grille Semaine correcte, annulation sans création d'entrée).
 
+## 11. FACO > Ventes : les 8 onglets exacts de Zoho Books — construit le 2026-09-07
+
+Échange du 2026-09-07 — l'utilisateur a listé les 8 onglets exacts attendus sous Ventes (Clients, Devis, Commandes client, Factures, Tickets de vente, Factures périodiques, Paiements reçus, Factures d'avoir), remplaçant l'unique raccourci "Facturation" qui existait jusque-là.
+
+- `/app/facturation` reste une seule page listant tous les documents Ventes en sections (pas une page dédiée par type de document) : les 7 onglets (hors Clients) pointent donc vers une ancre (`#devis`, `#commandes-client`, `#factures`, `#tickets-de-vente`, `#factures-periodiques`, `#paiements-recus`, `#factures-avoir`) plutôt qu'une nouvelle route.
+- "Paiements reçus" et "Factures d'avoir" correspondent aux tables `paiement`/`avoirFacture`, déjà construites et actives au Palier 1 (encaissement manuel, annulation de facture) mais jusque-là visibles uniquement depuis la fiche Facture (`/app/facturation/factures/[id]`) — elles gagnent ici leur première liste agrégée, tous documents confondus. Ni l'une ni l'autre ne porte de `assigneAId` propre (toujours rattachées à une Facture précise, jamais un document Ventes autonome) : la portée se déduit de la Facture visible correspondante.
+
+Testé : `tsc`/`eslint`/`vitest` (138 tests) verts, parcours réel en navigateur (les 8 liens de la sidebar naviguent vers la bonne ancre, les deux nouvelles sections affichent les bonnes données pour un Paiement et un Avoir insérés directement en base).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

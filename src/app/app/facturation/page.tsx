@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc } from "drizzle-orm";
-import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight } from "lucide-react";
+import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2 } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, contact, compteClient } from "@/db/schema";
+import { devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, paiement, avoirFacture, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -32,8 +32,18 @@ export default async function PageFacturation() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { devisVisibles, facturesVisibles, bonsCommandeVisibles, facturesRecurrentesVisibles, recusVenteVisibles, facturesAcompteVisibles, nomParClientId, tableauDeBord } =
-    await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const {
+    devisVisibles,
+    facturesVisibles,
+    bonsCommandeVisibles,
+    facturesRecurrentesVisibles,
+    recusVenteVisibles,
+    facturesAcompteVisibles,
+    paiementsVisibles,
+    avoirsVisibles,
+    nomParClientId,
+    tableauDeBord,
+  } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
       // Découplage Books/CRM (échange du 2026-09-07) — chaque document porte
       // désormais son propre assigneAId, la portée se filtre directement
       // dessus (module "FACTURATION"), sans plus jamais passer par un Deal
@@ -59,6 +69,18 @@ export default async function PageFacturation() {
       const rv = filtrer(rvBrut);
       const fa = filtrer(faBrut);
 
+      // Paiements/Factures d'avoir n'ont pas de assigneAId propre (toujours
+      // rattachés à une Facture précise, jamais un document Ventes autonome
+      // — voir schema.ts) : la portée se déduit de la Facture visible
+      // correspondante, jamais d'une colonne à eux.
+      const idsFacturesVisibles = new Set(f.map((fac) => fac.id));
+      const [paiementsBrut, avoirsBrut] = await Promise.all([
+        tx.select().from(paiement).orderBy(desc(paiement.datePaiement)),
+        tx.select().from(avoirFacture).orderBy(desc(avoirFacture.creeLe)),
+      ]);
+      const paiementsVisibles = paiementsBrut.filter((p) => idsFacturesVisibles.has(p.factureId));
+      const avoirsVisibles = avoirsBrut.filter((a) => idsFacturesVisibles.has(a.factureId));
+
       const idsContacts = [...new Set([...d, ...f, ...bc, ...fr, ...rv, ...fa].map((doc) => doc.contactId).filter((id): id is string => id !== null))];
       const [contacts, comptes] = await Promise.all([
         idsContacts.length > 0 ? tx.select({ id: contact.id, nom: contact.nom }).from(contact).where(inArray(contact.id, idsContacts)) : [],
@@ -70,6 +92,7 @@ export default async function PageFacturation() {
         (doc.compteId && nomCompteParId.get(doc.compteId)) || (doc.contactId && nomContactParId.get(doc.contactId)) || "Client";
 
       const tableauDeBord = await recupererTableauDeBordFaco(tx, utilisateurConnecte);
+      const numeroFactureParId = Object.fromEntries(fBrut.map((fac) => [fac.id, fac.numero]));
 
       return {
         devisVisibles: d,
@@ -78,6 +101,12 @@ export default async function PageFacturation() {
         facturesRecurrentesVisibles: fr,
         recusVenteVisibles: rv,
         facturesAcompteVisibles: fa,
+        paiementsVisibles: paiementsVisibles.map((p) => ({ ...p, numeroFacture: numeroFactureParId[p.factureId] ?? "" })),
+        avoirsVisibles: avoirsVisibles.map((a) => ({ ...a, numeroFacture: numeroFactureParId[a.factureId] ?? "" })),
+        // nomParClientId reste keyé par id de document Ventes : une Facture y
+        // figure déjà sous sa propre clé (via f ci-dessus), donc
+        // nomParClientId[paiement.factureId]/[avoir.factureId] résout
+        // directement au client de la Facture liée, sans entrée dédiée.
         nomParClientId: Object.fromEntries([...d, ...f, ...bc, ...fr, ...rv, ...fa].map((doc) => [doc.id, nomClient(doc)])),
         tableauDeBord,
       };
@@ -100,7 +129,7 @@ export default async function PageFacturation() {
 
       {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 
-      <div>
+      <div id="devis">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <FileText className="size-4" aria-hidden />
           Devis
@@ -131,7 +160,7 @@ export default async function PageFacturation() {
         </Card>
       </div>
 
-      <div>
+      <div id="factures">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Receipt className="size-4" aria-hidden />
           Factures
@@ -164,7 +193,7 @@ export default async function PageFacturation() {
         </Card>
       </div>
 
-      <div>
+      <div id="commandes-client">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <ClipboardList className="size-4" aria-hidden />
           Bons de commande
@@ -197,7 +226,7 @@ export default async function PageFacturation() {
         </Card>
       </div>
 
-      <div>
+      <div id="factures-periodiques">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Repeat className="size-4" aria-hidden />
           Factures récurrentes
@@ -231,7 +260,7 @@ export default async function PageFacturation() {
         </Card>
       </div>
 
-      <div>
+      <div id="tickets-de-vente">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Wallet className="size-4" aria-hidden />
           Reçus de vente
@@ -303,6 +332,60 @@ export default async function PageFacturation() {
             {facturesAcompteVisibles.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture d&apos;acompte.</p>
             ) : null}
+          </div>
+        </Card>
+      </div>
+
+      <div id="paiements-recus">
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <CreditCard className="size-4" aria-hidden />
+          Paiements reçus
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {paiementsVisibles.map((p) => (
+              <Link
+                key={p.id}
+                href={`/app/facturation/factures/${p.factureId}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+              >
+                <span className="min-w-0 truncate">
+                  <span className="font-medium">{p.numeroFacture}</span>
+                  <span className="text-muted-foreground"> — {nomParClientId[p.factureId]}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
+                  <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(p.datePaiement)}</span>
+                  <span className="tabular-nums text-muted-foreground">{formaterFCFA(p.montant)}</span>
+                  <Badge variant="success">{p.moyenPaiement}</Badge>
+                </span>
+              </Link>
+            ))}
+            {paiementsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun paiement reçu.</p> : null}
+          </div>
+        </Card>
+      </div>
+
+      <div id="factures-avoir">
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Undo2 className="size-4" aria-hidden />
+          Factures d&apos;avoir
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {avoirsVisibles.map((a) => (
+              <Link
+                key={a.id}
+                href={`/app/facturation/factures/${a.factureId}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+              >
+                <span className="min-w-0 truncate">
+                  <span className="font-medium">{a.numeroFacture}</span>
+                  <span className="text-muted-foreground"> — {nomParClientId[a.factureId]} · {a.motif}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(a.creeLe)}</span>
+              </Link>
+            ))}
+            {avoirsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture d&apos;avoir.</p> : null}
           </div>
         </Card>
       </div>
