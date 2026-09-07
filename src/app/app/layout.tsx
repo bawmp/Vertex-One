@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -19,7 +19,15 @@ type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?:
 type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
   | { module: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
-  | { module: Module; libelle: string; href?: undefined; hrefAccueil?: string; Icone: IconeComposant; groupes: GroupeMenu[] };
+  // module optionnel ici : CRM a un seul module qui gouverne tout le groupe
+  // (les liens y ajoutent le leur seulement pour un raccourci ponctuel vers
+  // un module différent, ex. Documents/Campagnes). FACO n'a pas de module
+  // unique équivalent — Facturation/Achats/Produits/Comptabilité sont 4
+  // permissions distinctes avec des visibilités différentes par rôle (ex.
+  // Comptabilité réservée à l'Administrateur) — donc chaque lien porte le
+  // sien et l'entrée n'est visible que si au moins un lien l'est (voir
+  // menuVisible ci-dessous).
+  | { module?: Module; libelle: string; href?: undefined; hrefAccueil?: string; Icone: IconeComposant; groupes: GroupeMenu[] };
 
 // CRM reste un seul module dans la sidebar, avec ses entités regroupées en
 // sous-menu — exactement comme les onglets d'un même module dans Zoho CRM,
@@ -56,19 +64,35 @@ const MODULES_MENU: ItemMenu[] = [
       },
     ],
   },
-  { module: "FACTURATION", libelle: "Facturation", href: "/app/facturation", Icone: Receipt },
-  // Cycle Achats (Fournisseurs/Dépenses), miroir du cycle Ventes côté
-  // fournisseurs — inspiré de Zoho Books, échange du 2026-09-06.
-  { module: "ACHATS", libelle: "Achats", href: "/app/achats", Icone: ShoppingCart },
-  // Référentiel partagé Ventes/Achats (Items chez Zoho Books, échange du
-  // 2026-09-07) — entre les deux plutôt que niché dans l'un des deux.
-  { module: "PRODUITS", libelle: "Produits", href: "/app/produits", Icone: Package },
+  // FACO regroupe l'équivalent Zoho Books de Vertex One (Facturation/Achats/
+  // Produits/Comptabilité) sous une seule entrée à liste déroulante, comme
+  // CRM regroupe Leads/Contacts/Comptes/Deals — retour utilisateur du
+  // 2026-09-07 ("organise Books comme tu as organisé CRM"), ces quatre
+  // modules existaient jusque-là en items racine séparés. Pas de hrefAccueil
+  // ici (contrairement à CRM) : Comptabilité est réservée à l'Administrateur
+  // (voir permissions.ts) alors que Facturation/Achats/Produits sont
+  // largement partagés — aucune des quatre pages ne convient comme
+  // "accueil" commun à tous les rôles qui voient FACO, le libellé se
+  // contente donc de déplier/replier la liste.
+  {
+    libelle: "FACO",
+    Icone: Landmark,
+    groupes: [
+      {
+        liens: [
+          { libelle: "Facturation", href: "/app/facturation", Icone: Receipt, module: "FACTURATION" },
+          { libelle: "Achats", href: "/app/achats", Icone: ShoppingCart, module: "ACHATS" },
+          { libelle: "Produits", href: "/app/produits", Icone: Package, module: "PRODUITS" },
+          { libelle: "Comptabilité", href: "/app/comptabilite", Icone: Calculator, module: "COMPTABILITE" },
+        ],
+      },
+    ],
+  },
   { module: "PROJETS", libelle: "Projets", href: "/app/projets", Icone: FolderKanban },
   { module: "DOCUMENTS", libelle: "Documents", href: "/app/documents", Icone: FileText },
   { module: "MESSAGERIE", libelle: "Messagerie", href: "/app/messagerie", Icone: MessageSquare },
   { module: "ANNONCES", libelle: "Annonces", href: "/app/annonces", Icone: Megaphone },
   { module: "SIGNATURE", libelle: "Signatures", href: "/app/signatures", Icone: FileSignature },
-  { module: "COMPTABILITE", libelle: "Comptabilité", href: "/app/comptabilite", Icone: Calculator },
   { module: "RH", libelle: "Ressources Humaines", href: "/app/rh", Icone: IdCard },
   { module: "MARKETING", libelle: "Marketing", href: "/app/marketing", Icone: Rocket },
   { module: "PARAMETRES", libelle: "Paramètres", href: "/app/parametres", Icone: Settings },
@@ -83,7 +107,18 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const menuVisible = MODULES_MENU.filter(({ module }) => peut(utilisateurConnecte.role, module, "VOIR"));
+  // Un item plat, ou groupé avec un module unifiant (CRM), reste gouverné par
+  // ce seul module. Un item groupé sans module unique (FACO — ses quatre
+  // sous-modules ont des visibilités différentes par rôle) n'est affiché que
+  // si au moins un de ses liens l'est, sinon un rôle qui ne voit que
+  // Facturation/Achats/Produits (jamais Comptabilité, réservée à
+  // l'Administrateur) perdrait l'accès à toute l'entrée.
+  const itemVisible = (item: ItemMenu) => {
+    if (!item.groupes) return peut(utilisateurConnecte.role, item.module, "VOIR");
+    if (item.module) return peut(utilisateurConnecte.role, item.module, "VOIR");
+    return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(utilisateurConnecte.role, lien.module, "VOIR")));
+  };
+  const menuVisible = MODULES_MENU.filter(itemVisible);
 
   // Une seule requête jointe plutôt que deux round-trips séparés — ce layout
   // s'exécute à chaque navigation complète vers /app/*, et CLAUDE.md
