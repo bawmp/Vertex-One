@@ -2,7 +2,7 @@ import { sql, inArray, eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { produit } from "@/db/schema";
 
-type LigneAvecProduit = { produitId: string | null; quantite: number };
+type LigneAvecProduit = { produitId?: string | null; quantite: number };
 
 /**
  * Catalogue Produits/Tarifs (échange du 2026-09-07, zoho-books-full-spec.md
@@ -39,7 +39,12 @@ export function decrementerStockVente(tx: TransactionDrizzle, lignes: LigneAvecP
   return ajusterStock(tx, lignes, -1);
 }
 
-// incrementerStockAchat (mouvement inverse, côté Facture fournisseur) suivra
-// dans une tranche séparée avec l'intégration du catalogue au cycle Achats
-// (voir docs/crm-roadmap-post-commercialisation.md) — pas encore construite,
-// pour ne pas exporter un mouvement de stock jamais appelé.
+/**
+ * Mouvement inverse — appelé à la création d'une Facture fournisseur
+ * (échange du 2026-09-07, section 5.3 : "un achat facturé l'augmente").
+ * Jamais à la création d'un Bon de commande, qui n'affecte pas le stock
+ * (voir schema.ts).
+ */
+export function incrementerStockAchat(tx: TransactionDrizzle, lignes: LigneAvecProduit[]): Promise<void> {
+  return ajusterStock(tx, lignes, 1);
+}

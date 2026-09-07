@@ -11,10 +11,12 @@ import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroBonCommandeAchat } from "@/lib/facturation/numerotation";
 import { genererEcrituresFactureFournisseur } from "@/lib/comptabilite/ecritures";
+import { incrementerStockAchat } from "@/lib/produits/stock";
 
 const CHEMIN = "/app/achats";
 
 const schemaLigne = z.object({
+  produitId: z.string().trim().optional(),
   designation: z.string().trim().min(1),
   quantite: z.coerce.number().positive(),
   prixUnitaire: z.coerce.number().int().nonnegative(),
@@ -42,6 +44,7 @@ export async function creerBonCommandeAchat(_etat: EtatBonCommandeAchat, formDat
   }
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
+    produitId: formData.getAll("produitId")[i] || undefined,
     designation: formData.getAll("designation")[i],
     quantite: formData.getAll("quantite")[i],
     prixUnitaire: formData.getAll("prixUnitaire")[i],
@@ -76,6 +79,7 @@ export async function creerBonCommandeAchat(_etat: EtatBonCommandeAchat, formDat
       lignes.map((l) => ({
         entrepriseId: utilisateurConnecte.entrepriseId,
         bonCommandeAchatId: nouveauBC.id,
+        produitId: l.produitId,
         designation: l.designation,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
@@ -127,12 +131,18 @@ export async function convertirBonCommandeEnFactureFournisseur(bonCommandeAchatI
       lignesBC.map((l) => ({
         entrepriseId: utilisateurConnecte.entrepriseId,
         factureFournisseurId: nouvelleFacture.id,
+        produitId: l.produitId,
         designation: l.designation,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
         tauxTVA: l.tauxTVA,
       }))
     );
+
+    // Catalogue Produits/Tarifs (échange du 2026-09-07) — la conversion en
+    // Facture fournisseur est le moment où l'achat est réalisé, pas la
+    // création du Bon de commande (voir schema.ts).
+    await incrementerStockAchat(tx, lignesBC);
 
     await tx
       .update(bonCommandeAchat)

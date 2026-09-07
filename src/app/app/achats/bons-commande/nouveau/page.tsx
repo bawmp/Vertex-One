@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { fournisseur, compteComptable } from "@/db/schema";
+import { fournisseur, compteComptable, produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { FormulaireBonCommande } from "./formulaire-bon-commande";
@@ -13,12 +13,13 @@ export default async function PageNouveauBonCommande() {
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) redirect("/app/achats");
 
-  const { fournisseurs, comptesCharge } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    const [fournisseurs, comptesCharge] = await Promise.all([
+  const { fournisseurs, comptesCharge, produits } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [fournisseurs, comptesCharge, produits] = await Promise.all([
       tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur),
       tx.select({ id: compteComptable.id, numero: compteComptable.numero, libelle: compteComptable.libelle }).from(compteComptable).where(eq(compteComptable.classe, 6)),
+      tx.select({ id: produit.id, nom: produit.nom, prixAchat: produit.prixAchat }).from(produit),
     ]);
-    return { fournisseurs, comptesCharge };
+    return { fournisseurs, comptesCharge, produits };
   });
 
   return (
@@ -28,7 +29,7 @@ export default async function PageNouveauBonCommande() {
         Achats
       </Link>
       <h1 className="text-2xl font-semibold tracking-tight">Nouveau bon de commande</h1>
-      <FormulaireBonCommande fournisseurs={fournisseurs} comptesCharge={comptesCharge} />
+      <FormulaireBonCommande fournisseurs={fournisseurs} comptesCharge={comptesCharge} produits={produits} />
     </div>
   );
 }

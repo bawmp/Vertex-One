@@ -80,12 +80,16 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 
 Construit le 2026-09-07. `produit` (BIEN/SERVICE, prix vente/achat, `suiviStock` optionnel — un SERVICE n'a jamais de stock) — module "Produits" dédié (`src/app/app/produits/`), permission `PRODUITS` (référentiel partagé Ventes/Achats, portée toujours TOUT).
 
-**Intégré** (une ligne de Devis peut piocher dans le catalogue, sans obligation — le texte libre reste toujours possible) :
+**Intégré côté Ventes** (une ligne de Devis peut piocher dans le catalogue, sans obligation — le texte libre reste toujours possible) :
 - `ligneDevis`/`ligneFacture` portent un `produitId` nullable ; choisir un produit dans le formulaire de Devis pré-remplit désignation/prix.
-- Mouvement de stock réel à l'acceptation d'un Devis (`decrementerStockVente()`, `src/lib/produits/stock.ts`) : une vente facturée diminue le stock des BIEN suivis, jamais au stade Devis (simple intention). Aucun mouvement au stade Devis lui-même, ni blocage si le stock devient négatif (vente possible même en rupture, comme Zoho).
+- Mouvement de stock réel à l'acceptation d'un Devis (`decrementerStockVente()`, `src/lib/produits/stock.ts`) : une vente facturée diminue le stock des BIEN suivis, jamais au stade Devis (simple intention).
 
-**Pas encore intégré** (tranche séparée à venir) :
-- `ligneFactureFournisseur`/`ligneBonCommandeAchat` ne portent pas encore de `produitId` — une Facture fournisseur ne peut pas encore augmenter le stock (`incrementerStockAchat()`, symétrique de `decrementerStockVente()`, pas construite pour ne pas exporter un mouvement jamais appelé).
+**Intégré côté Achats** (échange du 2026-09-07, même après-midi) — mouvement inverse symétrique :
+- `ligneFactureFournisseur`/`ligneBonCommandeAchat` portent un `produitId` nullable ; choisir un produit dans le formulaire de Facture fournisseur ou de Bon de commande pré-remplit désignation/prix d'achat.
+- `incrementerStockAchat()` augmente le stock à la création d'une Facture fournisseur (directe ou par conversion d'un Bon de commande) — jamais à la création du Bon de commande lui-même (hors bilan tant que non facturé).
+- Aucun blocage si le stock devient négatif après une vente (comme Zoho, qui ne bloque pas, se contente de suivre le nombre).
+
+**Pas encore construit** :
 - Pas de Listes de prix (Price Lists, tarification différenciée par client/segment).
 - Pas d'alerte de réapprovisionnement (Reorder Point/Preferred Vendor).
 - Pas d'ajustement d'inventaire manuel (Inventory Adjustments) — seule la vente/l'achat facturé mouvemente le stock.

@@ -1488,6 +1488,10 @@ export const ligneFactureFournisseur = pgTable(
     factureFournisseurId: text("facture_fournisseur_id")
       .notNull()
       .references(() => factureFournisseur.id),
+    // Nullable — copié depuis ligne_bon_commande_achat à la conversion, ou
+    // choisi directement à la création ; permet le mouvement de stock
+    // inverse (échange du 2026-09-07, voir incrementerStockAchat()).
+    produitId: text("produit_id").references(() => produit.id),
     designation: text("designation").notNull(),
     quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
     prixUnitaire: integer("prix_unitaire").notNull(),
@@ -1599,6 +1603,10 @@ export const ligneBonCommandeAchat = pgTable(
     bonCommandeAchatId: text("bon_commande_achat_id")
       .notNull()
       .references(() => bonCommandeAchat.id),
+    // Nullable — copié vers ligne_facture_fournisseur à la conversion
+    // (échange du 2026-09-07). Un Bon de commande n'affecte jamais le
+    // stock lui-même (hors bilan tant que non facturé, voir schema.ts).
+    produitId: text("produit_id").references(() => produit.id),
     designation: text("designation").notNull(),
     quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
     prixUnitaire: integer("prix_unitaire").notNull(),

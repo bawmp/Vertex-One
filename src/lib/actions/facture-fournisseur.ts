@@ -10,10 +10,12 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererEcrituresFactureFournisseur, genererEcrituresPaiementEffectue } from "@/lib/comptabilite/ecritures";
+import { incrementerStockAchat } from "@/lib/produits/stock";
 
 const CHEMIN = "/app/achats";
 
 const schemaLigne = z.object({
+  produitId: z.string().trim().optional(),
   designation: z.string().trim().min(1),
   quantite: z.coerce.number().positive(),
   prixUnitaire: z.coerce.number().int().nonnegative(),
@@ -46,6 +48,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
   }
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
+    produitId: formData.getAll("produitId")[i] || undefined,
     designation: formData.getAll("designation")[i],
     quantite: formData.getAll("quantite")[i],
     prixUnitaire: formData.getAll("prixUnitaire")[i],
@@ -80,12 +83,17 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
       lignes.map((l) => ({
         entrepriseId: utilisateurConnecte.entrepriseId,
         factureFournisseurId: nouvelleFacture.id,
+        produitId: l.produitId,
         designation: l.designation,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
         tauxTVA: l.tauxTVA,
       }))
     );
+
+    // Catalogue Produits/Tarifs (échange du 2026-09-07) — un achat facturé
+    // augmente le stock des BIEN suivis, jamais au stade Bon de commande.
+    await incrementerStockAchat(tx, lignes);
 
     await genererEcrituresFactureFournisseur(tx, {
       id: nouvelleFacture.id,

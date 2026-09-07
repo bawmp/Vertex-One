@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, produit } from "@/db/schema";
-import { decrementerStockVente } from "@/lib/produits/stock";
+import { decrementerStockVente, incrementerStockAchat } from "@/lib/produits/stock";
 
 /**
  * Vérifie le mouvement de stock d'une vente (catalogue Produits/Tarifs,
@@ -59,6 +59,17 @@ describe("Produits — mouvement de stock à la vente", () => {
     ).then((lignes) => [lignes.find((l) => l.id === leService.id), lignes.find((l) => l.id === leBienNonSuivi.id)]);
     expect(service?.stockActuel).toBe(0);
     expect(bienNonSuivi?.stockActuel).toBe(0);
+  });
+
+  test("une facture fournisseur pour un BIEN suivi augmente le stock (mouvement inverse)", async () => {
+    const [leProduit] = await avecEntreprise(entrepriseId, (tx) =>
+      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Écran 24 pouces", suiviStock: true, stockActuel: 5 }).returning({ id: produit.id })
+    );
+
+    await avecEntreprise(entrepriseId, (tx) => incrementerStockAchat(tx, [{ produitId: leProduit.id, quantite: 8 }]));
+
+    const [apres] = await avecEntreprise(entrepriseId, (tx) => tx.select({ stockActuel: produit.stockActuel }).from(produit).where(eq(produit.id, leProduit.id)));
+    expect(apres.stockActuel).toBe(13);
   });
 
   test("une ligne sans produit (texte libre) ne fait planter aucun mouvement de stock", async () => {

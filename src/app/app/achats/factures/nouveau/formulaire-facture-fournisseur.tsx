@@ -11,21 +11,32 @@ import { Spinner } from "@/components/ui/spinner";
 import { creerFactureFournisseur } from "@/lib/actions/facture-fournisseur";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 
-type Ligne = { designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
-const LIGNE_VIDE: Ligne = { designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
+type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
+const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
 
 export function FormulaireFactureFournisseur({
   fournisseurs,
   comptesCharge,
+  produits,
 }: {
   fournisseurs: { id: string; nom: string }[];
   comptesCharge: { id: string; numero: string; libelle: string }[];
+  produits: { id: string; nom: string; prixAchat: number }[];
 }) {
   const [etat, action, enCours] = useActionState(creerFactureFournisseur, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
   function majLigne(index: number, champ: keyof Ligne, valeur: string) {
     setLignes((precedent) => precedent.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
+  }
+
+  function choisirProduit(index: number, produitId: string) {
+    const p = produits.find((p) => p.id === produitId);
+    setLignes((precedent) =>
+      precedent.map((l, i) =>
+        i === index ? { ...l, produitId, designation: p ? p.nom : l.designation, prixUnitaire: p ? String(p.prixAchat) : l.prixUnitaire } : l
+      )
+    );
   }
 
   const montants = calculerMontants(
@@ -85,8 +96,20 @@ export function FormulaireFactureFournisseur({
             {lignes.map((ligne, index) => (
               <div
                 key={index}
-                className="grid grid-cols-[1fr_5rem_7rem_5rem_auto] items-end gap-2 rounded-lg border border-transparent p-1 transition-colors focus-within:border-border"
+                className="grid grid-cols-[9rem_1fr_5rem_7rem_5rem_auto] items-end gap-2 rounded-lg border border-transparent p-1 transition-colors focus-within:border-border"
               >
+                <input type="hidden" name="produitId" value={ligne.produitId} />
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>Produit</Label> : null}
+                  <Select value={ligne.produitId} onChange={(e) => choisirProduit(index, e.target.value)}>
+                    <option value="">Texte libre</option>
+                    {produits.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nom}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
                 <div className="flex flex-col gap-1">
                   {index === 0 ? <Label>Désignation</Label> : null}
                   <Input name="designation" required value={ligne.designation} onChange={(e) => majLigne(index, "designation", e.target.value)} />
