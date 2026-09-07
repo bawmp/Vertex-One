@@ -1,0 +1,1 @@
+ALTER TABLE "journal_manuel" FORCE ROW LEVEL SECURITY;

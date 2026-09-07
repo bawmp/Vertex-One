@@ -89,6 +89,10 @@ export const entreprise = pgTable("entreprise", {
   // Factures d'acompte (échange du 2026-09-07) — série distincte, jamais
   // mêlée à la numérotation des Factures.
   compteurFacturesAcompte: integer("compteur_factures_acompte").notNull().default(0),
+  // Journaux manuels (échange du 2026-09-07) — pas un document fiscal
+  // (comme les Bons de commande), mais une référence stable utile pour
+  // retrouver une écriture manuelle dans le Journal des écritures.
+  compteurJournauxManuels: integer("compteur_journaux_manuels").notNull().default(0),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -1706,11 +1710,52 @@ export const ecritureComptable = pgTable(
     // factureAcompteId et factureId, les deux documents étant réellement
     // liés par ce mouvement (voir genererEcrituresApplicationAcompte()).
     factureAcompteId: text("facture_acompte_id"),
+    // Journaux manuels (échange du 2026-09-07) — même raisonnement, jamais de
+    // FK stricte : une ligne saisie à la main via creerJournalManuel()
+    // (src/lib/actions/journal-manuel.ts), regroupée avec les autres lignes
+    // du même journalManuel par cet id, jamais réutilisable pour tracer une
+    // origine différente.
+    journalManuelId: text("journal_manuel_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
     index("ecriture_comptable_entreprise_idx").on(table.entrepriseId),
     index("ecriture_comptable_compte_idx").on(table.compteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Journal manuel (Zoho Books > Comptable > "Journaux manuels", échange du
+ * 2026-09-07) — une écriture comptable saisie à la main (correction,
+ * ajustement de fin de mois), jamais générée automatiquement par une
+ * Facture/Dépense/Paiement (voir src/lib/comptabilite/ecritures.ts pour ces
+ * cas-là). Une ligne ici = un journal ; ses lignes de débit/crédit vivent
+ * dans `ecritureComptable` (journalManuelId), pas dupliquées ici — cette
+ * table ne porte que l'en-tête (numéro, libellé, date, auteur).
+ */
+export const journalManuel = pgTable(
+  "journal_manuel",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    libelle: text("libelle").notNull(),
+    dateEcriture: timestamp("date_ecriture").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("journal_manuel_entreprise_numero_unique").on(table.entrepriseId, table.numero),
+    index("journal_manuel_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
