@@ -16,7 +16,12 @@ export function NavLink({
   className?: string;
 }) {
   const pathname = usePathname();
-  const actif = pathname === href || pathname.startsWith(`${href}/`);
+  // usePathname() ne contient jamais de fragment "#" — un lien vers une
+  // ancre de section (ex. /app/facturation#devis, FACO > Ventes) doit donc
+  // comparer uniquement la partie chemin, sinon jamais actif (bug réel
+  // rencontré en ajoutant les onglets Ventes/Achats à ancres, 2026-09-07).
+  const chemin = href.split("#")[0];
+  const actif = pathname === chemin || pathname.startsWith(`${chemin}/`);
 
   return (
     <Link
@@ -75,7 +80,15 @@ export function NavGroup({
   const pathname = usePathname();
   const tousLesLiens = groupes.flatMap((groupe) => groupe.liens);
   const surAccueil = hrefAccueil != null && pathname === hrefAccueil;
-  const contientPageActive = surAccueil || tousLesLiens.some((lien) => pathname === lien.href || pathname.startsWith(`${lien.href}/`));
+  // Même correctif que NavLink ci-dessus (comparer avant le "#") : sans ça,
+  // le groupe entier se replie dès qu'on navigue vers un onglet à ancre
+  // (FACO > Achats/Ventes) qui n'est pas la page hrefAccueil elle-même.
+  const contientPageActive =
+    surAccueil ||
+    tousLesLiens.some((lien) => {
+      const chemin = lien.href.split("#")[0];
+      return pathname === chemin || pathname.startsWith(`${chemin}/`);
+    });
   const [ouvertManuel, setOuvertManuel] = useState<boolean | null>(null);
   const ouvert = ouvertManuel ?? contientPageActive;
 

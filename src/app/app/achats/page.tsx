@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, inArray } from "drizzle-orm";
-import { ShoppingCart, Lock, UserPlus, FileText, ClipboardList } from "lucide-react";
+import { ShoppingCart, Lock, UserPlus, FileText, ClipboardList, CreditCard, Undo2 } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { depense, fournisseur, compteComptable, deal, factureFournisseur, bonCommandeAchat } from "@/db/schema";
+import { depense, fournisseur, compteComptable, deal, factureFournisseur, bonCommandeAchat, paiementEffectue, avoirFournisseur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -91,6 +91,35 @@ export default async function PageAchats() {
     const bonsCommande =
       visibles === "TOUT" ? await baseBonsCommande : visibles.length === 0 ? [] : await baseBonsCommande.where(inArray(bonCommandeAchat.assigneAId, visibles));
 
+    // Paiements effectués/Avoirs fournisseur n'ont pas de assigneAId propre
+    // (toujours rattachés à une Facture fournisseur précise) : la portée se
+    // déduit de la Facture fournisseur visible correspondante — même patron
+    // que Paiements reçus/Factures d'avoir côté Ventes (src/app/app/facturation/page.tsx).
+    const idsFacturesFournisseurVisibles = new Set(facturesFournisseur.map((f) => f.id));
+    const [paiementsEffectuesBrut, avoirsFournisseurBrut] = await Promise.all([
+      tx
+        .select({
+          id: paiementEffectue.id,
+          factureFournisseurId: paiementEffectue.factureFournisseurId,
+          montant: paiementEffectue.montant,
+          moyenPaiement: paiementEffectue.moyenPaiement,
+          datePaiement: paiementEffectue.datePaiement,
+        })
+        .from(paiementEffectue)
+        .orderBy(desc(paiementEffectue.datePaiement)),
+      tx
+        .select({ id: avoirFournisseur.id, factureFournisseurId: avoirFournisseur.factureFournisseurId, motif: avoirFournisseur.motif, creeLe: avoirFournisseur.creeLe })
+        .from(avoirFournisseur)
+        .orderBy(desc(avoirFournisseur.creeLe)),
+    ]);
+    const factureFournisseurParId = new Map(facturesFournisseur.map((f) => [f.id, f]));
+    const paiementsEffectues = paiementsEffectuesBrut
+      .filter((p) => idsFacturesFournisseurVisibles.has(p.factureFournisseurId))
+      .map((p) => ({ ...p, numeroFacture: factureFournisseurParId.get(p.factureFournisseurId)?.numero ?? "", fournisseurNom: factureFournisseurParId.get(p.factureFournisseurId)?.fournisseurNom ?? "" }));
+    const avoirsFournisseur = avoirsFournisseurBrut
+      .filter((a) => idsFacturesFournisseurVisibles.has(a.factureFournisseurId))
+      .map((a) => ({ ...a, numeroFacture: factureFournisseurParId.get(a.factureFournisseurId)?.numero ?? "", fournisseurNom: factureFournisseurParId.get(a.factureFournisseurId)?.fournisseurNom ?? "" }));
+
     const debutDuMois = new Date();
     debutDuMois.setDate(1);
     debutDuMois.setHours(0, 0, 0, 0);
@@ -98,7 +127,7 @@ export default async function PageAchats() {
       .filter((d) => d.datePaiement >= debutDuMois)
       .reduce((somme, d) => somme + d.montantTTC, 0);
 
-    return { fournisseurs, comptesCharge, deals, depenses, facturesFournisseur, bonsCommande, totalDuMois };
+    return { fournisseurs, comptesCharge, deals, depenses, facturesFournisseur, bonsCommande, paiementsEffectues, avoirsFournisseur, totalDuMois };
   });
 
   return (
@@ -121,7 +150,7 @@ export default async function PageAchats() {
         <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(donnees.totalDuMois)}</p>
       </Card>
 
-      <div className="flex flex-col gap-3">
+      <div id="bons-de-commande" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Bons de commande</h2>
           {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
@@ -160,7 +189,7 @@ export default async function PageAchats() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div id="factures-fournisseurs" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Factures fournisseur</h2>
           {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
@@ -205,7 +234,7 @@ export default async function PageAchats() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div id="depenses" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Dépenses</h2>
           {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
@@ -233,7 +262,60 @@ export default async function PageAchats() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div id="paiements-effectues" className="flex flex-col gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <CreditCard className="size-4" aria-hidden />
+          Paiements effectués
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {donnees.paiementsEffectues.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {p.numeroFacture} — {p.fournisseurNom}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(p.datePaiement)}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="tabular-nums font-medium">{formaterFCFA(p.montant)}</span>
+                  <Badge variant="success">{p.moyenPaiement}</Badge>
+                </div>
+              </div>
+            ))}
+            {donnees.paiementsEffectues.length === 0 ? (
+              <p className="px-4 py-8 text-center text-muted-foreground">Aucun paiement effectué pour le moment.</p>
+            ) : null}
+          </div>
+        </Card>
+      </div>
+
+      <div id="avoirs-fournisseur" className="flex flex-col gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Undo2 className="size-4" aria-hidden />
+          Avoirs fournisseur
+        </h2>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {donnees.avoirsFournisseur.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">
+                    {a.numeroFacture} — {a.fournisseurNom}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.motif}</p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(a.creeLe)}</span>
+              </div>
+            ))}
+            {donnees.avoirsFournisseur.length === 0 ? (
+              <p className="px-4 py-8 text-center text-muted-foreground">Aucun avoir fournisseur pour le moment.</p>
+            ) : null}
+          </div>
+        </Card>
+      </div>
+
+      <div id="fournisseurs" className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Fournisseurs</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">

@@ -118,8 +118,21 @@ const MODULES_MENU: ItemMenu[] = [
         ],
       },
       {
+        // 6 des 8 onglets Zoho Books > Achats (échange du 2026-09-07) — tous
+        // pointent vers une ancre de /app/achats (même patron que Ventes ci-
+        // dessus). "Dépenses périodiques" et "Factures fournisseurs
+        // périodiques" n'ont pas d'équivalent construit (pas de récurrence
+        // achats, contrairement à factureRecurrente côté Ventes) — omis ici
+        // plutôt qu'un lien mort, voir docs/crm-roadmap-post-commercialisation.md.
         categorie: "Achats",
-        liens: [{ libelle: "Achats", href: "/app/achats", Icone: ShoppingCart, module: "ACHATS" }],
+        liens: [
+          { libelle: "Dépenses", href: "/app/achats#depenses", Icone: ShoppingCart, module: "ACHATS" },
+          { libelle: "Bons de commande", href: "/app/achats#bons-de-commande", Icone: ClipboardList, module: "ACHATS" },
+          { libelle: "Factures fournisseurs", href: "/app/achats#factures-fournisseurs", Icone: FileText, module: "ACHATS" },
+          { libelle: "Paiements effectués", href: "/app/achats#paiements-effectues", Icone: CreditCard, module: "ACHATS" },
+          { libelle: "Avoirs fournisseur", href: "/app/achats#avoirs-fournisseur", Icone: Undo2, module: "ACHATS" },
+          { libelle: "Fournisseurs", href: "/app/achats#fournisseurs", Icone: UserPlus, module: "ACHATS" },
+        ],
       },
       // Suivi des heures (échange du 2026-09-07) — anciennement omis faute
       // de page équivalente, désormais construit : une entrée de temps sur

@@ -223,6 +223,17 @@ Testé : `tsc`/`eslint`/`vitest` (138 tests, dont `tests/minuteur-logique.test.t
 
 Testé : `tsc`/`eslint`/`vitest` (138 tests) verts, parcours réel en navigateur (les 8 liens de la sidebar naviguent vers la bonne ancre, les deux nouvelles sections affichent les bonnes données pour un Paiement et un Avoir insérés directement en base).
 
+## 12. FACO > Achats : 6 des 8 onglets Zoho Books — construit le 2026-09-07
+
+Suite directe de la section 11 (même échange, "continuer FACO/Books") — même traitement pour Achats : remplace l'unique raccourci "Achats" par 6 onglets pointant vers une ancre de `/app/achats`.
+
+- "Paiements effectués" et "Avoirs fournisseur" (tables `paiementEffectue`/`avoirFournisseur`, déjà actives depuis le cycle Achats — encaissement manuel côté `marquerFactureFournisseurPayee`/annulation côté `annulerFactureFournisseur`) gagnent leur première liste agrégée, exact miroir de Paiements reçus/Factures d'avoir côté Ventes.
+- **"Dépenses périodiques" et "Factures fournisseurs périodiques" (2 des 8 onglets Zoho) n'ont aucun équivalent construit** — pas de récurrence côté Achats, contrairement à `factureRecurrente` côté Ventes. Volontairement omis de la sidebar plutôt qu'un lien mort ; à construire un jour sur le même patron que `factureRecurrente`/`genererFacturesRecurrentesDues()` si un besoin réel se présente.
+
+**Bug réel trouvé et corrigé en cours de route** : `NavGroup`/`NavLink` (`src/app/app/nav-link.tsx`) comparaient `pathname` (qui ne contient jamais de fragment `#`, `usePathname()` l'exclut toujours) à des `href` complets avec ancre (`/app/facturation#devis`). Résultat : le groupe FACO se repliait tout seul dès qu'on naviguait vers un onglet à ancre d'une catégorie différente de celle de `hrefAccueil` — passé inaperçu pour Ventes (dont tous les onglets pointent justement vers la page `hrefAccueil` elle-même, donc jamais de changement réel de route), mais reproductible immédiatement en testant Achats. Corrigé en comparant uniquement la partie avant `#` dans les deux composants.
+
+Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (les 6 liens Achats naviguent vers la bonne ancre, un enchaînement Ventes → Achats sans recliquer sur "FACO" confirme que le groupe reste déplié).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
