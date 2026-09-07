@@ -249,6 +249,19 @@ Suite directe des sections 11-12 (même échange) — sur les 6 onglets Zoho Boo
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (Journal et Plan comptable naviguent correctement, les comptes SYSCOHADA s'affichent groupés par classe avec leur solde).
 
+## 14. FACO > Comptable : Journaux manuels — construit le 2026-09-07
+
+Suite directe de la section 13 (même échange) — la première des 3 vraies lacunes de la catégorie Comptable, choisie par l'utilisateur comme la plus utile/la moins risquée à construire immédiatement.
+
+- Nouvelle table `journalManuel` (en-tête : numéro `JM-AAAA-NNNNNN`, libellé, date, auteur) + colonne `journalManuelId` sur `ecritureComptable` (même patron "référence sans FK stricte" que `factureId`/`paiementId`/`depenseId`, voir schema.ts) pour ses lignes de débit/crédit.
+- `creerJournalManuel()` (`src/lib/actions/journal-manuel.ts`) impose deux gardes avant tout insert : chaque ligne porte un débit OU un crédit (jamais les deux, jamais aucun), et le total débit doit égaler le total crédit et être strictement positif — un journal déséquilibré ne peut jamais être enregistré. `src/app/app/comptabilite/journaux-manuels/formulaire-journal-manuel.tsx` calcule le même équilibre côté client en direct (indicateur vert/orange), désactivant le bouton "Enregistrer" tant que ce n'est pas équilibré — la garde serveur reste la seule autorité réelle, le client n'est qu'un confort.
+- `genererNumeroJournalManuel()` (`src/lib/facturation/numerotation.ts`, réutilise le compteur atomique déjà éprouvé pour Devis/Factures/Bons de commande, nouveau `entreprise.compteurJournauxManuels`).
+- Réservé à l'Administrateur, comme le reste du module Comptabilité (`peut(role, "COMPTABILITE", "CREER")`) et gated `COMPTABILITE_COMPLETE` (plan Business).
+
+Restent des lacunes réelles, non construites (voir section 13) : Budgets, Verrouillage de transactions, Mise à jour en bloc, Ajustements de la devise.
+
+Testé : `tsc`/`eslint`/`vitest` (`tests/journal-manuel-logique.test.ts`, `tests/journal-manuel-fuite-rls.test.ts`) verts, parcours réel en navigateur (création d'un journal équilibré, apparition dans l'historique, désactivation du bouton dès que le journal devient déséquilibré).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

@@ -33,6 +33,7 @@ async function incrementerCompteur(
     | "compteurBonsCommandeVente"
     | "compteurRecusVente"
     | "compteurFacturesAcompte"
+    | "compteurJournauxManuels"
 ): Promise<number> {
   const [ligne] = await tx
     .update(entreprise)
@@ -97,4 +98,16 @@ export async function genererNumeroFactureAcompte(tx: TransactionDrizzle, entrep
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurFacturesAcompte");
   return `ACO-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/**
+ * Journaux manuels (échange du 2026-09-07) — pas un document fiscal, mais
+ * une référence stable pour retrouver un journal dans la liste (comme les
+ * Bons de commande) ; même mécanisme atomique éprouvé, même si ce fichier
+ * s'appelle "facturation" (déjà réutilisé pour Achats ci-dessus).
+ */
+export async function genererNumeroJournalManuel(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurJournauxManuels");
+  return `JM-${annee}-${String(compteur).padStart(6, "0")}`;
 }
