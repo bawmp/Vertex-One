@@ -93,6 +93,12 @@ export const entreprise = pgTable("entreprise", {
   // (comme les Bons de commande), mais une référence stable utile pour
   // retrouver une écriture manuelle dans le Journal des écritures.
   compteurJournauxManuels: integer("compteur_journaux_manuels").notNull().default(0),
+  // Verrouillage de transactions (Zoho Books > Comptable, échange du
+  // 2026-09-07) — aucune écriture comptable (Facture, Dépense, Paiement,
+  // Journal manuel...) ne peut être datée à cette date ou avant, contrôle
+  // centralisé dans creerEcritures() (src/lib/comptabilite/ecritures.ts),
+  // jamais dupliqué dans chaque action appelante. NULL = aucun verrouillage.
+  dateVerrouillageComptable: timestamp("date_verrouillage_comptable"),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -1756,6 +1762,66 @@ export const journalManuel = pgTable(
   (table) => [
     uniqueIndex("journal_manuel_entreprise_numero_unique").on(table.entrepriseId, table.numero),
     index("journal_manuel_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Budgets (Zoho Books > Comptable > "Budgets", échange du 2026-09-07) — un
+ * montant budgété par compte sur une période (pas de ventilation mensuelle,
+ * contrairement à Zoho qui permet un budget mois par mois : simplification
+ * délibérée, voir docs/crm-roadmap-post-commercialisation.md). Le "réalisé"
+ * se calcule à la volée via calculerBalance() sur la même période, jamais
+ * stocké ici — toujours à jour, jamais désynchronisé.
+ */
+export const budget = pgTable(
+  "budget",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    dateDebut: timestamp("date_debut").notNull(),
+    dateFin: timestamp("date_fin").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("budget_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const budgetLigne = pgTable(
+  "budget_ligne",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    budgetId: text("budget_id")
+      .notNull()
+      .references(() => budget.id),
+    compteId: text("compte_id")
+      .notNull()
+      .references(() => compteComptable.id),
+    montant: integer("montant").notNull(),
+  },
+  (table) => [
+    uniqueIndex("budget_ligne_budget_compte_unique").on(table.budgetId, table.compteId),
+    index("budget_ligne_entreprise_idx").on(table.entrepriseId),
+    index("budget_ligne_budget_idx").on(table.budgetId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

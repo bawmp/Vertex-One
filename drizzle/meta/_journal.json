@@ -379,6 +379,20 @@
       "when": 1788819896489,
       "tag": "0053_force_rls_journal_manuel",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1788821262519,
+      "tag": "0054_verrouillage_et_budgets",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1788821293004,
+      "tag": "0055_force_rls_budgets",
+      "breakpoints": true
     }
   ]
 }
