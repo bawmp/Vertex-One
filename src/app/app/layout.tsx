@@ -205,7 +205,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           {utilisateurConnecte.role}
         </p>
 
-        <div className="flex flex-1 flex-col gap-0.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
           {menuVisible.map((item) =>
             item.groupes ? (
               <NavGroup
