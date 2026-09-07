@@ -668,6 +668,13 @@ export const facture = pgTable(
       .notNull()
       .references(() => deal.id),
     devisOrigineId: text("devis_origine_id").references(() => devis.id),
+    // Renseigné quand cette Facture a été générée automatiquement par le
+    // worker de facturation récurrente plutôt que saisie/acceptée à la main
+    // (échange du 2026-09-07, voir genererFacturesRecurrentesDues()) —
+    // référence en avant vers une table définie plus bas dans ce fichier,
+    // sûr avec drizzle-orm car .references() prend un callback évalué
+    // paresseusement, jamais au chargement du module.
+    factureRecurrenteId: text("facture_recurrente_id").references(() => factureRecurrente.id),
     statut: statutFacture("statut").notNull().default("EMISE"),
     montantHT: integer("montant_ht").notNull(),
     montantTVA: integer("montant_tva").notNull(),
@@ -779,6 +786,82 @@ export const ligneBonCommandeVente = pgTable(
   (table) => [
     index("ligne_bon_commande_vente_entreprise_idx").on(table.entrepriseId),
     index("ligne_bon_commande_vente_bcv_idx").on(table.bonCommandeVenteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const frequenceFactureRecurrente = pgEnum("frequence_facture_recurrente", ["MENSUEL", "TRIMESTRIEL", "ANNUEL"]);
+export const statutFactureRecurrente = pgEnum("statut_facture_recurrente", ["ACTIF", "EN_PAUSE", "TERMINE"]);
+
+/**
+ * Extensions Ventes (échange du 2026-09-07) — un modèle de facturation
+ * récurrente (Recurring Invoice chez Zoho Books) : un profil sans numéro
+ * propre (ce n'est pas un document financier, seulement un générateur), qui
+ * produit une vraie Facture numérotée (genererNumeroFacture(), même série
+ * que toute autre facture) à chaque échéance atteinte. Le worker
+ * (verifier-factures-recurrentes, cron quotidien) avance
+ * prochaineDateGeneration et bascule le statut à TERMINE une fois dateFin
+ * dépassée — voir src/lib/facturation/recurrence.ts.
+ */
+export const factureRecurrente = pgTable(
+  "facture_recurrente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    libelle: text("libelle").notNull(),
+    frequence: frequenceFactureRecurrente("frequence").notNull(),
+    statut: statutFactureRecurrente("statut").notNull().default("ACTIF"),
+    dateDebut: timestamp("date_debut").notNull(),
+    dateFin: timestamp("date_fin"),
+    prochaineDateGeneration: timestamp("prochaine_date_generation").notNull(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0),
+    montantTTC: integer("montant_ttc").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("facture_recurrente_entreprise_idx").on(table.entrepriseId),
+    index("facture_recurrente_deal_idx").on(table.dealId),
+    index("facture_recurrente_prochaine_generation_idx").on(table.prochaineDateGeneration),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneFactureRecurrente = pgTable(
+  "ligne_facture_recurrente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureRecurrenteId: text("facture_recurrente_id")
+      .notNull()
+      .references(() => factureRecurrente.id),
+    produitId: text("produit_id").references(() => produit.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull().default(19.25),
+  },
+  (table) => [
+    index("ligne_facture_recurrente_entreprise_idx").on(table.entrepriseId),
+    index("ligne_facture_recurrente_fr_idx").on(table.factureRecurrenteId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

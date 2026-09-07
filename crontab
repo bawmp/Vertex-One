@@ -14,3 +14,9 @@
 # sommeil, pour les entreprises ayant activé l'addon Marketing
 # (docs/palier-6-*, section 2).
 0 7 * * * verifier-automatisations-marketing
+
+# Génère quotidiennement à 5h les Factures dues des modèles de facturation
+# récurrente actifs, toutes entreprises confondues (extensions Ventes,
+# échange du 2026-09-07) — avant les relances de 6h, pour qu'une facture
+# récurrente fraîchement émise ne soit jamais relancée le jour même.
+0 5 * * * verifier-factures-recurrentes

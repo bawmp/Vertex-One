@@ -75,6 +75,19 @@ export const STATUT_BON_COMMANDE_VENTE: Record<string, { libelle: string; varian
   ANNULE: { libelle: "Annulé", variante: "danger" },
 };
 
+// Extensions Ventes, Factures récurrentes (échange du 2026-09-07).
+export const STATUT_FACTURE_RECURRENTE: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  ACTIF: { libelle: "Actif", variante: "success" },
+  EN_PAUSE: { libelle: "En pause", variante: "warning" },
+  TERMINE: { libelle: "Terminé", variante: "neutral" },
+};
+
+export const FREQUENCE_FACTURE_RECURRENTE: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  MENSUEL: { libelle: "Mensuel", variante: "info" },
+  TRIMESTRIEL: { libelle: "Trimestriel", variante: "info" },
+  ANNUEL: { libelle: "Annuel", variante: "info" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

@@ -74,7 +74,7 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 - Paiement partiel d'une Facture fournisseur (`PARTIELLEMENT_PAYEE` existe dans l'enum, non implémenté — même écart que côté Facture client).
 - Un Bon de commande annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
-**Extensions Ventes restantes** (même spec) : Factures récurrentes, Factures d'acompte (Retainer), Reçus de vente (Sales Receipts). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
+**Extensions Ventes restantes** (même spec) : Factures d'acompte (Retainer), Reçus de vente (Sales Receipts). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
 
 ### Bons de commande client (Sales Orders) — construit le 2026-09-07
 
@@ -83,6 +83,20 @@ Miroir exact du Bon de commande fournisseur côté Ventes : `bonCommandeVente`/`
 Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-bons-commande-fuite-rls.test.ts`), logique de conversion + décrément de stock + équilibre des écritures + non-reconversion d'un BC déjà FACTURE/ANNULE (`tests/ventes-conversion-bon-commande.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → Produit avec stock → Bon de commande → conversion en Facture → stock décrémenté).
 
 Écart volontaire, connu : comme le Bon de commande fournisseur, un Bon de commande client annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
+
+### Factures récurrentes (Recurring Invoices) — construit le 2026-09-07
+
+Un modèle sans numéro propre (`factureRecurrente`/`ligneFactureRecurrente` — ce n'est pas un document financier, seulement un générateur), créé depuis la fiche Deal (bouton "Créer une facture récurrente"), qui produit une vraie Facture numérotée (`genererNumeroFacture()`, même série que toute autre facture) à chaque échéance atteinte. Génération assurée par le worker graphile-worker existant (`crontab`, `0 5 * * * verifier-factures-recurrentes`), même patron cron-dispatcher + job-par-entreprise que la relance de factures en retard : `verifier-factures-recurrentes.ts` liste les entreprises et distribue un job `facturer-recurrente-entreprise` par entreprise, qui appelle `genererFacturesRecurrentesDues()` (`src/lib/facturation/recurrence.ts`) via `avecEntreprise()`. Chaque génération copie les lignes, décrémente le stock des produits suivis (`decrementerStockVente()`) et appelle `genererEcrituresFactureEmise()`, exactement comme la conversion d'un Bon de commande client. Même vérification NIU obligatoire qu'à la création d'un Devis/Bon de commande — si le NIU est absent au moment d'un passage du worker, la génération de ce passage est différée sans avancer la date d'échéance (le prochain passage quotidien retente automatiquement).
+
+`prochaineDateGeneration` avance toujours depuis la date prévue elle-même (jamais depuis "aujourd'hui"), pour ne jamais dériver si le worker tourne en retard un jour donné. Le statut bascule automatiquement à TERMINE dès que la prochaine échéance calculée dépasserait `dateFin` (optionnelle). Actions de gestion depuis la fiche Deal : mettre en pause, réactiver, arrêter définitivement (`src/lib/actions/facture-recurrente.ts`).
+
+Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-factures-recurrentes-fuite-rls.test.ts`), logique de génération complète — création de facture, décrément de stock, avance de date, bascule TERMINE, modèle pas encore dû ou EN_PAUSE ignoré, différé sans NIU (`tests/ventes-generation-factures-recurrentes.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → modèle récurrent → génération déclenchée → Facture visible).
+
+Écarts volontaires, connus :
+
+- Une seule fréquence par modèle parmi MENSUEL/TRIMESTRIEL/ANNUEL (pas de fréquence personnalisée ni hebdomadaire, jugées peu pertinentes pour des contrats de service au Cameroun).
+- Un modèle réactivé après une pause ne rattrape jamais plusieurs échéances manquées d'un coup — une seule Facture est générée par passage quotidien du worker, comme n'importe quel autre modèle (voir commentaire de `reactiverFactureRecurrente()`).
+- Pas d'aperçu de la prochaine Facture avant génération, ni de modification des lignes d'un modèle après sa création (il faut l'arrêter et en recréer un autre).
 
 ## 6. Zoho Books — Catalogue Produits/Tarifs (Items)
 

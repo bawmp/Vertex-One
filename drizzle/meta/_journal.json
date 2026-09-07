@@ -267,6 +267,20 @@
       "when": 1788745031585,
       "tag": "0037_force_rls_bons_commande_vente",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788747573862,
+      "tag": "0038_factures_recurrentes",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788747605175,
+      "tag": "0039_force_rls_factures_recurrentes",
+      "breakpoints": true
     }
   ]
 }
