@@ -80,6 +80,9 @@ export const entreprise = pgTable("entreprise", {
   // trou), mais réutilise le même mécanisme atomique éprouvé que
   // Devis/Facture plutôt que d'en inventer un nouveau.
   compteurBonsCommandeAchat: integer("compteur_bons_commande_achat").notNull().default(0),
+  // Extensions Ventes (échange du 2026-09-07) — Bon de commande client
+  // (Sales Order), série distincte du Bon de commande fournisseur ci-dessus.
+  compteurBonsCommandeVente: integer("compteur_bons_commande_vente").notNull().default(0),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -705,6 +708,77 @@ export const ligneFacture = pgTable(
   (table) => [
     index("ligne_facture_entreprise_idx").on(table.entrepriseId),
     index("ligne_facture_facture_idx").on(table.factureId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Extensions Ventes (échange du 2026-09-07) — Bon de commande client (Sales
+// Order) : chemin alternatif additif au Devis existant, pas une étape
+// obligatoire imposée entre Devis et Facture (le pont Devis → Facture déjà
+// construit, accepterDevis(), reste inchangé). NOTRE numéro
+// (genererNumeroBonCommandeVente), aucune écriture comptable ni mouvement de
+// stock à la création (engagement, pas encore une vente réalisée — miroir
+// exact du Bon de commande fournisseur côté Achats).
+export const statutBonCommandeVente = pgEnum("statut_bon_commande_vente", ["BROUILLON", "FACTURE", "ANNULE"]);
+
+export const bonCommandeVente = pgTable(
+  "bon_commande_vente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    statut: statutBonCommandeVente("statut").notNull().default("BROUILLON"),
+    dateCommande: timestamp("date_commande").notNull().defaultNow(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0),
+    montantTTC: integer("montant_ttc").notNull(),
+    // Renseigné à la conversion en Facture — jamais réutilisé pour une
+    // deuxième conversion (voir convertirBonCommandeVenteEnFacture()).
+    factureId: text("facture_id").references(() => facture.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("bon_commande_vente_entreprise_idx").on(table.entrepriseId),
+    index("bon_commande_vente_deal_idx").on(table.dealId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneBonCommandeVente = pgTable(
+  "ligne_bon_commande_vente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    bonCommandeVenteId: text("bon_commande_vente_id")
+      .notNull()
+      .references(() => bonCommandeVente.id),
+    produitId: text("produit_id").references(() => produit.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull().default(19.25),
+  },
+  (table) => [
+    index("ligne_bon_commande_vente_entreprise_idx").on(table.entrepriseId),
+    index("ligne_bon_commande_vente_bcv_idx").on(table.bonCommandeVenteId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

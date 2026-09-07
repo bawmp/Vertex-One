@@ -26,7 +26,7 @@ import { entreprise } from "@/db/schema";
 async function incrementerCompteur(
   tx: TransactionDrizzle,
   entrepriseId: string,
-  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat"
+  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat" | "compteurBonsCommandeVente"
 ): Promise<number> {
   const [ligne] = await tx
     .update(entreprise)
@@ -58,4 +58,16 @@ export async function genererNumeroBonCommandeAchat(tx: TransactionDrizzle, entr
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurBonsCommandeAchat");
   return `BC-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/**
+ * Extensions Ventes (échange du 2026-09-07) — un Bon de commande client
+ * (Sales Order) est, comme le Bon de commande fournisseur, NOTRE numéro,
+ * avec un préfixe distinct ("BCV" plutôt que "BC") pour ne jamais confondre
+ * les deux séries dans les échanges avec un client/fournisseur.
+ */
+export async function genererNumeroBonCommandeVente(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurBonsCommandeVente");
+  return `BCV-${annee}-${String(compteur).padStart(6, "0")}`;
 }

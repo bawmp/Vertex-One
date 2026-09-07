@@ -68,6 +68,13 @@ export const STATUT_BON_COMMANDE_ACHAT: Record<string, { libelle: string; varian
   ANNULE: { libelle: "Annulé", variante: "danger" },
 };
 
+// Extensions Ventes (échange du 2026-09-07).
+export const STATUT_BON_COMMANDE_VENTE: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  BROUILLON: { libelle: "Brouillon", variante: "neutral" },
+  FACTURE: { libelle: "Facturé", variante: "success" },
+  ANNULE: { libelle: "Annulé", variante: "danger" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

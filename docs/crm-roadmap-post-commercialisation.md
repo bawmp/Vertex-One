@@ -74,7 +74,15 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 - Paiement partiel d'une Facture fournisseur (`PARTIELLEMENT_PAYEE` existe dans l'enum, non implémenté — même écart que côté Facture client).
 - Un Bon de commande annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
-**Extensions Ventes non construites** (même spec) : Bons de commande client (Sales Orders), Factures récurrentes, Factures d'acompte (Retainer), Avoirs clients (Credit Notes), Reçus de vente (Sales Receipts).
+**Extensions Ventes restantes** (même spec) : Factures récurrentes, Factures d'acompte (Retainer), Reçus de vente (Sales Receipts). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
+
+### Bons de commande client (Sales Orders) — construit le 2026-09-07
+
+Miroir exact du Bon de commande fournisseur côté Ventes : `bonCommandeVente`/`ligneBonCommandeVente`, NOTRE numéro (`genererNumeroBonCommandeVente`, même compteur atomique que Devis/Facture/BC fournisseur), créé depuis la fiche Deal (`src/app/app/deals/[id]/page.tsx`, bouton "Créer un bon de commande" à côté de "Créer un devis"). Aucune écriture comptable ni mouvement de stock à la création (engagement, pas encore une vente réalisée) — les deux sont générés à la conversion en Facture (`convertirBonCommandeVenteEnFacture()`, `src/lib/actions/bon-commande-vente.ts`), qui copie les lignes (comme `accepterDevis()`), décrémente le stock des produits suivis (`decrementerStockVente()`) et appelle `genererEcrituresFactureEmise()`. Même vérification NIU obligatoire que `creerDevis()` avant toute création, puisque ce chemin mène directement à une Facture sans passer par un Devis.
+
+Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-bons-commande-fuite-rls.test.ts`), logique de conversion + décrément de stock + équilibre des écritures + non-reconversion d'un BC déjà FACTURE/ANNULE (`tests/ventes-conversion-bon-commande.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → Produit avec stock → Bon de commande → conversion en Facture → stock décrémenté).
+
+Écart volontaire, connu : comme le Bon de commande fournisseur, un Bon de commande client annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
 ## 6. Zoho Books — Catalogue Produits/Tarifs (Items)
 

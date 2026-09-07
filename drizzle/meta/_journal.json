@@ -253,6 +253,20 @@
       "when": 1788742924337,
       "tag": "0035_produit_id_lignes_achats",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788744970503,
+      "tag": "0036_bons_commande_vente",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788745031585,
+      "tag": "0037_force_rls_bons_commande_vente",
+      "breakpoints": true
     }
   ]
 }
