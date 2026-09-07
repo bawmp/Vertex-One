@@ -330,6 +330,13 @@
       "when": 1788764784181,
       "tag": "0046_deal_id_optionnel_ventes",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788767742743,
+      "tag": "0047_contact_assigne_obligatoires_ventes",
+      "breakpoints": true
     }
   ]
 }

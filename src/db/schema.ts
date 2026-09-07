@@ -609,18 +609,20 @@ export const devis = pgTable(
       .notNull()
       .references(() => entreprise.id),
     numero: text("numero").notNull(), // "DEV-2026-000042" — généré à l'émission, jamais avant
-    // Découplage Books/CRM (échange du 2026-09-07) — dealId devient optionnel
+    // Découplage Books/CRM (échange du 2026-09-07) — dealId optionnel
     // (renseigné seulement quand ce document vient réellement du pipeline
-    // CRM) ; contactId/assigneAId ci-dessous restent nullable dans cette
-    // tranche (resserrés en NOT NULL une fois tout le code applicatif aligné
-    // — voir src/lib/facturation/client-document.ts) mais deviendront la
-    // seule source de vérité du client.
+    // CRM) ; contactId/assigneAId sont la seule source de vérité du client,
+    // voir src/lib/facturation/client-document.ts.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     // Dénormalisé depuis contact.compteId, jamais saisi — même patron que
     // deal.compteId.
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     statut: statutDevis("statut").notNull().default("BROUILLON"),
     dateValidite: timestamp("date_validite").notNull(),
     montantHT: integer("montant_ht").notNull(),
@@ -684,9 +686,13 @@ export const facture = pgTable(
     // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/
     // contactId ci-dessus pour le raisonnement complet.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     devisOrigineId: text("devis_origine_id").references(() => devis.id),
     // Renseigné quand cette Facture a été générée automatiquement par le
     // worker de facturation récurrente plutôt que saisie/acceptée à la main
@@ -764,9 +770,13 @@ export const bonCommandeVente = pgTable(
     numero: text("numero").notNull(),
     // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     statut: statutBonCommandeVente("statut").notNull().default("BROUILLON"),
     dateCommande: timestamp("date_commande").notNull().defaultNow(),
     montantHT: integer("montant_ht").notNull(),
@@ -842,9 +852,13 @@ export const factureRecurrente = pgTable(
       .references(() => entreprise.id),
     // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     libelle: text("libelle").notNull(),
     frequence: frequenceFactureRecurrente("frequence").notNull(),
     statut: statutFactureRecurrente("statut").notNull().default("ACTIF"),
@@ -921,9 +935,13 @@ export const recuVente = pgTable(
     numero: text("numero").notNull(),
     // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     statut: statutRecuVente("statut").notNull().default("EMISE"),
     dateEmission: timestamp("date_emission").notNull().defaultNow(),
     montantHT: integer("montant_ht").notNull(),
@@ -1006,9 +1024,13 @@ export const factureAcompte = pgTable(
     numero: text("numero").notNull(),
     // Découplage Books/CRM (échange du 2026-09-07) — voir devis.dealId/contactId.
     dealId: text("deal_id").references(() => deal.id),
-    contactId: text("contact_id").references(() => contact.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
     compteId: text("compte_id").references(() => compteClient.id),
-    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
     statut: statutFactureAcompte("statut").notNull().default("EMISE"),
     dateEmission: timestamp("date_emission").notNull().defaultNow(),
     montant: integer("montant").notNull(),
