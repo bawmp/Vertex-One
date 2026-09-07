@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3 } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -64,27 +64,62 @@ const MODULES_MENU: ItemMenu[] = [
       },
     ],
   },
-  // FACO regroupe l'équivalent Zoho Books de Vertex One (Facturation/Achats/
-  // Produits/Comptabilité) sous une seule entrée à liste déroulante, comme
-  // CRM regroupe Leads/Contacts/Comptes/Deals — retour utilisateur du
-  // 2026-09-07 ("organise Books comme tu as organisé CRM"), ces quatre
-  // modules existaient jusque-là en items racine séparés. Pas de hrefAccueil
-  // ici (contrairement à CRM) : Comptabilité est réservée à l'Administrateur
-  // (voir permissions.ts) alors que Facturation/Achats/Produits sont
-  // largement partagés — aucune des quatre pages ne convient comme
-  // "accueil" commun à tous les rôles qui voient FACO, le libellé se
-  // contente donc de déplier/replier la liste.
+  // FACO regroupe l'équivalent Zoho Books de Vertex One sous une seule entrée
+  // à liste déroulante, comme CRM regroupe Leads/Contacts/Comptes/Deals —
+  // retour utilisateur du 2026-09-07 ("organise Books comme tu as organisé
+  // CRM"), ces modules existaient jusque-là en items racine séparés. Les
+  // catégories reprennent l'arborescence réelle de Zoho Books communiquée
+  // par l'utilisateur (Articles/Ventes/Achats/Suivi des heures/Banque/
+  // Comptable/Rapports/Documents) — seule "Suivi des heures" est omise, car
+  // Vertex One n'a aucune page équivalente (le module "Projets" existant est
+  // un concept différent, propre au CRM, pas du suivi de temps). Plusieurs
+  // catégories pointent vers la même page qu'une autre (Comptable/Rapports →
+  // /app/comptabilite, qui affiche à la fois le Plan comptable et le
+  // Bilan/Compte de résultat) : même principe de raccourci dupliqué déjà
+  // utilisé pour Documents/Campagnes sous CRM > Ventes, pour rester fidèle
+  // aux intitulés attendus sans construire de nouvelle page. Pas de
+  // hrefAccueil (contrairement à CRM) : Comptabilité est réservée à
+  // l'Administrateur (voir permissions.ts) alors que Facturation/Achats/
+  // Produits sont largement partagés — aucune page ne convient comme
+  // "accueil" commun à tous les rôles qui voient FACO.
   {
     libelle: "FACO",
     Icone: Landmark,
     groupes: [
       {
+        categorie: "Articles",
+        liens: [{ libelle: "Produits", href: "/app/produits", Icone: Package, module: "PRODUITS" }],
+      },
+      {
+        categorie: "Ventes",
         liens: [
+          // Raccourci vers un module qui existe déjà ailleurs dans la
+          // sidebar (Contacts, sous CRM) — Zoho Books a ses propres
+          // "Clients", dupliqué ici plutôt que déplacé, même principe que
+          // Documents/Campagnes sous CRM > Ventes.
+          { libelle: "Clients", href: "/app/contacts", Icone: Users, module: "CRM" },
           { libelle: "Facturation", href: "/app/facturation", Icone: Receipt, module: "FACTURATION" },
-          { libelle: "Achats", href: "/app/achats", Icone: ShoppingCart, module: "ACHATS" },
-          { libelle: "Produits", href: "/app/produits", Icone: Package, module: "PRODUITS" },
-          { libelle: "Comptabilité", href: "/app/comptabilite", Icone: Calculator, module: "COMPTABILITE" },
         ],
+      },
+      {
+        categorie: "Achats",
+        liens: [{ libelle: "Achats", href: "/app/achats", Icone: ShoppingCart, module: "ACHATS" }],
+      },
+      {
+        categorie: "Banque",
+        liens: [{ libelle: "Rapprochement bancaire", href: "/app/comptabilite/rapprochement", Icone: Wallet, module: "COMPTABILITE" }],
+      },
+      {
+        categorie: "Comptable",
+        liens: [{ libelle: "Comptabilité", href: "/app/comptabilite", Icone: Calculator, module: "COMPTABILITE" }],
+      },
+      {
+        categorie: "Rapports",
+        liens: [{ libelle: "Bilan & résultat", href: "/app/comptabilite", Icone: BarChart3, module: "COMPTABILITE" }],
+      },
+      {
+        categorie: "Documents",
+        liens: [{ libelle: "Documents financiers", href: "/app/comptabilite/documents", Icone: FileText, module: "COMPTABILITE" }],
       },
     ],
   },
