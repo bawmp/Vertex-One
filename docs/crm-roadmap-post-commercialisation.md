@@ -198,6 +198,22 @@ Testé : fuite RLS entre deux entreprises fictives (`tests/suivi-heures-fuite-rl
 
 Testé : `tsc`/`eslint`/`npm test` (132 tests) verts, parcours vérifié dans un vrai navigateur (inscription, upgrade Business, affichage de toutes les sections, navigation FACO → tableau de bord depuis la sidebar).
 
+## 10. Minuteur démarrer/arrêter + vue Semaine — construit le 2026-09-07
+
+Échange du 2026-09-07 — l'utilisateur a comparé la Suivi des heures (section 8) à la vraie feuille de temps Zoho Books ("Créer votre première entrée de temps... Démarrez et arrêtez le minuteur pour enregistrer les heures... Enregistrer les heures pour une seule journée ou une semaine entière") et demandé les deux manques : un minuteur démarrer/arrêter, et une bascule "Afficher par : Jour/Semaine".
+
+- Nouvelle table `minuteurActif` : une ligne = un minuteur EN COURS pour un utilisateur, supprimée dès l'arrêt (qui crée alors la vraie `entreeTemps`) ou l'annulation. `uniqueIndex` sur `utilisateurId` — un seul minuteur actif par utilisateur, contrainte posée en base (pas seulement vérifiée en application) contre une course concurrente sur un double démarrage.
+- `src/lib/actions/minuteur.ts` : `demarrerMinuteur()` refuse (erreur affichée, pas d'écrasement silencieux) si un minuteur est déjà en cours pour cet utilisateur ; `arreterMinuteur()` calcule la durée écoulée depuis `demarreLe` (plancher 0.01h pour ne jamais violer la contrainte positive sur un arrêt quasi immédiat) et crée l'`entreeTemps` correspondante (`facturable: true`, taux repris de `projet.tauxHoraireParDefaut`, aucune ressaisie à l'arrêt — même simplification que `creerEntreeTemps`) ; `annulerMinuteur()` supprime sans rien créer.
+- Visible uniquement sur les deux pages Feuille de temps existantes (fiche Projet + page transverse `/app/projets/feuille-temps`), **pas un widget global dans la sidebar** — décision délibérée, validée avec l'utilisateur, pour ne pas ajouter de requête `avecEntreprise()` (donc une transaction) à chaque navigation `/app/*`, cohérent avec le choix déjà fait dans `layout.tsx` (une seule requête simple, sans transaction, par souci de latence Neon documentée plus haut dans ce fichier CLAUDE.md). Le minuteur continue de tourner côté serveur même hors de ces deux pages ; seul l'affichage y est limité.
+- `src/app/app/projets/feuille-temps/vue-feuille-temps.tsx` : bascule "Afficher par : Jour/Semaine" — le mode Jour délègue au rendu existant (aucune régression), le mode Semaine est une grille en **lecture seule** (agrégation des heures par ligne/jour, navigation semaine précédente/suivante) — jamais une saisie cellule par cellule, chantier disproportionné par rapport à la demande, même discipline que le tableau de bord FACO (section 9).
+
+Écarts volontaires, connus :
+- Pas de ressaisie note/tâche/taux à l'arrêt du minuteur — hérités du démarrage, jamais modifiables entre-temps.
+- Vue Semaine en lecture seule, aucune édition inline.
+- Pas d'app mobile de pointage (mentionnée dans l'écran Zoho collé par l'utilisateur) — hors périmètre de ce produit.
+
+Testé : `tsc`/`eslint`/`vitest` (138 tests, dont `tests/minuteur-logique.test.ts` et `tests/minuteur-fuite-rls.test.ts`) verts, parcours complet vérifié dans un vrai navigateur (démarrage sur la fiche Projet, visible et arrêtable depuis la page transverse — preuve que l'état est bien côté serveur —, entrée créée, grille Semaine correcte, annulation sans création d'entrée).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
