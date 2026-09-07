@@ -83,6 +83,9 @@ export const entreprise = pgTable("entreprise", {
   // Extensions Ventes (échange du 2026-09-07) — Bon de commande client
   // (Sales Order), série distincte du Bon de commande fournisseur ci-dessus.
   compteurBonsCommandeVente: integer("compteur_bons_commande_vente").notNull().default(0),
+  // Reçus de vente (échange du 2026-09-07) — série distincte, jamais mêlée à
+  // la numérotation des Factures.
+  compteurRecusVente: integer("compteur_recus_vente").notNull().default(0),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -870,6 +873,79 @@ export const ligneFactureRecurrente = pgTable(
   ]
 ).enableRLS();
 
+export const statutRecuVente = pgEnum("statut_recu_vente", ["EMISE", "ANNULE"]);
+
+/**
+ * Extensions Ventes, Reçus de vente (Sales Receipts, échange du 2026-09-07)
+ * — une vente encaissée intégralement et immédiatement (Mobile Money,
+ * espèces...), qui ne passe jamais par le compte Clients (411000) ni par le
+ * cycle Facture/Paiement : contrairement à accepterDevis()/
+ * convertirBonCommandeVenteEnFacture(), voir genererEcrituresRecuVente() qui
+ * débite directement la trésorerie. Numérotation propre (genererNumeroRecuVente(),
+ * préfixe "REC"), jamais mêlée à la série des Factures.
+ */
+export const recuVente = pgTable(
+  "recu_vente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    statut: statutRecuVente("statut").notNull().default("EMISE"),
+    dateEmission: timestamp("date_emission").notNull().defaultNow(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0),
+    montantTTC: integer("montant_ttc").notNull(),
+    moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
+    referenceTransaction: text("reference_transaction"), // renvoyée par NotchPay — absente en saisie manuelle, comme paiement.referenceTransaction
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("recu_vente_entreprise_numero_unique").on(table.entrepriseId, table.numero),
+    index("recu_vente_entreprise_idx").on(table.entrepriseId),
+    index("recu_vente_deal_idx").on(table.dealId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneRecuVente = pgTable(
+  "ligne_recu_vente",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    recuVenteId: text("recu_vente_id")
+      .notNull()
+      .references(() => recuVente.id),
+    produitId: text("produit_id").references(() => produit.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull().default(19.25),
+  },
+  (table) => [
+    index("ligne_recu_vente_entreprise_idx").on(table.entrepriseId),
+    index("ligne_recu_vente_rv_idx").on(table.recuVenteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const paiement = pgTable(
   "paiement",
   {
@@ -1419,6 +1495,8 @@ export const ecritureComptable = pgTable(
     depenseId: text("depense_id"),
     factureFournisseurId: text("facture_fournisseur_id"),
     paiementEffectueId: text("paiement_effectue_id"),
+    // Reçus de vente (échange du 2026-09-07) — même raisonnement, jamais de FK stricte.
+    recuVenteId: text("recu_vente_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [

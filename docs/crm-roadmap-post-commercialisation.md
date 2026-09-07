@@ -74,7 +74,7 @@ Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACH
 - Paiement partiel d'une Facture fournisseur (`PARTIELLEMENT_PAYEE` existe dans l'enum, non implémenté — même écart que côté Facture client).
 - Un Bon de commande annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
-**Extensions Ventes restantes** (même spec) : Factures d'acompte (Retainer), Reçus de vente (Sales Receipts). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
+**Extensions Ventes restantes** (même spec) : Factures d'acompte (Retainer). Correction : les **Avoirs clients (Credit Notes) existaient déjà** depuis le Palier 1 (`avoirFacture`/`annulerFacture()`) — erreur de cette page corrigée le 2026-09-07, ne pas les reconstruire.
 
 ### Bons de commande client (Sales Orders) — construit le 2026-09-07
 
@@ -97,6 +97,14 @@ Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-factures-recur
 - Une seule fréquence par modèle parmi MENSUEL/TRIMESTRIEL/ANNUEL (pas de fréquence personnalisée ni hebdomadaire, jugées peu pertinentes pour des contrats de service au Cameroun).
 - Un modèle réactivé après une pause ne rattrape jamais plusieurs échéances manquées d'un coup — une seule Facture est générée par passage quotidien du worker, comme n'importe quel autre modèle (voir commentaire de `reactiverFactureRecurrente()`).
 - Pas d'aperçu de la prochaine Facture avant génération, ni de modification des lignes d'un modèle après sa création (il faut l'arrêter et en recréer un autre).
+
+### Reçus de vente (Sales Receipts) — construit le 2026-09-07
+
+Une vente au comptant, encaissée intégralement à la création (`recuVente`/`ligneRecuVente`), créée depuis la fiche Deal (bouton "Créer un reçu de vente") — pas d'état brouillon, contrairement au Devis/Bon de commande. Numérotation propre (`genererNumeroRecuVente()`, préfixe "REC"), jamais mêlée à celle des Factures. Différence structurelle clé avec toutes les autres extensions Ventes : un Reçu de vente ne passe jamais par le compte Clients (411000) — `genererEcrituresRecuVente()` (`src/lib/comptabilite/ecritures.ts`) débite directement la trésorerie (Caisse 571000 pour espèces/manuel, Banque 512000 pour Mobile Money/virement, même règle que `genererEcrituresDepense()` côté Achats) puisque le règlement est immédiat, jamais une créance en attente. Décrémente le stock des produits suivis (`decrementerStockVente()`) comme toute autre vente. Même vérification NIU obligatoire qu'à la création d'un Devis.
+
+Testé : fuite RLS entre deux entreprises fictives (`tests/ventes-recus-vente-fuite-rls.test.ts`), logique complète — numérotation, décrément de stock, bon compte de trésorerie selon le moyen de paiement, non-réutilisation d'un Reçu déjà ANNULE (`tests/ventes-recu-vente-logique.test.ts`), parcours complet vérifié dans un vrai navigateur (Lead → Contact/Deal → Produit avec stock → Reçu de vente → annulation).
+
+Écart volontaire, connu : comme les autres documents financiers de ce module, l'annulation d'un Reçu de vente ne contre-passe jamais les écritures d'origine (même simplification que `annulerFacture()`/`annulerBonCommandeAchat()`).
 
 ## 6. Zoho Books — Catalogue Produits/Tarifs (Items)
 

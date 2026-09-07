@@ -19,7 +19,7 @@ async function creerEcritures(
   entrepriseId: string,
   dateEcriture: Date,
   lignes: LigneEcriture[],
-  reference: { factureId?: string; paiementId?: string; depenseId?: string; factureFournisseurId?: string; paiementEffectueId?: string }
+  reference: { factureId?: string; paiementId?: string; depenseId?: string; factureFournisseurId?: string; paiementEffectueId?: string; recuVenteId?: string }
 ): Promise<void> {
   const numeros = [...new Set(lignes.map((l) => l.numeroCompte).filter((n): n is string => !!n))];
   const comptes =
@@ -46,6 +46,7 @@ async function creerEcritures(
       depenseId: reference.depenseId,
       factureFournisseurId: reference.factureFournisseurId,
       paiementEffectueId: reference.paiementEffectueId,
+      recuVenteId: reference.recuVenteId,
     }))
   );
 }
@@ -102,6 +103,32 @@ export async function genererEcrituresPaiement(
     ],
     { factureId: params.factureId, paiementId: params.paiementId }
   );
+}
+
+/**
+ * Extensions Ventes, Reçus de vente (échange du 2026-09-07) — appelée à la
+ * création d'un Reçu de vente : contrairement à genererEcrituresFactureEmise()
+ * (qui débite Clients, 411000, en attendant un règlement séparé), débite
+ * directement la trésorerie puisque le règlement est immédiat et intégral —
+ * un Reçu de vente ne passe jamais par le compte Clients. "especes" traité
+ * comme la Caisse (571000) comme dans genererEcrituresDepense(), tout le
+ * reste (Mobile Money, virement) comme la Banque (512000).
+ */
+export async function genererEcrituresRecuVente(
+  tx: TransactionDrizzle,
+  recuVente: { id: string; entrepriseId: string; numero: string; dateEmission: Date; montantHT: number; montantTVA: number; montantTTC: number; moyenPaiement: string }
+): Promise<void> {
+  const compteTresorerie = recuVente.moyenPaiement === "especes" || recuVente.moyenPaiement === "manuel" ? "571000" : "512000";
+
+  const lignes: LigneEcriture[] = [
+    { numeroCompte: compteTresorerie, libelle: `Reçu ${recuVente.numero}`, debit: recuVente.montantTTC },
+    { numeroCompte: "706000", libelle: `Reçu ${recuVente.numero}`, credit: recuVente.montantHT },
+  ];
+  if (recuVente.montantTVA > 0) {
+    lignes.push({ numeroCompte: "443200", libelle: `TVA ${recuVente.numero}`, credit: recuVente.montantTVA });
+  }
+
+  await creerEcritures(tx, recuVente.entrepriseId, recuVente.dateEmission, lignes, { recuVenteId: recuVente.id });
 }
 
 /**

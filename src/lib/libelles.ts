@@ -88,6 +88,12 @@ export const FREQUENCE_FACTURE_RECURRENTE: Record<string, { libelle: string; var
   ANNUEL: { libelle: "Annuel", variante: "info" },
 };
 
+// Extensions Ventes, Reçus de vente (échange du 2026-09-07).
+export const STATUT_RECU_VENTE: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  EMISE: { libelle: "Émis", variante: "success" },
+  ANNULE: { libelle: "Annulé", variante: "danger" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

@@ -26,7 +26,7 @@ import { entreprise } from "@/db/schema";
 async function incrementerCompteur(
   tx: TransactionDrizzle,
   entrepriseId: string,
-  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat" | "compteurBonsCommandeVente"
+  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat" | "compteurBonsCommandeVente" | "compteurRecusVente"
 ): Promise<number> {
   const [ligne] = await tx
     .update(entreprise)
@@ -70,4 +70,15 @@ export async function genererNumeroBonCommandeVente(tx: TransactionDrizzle, entr
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurBonsCommandeVente");
   return `BCV-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/**
+ * Extensions Ventes, Reçus de vente (échange du 2026-09-07) — série propre,
+ * jamais mêlée à celle des Factures même si un Reçu se comporte comme une
+ * facture immédiatement payée (voir genererEcrituresRecuVente()).
+ */
+export async function genererNumeroRecuVente(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurRecusVente");
+  return `REC-${annee}-${String(compteur).padStart(6, "0")}`;
 }

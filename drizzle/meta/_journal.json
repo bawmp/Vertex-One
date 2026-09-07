@@ -281,6 +281,20 @@
       "when": 1788747605175,
       "tag": "0039_force_rls_factures_recurrentes",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788748997779,
+      "tag": "0040_recus_vente",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788749026820,
+      "tag": "0041_force_rls_recus_vente",
+      "breakpoints": true
     }
   ]
 }
