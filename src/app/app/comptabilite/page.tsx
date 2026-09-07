@@ -11,6 +11,7 @@ import { calculerBalance, calculerCompteDeResultat, calculerBilan } from "@/lib/
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { FormulaireVerrouillage } from "./formulaire-verrouillage";
 
 export default async function PageComptabilite() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -30,7 +31,7 @@ export default async function PageComptabilite() {
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
-      .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
+      .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement, dateVerrouillageComptable: entreprise.dateVerrouillageComptable })
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
@@ -55,7 +56,7 @@ export default async function PageComptabilite() {
       .orderBy(desc(ecritureComptable.dateEcriture))
       .limit(50);
 
-    return { compteDeResultat, bilan, dernieresEcritures };
+    return { compteDeResultat, bilan, dernieresEcritures, dateVerrouillageComptable: monEntreprise.dateVerrouillageComptable };
   });
 
   if (!donnees) {
@@ -67,7 +68,8 @@ export default async function PageComptabilite() {
     );
   }
 
-  const { compteDeResultat, bilan, dernieresEcritures } = donnees;
+  const { compteDeResultat, bilan, dernieresEcritures, dateVerrouillageComptable } = donnees;
+  const peutModifier = peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER");
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -169,6 +171,17 @@ export default async function PageComptabilite() {
           </Card>
         )}
       </div>
+
+      {peutModifier ? (
+        <div id="verrouillage" className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Verrouillage de transactions</h2>
+          <Card>
+            <CardContent>
+              <FormulaireVerrouillage dateVerrouillage={dateVerrouillageComptable} />
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

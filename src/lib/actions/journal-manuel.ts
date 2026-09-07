@@ -3,11 +3,13 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
-import { journalManuel, ecritureComptable } from "@/db/schema";
+import { journalManuel, ecritureComptable, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
+import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
 
 const schemaLigne = z.object({
   compteId: z.string().min(1, "Chaque ligne doit avoir un compte."),
@@ -69,7 +71,17 @@ export async function creerJournalManuel(_etat: EtatJournalManuel, formData: For
     return { erreur: "Le montant total doit être positif." };
   }
 
+  const erreurVerrouillage = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx.select({ dateVerrouillageComptable: entreprise.dateVerrouillageComptable }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    return verifierDateNonVerrouillee(monEntreprise?.dateVerrouillageComptable ?? null, new Date(date));
+  });
+  if (erreurVerrouillage) return { erreur: erreurVerrouillage };
+
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Insertion directe dans ecritureComptable (pas via creerEcritures(),
+    // qui suppose une écriture générée par un document Ventes/Achats) — la
+    // garde de verrouillage a donc dû être vérifiée explicitement ci-dessus,
+    // ce chemin ne passe jamais par le point de contrôle centralisé.
     const numero = await genererNumeroJournalManuel(tx, utilisateurConnecte.entrepriseId);
     const dateEcriture = new Date(date);
 

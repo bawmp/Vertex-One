@@ -262,6 +262,22 @@ Restent des lacunes réelles, non construites (voir section 13) : Budgets, Verro
 
 Testé : `tsc`/`eslint`/`vitest` (`tests/journal-manuel-logique.test.ts`, `tests/journal-manuel-fuite-rls.test.ts`) verts, parcours réel en navigateur (création d'un journal équilibré, apparition dans l'historique, désactivation du bouton dès que le journal devient déséquilibré).
 
+## 15. FACO > Comptable : Budgets + Verrouillage de transactions — construit le 2026-09-08
+
+Suite directe des sections 13-14 (même échange) — les deux dernières vraies lacunes de la catégorie Comptable, construites ensemble sur demande explicite de l'utilisateur ("continu avec les deux autres"). Avec cette tranche, 5 des 6 onglets Zoho Books > Comptable ont un équivalent construit ; seuls "Mise à jour en bloc"/"Ajustements de la devise" restent hors périmètre (devise unique XAF).
+
+**Verrouillage de transactions** :
+- `entreprise.dateVerrouillageComptable` (nullable) — aucune écriture ne peut être datée à cette date ou avant.
+- Contrôle centralisé dans `creerEcritures()` (`src/lib/comptabilite/ecritures.ts`), le point de passage unique de **toute** écriture comptable générée par un document (Facture, Dépense, Paiement, Reçu, Facture d'acompte, Facture fournisseur, Paiement effectué) — un seul changement couvre Ventes ET Achats, jamais dupliqué action par action. `verifierDateNonVerrouillee()` (`src/lib/comptabilite/verrouillage.ts`) est la fonction pure partagée.
+- `creerJournalManuel()` insère directement dans `ecritureComptable` (ne passe jamais par `creerEcritures()`, ses lignes ne sont pas générées depuis un document) : la garde y est donc dupliquée explicitement, avec un message convivial (`{erreur}`) avant même de tenter l'insertion — contrairement aux actions Ventes/Achats, où une violation remonte comme une exception non interceptée (le filet de sécurité fonctionne partout, mais seul Journal manuel a un message d'erreur inline soigné pour l'instant ; écart volontaire, documenté ici plutôt que remonté silencieusement).
+- Réglable depuis `/app/comptabilite#verrouillage` (`FormulaireVerrouillage`), réservé à `peut(role, "COMPTABILITE", "MODIFIER")`.
+
+**Budgets** :
+- `budget`/`budgetLigne` : un montant budgété par compte sur une période (pas de ventilation mensuelle comme chez Zoho — simplification délibérée). Contrainte unique `(budgetId, compteId)` : un compte ne peut apparaître qu'une fois par budget.
+- Fiche détail (`/app/comptabilite/budgets/[id]`) calcule le Réalisé à la volée via `calculerBalance(tx, entrepriseId, dateFin, dateDebut)` — jamais stocké, toujours à jour. Un compte de produits (classe 7, créditeur par nature) voit son solde inversé pour un Réalisé positif, même convention que `calculerCompteDeResultat()`.
+
+Testé : `tsc`/`eslint`/`vitest` (`journal-manuel` mis à jour + `verrouillage-comptable-logique`, `budget-logique`, `budget-fuite-rls`) verts, parcours réel en navigateur (création d'un budget avec ligne, Budgété/Réalisé/Écart affichés correctement, verrouillage posé puis un journal manuel avant la date refusé avec message explicite et un journal après la date accepté).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -150,19 +150,20 @@ const MODULES_MENU: ItemMenu[] = [
         categorie: "Banque",
         liens: [{ libelle: "Rapprochement bancaire", href: "/app/comptabilite/rapprochement", Icone: Wallet, module: "COMPTABILITE" }],
       },
-      // 3 des 6 onglets Zoho Books > Comptable (échange du 2026-09-07) —
-      // "Budgets", "Verrouillage de transactions" et "Mise à jour en bloc"/
-      // "Ajustements de la devise" n'ont pas d'équivalent construit (devise
-      // unique XAF, pas de multi-devise pour les deux derniers). "Journal"
-      // pointe vers le journal déjà existant sur /app/comptabilite ; "Plan
-      // comptable" et "Journaux manuels" sont deux nouvelles pages — voir
-      // docs/crm-roadmap-post-commercialisation.md.
+      // 5 des 6 onglets Zoho Books > Comptable (échange du 2026-09-07) —
+      // seuls "Mise à jour en bloc"/"Ajustements de la devise" restent sans
+      // équivalent (devise unique XAF, pas de multi-devise). "Journal" et
+      // "Verrouillage" pointent vers des sections de /app/comptabilite ;
+      // "Journaux manuels"/"Plan comptable"/"Budgets" sont des pages dédiées
+      // — voir docs/crm-roadmap-post-commercialisation.md.
       {
         categorie: "Comptable",
         liens: [
           { libelle: "Journal", href: "/app/comptabilite#journal", Icone: Calculator, module: "COMPTABILITE" },
           { libelle: "Journaux manuels", href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
           { libelle: "Plan comptable", href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
+          { libelle: "Budgets", href: "/app/comptabilite/budgets", Icone: PiggyBank, module: "COMPTABILITE" },
+          { libelle: "Verrouillage", href: "/app/comptabilite#verrouillage", Icone: ShieldCheck, module: "COMPTABILITE" },
         ],
       },
       {

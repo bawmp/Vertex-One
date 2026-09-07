@@ -1,6 +1,7 @@
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { compteComptable, ecritureComptable } from "@/db/schema";
+import { compteComptable, ecritureComptable, entreprise } from "@/db/schema";
+import { verifierDateNonVerrouillee } from "./verrouillage";
 
 // compteId : quand le compte est déjà connu (ex. catégorie de charge choisie
 // par l'utilisateur pour une Dépense) — évite une résolution par numéro pour
@@ -29,6 +30,15 @@ async function creerEcritures(
     factureAcompteId?: string;
   }
 ): Promise<void> {
+  // Verrouillage de transactions (échange du 2026-09-07) — un seul contrôle
+  // ici couvre TOUTE écriture comptable de ce produit (Facture, Dépense,
+  // Paiement, Reçu, Acompte, Facture fournisseur, Journal manuel...),
+  // puisque creerEcritures() est le point de passage unique vers
+  // ecritureComptable. Jamais dupliqué dans chaque action appelante.
+  const [monEntreprise] = await tx.select({ dateVerrouillageComptable: entreprise.dateVerrouillageComptable }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  const erreurVerrouillage = verifierDateNonVerrouillee(monEntreprise?.dateVerrouillageComptable ?? null, dateEcriture);
+  if (erreurVerrouillage) throw new Error(erreurVerrouillage);
+
   const numeros = [...new Set(lignes.map((l) => l.numeroCompte).filter((n): n is string => !!n))];
   const comptes =
     numeros.length > 0
