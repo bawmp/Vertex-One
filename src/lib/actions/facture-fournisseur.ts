@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { factureFournisseur, ligneFactureFournisseur, paiementEffectue } from "@/db/schema";
+import { factureFournisseur, ligneFactureFournisseur, paiementEffectue, avoirFournisseur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
@@ -140,6 +140,32 @@ export async function marquerFactureFournisseurPayee(factureFournisseurId: strin
       moyenPaiement: "manuel",
       datePaiement,
     });
+  });
+
+  revalidatePath(CHEMIN);
+}
+
+/**
+ * Avoir fournisseur (Vendor Credit) — miroir exact de annulerFacture() côté
+ * client, même simplification assumée (pas de contre-passation des
+ * écritures d'origine, voir schema.ts).
+ */
+export async function annulerFactureFournisseur(factureFournisseurId: string, motif: string) {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "ACHATS", "MODIFIER")) return;
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [laFacture] = await tx.select().from(factureFournisseur).where(eq(factureFournisseur.id, factureFournisseurId));
+    if (!laFacture || laFacture.statut === "ANNULEE") return;
+
+    await tx.insert(avoirFournisseur).values({
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      factureFournisseurId,
+      motif: motif || "Non renseigné",
+    });
+
+    await tx.update(factureFournisseur).set({ statut: "ANNULEE" }).where(eq(factureFournisseur.id, factureFournisseurId));
   });
 
   revalidatePath(CHEMIN);

@@ -1,0 +1,159 @@
+"use client";
+
+import { useActionState, useState } from "react";
+import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { creerBonCommandeAchat } from "@/lib/actions/bon-commande-achat";
+import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
+
+type Ligne = { designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
+const LIGNE_VIDE: Ligne = { designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
+
+export function FormulaireBonCommande({
+  fournisseurs,
+  comptesCharge,
+}: {
+  fournisseurs: { id: string; nom: string }[];
+  comptesCharge: { id: string; numero: string; libelle: string }[];
+}) {
+  const [etat, action, enCours] = useActionState(creerBonCommandeAchat, null);
+  const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
+
+  function majLigne(index: number, champ: keyof Ligne, valeur: string) {
+    setLignes((precedent) => precedent.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
+  }
+
+  const montants = calculerMontants(
+    lignes.map((l) => ({ quantite: Number(l.quantite) || 0, prixUnitaire: Number(l.prixUnitaire) || 0, tauxTVA: Number(l.tauxTVA) || 0 }))
+  );
+
+  return (
+    <Card>
+      <CardContent>
+        <form action={action} className="flex flex-col gap-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="fournisseurId">Fournisseur</Label>
+              <Select id="fournisseurId" name="fournisseurId" required defaultValue="">
+                <option value="" disabled>
+                  Choisir…
+                </option>
+                {fournisseurs.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nom}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="compteComptableId">Catégorie de charge prévue</Label>
+              <Select id="compteComptableId" name="compteComptableId" required defaultValue="">
+                <option value="" disabled>
+                  Choisir…
+                </option>
+                {comptesCharge.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.numero} — {c.libelle}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {lignes.map((ligne, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-[1fr_5rem_7rem_5rem_auto] items-end gap-2 rounded-lg border border-transparent p-1 transition-colors focus-within:border-border"
+              >
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>Désignation</Label> : null}
+                  <Input name="designation" required value={ligne.designation} onChange={(e) => majLigne(index, "designation", e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>Qté</Label> : null}
+                  <Input
+                    name="quantite"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={ligne.quantite}
+                    onChange={(e) => majLigne(index, "quantite", e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>Prix unit. (FCFA)</Label> : null}
+                  <Input
+                    name="prixUnitaire"
+                    type="number"
+                    min="0"
+                    required
+                    value={ligne.prixUnitaire}
+                    onChange={(e) => majLigne(index, "prixUnitaire", e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {index === 0 ? <Label>TVA %</Label> : null}
+                  <Input
+                    name="tauxTVA"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={ligne.tauxTVA}
+                    onChange={(e) => majLigne(index, "tauxTVA", e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={lignes.length === 1}
+                  onClick={() => setLignes((precedent) => precedent.filter((_, i) => i !== index))}
+                  aria-label="Retirer la ligne"
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-4" aria-hidden />
+                </Button>
+              </div>
+            ))}
+
+            <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setLignes((p) => [...p, { ...LIGNE_VIDE }])}>
+              <Plus data-icon="inline-start" aria-hidden />
+              Ajouter une ligne
+            </Button>
+          </div>
+
+          <div className="rounded-lg bg-muted/40 p-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Montant HT</span>
+              <span className="tabular-nums">{formaterFCFA(montants.montantHT)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">TVA</span>
+              <span className="tabular-nums">{formaterFCFA(montants.montantTVA)}</span>
+            </div>
+            <div className="mt-2 flex justify-between border-t pt-2 text-base font-medium">
+              <span>Total TTC</span>
+              <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
+            </div>
+          </div>
+
+          {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
+
+          <Button type="submit" disabled={enCours} className="self-start">
+            {enCours ? <Spinner /> : null}
+            {enCours ? "Création…" : "Créer le bon de commande"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

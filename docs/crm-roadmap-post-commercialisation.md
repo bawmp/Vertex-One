@@ -62,18 +62,17 @@ Autres écarts, moins prioritaires :
 
 ## 5. Zoho Books — Cycle Achats (Fournisseurs/Dépenses/Factures fournisseur/Paiements effectués)
 
-Construit le 2026-09-07 à partir de `zoho-books-full-spec.md` (cahier des charges complet fourni par l'utilisateur), en deux tranches vérifiées séparément (schéma → migration → écritures comptables → actions → interface → tests RLS → parcours navigateur réel) :
+Construit le 2026-09-07 à partir de `zoho-books-full-spec.md` (cahier des charges complet fourni par l'utilisateur), en trois tranches vérifiées séparément (schéma → migration → écritures comptables → actions → interface → tests RLS → parcours navigateur réel) — cycle Achats désormais complet de bout en bout :
 
 1. **Fournisseurs** (`fournisseur`) et **Dépenses** (`depense`) — saisie rapide "hors cycle bill complet" qui génère immédiatement ses écritures comptables.
 2. **Factures fournisseur** (`factureFournisseur`/`ligneFactureFournisseur`, Bills) — la vraie dette fournisseur avec échéance, numéro DU FOURNISSEUR (texte libre, jamais généré par nous, à l'inverse de Facture client) — et **Paiements effectués** (`paiementEffectue`, Payments Made), réglés intégralement en une fois (même simplification que `marquerFacturePayee()` côté client, qui ne gère pas non plus le paiement partiel malgré `PARTIELLEMENT_PAYEE` déjà dans son enum).
+3. **Bons de commande fournisseur** (`bonCommandeAchat`/`ligneBonCommandeAchat`, Purchase Orders) — NOTRE numéro (`genererNumeroBonCommandeAchat`, même mécanisme atomique que Devis/Facture), aucune écriture comptable générée à la création (hors bilan tant que non facturé, comme chez Zoho Books) ; conversion en Facture fournisseur en un clic (copie des lignes, comme `accepterDevis()` côté Ventes) — et **Avoirs fournisseur** (`avoirFournisseur`, Vendor Credits), miroir exact de `annulerFacture()`/`avoirFacture` côté client (même simplification assumée : pas de contre-passation des écritures d'origine).
 
-Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACHATS` propre (voir `src/lib/permissions.ts`). Une seule catégorie de charge par Dépense/Facture fournisseur (pas de compte par ligne), faute de catalogue Produits/Tarifs (voir ci-dessous).
+Module "Achats" dédié dans la sidebar (`src/app/app/achats/`), permission `ACHATS` propre (voir `src/lib/permissions.ts`). Une seule catégorie de charge par Dépense/Facture fournisseur/Bon de commande (pas de compte par ligne), faute de catalogue Produits/Tarifs (voir ci-dessous).
 
-**Reste à construire pour ce cycle** (tranches séparées à venir, un sujet financier sensible traité étape par étape plutôt qu'en un seul bloc) :
-- Bons de commande fournisseur (Purchase Orders)
-- Avoirs fournisseur (Vendor Credits)
-- Annulation/void d'une Facture fournisseur (le statut ANNULEE existe dans l'enum mais aucune action ne le pose encore)
-- Paiement partiel d'une Facture fournisseur (PARTIELLEMENT_PAYEE existe dans l'enum, non implémenté — même écart que côté Facture client)
+**Écarts volontaires, connus** :
+- Paiement partiel d'une Facture fournisseur (`PARTIELLEMENT_PAYEE` existe dans l'enum, non implémenté — même écart que côté Facture client).
+- Un Bon de commande annulé ou déjà facturé ne peut pas être modifié/réédité (pas de retour en BROUILLON).
 
 **Extensions Ventes non construites** (même spec) : Bons de commande client (Sales Orders), Factures récurrentes, Factures d'acompte (Retainer), Avoirs clients (Credit Notes), Reçus de vente (Sales Receipts).
 

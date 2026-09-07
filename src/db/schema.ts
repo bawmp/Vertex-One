@@ -75,6 +75,11 @@ export const entreprise = pgTable("entreprise", {
   // src/lib/facturation/numerotation.ts).
   compteurFactures: integer("compteur_factures").notNull().default(0),
   compteurDevis: integer("compteur_devis").notNull().default(0),
+  // Cycle Achats (échange du 2026-09-07) — un Bon de commande fournisseur
+  // n'est pas un document fiscal (pas de contrainte légale de séquence sans
+  // trou), mais réutilise le même mécanisme atomique éprouvé que
+  // Devis/Facture plutôt que d'en inventer un nouveau.
+  compteurBonsCommandeAchat: integer("compteur_bons_commande_achat").notNull().default(0),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -1519,6 +1524,110 @@ export const paiementEffectue = pgTable(
   (table) => [
     index("paiement_effectue_entreprise_idx").on(table.entrepriseId),
     index("paiement_effectue_facture_idx").on(table.factureFournisseurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Cycle Achats, troisième tranche (échange du 2026-09-07) — Bon de commande
+// fournisseur (Purchase Order) : un engagement d'achat, pas encore une dette
+// comptable — aucune écriture générée à sa création, contrairement à une
+// Facture fournisseur (les commandes en cours restent hors bilan tant
+// qu'elles ne sont pas facturées, comme chez Zoho Books). NOTRE numéro
+// (genererNumeroBonCommandeAchat), contrairement au numéro d'une Facture
+// fournisseur qui est celui du fournisseur.
+export const statutBonCommandeAchat = pgEnum("statut_bon_commande_achat", ["BROUILLON", "FACTURE", "ANNULE"]);
+
+export const bonCommandeAchat = pgTable(
+  "bon_commande_achat",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(),
+    fournisseurId: text("fournisseur_id")
+      .notNull()
+      .references(() => fournisseur.id),
+    compteComptableId: text("compte_comptable_id")
+      .notNull()
+      .references(() => compteComptable.id),
+    statut: statutBonCommandeAchat("statut").notNull().default("BROUILLON"),
+    dateCommande: timestamp("date_commande").notNull().defaultNow(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull().default(0),
+    montantTTC: integer("montant_ttc").notNull(),
+    // Renseigné à la conversion en Facture fournisseur — jamais réutilisé
+    // pour une deuxième conversion (voir convertirBonCommandeEnFacture()).
+    factureFournisseurId: text("facture_fournisseur_id").references(() => factureFournisseur.id),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("bon_commande_achat_entreprise_idx").on(table.entrepriseId),
+    index("bon_commande_achat_fournisseur_idx").on(table.fournisseurId),
+    index("bon_commande_achat_assigne_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneBonCommandeAchat = pgTable(
+  "ligne_bon_commande_achat",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    bonCommandeAchatId: text("bon_commande_achat_id")
+      .notNull()
+      .references(() => bonCommandeAchat.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull().default(19.25),
+  },
+  (table) => [
+    index("ligne_bon_commande_achat_entreprise_idx").on(table.entrepriseId),
+    index("ligne_bon_commande_achat_bc_idx").on(table.bonCommandeAchatId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Avoir fournisseur (Vendor Credit) — miroir exact de avoirFacture (côté
+// client) : même simplification assumée (pas de contre-passation des
+// écritures d'origine, voir annulerFacture() qui ne le fait pas non plus).
+export const avoirFournisseur = pgTable(
+  "avoir_fournisseur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureFournisseurId: text("facture_fournisseur_id")
+      .notNull()
+      .unique()
+      .references(() => factureFournisseur.id),
+    motif: text("motif").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("avoir_fournisseur_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

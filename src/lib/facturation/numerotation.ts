@@ -26,7 +26,7 @@ import { entreprise } from "@/db/schema";
 async function incrementerCompteur(
   tx: TransactionDrizzle,
   entrepriseId: string,
-  colonne: "compteurDevis" | "compteurFactures"
+  colonne: "compteurDevis" | "compteurFactures" | "compteurBonsCommandeAchat"
 ): Promise<number> {
   const [ligne] = await tx
     .update(entreprise)
@@ -47,4 +47,15 @@ export async function genererNumeroFacture(tx: TransactionDrizzle, entrepriseId:
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurFactures");
   return `FAC-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/**
+ * Cycle Achats (échange du 2026-09-07) — NOTRE numéro (émis par nous vers le
+ * fournisseur), contrairement à celui d'une Facture fournisseur qui est
+ * saisi tel quel depuis le document du fournisseur.
+ */
+export async function genererNumeroBonCommandeAchat(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurBonsCommandeAchat");
+  return `BC-${annee}-${String(compteur).padStart(6, "0")}`;
 }

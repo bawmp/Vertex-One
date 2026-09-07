@@ -61,6 +61,13 @@ export const STATUT_FACTURE_FOURNISSEUR: Record<string, { libelle: string; varia
   ANNULEE: { libelle: "Annulée", variante: "neutral" },
 };
 
+// Cycle Achats, troisième tranche (échange du 2026-09-07).
+export const STATUT_BON_COMMANDE_ACHAT: Record<string, { libelle: string; variante: VarianteBadge }> = {
+  BROUILLON: { libelle: "Brouillon", variante: "neutral" },
+  FACTURE: { libelle: "Facturé", variante: "success" },
+  ANNULE: { libelle: "Annulé", variante: "danger" },
+};
+
 export const STATUT_DOSSIER: Record<string, { libelle: string; variante: VarianteBadge }> = {
   ACTIF: { libelle: "Actif", variante: "success" },
   ARCHIVE: { libelle: "Archivé", variante: "neutral" },

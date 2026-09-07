@@ -218,6 +218,20 @@
       "when": 1788738325684,
       "tag": "0030_force_rls_factures_fournisseur",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788739545754,
+      "tag": "0031_bons_commande_achat_avoirs_fournisseur",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788739607459,
+      "tag": "0032_force_rls_bons_commande_avoirs",
+      "breakpoints": true
     }
   ]
 }
