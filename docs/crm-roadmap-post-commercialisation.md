@@ -326,7 +326,7 @@ Construit :
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (créer une politique par ancienneté, ajouter un palier, l'assigner à un dossier embauché il y a 6 ans, vérifier le droit annuel calculé 18+2=20, créditer, vérifier le solde mis à jour).
 
-**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19), ~~processus de départ structuré~~ (fait, section 20), ~~fichiers RH dédiés~~ (fait, section 21 ci-dessous), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19), ~~processus de départ structuré~~ (fait, section 20), ~~fichiers RH dédiés~~ (fait, section 21), ~~sondages d'engagement~~ (fait, section 22 ci-dessous), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
 
 ## 19. Historique des révisions de salaire (RH) — construit le 2026-09-08
 
@@ -375,6 +375,22 @@ Construit :
 - UI : nouvelle section "Fichiers" sur la fiche dossier RH (`/app/rh/[id]`).
 
 Testé : `tsc`/`eslint` verts ; `document-rh-logique` (confirme explicitement qu'un Manager de portée EQUIPE ne voit pas les fichiers d'un employé qu'il gère par ailleurs) et `document-rh-fuite-rls` passent en isolation, ainsi que les 8 autres fichiers de tests RH exécutés ensemble (23 tests, aucune régression croisée) ; parcours réel en navigateur (fichier existant listé et téléchargeable, échec de téléversement faute de R2 configuré reste propre).
+
+## 22. Sondages d'engagement (RH) — construit le 2026-09-08
+
+Cinquième tranche du GRH inspiré de Zoho People, demandée immédiatement après les fichiers RH dédiés (section 21). Zoho distingue trois outils (eNPS Survey, Pulse Survey, Engagement Survey) — réunis ici en un seul modèle simple : un sondage a des questions de type NPS (0-10), ÉTOILES (1-5) ou TEXTE, dans n'importe quelle combinaison.
+
+Point le plus délicat de cette tranche : l'anonymat doit être réel, pas seulement une promesse d'interface. `sondageReponse` ne porte structurellement aucune colonne utilisateur — impossible de relier une ligne à son auteur même en lisant la base directement. `sondageParticipation` est une table séparée (aucune FK vers `sondageReponse`) qui prouve seulement qu'un employé a participé — utile pour bloquer une double soumission et afficher un taux de participation, jamais pour savoir ce qu'il a répondu. Un seuil (`SEUIL_MIN_PARTICIPANTS_POUR_RESULTATS = 3`) cache aussi les résultats agrégés tant qu'une question n'a pas assez de réponses, pour qu'une réponse ne devienne pas identifiable par élimination sur une petite équipe.
+
+Construit :
+- 4 tables (`sondage`, `sondageQuestion`, `sondageReponse`, `sondageParticipation`), RLS + FORCE RLS.
+- `calculerResultatsQuestion()` (`src/lib/rh/sondage.ts`) — le score NPS est la vraie formule (%Promoteurs 9-10 - %Détracteurs 0-6), jamais une simple moyenne, qui donnerait un chiffre trompeur pour qui connaît la méthodologie.
+- Gestion (créer/ouvrir/fermer/supprimer un brouillon) réservée à l'Administrateur — un sondage est par nature à l'échelle de l'entreprise, jamais une portée EQUIPE. Un sondage `OUVERT`/`FERME` n'est jamais supprimable (même esprit qu'une facture, CLAUDE.md).
+- UI : `/app/rh/sondages` (liste, création), `/app/rh/sondages/[id]` (formulaire de réponse pour un employé qui n'a pas encore répondu, résultats agrégés pour l'Administrateur).
+
+Testé : `tsc`/`eslint` verts ; `sondage-logique` (formule eNPS vérifiée sur plusieurs cas dont les extrêmes ±100, anonymat vérifié structurellement contre une vraie base — aucune colonne de `sondageReponse` ne contient un id utilisateur —, contrainte unique anti double-soumission) et `sondage-fuite-rls` passent en isolation, ainsi que les 9 autres fichiers de tests RH exécutés ensemble (31 tests, aucune régression croisée) ; parcours réel en navigateur de bout en bout (création → ouverture → réponse anonyme → résultat NPS bloqué sous le seuil mais commentaire texte visible → fermeture).
+
+**Reste du module RH identifié mais non construit** : assistance RH interne (tickets/FAQ, dernière zone listée dans la comparaison avec Zoho People). Shift management, LMS et Rapports RH consolidés n'ont toujours pas de demande observée.
 
 ## Quand y revenir
 
