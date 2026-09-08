@@ -175,7 +175,14 @@ export default async function PageRH() {
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
+          {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
+            <Link href="/app/rh/politiques-conges" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+              Politiques de congé
+            </Link>
+          ) : null}
+        </div>
         {!rhDisponible ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
             <Lock className="size-6 text-muted-foreground" aria-hidden />

@@ -1,15 +1,16 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { ArrowLeft, User, Download } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { peutVoirSalaire as calculerPeutVoirSalaire } from "@/lib/rh/acces";
 import { debutJournee } from "@/lib/rh/pointage";
+import { calculerDroitAnnuelConge } from "@/lib/rh/politique-conge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonPointage } from "./bouton-pointage";
@@ -18,6 +19,8 @@ import { ListeDemandesConge } from "./liste-demandes-conge";
 import { FormulaireDossierRH } from "./formulaire-dossier-rh";
 import { FormulaireEvaluation } from "./formulaire-evaluation";
 import { ListeEvaluations } from "./liste-evaluations";
+import { FormulairePolitiqueConge } from "./formulaire-politique-conge";
+import { BoutonCrediterConge } from "./bouton-crediter-conge";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -45,6 +48,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         salaireBase: dossierRH.salaireBase,
         nombrePersonnesACharge: dossierRH.nombrePersonnesACharge,
         soldeConges: dossierRH.soldeConges,
+        politiqueCongeId: dossierRH.politiqueCongeId,
         nomComplet: utilisateur.nomComplet,
       })
       .from(dossierRH)
@@ -71,11 +75,33 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     const [pointageAujourdHui] = await tx.select().from(pointage).where(eq(pointage.dossierRHId, id));
     const pointageDuJour = pointageAujourdHui?.date.getTime() === aujourdHui.getTime() ? pointageAujourdHui : null;
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire };
+    // Politiques de congé (échange du 2026-09-08) — liste des politiques
+    // actives pour le formulaire d'assignation, et calcul du droit annuel
+    // de la politique déjà assignée le cas échéant (jamais stocké, toujours
+    // recalculé — voir src/lib/rh/politique-conge.ts).
+    const politiquesActives = await tx
+      .select({ id: politiqueConge.id, nom: politiqueConge.nom })
+      .from(politiqueConge)
+      .where(and(eq(politiqueConge.entrepriseId, utilisateurConnecte.entrepriseId), eq(politiqueConge.actif, true)));
+
+    let politiqueAssignee: { nom: string; droitAnnuel: number } | null = null;
+    if (ligne.politiqueCongeId) {
+      const [laPolitique] = await tx.select().from(politiqueConge).where(eq(politiqueConge.id, ligne.politiqueCongeId));
+      if (laPolitique) {
+        const paliers =
+          laPolitique.type === "ANCIENNETE"
+            ? await tx.select().from(politiqueCongePalier).where(eq(politiqueCongePalier.politiqueCongeId, laPolitique.id))
+            : [];
+        const droitAnnuel = calculerDroitAnnuelConge(laPolitique, paliers, ligne.dateEmbauche, new Date());
+        politiqueAssignee = { nom: laPolitique.nom, droitAnnuel };
+      }
+    }
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -133,7 +159,17 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
                 </p>
               </div>
             ) : null}
+            <div>
+              <p className="text-muted-foreground">Politique de congé</p>
+              <p className="font-medium">{politiqueAssignee ? `${politiqueAssignee.nom} — droit annuel : ${politiqueAssignee.droitAnnuel} j.` : "Aucune"}</p>
+            </div>
           </div>
+          {peutModifierDossier ? (
+            <div className="flex flex-wrap items-end gap-2 border-t pt-3">
+              <FormulairePolitiqueConge dossierRHId={ligne.id} politiqueCongeId={ligne.politiqueCongeId} politiques={politiquesActives} />
+              {politiqueAssignee ? <BoutonCrediterConge dossierRHId={ligne.id} droitAnnuel={politiqueAssignee.droitAnnuel} /> : null}
+            </div>
+          ) : null}
           {peutModifierDossier ? (
             <FormulaireDossierRH
               dossierRHId={ligne.id}

@@ -311,6 +311,23 @@ Corrections apportées :
 
 Testé : `tsc`/`eslint`/`vitest` (`documents-autonomes-logique`, nouveau — un Employé de portée PROPRE ne voit jamais le document autonome d'un collègue, un document sensible rattaché seulement à un Projet reste bien restreint au responsable du Dossier) verts, parcours réel en navigateur.
 
+## 18. Politiques de congé (RH) — construit le 2026-09-08
+
+L'utilisateur a partagé le guide d'implémentation Zoho People complet et demandé de construire un module GRH inspiré. Vu l'ampleur (Congés, Shifts, Présence, Feuille de temps, Performance, Rémunération, Onboarding/Offboarding, Fichiers, LMS, Sondages, Help Desk, Rapports) face au socle RH déjà existant (dossier employé, congés avec solde manuel, pointage simple, évaluations en texte libre — voir `docs/palier-5-ressources-humaines-specification-technique.md`), l'utilisateur a choisi de commencer par les **politiques de congé** (extension la plus naturelle de l'existant), avec une créditation **manuelle** plutôt qu'une tâche planifiée (plus sûr, pas de risque de double créditation/prorata mal géré dès cette tranche).
+
+Les deux règles non négociables du Palier 5 restent inchangées et n'ont pas été touchées : aucun calcul de cotisation CNPS/IRPP/paie, et le salaire reste toujours saisi à la main par l'Administrateur.
+
+Construit :
+- `politiqueConge` (FIXE ou ANCIENNETE) + `politiqueCongePalier` (paliers d'ancienneté cumulatifs) — nouvelles tables, RLS + FORCE RLS, testées par un test de fuite RLS dédié (`politique-conge-fuite-rls`).
+- `dossierRH.politiqueCongeId` nullable — sans politique assignée, le solde continue d'être géré entièrement à la main comme avant cette tranche (rétrocompatible, zéro changement de comportement pour les entreprises existantes).
+- `calculerDroitAnnuelConge()` (`src/lib/rh/politique-conge.ts`) — fonction pure, calcule le droit annuel à une date de référence (paliers d'ancienneté additionnés, ancienneté jamais négative). Testée isolément (`politique-conge-logique`, 5 cas dont l'exactitude du jour anniversaire).
+- `crediterSoldeSelonPolitique()` — créditation manuelle et explicite par l'Administrateur, additive (n'écrase jamais un reliquat non pris), même logique que `approuverDemandeConge()` existant.
+- UI : `/app/rh/politiques-conges` (gestion des politiques et paliers, Admin uniquement) ; fiche dossier RH (`/app/rh/[id]`) affiche la politique assignée + droit annuel calculé + bouton "Créditer".
+
+Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (créer une politique par ancienneté, ajouter un palier, l'assigner à un dossier embauché il y a 6 ans, vérifier le droit annuel calculé 18+2=20, créditer, vérifier le solde mis à jour).
+
+**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : historique des révisions de salaire (traçabilité pure, sans paie), processus de départ structuré (offboarding : démission → clôtures → entretien de sortie), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
