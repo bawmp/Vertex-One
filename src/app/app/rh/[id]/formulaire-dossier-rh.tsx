@@ -20,18 +20,14 @@ export function FormulaireDossierRH({
   typeContrat,
   dateEmbauche,
   dateFinContrat,
-  salaireBase,
   nombrePersonnesACharge,
-  peutVoirSalaire,
 }: {
   dossierRHId: string;
   poste: string;
   typeContrat: string;
   dateEmbauche: Date;
   dateFinContrat: Date | null;
-  salaireBase: number | null;
   nombrePersonnesACharge: number;
-  peutVoirSalaire: boolean;
 }) {
   const [etat, action, enCours] = useActionState(modifierDossierRH, null);
   const [ouvert, setOuvert] = useState(false);
@@ -85,13 +81,6 @@ export function FormulaireDossierRH({
               <Input id="dateFinContrat" name="dateFinContrat" type="date" defaultValue={versDateInput(dateFinContrat)} />
             </div>
           </div>
-
-          {peutVoirSalaire ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="salaireBase">Salaire de base (FCFA)</Label>
-              <Input id="salaireBase" name="salaireBase" type="number" min={0} defaultValue={salaireBase ?? ""} className="max-w-48" />
-            </div>
-          ) : null}
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

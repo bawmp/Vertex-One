@@ -326,7 +326,21 @@ Construit :
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (créer une politique par ancienneté, ajouter un palier, l'assigner à un dossier embauché il y a 6 ans, vérifier le droit annuel calculé 18+2=20, créditer, vérifier le solde mis à jour).
 
-**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : historique des révisions de salaire (traçabilité pure, sans paie), processus de départ structuré (offboarding : démission → clôtures → entretien de sortie), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19 ci-dessous), processus de départ structuré (offboarding : démission → clôtures → entretien de sortie), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+
+## 19. Historique des révisions de salaire (RH) — construit le 2026-09-08
+
+Deuxième tranche du GRH inspiré de Zoho People ("Salary Revision History"), demandée immédiatement après les politiques de congé (section 18). Avant cette tranche, `dossierRH.salaireBase` était un simple champ mutable édité via `modifierDossierRH()` — chaque modification écrasait silencieusement la valeur précédente, sans aucune trace de qui avait changé quoi ni pourquoi.
+
+La règle non négociable du Palier 5 reste inchangée : aucun calcul de paie, le salaire est toujours saisi à la main par l'Administrateur seul.
+
+Construit :
+- `revisionSalaire` (ancien/nouveau salaire, motif optionnel, auteur, date) — nouvelle table, RLS + FORCE RLS, testée par un test de fuite RLS dédié (`revision-salaire-fuite-rls`). `ancienSalaire` est `NULL` pour la toute première fixation d'un salaire.
+- `salaireBase` retiré de `modifierDossierRH()` (formulaire général) — seule `reviserSalaire()` (`src/lib/actions/revision-salaire.ts`, Administrateur uniquement) peut désormais le modifier, pour qu'aucun chemin ne puisse changer le salaire sans laisser de trace dans `revisionSalaire`.
+- `reviserSalaire()` capture l'ancien salaire (lu dans la même transaction) AVANT d'écraser la valeur — jamais un simple `UPDATE` isolé.
+- UI : fiche dossier RH (`/app/rh/[id]`) gagne une section "Historique de salaire" (visible aux mêmes conditions que le salaire lui-même — `peutVoirSalaire()`, Admin ou l'intéressé) avec le formulaire de révision (Admin) et la liste chronologique.
+
+Testé : `tsc`/`eslint` verts ; `revision-salaire-logique` (capture correcte de l'ancien salaire sur deux révisions consécutives, la première ligne d'historique n'est jamais écrasée) et `revision-salaire-fuite-rls` passent en isolation, ainsi que les tests RH existants (`palier-5-conges-pointage`, `politique-conge-*`) non affectés ; parcours réel en navigateur (fixer un salaire initial, le réviser une seconde fois, vérifier que les deux lignes d'historique restent visibles).
 
 ## Quand y revenir
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
 import { ArrowLeft, User, Download } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -21,6 +21,8 @@ import { FormulaireEvaluation } from "./formulaire-evaluation";
 import { ListeEvaluations } from "./liste-evaluations";
 import { FormulairePolitiqueConge } from "./formulaire-politique-conge";
 import { BoutonCrediterConge } from "./bouton-crediter-conge";
+import { FormulaireRevisionSalaire } from "./formulaire-revision-salaire";
+import { ListeRevisionsSalaire } from "./liste-revisions-salaire";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -97,11 +99,29 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       }
     }
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee };
+    // Historique des révisions de salaire (échange du 2026-09-08) — récupéré
+    // sans condition ici (même patron que salaireBase lui-même dans la
+    // requête `ligne` ci-dessus) ; la restriction de visibilité (Admin ou
+    // l'intéressé) s'applique côté rendu via peutVoirSalaireIci, pas ici.
+    const revisionsSalaire = await tx
+      .select({
+        id: revisionSalaire.id,
+        ancienSalaire: revisionSalaire.ancienSalaire,
+        nouveauSalaire: revisionSalaire.nouveauSalaire,
+        motif: revisionSalaire.motif,
+        effectueParNom: utilisateur.nomComplet,
+        creeLe: revisionSalaire.creeLe,
+      })
+      .from(revisionSalaire)
+      .innerJoin(utilisateur, eq(revisionSalaire.effectueParId, utilisateur.id))
+      .where(eq(revisionSalaire.dossierRHId, id))
+      .orderBy(desc(revisionSalaire.creeLe));
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -177,13 +197,21 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               typeContrat={ligne.typeContrat}
               dateEmbauche={ligne.dateEmbauche}
               dateFinContrat={ligne.dateFinContrat}
-              salaireBase={ligne.salaireBase}
               nombrePersonnesACharge={ligne.nombrePersonnesACharge}
-              peutVoirSalaire={peutVoirSalaireIci}
             />
           ) : null}
         </CardContent>
       </Card>
+
+      {peutVoirSalaireIci ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Historique de salaire</h2>
+            {peutModifierDossier ? <FormulaireRevisionSalaire dossierRHId={ligne.id} salaireActuel={ligne.salaireBase} /> : null}
+          </div>
+          <ListeRevisionsSalaire revisions={revisionsSalaire} />
+        </div>
+      ) : null}
 
       {estProprietaire ? (
         <div className="flex items-center justify-between gap-3">
