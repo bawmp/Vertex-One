@@ -393,6 +393,13 @@
       "when": 1788821293004,
       "tag": "0055_force_rls_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1788824398043,
+      "tag": "0056_produit_detail",
+      "breakpoints": true
     }
   ]
 }

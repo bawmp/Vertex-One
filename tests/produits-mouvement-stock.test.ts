@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, produit } from "@/db/schema";
+import { entreprise, utilisateur, produit } from "@/db/schema";
 import { decrementerStockVente, incrementerStockAchat } from "@/lib/produits/stock";
 
 /**
@@ -12,20 +12,28 @@ import { decrementerStockVente, incrementerStockAchat } from "@/lib/produits/sto
  */
 describe("Produits — mouvement de stock à la vente", () => {
   let entrepriseId: string;
+  let utilisateurId: string;
 
   beforeAll(async () => {
     const [e] = await db.insert(entreprise).values({ nom: "TEST Stock Kiro", secteurProfil: "agence" }).returning({ id: entreprise.id });
     entrepriseId = e.id;
+
+    const [u] = await db
+      .insert(utilisateur)
+      .values({ entrepriseId, email: "admin-stock-kiro@vertexone.test", nomComplet: "Admin Stock Kiro", role: "ADMIN" })
+      .returning({ id: utilisateur.id });
+    utilisateurId = u.id;
   }, 30_000);
 
   afterAll(async () => {
     await avecEntreprise(entrepriseId, (tx) => tx.delete(produit).where(eq(produit.entrepriseId, entrepriseId)));
+    await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));
   }, 30_000);
 
   test("un BIEN avec suiviStock voit son stock diminuer du total vendu, cumulé sur plusieurs lignes", async () => {
     const [leProduit] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Casque audio", suiviStock: true, stockActuel: 50 }).returning({ id: produit.id })
+      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Casque audio", suiviStock: true, stockActuel: 50, creeParId: utilisateurId }).returning({ id: produit.id })
     );
 
     await avecEntreprise(entrepriseId, (tx) =>
@@ -41,10 +49,10 @@ describe("Produits — mouvement de stock à la vente", () => {
 
   test("un SERVICE et un BIEN non suivi ne sont jamais affectés", async () => {
     const [leService] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(produit).values({ entrepriseId, type: "SERVICE", nom: "Consultation" }).returning({ id: produit.id })
+      tx.insert(produit).values({ entrepriseId, type: "SERVICE", nom: "Consultation", creeParId: utilisateurId }).returning({ id: produit.id })
     );
     const [leBienNonSuivi] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Fourniture diverse", suiviStock: false, stockActuel: 0 }).returning({ id: produit.id })
+      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Fourniture diverse", suiviStock: false, stockActuel: 0, creeParId: utilisateurId }).returning({ id: produit.id })
     );
 
     await avecEntreprise(entrepriseId, (tx) =>
@@ -63,7 +71,7 @@ describe("Produits — mouvement de stock à la vente", () => {
 
   test("une facture fournisseur pour un BIEN suivi augmente le stock (mouvement inverse)", async () => {
     const [leProduit] = await avecEntreprise(entrepriseId, (tx) =>
-      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Écran 24 pouces", suiviStock: true, stockActuel: 5 }).returning({ id: produit.id })
+      tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Écran 24 pouces", suiviStock: true, stockActuel: 5, creeParId: utilisateurId }).returning({ id: produit.id })
     );
 
     await avecEntreprise(entrepriseId, (tx) => incrementerStockAchat(tx, [{ produitId: leProduit.id, quantite: 8 }]));

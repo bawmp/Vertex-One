@@ -34,10 +34,10 @@ describe("Produits — isolation RLS entre entreprises", () => {
     utilisateurKiroId = uKiro.id;
     utilisateurMbargaId = uMbarga.id;
 
-    await avecEntreprise(kiroId, (tx) => tx.insert(produit).values({ entrepriseId: kiroId, nom: "Produit Kiro" }));
+    await avecEntreprise(kiroId, (tx) => tx.insert(produit).values({ entrepriseId: kiroId, nom: "Produit Kiro", creeParId: utilisateurKiroId }));
 
     const [pM] = await avecEntreprise(mbargaId, (tx) =>
-      tx.insert(produit).values({ entrepriseId: mbargaId, nom: "Produit Mbarga" }).returning({ id: produit.id })
+      tx.insert(produit).values({ entrepriseId: mbargaId, nom: "Produit Mbarga", creeParId: utilisateurMbargaId }).returning({ id: produit.id })
     );
     produitMbargaId = pM.id;
   }, 30_000);

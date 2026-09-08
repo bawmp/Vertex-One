@@ -52,7 +52,7 @@ describe("Ventes — conversion d'un Bon de commande client en Facture", () => {
         .returning({ id: contact.id });
       const [produitCree] = await tx
         .insert(produit)
-        .values({ entrepriseId, type: "BIEN", nom: "Produit Conversion BCV", prixVente: 5000, suiviStock: true, stockActuel: 10 })
+        .values({ entrepriseId, type: "BIEN", nom: "Produit Conversion BCV", prixVente: 5000, suiviStock: true, stockActuel: 10, creeParId: utilisateurId })
         .returning({ id: produit.id });
       return [contactCree, produitCree];
     });

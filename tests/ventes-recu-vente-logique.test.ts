@@ -42,7 +42,7 @@ describe("Ventes — logique des Reçus de vente", () => {
         .returning({ id: contact.id });
       const [produitCree] = await tx
         .insert(produit)
-        .values({ entrepriseId, type: "BIEN", nom: "Produit RV Logique", prixVente: 3000, suiviStock: true, stockActuel: 15 })
+        .values({ entrepriseId, type: "BIEN", nom: "Produit RV Logique", prixVente: 3000, suiviStock: true, stockActuel: 15, creeParId: utilisateurId })
         .returning({ id: produit.id });
       return [contactCree, produitCree];
     });

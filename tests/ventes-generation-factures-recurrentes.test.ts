@@ -61,7 +61,7 @@ describe("Ventes — génération des Factures récurrentes dues", () => {
         .returning({ id: contact.id });
       const [produitCree] = await tx
         .insert(produit)
-        .values({ entrepriseId: entrepriseAvecNiuId, type: "BIEN", nom: "Produit FR Génération", prixVente: 5000, suiviStock: true, stockActuel: 20 })
+        .values({ entrepriseId: entrepriseAvecNiuId, type: "BIEN", nom: "Produit FR Génération", prixVente: 5000, suiviStock: true, stockActuel: 20, creeParId: utilisateurAId })
         .returning({ id: produit.id });
       return [contactCree, produitCree];
     });
