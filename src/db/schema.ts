@@ -284,6 +284,11 @@ export const dossierRH = pgTable(
     // onDelete "set null" : supprimer une politique ne doit jamais bloquer
     // sur des employés qui y sont encore rattachés.
     politiqueCongeId: text("politique_conge_id").references((): AnyPgColumn => politiqueConge.id, { onDelete: "set null" }),
+    // Offboarding (échange du 2026-09-08, comparaison avec Zoho People) —
+    // renseigné uniquement à la clôture d'une demande de départ
+    // (clotureDepart(), src/lib/actions/depart.ts), jamais avant. Dénormalisé
+    // ici pour un affichage direct sans jointure vers demandeDepart.
+    dateDepart: timestamp("date_depart"),
   },
   (table) => [
     index("dossier_rh_entreprise_idx").on(table.entrepriseId),
@@ -2449,6 +2454,85 @@ export const revisionSalaire = pgTable(
   (table) => [
     index("revision_salaire_entreprise_idx").on(table.entrepriseId),
     index("revision_salaire_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const typeDepart = pgEnum("type_depart", ["DEMISSION", "LICENCIEMENT", "FIN_CONTRAT", "AUTRE"]);
+export const statutDepart = pgEnum("statut_depart", ["EN_ATTENTE", "APPROUVEE", "REFUSEE", "CLOTUREE"]);
+
+// Offboarding (échange du 2026-09-08, comparaison avec Zoho People —
+// "Offboarding Service") : une seule demande active par dossierRH à la
+// fois en pratique (non contraint en base, l'action creerDemandeDepart()
+// vérifie qu'aucune demande EN_ATTENTE/APPROUVEE n'existe déjà). Toujours
+// initiée par l'employé lui-même dans cette tranche (même choix que
+// demandeConge — jamais un Manager/Admin au nom d'un tiers, contrairement
+// à Zoho qui l'autorise ; à reconsidérer si un vrai besoin apparaît).
+// entretienSortie reste en texte libre (même philosophie que
+// evaluation.commentaire) — jamais un questionnaire structuré.
+export const demandeDepart = pgTable(
+  "demande_depart",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    type: typeDepart("type").notNull(),
+    dateDepartSouhaitee: timestamp("date_depart_souhaitee").notNull(),
+    motif: text("motif"),
+    statut: statutDepart("statut").notNull().default("EN_ATTENTE"),
+    dateDepartConfirmee: timestamp("date_depart_confirmee"),
+    entretienSortie: text("entretien_sortie"),
+    approuveParId: text("approuve_par_id").references(() => utilisateur.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("demande_depart_entreprise_idx").on(table.entrepriseId),
+    index("demande_depart_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Clôtures (Zoho : "Clearances") — items ad hoc saisis par qui traite la
+// demande, pas de modèle réutilisable dans cette tranche (contrairement aux
+// "Clearance Forms" de Zoho) : rester simple tant qu'aucune entreprise
+// cliente n'a demandé à réutiliser toujours la même liste. Le responsable
+// désigné peut valider SA clôture même sans droit RH général — même
+// principe que le pointage, toujours pour soi-même.
+export const clearanceDepart = pgTable(
+  "clearance_depart",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    demandeDepartId: text("demande_depart_id")
+      .notNull()
+      .references(() => demandeDepart.id, { onDelete: "cascade" }),
+    libelle: text("libelle").notNull(),
+    responsableId: text("responsable_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    complete: boolean("complete").notNull().default(false),
+    completeLe: timestamp("complete_le"),
+  },
+  (table) => [
+    index("clearance_depart_entreprise_idx").on(table.entrepriseId),
+    index("clearance_depart_demande_idx").on(table.demandeDepartId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

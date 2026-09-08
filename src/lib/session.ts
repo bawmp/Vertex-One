@@ -22,7 +22,16 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
   const user = session.user as typeof session.user & {
     entrepriseId: string;
     role: RoleSysteme;
+    statut: string;
   };
+
+  // utilisateur.statut est déjà exposé sur la session (additionalFields,
+  // src/lib/auth.ts) mais n'était jusqu'ici vérifié nulle part — un compte
+  // DESACTIVE (offboarding, échange du 2026-09-08) gardait donc un accès
+  // complet tant que son cookie de session restait valide. Traité comme
+  // "non connecté" plutôt qu'une erreur : chaque appelant fait déjà
+  // `if (!utilisateurConnecte) redirect("/connexion")`.
+  if (user.statut !== "ACTIF") return null;
 
   return {
     utilisateurId: user.id,

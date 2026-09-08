@@ -428,6 +428,20 @@
       "when": 1788839730392,
       "tag": "0060_force_rls_revision_salaire",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1788847609273,
+      "tag": "0061_offboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1788847617844,
+      "tag": "0062_force_rls_offboarding",
+      "breakpoints": true
     }
   ]
 }
