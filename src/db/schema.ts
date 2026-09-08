@@ -2420,6 +2420,43 @@ export const evaluation = pgTable(
   ]
 ).enableRLS();
 
+// Historique des révisions de salaire (échange du 2026-09-08, comparaison
+// avec Zoho People — "Salary Revision History") : chaque changement de
+// dossierRH.salaireBase crée une ligne ici plutôt que d'écraser silencieusement
+// l'ancienne valeur — voir src/lib/actions/revision-salaire.ts, seul chemin
+// autorisé à modifier salaireBase désormais (retiré de modifierDossierRH()).
+// ancienSalaire est NULL pour la toute première fixation d'un salaire.
+// Aucun calcul de paie ici (règle non négociable, voir CLAUDE.md) — une
+// trace pure de qui a changé quoi, quand, et pourquoi.
+export const revisionSalaire = pgTable(
+  "revision_salaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    ancienSalaire: integer("ancien_salaire"),
+    nouveauSalaire: integer("nouveau_salaire").notNull(),
+    motif: text("motif"),
+    effectueParId: text("effectue_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("revision_salaire_entreprise_idx").on(table.entrepriseId),
+    index("revision_salaire_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Palier 6 — voir docs/palier-6-marketing-communication-specification-technique.md.
 // Construit ici : Campagnes (section 2), automatisations de relance (même
 // section, ajoutées à la tâche planifiée existante), Page d'atterrissage

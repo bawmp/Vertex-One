@@ -142,18 +142,17 @@ const schemaModificationDossier = z.object({
   typeContrat: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]),
   dateEmbauche: z.string().min(1),
   dateFinContrat: z.string().optional(),
-  salaireBase: z.string().optional(),
   nombrePersonnesACharge: z.coerce.number().int().min(0).default(0),
 });
 
 export type EtatDossierRH = { erreur?: string } | null;
 
 /**
- * Le salaire n'est jamais rempli automatiquement (règle métier, CLAUDE.md) —
- * cette action est le seul endroit où il peut être saisi, et uniquement par
- * un Administrateur (portee(ADMIN, "RH") === "TOUT", mais surtout actions
- * incluant MODIFIER réservées à ADMIN/MANAGER ; le salaire précis exige en
- * plus peutVoirSalaire() côté page pour même afficher le champ).
+ * Le salaire n'est jamais rempli automatiquement (règle métier, CLAUDE.md).
+ * Depuis l'ajout de l'historique des révisions (échange du 2026-09-08), ce
+ * formulaire général ne touche plus salaireBase — seul reviserSalaire()
+ * (src/lib/actions/revision-salaire.ts) le modifie, pour ne jamais écraser
+ * silencieusement une valeur sans laisser de trace dans revisionSalaire.
  */
 export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData): Promise<EtatDossierRH> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -168,13 +167,12 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
     typeContrat: formData.get("typeContrat"),
     dateEmbauche: formData.get("dateEmbauche"),
     dateFinContrat: formData.get("dateFinContrat") || undefined,
-    salaireBase: formData.get("salaireBase") || undefined,
     nombrePersonnesACharge: formData.get("nombrePersonnesACharge") || 0,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-  const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, salaireBase, nombrePersonnesACharge } = analyse.data;
+  const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, nombrePersonnesACharge } = analyse.data;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -184,7 +182,6 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
         typeContrat,
         dateEmbauche: new Date(dateEmbauche),
         dateFinContrat: dateFinContrat ? new Date(dateFinContrat) : null,
-        salaireBase: salaireBase ? Math.round(Number(salaireBase)) : null,
         nombrePersonnesACharge,
       })
       .where(eq(dossierRH.id, dossierRHId))

@@ -1,0 +1,1 @@
+ALTER TABLE "revision_salaire" FORCE ROW LEVEL SECURITY;
