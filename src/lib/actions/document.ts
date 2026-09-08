@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { document, journalAccesDocument, dossier, categorieDocument } from "@/db/schema";
+import { document, journalAccesDocument, dossier, projet, categorieDocument } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { idsVisibles } from "@/lib/portee";
 import { televerserDocument as televerserVersR2, effacerObjetStockage } from "@/lib/documents/stockage";
 import { peutVoirDocumentSensible } from "@/lib/documents/acces";
 
@@ -34,10 +35,13 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-  const { dossierId, projetId, categorie } = analyse.data;
-  if (!dossierId && !projetId) {
-    return { erreur: "Un document doit être rattaché à un dossier ou un projet." };
-  }
+  const { dossierId, projetId } = analyse.data;
+  // Document autonome (échange du 2026-09-08, comparaison avec le module
+  // Documents de Zoho Books : "les fichiers peuvent venir de n'importe où")
+  // — jamais sensible : aucun Dossier auquel rattacher la restriction de
+  // PIECE_IDENTITE/DONNEES_SANTE (voir src/lib/documents/acces.ts). Imposé
+  // ici, jamais laissé à la seule discipline du formulaire.
+  const categorie = !dossierId && !projetId ? "GENERAL" : analyse.data.categorie;
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
@@ -72,6 +76,7 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
 
   if (dossierId) revalidatePath(`/app/projets/dossiers/${dossierId}`);
   if (projetId) revalidatePath(`/app/projets/${projetId}`);
+  revalidatePath("/app/documents");
   return null;
 }
 
@@ -79,24 +84,40 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
  * Palier 3, section 9 — chaque consultation/téléchargement d'un document
  * classé sensible crée une ligne dans JournalAccesDocument, y compris pour
  * un Administrateur (le registre de traitement n'exempte personne).
+ *
+ * Deux corrections apportées le 2026-09-08 en construisant les documents
+ * autonomes : (1) un document rattaché seulement à un Projet (sans
+ * dossierId direct) ne bénéficiait d'AUCUNE restriction de sensibilité —
+ * corrigé en remontant jusqu'au Dossier du Projet (chaque Projet appartient
+ * toujours à un Dossier, voir schema.ts) ; (2) un document autonome (ni
+ * Dossier ni Projet) n'était filtré par aucune portée — jamais sensible
+ * (imposé à la création), mais doit quand même respecter la portée du rôle
+ * sur le module DOCUMENTS via son propre televerseParId, même patron que la
+ * page liste (src/app/app/documents/page.tsx).
  */
 export async function journaliserAccesDocument(documentId: string, action: "consultation" | "telechargement") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const [leDocument] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.select().from(document).where(eq(document.id, documentId))
-  );
-  if (!leDocument) return { autorise: false as const };
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
+    if (!leDocument) return null;
 
-  if (leDocument.dossierId) {
-    const [leDossier] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-      tx.select({ responsableId: dossier.responsableId }).from(dossier).where(eq(dossier.id, leDocument.dossierId!))
-    );
-    if (!peutVoirDocumentSensible(utilisateurConnecte, leDocument.categorie, leDossier?.responsableId ?? null)) {
-      return { autorise: false as const };
+    let autorise: boolean;
+    if (leDocument.dossierId || leDocument.projetId) {
+      const idDossierEffectif =
+        leDocument.dossierId ?? (await tx.select({ dossierId: projet.dossierId }).from(projet).where(eq(projet.id, leDocument.projetId!)))[0]?.dossierId ?? null;
+      const [leDossier] = idDossierEffectif ? await tx.select({ responsableId: dossier.responsableId }).from(dossier).where(eq(dossier.id, idDossierEffectif)) : [];
+      autorise = peutVoirDocumentSensible(utilisateurConnecte, leDocument.categorie, leDossier?.responsableId ?? null);
+    } else {
+      const visibles = await idsVisibles(tx, utilisateurConnecte, "DOCUMENTS");
+      autorise = visibles === "TOUT" || visibles.includes(leDocument.televerseParId);
     }
-  }
+
+    return { leDocument, autorise };
+  });
+  if (!resultat || !resultat.autorise) return { autorise: false as const };
+  const { leDocument } = resultat;
 
   if (leDocument.categorie !== "GENERAL") {
     await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>

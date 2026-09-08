@@ -295,6 +295,22 @@ Construit :
 
 Testé : `tsc`/`eslint`/`vitest` (`produits-transactions-logique`, nouveau) verts, parcours réel en navigateur (3 onglets, Créé par correct, Compte de vente affiché, une ligne de Devis apparaît dans Transactions avec le bon montant/lien, l'échec de téléversement d'image faute de R2 configuré reste propre — pas de crash).
 
+## 17. Documents autonomes (ni Dossier ni Projet) — corrigé le 2026-09-08
+
+L'utilisateur a collé le contenu du module Documents de Zoho Books ("les fichiers peuvent venir de n'importe où [...] pas forcément rattaché à un deal ou autre chose") — signalant que le module général `document` (Palier 3, `/app/documents`) devait, comme le module "Documents financiers" (section correspondante déjà correcte), supporter un fichier qui ne concerne ni Dossier ni Projet.
+
+**Défaut réel trouvé et corrigé** : `ajouterDocument()` (`src/lib/actions/document.ts`) refusait explicitement tout document sans `dossierId` ni `projetId` (`"Un document doit être rattaché à un dossier ou un projet."`), et `/app/documents/page.tsx` filtrait silencieusement `return false` pour ce même cas — un document autonome n'avait donc aucun moyen d'exister ni d'être vu, contrairement à `documentFinancier` (Books, section 16... — voir plus haut) qui a toujours correctement supporté une "Boîte de réception" sans rattachement.
+
+**Deuxième défaut, trouvé en corrigeant le premier** : `journaliserAccesDocument()` ne vérifiait la restriction de sensibilité (PIECE_IDENTITE/DONNEES_SANTE) que via `document.dossierId` directement — un document rattaché seulement à un Projet (cas réel : `FormulaireDocument` sur la fiche Projet ne transmet jamais `dossierId`) contournait donc entièrement cette restriction. Corrigé en remontant au Dossier du Projet (`projet.dossierId`, toujours renseigné) quand `dossierId` est absent — appliqué à la fois dans `journaliserAccesDocument()` et dans le filtrage de `/app/documents/page.tsx`.
+
+Corrections apportées :
+- `ajouterDocument()` : la garde de rattachement obligatoire est supprimée ; un document autonome est **toujours** forcé en catégorie `GENERAL` (aucun Dossier auquel rattacher une restriction de sensibilité).
+- `journaliserAccesDocument()` : pour un document autonome, la portée du module `DOCUMENTS` s'applique directement sur son propre `televerseParId` (`idsVisibles()`), même patron que les autres modules autonomes de ce produit (Achats, Suivi des heures...) — jamais un accès sans contrôle.
+- `FormulaireDocument` gagne un prop `autoriserSensible` (défaut `true`) : masque le sélecteur de catégorie sensible quand `false`, utilisé sur `/app/documents` pour le dépôt autonome.
+- `/app/documents` affiche désormais un formulaire de dépôt direct (sans Dossier/Projet) + les documents déjà autonomes, libellés "Document autonome".
+
+Testé : `tsc`/`eslint`/`vitest` (`documents-autonomes-logique`, nouveau — un Employé de portée PROPRE ne voit jamais le document autonome d'un collègue, un document sensible rattaché seulement à un Projet reste bien restreint au responsable du Dossier) verts, parcours réel en navigateur.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

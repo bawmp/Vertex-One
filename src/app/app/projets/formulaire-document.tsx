@@ -13,10 +13,16 @@ export function FormulaireDocument({
   dossierId,
   projetId,
   consentementManquant,
+  autoriserSensible = true,
 }: {
   dossierId?: string;
   projetId?: string;
   consentementManquant: boolean;
+  // Un document autonome (ni Dossier ni Projet, échange du 2026-09-08) n'a
+  // aucun responsable de dossier auquel rattacher la restriction de
+  // sensibilité (voir src/lib/documents/acces.ts) — jamais catégorisable en
+  // sensible, imposé ici plutôt que rejeté silencieusement côté serveur.
+  autoriserSensible?: boolean;
 }) {
   const [etat, action, enCours] = useActionState(ajouterDocument, null);
   const [categorie, setCategorie] = useState("GENERAL");
@@ -32,15 +38,17 @@ export function FormulaireDocument({
           <Label htmlFor="fichier">Fichier</Label>
           <Input id="fichier" name="fichier" type="file" required />
         </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="categorie">Catégorie</Label>
-          <Select id="categorie" name="categorie" value={categorie} onChange={(e) => setCategorie(e.target.value)} className="w-44">
-            <option value="GENERAL">Général</option>
-            <option value="PIECE_IDENTITE">Pièce d&apos;identité</option>
-            <option value="DONNEES_SANTE">Données de santé</option>
-            <option value="AUTRE_SENSIBLE">Autre sensible</option>
-          </Select>
-        </div>
+        {autoriserSensible ? (
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="categorie">Catégorie</Label>
+            <Select id="categorie" name="categorie" value={categorie} onChange={(e) => setCategorie(e.target.value)} className="w-44">
+              <option value="GENERAL">Général</option>
+              <option value="PIECE_IDENTITE">Pièce d&apos;identité</option>
+              <option value="DONNEES_SANTE">Données de santé</option>
+              <option value="AUTRE_SENSIBLE">Autre sensible</option>
+            </Select>
+          </div>
+        ) : null}
       </div>
 
       {sensible && consentementManquant ? (
