@@ -10,6 +10,7 @@ import {
   numeric,
   uniqueIndex,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -277,6 +278,12 @@ export const dossierRH = pgTable(
     salaireBase: integer("salaire_base"),
     nombrePersonnesACharge: integer("nombre_personnes_a_charge").notNull().default(0),
     soldeConges: numeric("solde_conges", { precision: 5, scale: 1, mode: "number" }).notNull().default(0),
+    // Politique de congé assignée (échange du 2026-09-08, comparaison avec
+    // Zoho People) — nullable : sans politique, l'Administrateur gère le
+    // solde entièrement à la main comme avant cette tranche (rétrocompatible).
+    // onDelete "set null" : supprimer une politique ne doit jamais bloquer
+    // sur des employés qui y sont encore rattachés.
+    politiqueCongeId: text("politique_conge_id").references((): AnyPgColumn => politiqueConge.id, { onDelete: "set null" }),
   },
   (table) => [
     index("dossier_rh_entreprise_idx").on(table.entrepriseId),
@@ -2255,6 +2262,72 @@ export const produit = pgTable(
 export const typeConge = pgEnum("type_conge", ["CONGE_PAYE", "MALADIE", "SANS_SOLDE", "AUTRE"]);
 export const statutDemandeConge = pgEnum("statut_demande_conge", ["EN_ATTENTE", "APPROUVEE", "REFUSEE"]);
 export const statutPointage = pgEnum("statut_pointage", ["PRESENT", "ABSENT", "RETARD", "CONGE"]);
+export const typePolitiqueConge = pgEnum("type_politique_conge", ["FIXE", "ANCIENNETE"]);
+
+// Politiques de congés (échange du 2026-09-08, comparaison avec Zoho People
+// — "Fixed entitlement"/"Experience-based entitlement") : chaque politique
+// définit un droit annuel, optionnellement majoré par palier d'ancienneté.
+// Jamais de créditation automatique planifiée dans cette tranche — un
+// Administrateur calcule le droit (calculerDroitAnnuelConge()) et clique
+// "Créditer" explicitement (crediterSoldeSelonPolitique()), plus sûr qu'une
+// tâche planifiée tant qu'aucune vraie donnée n'en dépend (risque de double
+// créditation, de prorata à la première année, de politique changée en
+// cours d'année).
+export const politiqueConge = pgTable(
+  "politique_conge",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    type: typePolitiqueConge("type").notNull(),
+    // Droit annuel de base — pour FIXE, c'est le droit complet ; pour
+    // ANCIENNETE, la base avant les majorations des paliers ci-dessous.
+    joursBaseParAn: integer("jours_base_par_an").notNull(),
+    actif: boolean("actif").notNull().default(true),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("politique_conge_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Paliers d'ancienneté (uniquement pour une politique de type ANCIENNETE) —
+// chaque palier atteint AJOUTE ses joursSupplementaires au droit de base,
+// cumulatif entre paliers (jamais un remplacement) : voir
+// src/lib/rh/politique-conge.ts, calculerDroitAnnuelConge().
+export const politiqueCongePalier = pgTable(
+  "politique_conge_palier",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    politiqueCongeId: text("politique_conge_id")
+      .notNull()
+      .references(() => politiqueConge.id, { onDelete: "cascade" }),
+    anneesAncienneteMin: integer("annees_anciennete_min").notNull(),
+    joursSupplementaires: integer("jours_supplementaires").notNull(),
+  },
+  (table) => [
+    index("politique_conge_palier_entreprise_idx").on(table.entrepriseId),
+    index("politique_conge_palier_politique_idx").on(table.politiqueCongeId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
 
 // entrepriseId ajouté (absent du sketch initial, qui ne portait que
 // dossierRHId) — même raisonnement que Contrat/EcritureComptable au Palier 4 :

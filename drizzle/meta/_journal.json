@@ -400,6 +400,20 @@
       "when": 1788824398043,
       "tag": "0056_produit_detail",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1788831465213,
+      "tag": "0057_politique_conge",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1788831855133,
+      "tag": "0058_force_rls_politique_conge",
+      "breakpoints": true
     }
   ]
 }
