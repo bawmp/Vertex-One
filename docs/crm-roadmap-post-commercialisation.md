@@ -326,7 +326,7 @@ Construit :
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (créer une politique par ancienneté, ajouter un palier, l'assigner à un dossier embauché il y a 6 ans, vérifier le droit annuel calculé 18+2=20, créditer, vérifier le solde mis à jour).
 
-**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19 ci-dessous), processus de départ structuré (offboarding : démission → clôtures → entretien de sortie), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19), ~~processus de départ structuré~~ (fait, section 20 ci-dessous), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
 
 ## 19. Historique des révisions de salaire (RH) — construit le 2026-09-08
 
@@ -341,6 +341,26 @@ Construit :
 - UI : fiche dossier RH (`/app/rh/[id]`) gagne une section "Historique de salaire" (visible aux mêmes conditions que le salaire lui-même — `peutVoirSalaire()`, Admin ou l'intéressé) avec le formulaire de révision (Admin) et la liste chronologique.
 
 Testé : `tsc`/`eslint` verts ; `revision-salaire-logique` (capture correcte de l'ancien salaire sur deux révisions consécutives, la première ligne d'historique n'est jamais écrasée) et `revision-salaire-fuite-rls` passent en isolation, ainsi que les tests RH existants (`palier-5-conges-pointage`, `politique-conge-*`) non affectés ; parcours réel en navigateur (fixer un salaire initial, le réviser une seconde fois, vérifier que les deux lignes d'historique restent visibles).
+
+## 20. Processus de départ structuré — offboarding (RH) — construit le 2026-09-08
+
+Troisième tranche du GRH inspiré de Zoho People ("Offboarding Service"), demandée immédiatement après l'historique des révisions de salaire (section 19). Avant cette tranche, rien n'existait pour un départ d'employé — pas de demande de démission, pas de suivi de clôtures (matériel, accès, finances), pas d'entretien de sortie, et surtout pas de révocation réelle d'accès.
+
+**Défaut de sécurité réel trouvé et corrigé en construisant cette tranche** : `utilisateur.statut` (enum `ACTIF`/`INVITE`/`DESACTIVE`) est exposé sur la session Better-Auth depuis le tout premier scaffold (`additionalFields`, `src/lib/auth.ts`) mais n'était vérifié absolument nulle part — un compte marqué `DESACTIVE` gardait un accès complet à l'application tant que son cookie de session restait valide, rendant ce statut purement décoratif. `recupererUtilisateurConnecte()` (point de vérification unique documenté dans `src/proxy.ts` : "la vérification complète se fait côté Server Component") traite désormais tout statut différent de `ACTIF` comme non connecté. Vérifié sans risque de régression : les deux flux de création de compte (inscription initiale, acceptation d'invitation) fixent déjà explicitement `statut=ACTIF`, comme le défaut en base — et confirmé positivement en isolant la cause d'un échec e2e non lié (voir plus bas).
+
+Décisions de simplification par rapport à Zoho (délibérées, pas des oublis) :
+- Toujours initiée par l'employé lui-même (comme `demandeConge`) — jamais un Manager/Admin au nom d'un tiers, contrairement à Zoho qui l'autorise.
+- Pas de modèle de clôtures réutilisable ("Clearance Forms" chez Zoho) — items ad hoc saisis à chaque demande, tant qu'aucune entreprise cliente ne demande à réutiliser toujours la même liste.
+- Entretien de sortie en texte libre (même philosophie que `evaluation.commentaire`) — jamais un questionnaire structuré.
+
+Construit :
+- `demandeDepart` (type, date souhaitée, statut EN_ATTENTE/APPROUVEE/REFUSEE/CLOTUREE, entretien de sortie) + `clearanceDepart` (items ad hoc, un responsable désigné peut valider SA clôture même sans droit RH général — même principe que le pointage, toujours pour soi-même). `dossierRH.dateDepart` dénormalisé, renseigné uniquement à la clôture.
+- `cloturerDepart()` (`src/lib/actions/depart.ts`, Administrateur uniquement) bloque tant qu'une clôture reste incomplète (jamais un simple avertissement ignorable), puis désactive réellement le compte (`utilisateur.statut = DESACTIVE`) et supprime ses sessions actives pour une déconnexion immédiate plutôt que d'attendre l'expiration du cookie.
+- UI : page dédiée `/app/rh/[id]/depart` (demande → approbation → clôtures → clôture définitive) + file d'attente des demandes en attente sur le tableau de bord RH (Admin/Manager), même patron que les congés en attente.
+
+Testé : `tsc`/`eslint` verts ; `depart-logique` (reproduit la garde de clôture incomplète et les effets de `cloturerDepart()`) et `depart-fuite-rls` passent en isolation ; parcours réel en navigateur de bout en bout via le vrai flux d'invitation (demande → approbation → clôture bloquée puis débloquée après validation → compte réellement désactivé → session révoquée → accès refusé après coup), confirmant que le correctif DESACTIVE fonctionne en conditions réelles.
+
+**Anomalie pré-existante isolée pendant cette tranche, non corrigée ici (hors périmètre)** : le test e2e `palier-0-inscription-connexion.spec.ts` ("connexion avec les identifiants créés ramène au tableau de bord") échoue par timeout sur `page.waitForURL("/app")`. Isolé par expérience contrôlée (revert temporaire de `session.ts` à son état d'avant cette tranche, même échec identique) — confirmé indépendant de tout changement de cette session, probablement lié à la façon dont Playwright détecte une transition côté client (RSC/`router.push`) plutôt qu'une navigation classique. Le test voisin de ce même fichier échoue aussi, pour une raison différente et déjà identifiée : il cherche un lien "Facturation" qui n'existe plus depuis le regroupement sous "FACO" (échange antérieur de cette session) — fichier de test jamais mis à jour en conséquence. Un chantier séparé, pas traité ici.
 
 ## Quand y revenir
 
