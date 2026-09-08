@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { Package, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
@@ -40,18 +41,28 @@ export default async function PageProduits() {
         <div className="flex flex-col divide-y divide-border">
           {produits.map((p) => (
             <div key={p.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate font-medium">{p.nom}</p>
-                  <Badge variant="neutral">{p.type === "BIEN" ? "Bien" : "Service"}</Badge>
-                  {p.suiviStock ? <Badge variant="info">Stock : {p.stockActuel}</Badge> : null}
+              <Link href={`/app/produits/${p.id}`} className="flex min-w-0 items-start gap-3 hover:opacity-80">
+                {p.imageCleStockage ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- l'URL passe par une route de redirection signée.
+                  <img src={`/app/produits/${p.id}/image`} alt="" className="size-9 shrink-0 rounded-md border object-cover" />
+                ) : (
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
+                    <Package className="size-4 text-muted-foreground" aria-hidden />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-medium">{p.nom}</p>
+                    <Badge variant="neutral">{p.type === "BIEN" ? "Bien" : "Service"}</Badge>
+                    {p.suiviStock ? <Badge variant="info">Stock : {p.stockActuel}</Badge> : null}
+                  </div>
+                  {/* Description potentiellement longue (ex. décomposition d'un
+                      montant en plusieurs frais) — jamais tronquée à une seule
+                      ligne (échange du 2026-09-08), whitespace-pre-line
+                      respecte les retours à la ligne saisis dans le Textarea. */}
+                  {p.description ? <p className="whitespace-pre-line text-xs text-muted-foreground">{p.description}</p> : null}
                 </div>
-                {/* Description potentiellement longue (ex. décomposition d'un
-                    montant en plusieurs frais) — jamais tronquée à une seule
-                    ligne (échange du 2026-09-08), whitespace-pre-line
-                    respecte les retours à la ligne saisis dans le Textarea. */}
-                {p.description ? <p className="whitespace-pre-line text-xs text-muted-foreground">{p.description}</p> : null}
-              </div>
+              </Link>
               <div className="flex shrink-0 items-center gap-3">
                 <div className="text-right text-xs text-muted-foreground">
                   <p>Vente : {formaterFCFA(p.prixVente)}</p>

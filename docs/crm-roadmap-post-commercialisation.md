@@ -278,6 +278,23 @@ Suite directe des sections 13-14 (même échange) — les deux dernières vraies
 
 Testé : `tsc`/`eslint`/`vitest` (`journal-manuel` mis à jour + `verrouillage-comptable-logique`, `budget-logique`, `budget-fuite-rls`) verts, parcours réel en navigateur (création d'un budget avec ligne, Budgété/Réalisé/Écart affichés correctement, verrouillage posé puis un journal manuel avant la date refusé avec message explicite et un journal après la date accepté).
 
+## 16. Fiche détail Produit (Zoho-style) — construit le 2026-09-08
+
+L'utilisateur a collé le contenu d'une fiche article Zoho Books (onglets Vue d'ensemble/Transactions/Historique, Type d'élément, Source créée, Compte de vente, image jointe) et demandé le même niveau de détail au clic sur un produit — jusque-là `/app/produits` était une simple liste (créer/supprimer seulement, aucune fiche détail, aucune image).
+
+Décisions validées avec l'utilisateur (les 3 recommandées) :
+- **Page complète `/app/produits/[id]`**, jamais une fenêtre modale — cohérent avec toutes les autres fiches détail de ce produit (Deals, Contacts, Projets, Factures, Devis, Budgets...), aucune n'est un modal.
+- **"Compte de vente" reste informatif** : affiche le compte réellement utilisé aujourd'hui (`706000 — Prestations de services`, toujours ce compte quel que soit BIEN/SERVICE — vérifié dans `genererEcrituresFactureEmise()`/`genererEcrituresRecuVente()`, `src/lib/comptabilite/ecritures.ts`), jamais configurable. Aucun changement de la logique comptable.
+- **Historique minimal** : "Créé le [date] par [utilisateur]" seulement — un produit n'était (et reste, dans cette tranche) pas modifiable, un vrai journal de changements n'aurait rien à tracer.
+
+Construit :
+- `produit.creeParId` (backfillé sur le premier utilisateur de l'entreprise, aucune vraie donnée client n'existe encore) + `imageCleStockage`/`imageTypeMime` (nullable, jamais d'URL publique — même patron que `document.cleStockage`, réutilise `televerserDocument()`/`urlTelechargementDocument()`/`effacerObjetStockage()` de `src/lib/documents/stockage.ts`).
+- `src/lib/produits/transactions.ts` (`recupererTransactionsProduit()`) — union des 7 tables de lignes qui portent un `produitId` (Devis, Facture, Commande client, Facture périodique, Ticket de vente, Bon de commande achat, Facture fournisseur), chacune filtrée par la portée du rôle sur son propre module (FACTURATION/ACHATS) — jamais un contournement de la portée via ce détour. `factureAcompte`/`avoirFacture`/`avoirFournisseur` n'ont pas de lignes, exclus à raison.
+- `src/components/ui/tabs.tsx` — premier composant Tabs de ce projet (enveloppe `@base-ui/react/tabs`, même patron que `button.tsx`).
+- `src/app/app/produits/[id]/page.tsx` (3 onglets), `.../image/route.ts` (miroir de `src/app/app/documents/[id]/route.ts`, URL signée fraîche à chaque requête), `.../formulaire-image-produit.tsx`. `/app/produits` liste désormais chaque ligne comme un lien vers sa fiche, avec vignette.
+
+Testé : `tsc`/`eslint`/`vitest` (`produits-transactions-logique`, nouveau) verts, parcours réel en navigateur (3 onglets, Créé par correct, Compte de vente affiché, une ligne de Devis apparaît dans Transactions avec le bon montant/lien, l'échec de téléversement d'image faute de R2 configuré reste propre — pas de crash).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
