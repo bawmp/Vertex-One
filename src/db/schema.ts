@@ -2580,6 +2580,130 @@ export const documentRH = pgTable(
   ]
 ).enableRLS();
 
+export const statutSondage = pgEnum("statut_sondage", ["BROUILLON", "OUVERT", "FERME"]);
+export const typeQuestionSondage = pgEnum("type_question_sondage", ["NPS", "ETOILES", "TEXTE"]);
+
+// Sondages d'engagement (échange du 2026-09-08, comparaison avec Zoho
+// People — eNPS/Pulse/Engagement Survey réunis en un seul modèle simple,
+// plutôt que trois systèmes séparés). Gestion réservée à l'Administrateur
+// (décision structurante, même niveau que politiqueConge) — pas de portée
+// EQUIPE ici, un sondage est par nature à l'échelle de l'entreprise.
+export const sondage = pgTable(
+  "sondage",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    statut: statutSondage("statut").notNull().default("BROUILLON"),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("sondage_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const sondageQuestion = pgTable(
+  "sondage_question",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    sondageId: text("sondage_id")
+      .notNull()
+      .references(() => sondage.id, { onDelete: "cascade" }),
+    ordre: integer("ordre").notNull(),
+    libelle: text("libelle").notNull(),
+    // NPS : 0-10 ("recommanderiez-vous...", score eNPS calculé à l'affichage).
+    // ETOILES : 1-5. TEXTE : réponse libre, jamais agrégée.
+    type: typeQuestionSondage("type").notNull(),
+  },
+  (table) => [
+    index("sondage_question_entreprise_idx").on(table.entrepriseId),
+    index("sondage_question_sondage_idx").on(table.sondageId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Réponses véritablement anonymes : aucune colonne ne relie une ligne à un
+// utilisateur, ni ici ni ailleurs — structurellement impossible de
+// retrouver qui a répondu quoi, pas seulement caché côté interface. Voir
+// sondageParticipation ci-dessous pour le suivi (séparé, sans lien) de qui
+// a déjà répondu.
+export const sondageReponse = pgTable(
+  "sondage_reponse",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    sondageId: text("sondage_id")
+      .notNull()
+      .references(() => sondage.id, { onDelete: "cascade" }),
+    questionId: text("question_id")
+      .notNull()
+      .references(() => sondageQuestion.id, { onDelete: "cascade" }),
+    // Texte y compris pour NPS/ETOILES (converti au moment de l'agrégation,
+    // src/lib/rh/sondage.ts) — évite une colonne numérique par type de
+    // question pour une seule table à trois usages.
+    valeur: text("valeur").notNull(),
+  },
+  (table) => [
+    index("sondage_reponse_entreprise_idx").on(table.entrepriseId),
+    index("sondage_reponse_sondage_idx").on(table.sondageId),
+    index("sondage_reponse_question_idx").on(table.questionId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Table séparée et sans lien vers sondageReponse (même transaction, mais
+// aucune FK ni id partagé) — prouve seulement qu'un employé a participé
+// (empêche une deuxième soumission, permet d'afficher un taux de
+// participation), jamais quelle réponse est la sienne.
+export const sondageParticipation = pgTable(
+  "sondage_participation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    sondageId: text("sondage_id")
+      .notNull()
+      .references(() => sondage.id, { onDelete: "cascade" }),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    reponduLe: timestamp("repondu_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("sondage_participation_sondage_utilisateur_unique").on(table.sondageId, table.utilisateurId),
+    index("sondage_participation_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Palier 6 — voir docs/palier-6-marketing-communication-specification-technique.md.
 // Construit ici : Campagnes (section 2), automatisations de relance (même
 // section, ajoutées à la tâche planifiée existante), Page d'atterrissage
