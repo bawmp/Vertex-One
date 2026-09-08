@@ -232,11 +232,18 @@ export default async function PageRH() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
-          {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
-            <Link href="/app/rh/politiques-conges" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-              Politiques de congé
-            </Link>
-          ) : null}
+          <div className="flex items-center gap-3">
+            {rhDisponible ? (
+              <Link href="/app/rh/sondages" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Sondages
+              </Link>
+            ) : null}
+            {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
+              <Link href="/app/rh/politiques-conges" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Politiques de congé
+              </Link>
+            ) : null}
+          </div>
         </div>
         {!rhDisponible ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
