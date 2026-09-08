@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
 import { ArrowLeft, User, Download, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -23,6 +23,8 @@ import { FormulairePolitiqueConge } from "./formulaire-politique-conge";
 import { BoutonCrediterConge } from "./bouton-crediter-conge";
 import { FormulaireRevisionSalaire } from "./formulaire-revision-salaire";
 import { ListeRevisionsSalaire } from "./liste-revisions-salaire";
+import { FormulaireDocumentRH } from "./formulaire-document-rh";
+import { ListeDocumentsRH } from "./liste-documents-rh";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -117,11 +119,27 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       .where(eq(revisionSalaire.dossierRHId, id))
       .orderBy(desc(revisionSalaire.creeLe));
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire };
+    // Fichiers RH (échange du 2026-09-08) — récupéré sans condition, même
+    // patron que salaireBase/revisionsSalaire ci-dessus ; la restriction de
+    // visibilité s'applique côté rendu.
+    const documentsRH = await tx
+      .select({
+        id: documentRH.id,
+        nom: documentRH.nom,
+        tailleOctets: documentRH.tailleOctets,
+        televerseParNom: utilisateur.nomComplet,
+        creeLe: documentRH.creeLe,
+      })
+      .from(documentRH)
+      .innerJoin(utilisateur, eq(documentRH.televerseParId, utilisateur.id))
+      .where(eq(documentRH.dossierRHId, id))
+      .orderBy(desc(documentRH.creeLe));
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -216,6 +234,14 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
             {peutModifierDossier ? <FormulaireRevisionSalaire dossierRHId={ligne.id} salaireActuel={ligne.salaireBase} /> : null}
           </div>
           <ListeRevisionsSalaire revisions={revisionsSalaire} />
+        </div>
+      ) : null}
+
+      {peutVoirSalaireIci ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Fichiers</h2>
+          <FormulaireDocumentRH dossierRHId={ligne.id} />
+          <ListeDocumentsRH documents={documentsRH} dossierRHId={ligne.id} peutSupprimer={peutModifierDossier} />
         </div>
       ) : null}
 
