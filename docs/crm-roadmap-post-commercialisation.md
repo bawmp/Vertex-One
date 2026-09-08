@@ -326,7 +326,7 @@ Construit :
 
 Testé : `tsc`/`eslint`/`vitest` verts, parcours réel en navigateur (créer une politique par ancienneté, ajouter un palier, l'assigner à un dossier embauché il y a 6 ans, vérifier le droit annuel calculé 18+2=20, créditer, vérifier le solde mis à jour).
 
-**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19), ~~processus de départ structuré~~ (fait, section 20 ci-dessous), fichiers RH dédiés (rattachés à `dossierRH`, sur le patron déjà posé par `documentFinancier`/documents autonomes), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
+**Reste à explorer si l'utilisateur revient sur le module RH** (dans l'ordre suggéré par la comparaison avec Zoho People) : ~~historique des révisions de salaire~~ (fait, section 19), ~~processus de départ structuré~~ (fait, section 20), ~~fichiers RH dédiés~~ (fait, section 21 ci-dessous), sondages d'engagement (eNPS/Pulse), assistance RH interne (tickets/FAQ). Shift management, LMS et Rapports RH consolidés n'ont pas de demande observée pour l'instant.
 
 ## 19. Historique des révisions de salaire (RH) — construit le 2026-09-08
 
@@ -361,6 +361,20 @@ Construit :
 Testé : `tsc`/`eslint` verts ; `depart-logique` (reproduit la garde de clôture incomplète et les effets de `cloturerDepart()`) et `depart-fuite-rls` passent en isolation ; parcours réel en navigateur de bout en bout via le vrai flux d'invitation (demande → approbation → clôture bloquée puis débloquée après validation → compte réellement désactivé → session révoquée → accès refusé après coup), confirmant que le correctif DESACTIVE fonctionne en conditions réelles.
 
 **Anomalie pré-existante isolée pendant cette tranche, non corrigée ici (hors périmètre)** : le test e2e `palier-0-inscription-connexion.spec.ts` ("connexion avec les identifiants créés ramène au tableau de bord") échoue par timeout sur `page.waitForURL("/app")`. Isolé par expérience contrôlée (revert temporaire de `session.ts` à son état d'avant cette tranche, même échec identique) — confirmé indépendant de tout changement de cette session, probablement lié à la façon dont Playwright détecte une transition côté client (RSC/`router.push`) plutôt qu'une navigation classique. Le test voisin de ce même fichier échoue aussi, pour une raison différente et déjà identifiée : il cherche un lien "Facturation" qui n'existe plus depuis le regroupement sous "FACO" (échange antérieur de cette session) — fichier de test jamais mis à jour en conséquence. Un chantier séparé, pas traité ici.
+
+## 21. Fichiers RH dédiés (RH) — construit le 2026-09-08
+
+Quatrième tranche du GRH inspiré de Zoho People ("Employee Files"), demandée immédiatement après l'offboarding (section 20). Avant cette tranche, aucun fichier ne pouvait être rattaché spécifiquement à un dossier RH — seuls les Documents généraux (Palier 3, rattachés à un Dossier/Projet CRM) et les Documents financiers (Books) existaient.
+
+Différence de conception volontaire par rapport à Zoho : Zoho distingue "Employee Files" (gérés par l'Admin, restreints) et "Personal Uploads" (espace privé de l'employé, **invisible même de l'Administrateur**). Ce deuxième niveau n'a pas été repris — il contredirait le modèle de sécurité déjà établi dans ce produit, où l'Administrateur a toujours une vue d'ensemble complète (salaire, motifs de congé maladie, etc.) ; pas de zone opaque à l'Admin dans une TPE où l'Admin est souvent le patron lui-même.
+
+Construit :
+- `documentRH` (nouvelle table, RLS + FORCE RLS) — contrairement à la table `document` générale (catégories mixtes, portée d'équipe normale), TOUT fichier ici est par nature une pièce RH : visibilité uniforme, pas de distinction par catégorie.
+- Accès réservé à l'Administrateur ou à l'intéressé lui-même — réutilise `peutVoirSalaire()` telle quelle (`src/lib/rh/acces.ts`), donc plus strict que la portée RH normale d'un Manager (qui voit pourtant le dossier de son équipe).
+- `televerserDocumentRH()`/`effacerDocumentRH()` (`src/lib/actions/document-rh.ts`) + route de service `/app/rh/[id]/fichiers/[documentId]` (miroir de `produits/[id]/image`, URL R2 signée fraîche à chaque requête, jamais stockée).
+- UI : nouvelle section "Fichiers" sur la fiche dossier RH (`/app/rh/[id]`).
+
+Testé : `tsc`/`eslint` verts ; `document-rh-logique` (confirme explicitement qu'un Manager de portée EQUIPE ne voit pas les fichiers d'un employé qu'il gère par ailleurs) et `document-rh-fuite-rls` passent en isolation, ainsi que les 8 autres fichiers de tests RH exécutés ensemble (23 tests, aucune régression croisée) ; parcours réel en navigateur (fichier existant listé et téléchargeable, échec de téléversement faute de R2 configuré reste propre).
 
 ## Quand y revenir
 
