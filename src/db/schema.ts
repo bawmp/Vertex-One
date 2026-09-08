@@ -2541,6 +2541,45 @@ export const clearanceDepart = pgTable(
   ]
 ).enableRLS();
 
+// Fichiers RH (échange du 2026-09-08, comparaison avec Zoho People —
+// "Employee Files") : contrairement au Document général (Palier 3, table
+// `document`, rattaché à un Dossier/Projet CRM et visible selon la portée
+// normale de l'équipe), TOUT fichier ici est par nature une pièce RH —
+// jamais de catégorie "générale" partagée avec l'équipe. La visibilité est
+// donc uniforme (Admin ou l'intéressé, peutVoirSalaire()), pas
+// catégorie-par-catégorie comme pour `document` — inutile de dupliquer
+// categorieDocument ici.
+export const documentRH = pgTable(
+  "document_rh",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    nom: text("nom").notNull(),
+    // Chemin de l'objet dans Cloudflare R2 — voir src/lib/documents/stockage.ts.
+    cleStockage: text("cle_stockage").notNull(),
+    typeMime: text("type_mime").notNull(),
+    tailleOctets: integer("taille_octets").notNull(),
+    televerseParId: text("televerse_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("document_rh_entreprise_idx").on(table.entrepriseId),
+    index("document_rh_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Palier 6 — voir docs/palier-6-marketing-communication-specification-technique.md.
 // Construit ici : Campagnes (section 2), automatisations de relance (même
 // section, ajoutées à la tâche planifiée existante), Page d'atterrissage
