@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
-import { ArrowLeft, User, Download } from "lucide-react";
+import { ArrowLeft, User, Download, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -140,12 +140,18 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
           <User className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{ligne.nomComplet}</h1>
         </div>
-        {peutModifierDossier ? (
-          <Link href={`/app/rh/${ligne.id}/export`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <Download className="size-3.5" aria-hidden />
-            Exporter (CSV)
+        <div className="flex items-center gap-3">
+          <Link href={`/app/rh/${ligne.id}/depart`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <LogOut className="size-3.5" aria-hidden />
+            Départ
           </Link>
-        ) : null}
+          {peutModifierDossier ? (
+            <Link href={`/app/rh/${ligne.id}/export`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <Download className="size-3.5" aria-hidden />
+              Exporter (CSV)
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <Card>

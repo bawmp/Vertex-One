@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and } from "drizzle-orm";
-import { Users, Lock, CalendarClock } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, demandeConge, utilisateur } from "@/db/schema";
+import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -13,8 +13,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { traiterDemandeConge } from "@/lib/actions/rh";
+import { traiterDemandeDepart } from "@/lib/actions/depart";
 
 const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: "Congé payé", MALADIE: "Maladie", SANS_SOLDE: "Sans solde", AUTRE: "Autre" };
+const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: "Démission", LICENCIEMENT: "Licenciement", FIN_CONTRAT: "Fin de contrat", AUTRE: "Autre" };
 
 export default async function PageRH() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -81,7 +83,15 @@ export default async function PageRH() {
     const activite = projetsDisponible ? await tableauEquipe(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte, debutMois, finMois) : [];
 
     if (!rhDisponible) {
-      return { activite, projetsDisponible, rhDisponible, dossiers: [], demandesEnAttente: [], nomParDossierRHId: {} as Record<string, string> };
+      return {
+        activite,
+        projetsDisponible,
+        rhDisponible,
+        dossiers: [],
+        demandesEnAttente: [],
+        departsEnAttente: [],
+        nomParDossierRHId: {} as Record<string, string>,
+      };
     }
 
     const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
@@ -107,12 +117,22 @@ export default async function PageRH() {
             .where(and(inArray(demandeConge.dossierRHId, idsDossiersRH), eq(demandeConge.statut, "EN_ATTENTE")))
         : [];
 
+    // Offboarding (échange du 2026-09-08) — même patron que les demandes de
+    // congé en attente ci-dessus.
+    const departsEnAttente =
+      idsDossiersRH.length > 0
+        ? await tx
+            .select({ id: demandeDepart.id, type: demandeDepart.type, dateDepartSouhaitee: demandeDepart.dateDepartSouhaitee, dossierRHId: demandeDepart.dossierRHId })
+            .from(demandeDepart)
+            .where(and(inArray(demandeDepart.dossierRHId, idsDossiersRH), eq(demandeDepart.statut, "EN_ATTENTE")))
+        : [];
+
     const nomParDossierRHId = Object.fromEntries(dossiers.map((d) => [d.id, d.nomComplet]));
 
-    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, nomParDossierRHId };
+    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId };
   });
 
-  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, nomParDossierRHId } = donnees;
+  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId } = donnees;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -145,6 +165,41 @@ export default async function PageRH() {
                       </Button>
                     </form>
                     <form action={traiterDemandeConge.bind(null, d.id, "refuser")}>
+                      <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
+                        Refuser
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {departsEnAttente.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <LogOut className="size-4" aria-hidden />
+            Demandes de départ en attente
+          </h2>
+          <Card className="p-0">
+            <div className="flex flex-col divide-y divide-border">
+              {departsEnAttente.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <div>
+                    <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? "Employé"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {LIBELLE_TYPE_DEPART[d.type] ?? d.type} — souhaitée le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.dateDepartSouhaitee)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <form action={traiterDemandeDepart.bind(null, d.id, "approuver", undefined)}>
+                      <Button type="submit" size="xs" variant="outline">
+                        Approuver
+                      </Button>
+                    </form>
+                    <form action={traiterDemandeDepart.bind(null, d.id, "refuser", undefined)}>
                       <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
                         Refuser
                       </Button>
