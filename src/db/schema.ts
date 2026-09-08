@@ -2704,6 +2704,104 @@ export const sondageParticipation = pgTable(
   ]
 ).enableRLS();
 
+export const statutTicketRH = pgEnum("statut_ticket_rh", ["OUVERT", "EN_COURS", "RESOLU", "FERME"]);
+
+// Assistance RH interne (échange du 2026-09-08, comparaison avec Zoho
+// People — "HR Help Desk") : catégories, chacune avec un agent par défaut.
+// Gestion des catégories réservée à l'Administrateur (décision structurante,
+// même niveau que politiqueConge/sondage).
+export const categorieTicketRH = pgTable(
+  "categorie_ticket_rh",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("categorie_ticket_rh_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Visibilité : le demandeur, l'agent assigné, ou l'Administrateur — jamais
+// la portée RH normale d'un Manager (un ticket peut être assigné à
+// n'importe quel agent désigné, pas nécessairement le manager de l'équipe),
+// même principe que clearanceDepart (le responsable désigné agit sur son
+// propre item, indépendamment de la portée générale).
+export const ticketRH = pgTable(
+  "ticket_rh",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    categorieId: text("categorie_id")
+      .notNull()
+      .references(() => categorieTicketRH.id),
+    demandeurId: text("demandeur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    statut: statutTicketRH("statut").notNull().default("OUVERT"),
+    // Hérité de categorieTicketRH.agentId à la création, réassignable
+    // ensuite — jamais NULL en pratique mais nullable au cas où l'agent de
+    // la catégorie serait retiré de l'entreprise plus tard.
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    resoluLe: timestamp("resolu_le"),
+  },
+  (table) => [
+    index("ticket_rh_entreprise_idx").on(table.entrepriseId),
+    index("ticket_rh_categorie_idx").on(table.categorieId),
+    index("ticket_rh_demandeur_idx").on(table.demandeurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Fil de discussion d'un ticket — même forme que `commentaire` (Palier 2)
+// mais dédié à ticketRH plutôt que polymorphe, un seul type de parent ici.
+export const messageTicketRH = pgTable(
+  "message_ticket_rh",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    ticketId: text("ticket_id")
+      .notNull()
+      .references(() => ticketRH.id, { onDelete: "cascade" }),
+    auteurId: text("auteur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    contenu: text("contenu").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("message_ticket_rh_entreprise_idx").on(table.entrepriseId),
+    index("message_ticket_rh_ticket_idx").on(table.ticketId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Palier 6 — voir docs/palier-6-marketing-communication-specification-technique.md.
 // Construit ici : Campagnes (section 2), automatisations de relance (même
 // section, ajoutées à la tâche planifiée existante), Page d'atterrissage
