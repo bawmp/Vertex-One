@@ -420,6 +420,21 @@ Construit :
 
 Testé : `tsc`/`eslint` verts ; `regularisation-logique` (4 cas : création de la ligne de pointage à l'approbation, non-écrasement d'un champ non proposé, refus sans effet, impossibilité de re-traiter une demande déjà tranchée) et `regularisation-fuite-rls` passent en isolation. Vérification en navigateur interrompue à mi-parcours par la dégradation sévère de latence Neon documentée dans CLAUDE.md (connexions WebSocket qui échouent purement et simplement sous sollicitation prolongée, pas seulement lentes — un `npx drizzle-kit migrate` est resté bloqué 32 minutes sans sortir la moindre ligne avant d'être tué manuellement) ; un run antérieur avait déjà confirmé le parcours complet réel (demande employé → approbation admin → heure correctement appliquée sur `pointage`), seule une assertion de test comparant heure locale et UTC était en cause, jamais une erreur applicative.
 
+## 25. Rapports RH consolidés — construit le 2026-09-12
+
+Comparaison avec Zoho People ("Reports", modèle My Reports/Team Reports/Organization Reports) — une nouvelle page qui réunit en lecture seule des chiffres déjà produits par les sept tranches RH précédentes de ce module (congés, salaire, offboarding, fichiers, sondages, tickets, pointage/régularisation), plutôt qu'une nouvelle source de données. Trois niveaux, chacun gardé par la portée déjà établie :
+- **Mes données** (tout le monde ayant un dossier RH) : solde de congés, congé payé pris cette année, régularisations en attente, mes tickets ouverts.
+- **Équipe** (Manager/Admin, `idsVisibles(...,"RH")`) : par employé visible, solde, demandes de congé en attente, présence du jour.
+- **Entreprise** (Administrateur uniquement) : répartition des contrats, dossiers actifs/partis, masse salariale (somme des `salaireBase` actifs — jamais un calcul de paie, juste une addition), tickets par statut, résultat et taux de participation du dernier sondage fermé.
+
+Agrégation en JavaScript sur des lignes déjà lues (même style que `tableauEquipe()`/`calculerResultatsQuestion()` dans ce module) plutôt que des agrégats SQL — les volumes réels restent modestes à l'échelle d'une TPE. Le taux de participation à un sondage se calcule sur l'effectif actif *au moment du rapport*, pas au moment du sondage (aucun historique d'effectif conservé) — présenté comme une approximation, jamais une mesure exacte a posteriori.
+
+Construit :
+- `src/lib/rh/rapports.ts` — `rapportPersonnel()`, `rapportEquipe()`, `rapportEntreprise()`.
+- UI : `/app/rh/rapports`, liée depuis le tableau de bord RH et chaque fiche dossier.
+
+Testé : `tsc`/`eslint` verts ; `rapports-rh-logique` (4 cas sur une vraie base : agrégation complète pour un dossier actif, dossier sans activité renvoyant des zéros, ligne d'équipe reflétant correctement présence/demande en attente, agrégat entreprise avec contrats/masse salariale/tickets/dernier sondage) passe en isolation. Vérification en navigateur confirmée pour le rendu de la section Entreprise sur une base vide (capture d'écran, aucun plantage) ; la suite du parcours (section "Mes données" avec un dossier RH réel) n'a pas pu être rejouée jusqu'au bout — dégradation sévère et persistante de la latence Neon documentée dans CLAUDE.md en toute fin de session (une page qui ne charge plus du tout en 150s), jamais une erreur applicative reproductible constatée par ailleurs.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
