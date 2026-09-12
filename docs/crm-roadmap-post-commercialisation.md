@@ -406,6 +406,20 @@ Testé : `tsc`/`eslint` verts ; `ticket-rh-logique` (Administrateur/demandeur/ag
 
 **Le module RH couvre désormais les six zones identifiées dans la comparaison avec Zoho People** (politiques de congé, historique des révisions de salaire, offboarding, fichiers RH dédiés, sondages d'engagement, assistance RH interne). Shift management, LMS et Rapports RH consolidés restent non construits, sans demande observée à ce jour.
 
+## 24. Régularisation de pointage (RH) — construit le 2026-09-12
+
+Extension naturelle du pointage existant (bouton "Je suis arrivé"/"Je pars", une ligne par jour), comparaison avec Zoho People ("Regularization") : un employé qui a oublié de pointer ou pointé une mauvaise heure peut demander une correction, jamais modifier `pointage` directement — même workflow demande/approbation que `demandeConge` (`src/lib/rh/conges.ts`), réutilisé à l'identique (`portee(role,"RH")`/`idsVisibles(...)` pour la garde d'approbation).
+
+Point notable : `approuverRegularisation()` (`src/lib/rh/regularisation.ts`) n'écrase que les champs effectivement proposés — une régularisation qui ne corrige que le départ ne touche jamais l'heure d'arrivée déjà enregistrée. Vérifié explicitement par un test qui enchaîne une correction d'arrivée puis une correction de départ sur le même jour et confirme qu'aucune n'efface l'autre.
+
+Construit :
+- 1 table (`regularisationPointage`), RLS + FORCE RLS.
+- `creerRegularisation()` : toujours pour son propre dossier (même choix que `creerDemandeConge`), refuse une date future, exige au moins une heure proposée.
+- `traiterRegularisation()` : approbation applique la correction sur `pointage` (upsert par `dossierRHId`+`date`) ; un refus ne touche jamais `pointage`.
+- UI : formulaire de demande + historique sur la fiche dossier RH (`/app/rh/[id]`), section "Pointage".
+
+Testé : `tsc`/`eslint` verts ; `regularisation-logique` (4 cas : création de la ligne de pointage à l'approbation, non-écrasement d'un champ non proposé, refus sans effet, impossibilité de re-traiter une demande déjà tranchée) et `regularisation-fuite-rls` passent en isolation. Vérification en navigateur interrompue à mi-parcours par la dégradation sévère de latence Neon documentée dans CLAUDE.md (connexions WebSocket qui échouent purement et simplement sous sollicitation prolongée, pas seulement lentes — un `npx drizzle-kit migrate` est resté bloqué 32 minutes sans sortir la moindre ligne avant d'être tué manuellement) ; un run antérieur avait déjà confirmé le parcours complet réel (demande employé → approbation admin → heure correctement appliquée sur `pointage`), seule une assertion de test comparant heure locale et UTC était en cause, jamais une erreur applicative.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
