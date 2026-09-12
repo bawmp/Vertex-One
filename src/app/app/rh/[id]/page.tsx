@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
 import { ArrowLeft, User, Download, LogOut, MessageCircleHeart, Ticket } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -25,6 +25,8 @@ import { FormulaireRevisionSalaire } from "./formulaire-revision-salaire";
 import { ListeRevisionsSalaire } from "./liste-revisions-salaire";
 import { FormulaireDocumentRH } from "./formulaire-document-rh";
 import { ListeDocumentsRH } from "./liste-documents-rh";
+import { FormulaireRegularisation } from "./formulaire-regularisation";
+import { ListeRegularisations } from "./liste-regularisations";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -135,11 +137,15 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       .where(eq(documentRH.dossierRHId, id))
       .orderBy(desc(documentRH.creeLe));
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH };
+    // Régularisations de pointage (échange du 2026-09-12) — toutes les
+    // demandes du dossier, quel que soit leur statut, pour l'historique.
+    const regularisations = await tx.select().from(regularisationPointage).where(eq(regularisationPointage.dossierRHId, id)).orderBy(desc(regularisationPointage.creeLe));
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -256,9 +262,13 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       {estProprietaire ? (
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">Pointage</h2>
-          <BoutonPointage arrive={Boolean(pointageDuJour?.heureArrivee)} parti={Boolean(pointageDuJour?.heureDepart)} />
+          <div className="flex items-center gap-2">
+            <FormulaireRegularisation />
+            <BoutonPointage arrive={Boolean(pointageDuJour?.heureArrivee)} parti={Boolean(pointageDuJour?.heureDepart)} />
+          </div>
         </div>
       ) : null}
+      {estProprietaire || peutTraiterConges ? <ListeRegularisations regularisations={regularisations} peutTraiter={peutTraiterConges} /> : null}
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

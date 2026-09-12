@@ -2397,6 +2397,45 @@ export const pointage = pgTable(
   ]
 ).enableRLS();
 
+export const statutRegularisation = pgEnum("statut_regularisation", ["EN_ATTENTE", "APPROUVEE", "REFUSEE"]);
+
+// Régularisation de pointage (échange du 2026-09-12, comparaison avec Zoho
+// People — "Regularization") : une correction demandée pour un jour donné,
+// jamais une modification directe de `pointage` par l'employé lui-même —
+// même workflow demande/approbation que demandeConge. L'approbation
+// applique la correction sur `pointage` (voir
+// src/lib/rh/regularisation.ts, approuverRegularisation()) — jamais avant.
+export const regularisationPointage = pgTable(
+  "regularisation_pointage",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    // Horodatage à minuit — même convention que pointage.date, pour
+    // correspondre directement à la ligne visée par la correction.
+    date: timestamp("date").notNull(),
+    heureArriveeProposee: timestamp("heure_arrivee_proposee"),
+    heureDepartProposee: timestamp("heure_depart_proposee"),
+    motif: text("motif").notNull(),
+    statut: statutRegularisation("statut").notNull().default("EN_ATTENTE"),
+    approuveParId: text("approuve_par_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("regularisation_pointage_entreprise_idx").on(table.entrepriseId),
+    index("regularisation_pointage_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const evaluation = pgTable(
   "evaluation",
   {

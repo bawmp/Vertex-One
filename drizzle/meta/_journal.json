@@ -484,6 +484,20 @@
       "when": 1788887967442,
       "tag": "0068_force_rls_tickets_rh",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1789234338651,
+      "tag": "0069_regularisation_pointage",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1789234345101,
+      "tag": "0070_force_rls_regularisation_pointage",
+      "breakpoints": true
     }
   ]
 }
