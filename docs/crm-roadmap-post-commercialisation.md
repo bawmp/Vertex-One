@@ -390,7 +390,21 @@ Construit :
 
 Testé : `tsc`/`eslint` verts ; `sondage-logique` (formule eNPS vérifiée sur plusieurs cas dont les extrêmes ±100, anonymat vérifié structurellement contre une vraie base — aucune colonne de `sondageReponse` ne contient un id utilisateur —, contrainte unique anti double-soumission) et `sondage-fuite-rls` passent en isolation, ainsi que les 9 autres fichiers de tests RH exécutés ensemble (31 tests, aucune régression croisée) ; parcours réel en navigateur de bout en bout (création → ouverture → réponse anonyme → résultat NPS bloqué sous le seuil mais commentaire texte visible → fermeture).
 
-**Reste du module RH identifié mais non construit** : assistance RH interne (tickets/FAQ, dernière zone listée dans la comparaison avec Zoho People). Shift management, LMS et Rapports RH consolidés n'ont toujours pas de demande observée.
+## 23. Assistance RH interne (tickets) — construit le 2026-09-09
+
+Sixième et dernière tranche identifiée du GRH inspiré de Zoho People ("HR Help Desk"). Simplifié par rapport à Zoho, qui propose des catégories entièrement configurables (formulaires de clôture réutilisables, modèles d'entretien de sortie, etc.) : ici une catégorie porte simplement un nom et un agent par défaut, un ticket un titre/description/statut, et un fil de messages simple (même forme que `commentaire` du Palier 2, dédié plutôt que polymorphe).
+
+Point le plus délicat de cette tranche : la visibilité. Un ticket peut être assigné à n'importe quel agent désigné par la catégorie (pas nécessairement le manager de l'équipe du demandeur) — la portée RH normale (`idsVisibles(..., "RH")`) ne convient donc pas. `peutVoirTicket()` (`src/lib/rh/ticket.ts`) restreint plutôt l'accès au demandeur, à l'agent assigné, ou à l'Administrateur — même principe que `clearanceDepart` (offboarding, section 19) où le responsable désigné agit sur son propre item indépendamment de la portée générale. Vérifié explicitement par un test qui confirme qu'un Manager ne voit pas le ticket d'un employé de son équipe si le ticket est assigné à un agent qui n'est pas lui.
+
+Construit :
+- 3 tables (`categorieTicketRH`, `ticketRH`, `messageTicketRH`), RLS + FORCE RLS.
+- Gestion des catégories réservée à l'Administrateur (même niveau que les politiques de congé/sondages) ; ouvrir un ticket réservé à soi-même (même choix que `creerDemandeConge`/`creerDemandeDepart`) ; changer le statut réservé à l'agent assigné ou l'Administrateur ; réassigner réservé à l'Administrateur.
+- `changerStatutTicket()` revérifie la valeur reçue à l'exécution (`STATUTS_VALIDES.includes(...)`) plutôt que de faire confiance au typage TypeScript du contrôle côté client, qui ne garantit rien à l'exécution.
+- UI : `/app/rh/tickets` (liste, création de catégorie pour l'Administrateur, ouverture de ticket), `/app/rh/tickets/[id]` (fil de messages, changement de statut, réassignation).
+
+Testé : `tsc`/`eslint` verts ; `ticket-rh-logique` (Administrateur/demandeur/agent voient le ticket, Manager de l'équipe du demandeur non — la garde de portée attendue) et `ticket-rh-fuite-rls` passent en isolation ; parcours réel en navigateur confirmé pour la création de catégorie, l'ouverture de ticket, l'échange de messages, et le changement de statut jusqu'à "Résolu" (vérification complète bout-en-bout côté employé interrompue par la latence Neon documentée dans CLAUDE.md sous sollicitation prolongée — code déjà validé par ailleurs, jamais une erreur logique reproductible constatée).
+
+**Le module RH couvre désormais les six zones identifiées dans la comparaison avec Zoho People** (politiques de congé, historique des révisions de salaire, offboarding, fichiers RH dédiés, sondages d'engagement, assistance RH interne). Shift management, LMS et Rapports RH consolidés restent non construits, sans demande observée à ce jour.
 
 ## Quand y revenir
 
