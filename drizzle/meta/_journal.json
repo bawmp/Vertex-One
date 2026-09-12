@@ -498,6 +498,20 @@
       "when": 1789234345101,
       "tag": "0070_force_rls_regularisation_pointage",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1789247695448,
+      "tag": "0071_shift",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1789247704848,
+      "tag": "0072_force_rls_shift",
+      "breakpoints": true
     }
   ]
 }

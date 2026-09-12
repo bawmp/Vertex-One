@@ -4,6 +4,7 @@ import {
   pgPolicy,
   text,
   timestamp,
+  time,
   json,
   boolean,
   integer,
@@ -289,6 +290,10 @@ export const dossierRH = pgTable(
     // (clotureDepart(), src/lib/actions/depart.ts), jamais avant. Dénormalisé
     // ici pour un affichage direct sans jointure vers demandeDepart.
     dateDepart: timestamp("date_depart"),
+    // Shift assigné (échange du 2026-09-12, comparaison avec Zoho People) —
+    // nullable, même rétrocompatibilité que politiqueCongeId : sans shift,
+    // le pointage reste marqué PRESENT comme avant cette tranche.
+    shiftId: text("shift_id").references((): AnyPgColumn => shift.id, { onDelete: "set null" }),
   },
   (table) => [
     index("dossier_rh_entreprise_idx").on(table.entrepriseId),
@@ -2363,6 +2368,41 @@ export const demandeConge = pgTable(
   (table) => [
     index("demande_conge_entreprise_idx").on(table.entrepriseId),
     index("demande_conge_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Shifts (échange du 2026-09-12, comparaison avec Zoho People — "Shift
+// Management") : volontairement simplifié par rapport à Zoho (pas de marge
+// avant/après distincte, pas d'heures de présence obligatoire, pas de
+// rotation automatique planifiée, pas d'indemnité de shift) — un nom, une
+// plage horaire, et une tolérance unique en minutes avant de marquer un
+// retard. Donne enfin un usage réel au statut RETARD de `pointage`, prévu
+// dès le Palier 5 mais jamais calculé jusqu'ici (toujours PRESENT).
+// Gestion réservée à l'Administrateur, même niveau que politiqueConge.
+export const shift = pgTable(
+  "shift",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    heureDebut: time("heure_debut").notNull(),
+    heureFin: time("heure_fin").notNull(),
+    toleranceMinutes: integer("tolerance_minutes").notNull().default(0),
+    actif: boolean("actif").notNull().default(true),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("shift_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
