@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
-import { ArrowLeft, User, Download, LogOut, MessageCircleHeart } from "lucide-react";
+import { ArrowLeft, User, Download, LogOut, MessageCircleHeart, Ticket } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -162,6 +162,10 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
           <Link href="/app/rh/sondages" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <MessageCircleHeart className="size-3.5" aria-hidden />
             Sondages
+          </Link>
+          <Link href="/app/rh/tickets" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <Ticket className="size-3.5" aria-hidden />
+            Assistance
           </Link>
           <Link href={`/app/rh/${ligne.id}/depart`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <LogOut className="size-3.5" aria-hidden />
