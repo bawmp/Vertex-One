@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -227,6 +227,12 @@ const MODULES_MENU: ItemMenu[] = [
     ],
   },
   { module: "MARKETING", libelle: "Marketing", href: "/app/marketing", Icone: Rocket },
+  // Booking (échange du 2026-09-13, addon à la carte comme Marketing) — item
+  // racine plat, pas de regroupement en sous-menu pour ce v1 (portée assez
+  // restreinte pour rester une seule entrée, comme Projets/Documents) ; les
+  // pages Services/Personnel/Paramètres restent atteignables depuis l'accueil
+  // /app/reservations lui-même.
+  { module: "RESERVATIONS", libelle: "Réservations", href: "/app/reservations", Icone: CalendarCheck },
   { module: "PARAMETRES", libelle: "Paramètres", href: "/app/parametres", Icone: Settings },
 ];
 
