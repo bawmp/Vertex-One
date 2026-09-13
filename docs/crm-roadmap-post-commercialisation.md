@@ -452,6 +452,18 @@ Testé : `tsc`/`eslint` verts ; `shift-logique` (8 cas : calcul pur PRESENT/RETA
 
 **Le module RH couvre désormais l'intégralité des huit zones identifiées dans la comparaison avec Zoho People.** Seul le LMS (formation) reste non construit, sans demande observée à ce jour — le chantier le plus lourd des trois zones restantes identifiées, territoire entièrement nouveau.
 
+## 27. RH réorganisé dans la sidebar (comme CRM/FACO) — fait le 2026-09-13
+
+Retour utilisateur ("organise le module RH comme tu as organisé le module CRM et FACO") — RH existait jusque-là en item racine unique (`/app/rh`), alors que CRM (section CRM initiale) et FACO (sections 11-14) ont chacun leur propre entrée à liste déroulante, catégorisée comme la vraie arborescence Zoho correspondante.
+
+`src/app/app/layout.tsx` : RH devient un groupe (`hrefAccueil: "/app/rh"`, comme CRM/FACO), catégorisé sur les zones Zoho People déjà construites — Présence (Shifts), Congés (Politiques de congé), Assistance (Tickets RH), Sondages, Rapports. Le tableau de bord (`/app/rh`) reste hors catégorie, comme l'accueil de CRM/FACO ne duplique pas ses propres onglets.
+
+Point notable : Shifts et Politiques de congé sont gardés par une vérification de rôle directe dans la page (`role !== "ADMIN"`), pas par un module de permission dédié comme Comptabilité (`peut(role, "COMPTABILITE", "VOIR")`, déjà admin-only côté permissions). Un nouveau champ `reserveAdmin` sur `LienMenu` reproduit ce même filtre côté sidebar, pour ne jamais afficher un lien qui mènerait systématiquement à un écran d'accès refusé — et les catégories qui n'auraient plus aucun lien visible après ce filtre (`Présence`/`Congés` pour un Manager/Employé) sont retirées entièrement, pas laissées avec un en-tête sans rien dessous.
+
+Les raccourcis de navigation devenus redondants ont été retirés (pas seulement dupliqués) pour rester cohérent avec FACO, qui ne duplique jamais ses propres onglets sur sa page d'accueil : les liens Rapports/Sondages/Assistance/Politiques de congé/Shifts en en-tête de `/app/rh` et de la fiche dossier (`/app/rh/[id]`) ont été supprimés, la sidebar étant désormais l'unique chemin vers ces pages.
+
+Testé : `tsc`/`eslint` verts, parcours réel en navigateur (scratch e2e, supprimé après succès) — un Administrateur voit les cinq catégories et leurs liens, un rôle rétrogradé en MANAGER ne voit ni Shifts ni Politiques de congé ni les en-têtes de catégorie correspondants, et conserve Tickets RH/Sondages/Rapports RH.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
