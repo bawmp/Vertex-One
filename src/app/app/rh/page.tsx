@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -9,7 +9,8 @@ import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { tableauEquipe } from "@/lib/rh/equipe";
-import { Card } from "@/components/ui/card";
+import { rapportEntreprise, type RapportEntreprise } from "@/lib/rh/rapports";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { traiterDemandeConge } from "@/lib/actions/rh";
@@ -17,6 +18,7 @@ import { traiterDemandeDepart } from "@/lib/actions/depart";
 
 const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: "Congé payé", MALADIE: "Maladie", SANS_SOLDE: "Sans solde", AUTRE: "Autre" };
 const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: "Démission", LICENCIEMENT: "Licenciement", FIN_CONTRAT: "Fin de contrat", AUTRE: "Autre" };
+const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
 export default async function PageRH() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -91,8 +93,18 @@ export default async function PageRH() {
         demandesEnAttente: [],
         departsEnAttente: [],
         nomParDossierRHId: {} as Record<string, string>,
+        rapport: null as RapportEntreprise | null,
       };
     }
+
+    // Tableau de bord (échange du 2026-09-13, "ajoute un tableau de bord au
+    // module RH à l'accueil") — réutilise rapportEntreprise() déjà construit
+    // pour les Rapports RH consolidés (/app/rh/rapports), même principe que
+    // le tableau de bord FACO : aucune nouvelle requête, une agrégation déjà
+    // testée. Masse salariale exclue du rapport pour un Manager (portée
+    // TOUT sur RH mais jamais le salaire agrégé de toute l'équipe — voir
+    // règle non négociable CLAUDE.md, seul l'Administrateur y accède).
+    const rapport = await rapportEntreprise(tx, utilisateurConnecte.entrepriseId);
 
     const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
     const dossiers = await tx
@@ -129,10 +141,11 @@ export default async function PageRH() {
 
     const nomParDossierRHId = Object.fromEntries(dossiers.map((d) => [d.id, d.nomComplet]));
 
-    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId };
+    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport };
   });
 
-  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId } = donnees;
+  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport } = donnees;
+  const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -226,6 +239,65 @@ export default async function PageRH() {
               {activite.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">Aucune donnée pour le moment.</p> : null}
             </div>
           </Card>
+        </div>
+      ) : null}
+
+      {rapport ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Aperçu</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Card>
+              <CardContent className="flex flex-col gap-1">
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Briefcase className="size-3.5" aria-hidden />
+                  Dossiers actifs
+                </p>
+                <p className="text-xl font-semibold">{rapport.dossiersActifs}</p>
+                {Object.keys(rapport.repartitionContrats).length > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {Object.entries(rapport.repartitionContrats)
+                      .map(([type, n]) => `${LIBELLE_TYPE_CONTRAT[type] ?? type} : ${n}`)
+                      .join(" · ")}
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+            <Link href="/app/rh/tickets">
+              <Card className="h-full transition-colors hover:bg-muted/50">
+                <CardContent className="flex flex-col gap-1">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Ticket className="size-3.5" aria-hidden />
+                    Tickets ouverts
+                  </p>
+                  <p className="text-xl font-semibold">{ticketsOuverts}</p>
+                </CardContent>
+              </Card>
+            </Link>
+            {utilisateurConnecte.role === "ADMIN" ? (
+              <Card>
+                <CardContent className="flex flex-col gap-1">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Wallet className="size-3.5" aria-hidden />
+                    Masse salariale (base, mensuelle)
+                  </p>
+                  <p className="text-xl font-semibold">{new Intl.NumberFormat("fr-FR").format(rapport.masseSalariale)} FCFA</p>
+                </CardContent>
+              </Card>
+            ) : null}
+            {rapport.dernierSondage ? (
+              <Link href="/app/rh/sondages">
+                <Card className="h-full transition-colors hover:bg-muted/50">
+                  <CardContent className="flex flex-col gap-1">
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Smile className="size-3.5" aria-hidden />
+                      Dernier sondage — {rapport.dernierSondage.titre}
+                    </p>
+                    <p className="text-xl font-semibold">{rapport.dernierSondage.tauxParticipation}% de participation</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
