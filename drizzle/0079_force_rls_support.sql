@@ -1,0 +1,3 @@
+ALTER TABLE "categorie_ticket_support" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "ticket_support" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "message_ticket_support" FORCE ROW LEVEL SECURITY;

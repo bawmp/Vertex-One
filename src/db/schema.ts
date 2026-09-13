@@ -157,6 +157,11 @@ export const invitation = pgTable(
     postePropose: text("poste_propose"),
     typeContratPropose: text("type_contrat_propose"), // "CDI" | "CDD" | "STAGE" | "PRESTATAIRE"
     dateEmbauchePropose: timestamp("date_embauche_propose"), // saisie humaine, jamais déduite
+    // Assistance client (échange du 2026-09-13) — renseigné seulement quand
+    // roleProposee = "CLIENT" et qu'on invite un Contact CRM précis au
+    // portail (jamais pour un collaborateur interne). Référence tardive
+    // (AnyPgColumn) : contact est déclarée plus bas dans ce fichier.
+    contactId: text("contact_id").references((): AnyPgColumn => contact.id),
     jeton: text("jeton").notNull().unique(),
     expireLe: timestamp("expire_le").notNull(),
     utiliseeLe: timestamp("utilisee_le"),
@@ -440,6 +445,10 @@ export const contact = pgTable(
     assigneAId: text("assigne_a_id")
       .notNull()
       .references(() => utilisateur.id),
+    // Portail client (échange du 2026-09-13) — lien 1:1 optionnel vers un
+    // compte de connexion (role CLIENT, jamais interne). Nullable : la
+    // grande majorité des Contacts n'ont jamais de compte portail.
+    utilisateurId: text("utilisateur_id").unique().references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -3298,6 +3307,104 @@ export const candidature = pgTable(
   (table) => [
     index("candidature_entreprise_idx").on(table.entrepriseId),
     index("candidature_poste_idx").on(table.posteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Assistance client (équivalent Zoho Desk, échange du 2026-09-13) — premier
+// vrai usage du rôle CLIENT pour une connexion réelle (portail /portail,
+// voir src/app/portail/). Miroir de ticketRH/categorieTicketRH/messageTicketRH
+// (RH, section 22 du roadmap), mais le demandeur est un Contact CRM, jamais
+// un utilisateur interne — d'où deux colonnes d'auteur nullables sur
+// messageTicketSupport (un message vient soit d'un agent interne, soit du
+// client), impossible chez ticketRH où tout le monde est un utilisateur.
+// L'isolation par Contact individuel (pas seulement par entreprise) se fait
+// en application (voir src/lib/portail/acces.ts), la RLS ne protège ici que
+// la frontière entre entreprises comme partout ailleurs.
+export const statutTicketSupport = pgEnum("statut_ticket_support", ["OUVERT", "EN_COURS", "RESOLU", "FERME"]);
+
+export const categorieTicketSupport = pgTable(
+  "categorie_ticket_support",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("categorie_ticket_support_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ticketSupport = pgTable(
+  "ticket_support",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    categorieId: text("categorie_id")
+      .notNull()
+      .references(() => categorieTicketSupport.id),
+    // Le demandeur est un Contact, jamais un utilisateur — un ticket peut
+    // exister même si ce Contact n'a pas (encore) de compte portail.
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    statut: statutTicketSupport("statut").notNull().default("OUVERT"),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    resoluLe: timestamp("resolu_le"),
+  },
+  (table) => [
+    index("ticket_support_entreprise_idx").on(table.entrepriseId),
+    index("ticket_support_categorie_idx").on(table.categorieId),
+    index("ticket_support_contact_idx").on(table.contactId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const messageTicketSupport = pgTable(
+  "message_ticket_support",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    ticketId: text("ticket_id")
+      .notNull()
+      .references(() => ticketSupport.id, { onDelete: "cascade" }),
+    // Exactement l'un des deux — jamais les deux, jamais aucun. Contrainte
+    // CHECK posée à la main en migration (num_nonnulls = 1), le DSL Drizzle
+    // ne représente pas ce genre de contrainte multi-colonnes.
+    auteurUtilisateurId: text("auteur_utilisateur_id").references(() => utilisateur.id),
+    auteurContactId: text("auteur_contact_id").references(() => contact.id),
+    contenu: text("contenu").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("message_ticket_support_entreprise_idx").on(table.entrepriseId),
+    index("message_ticket_support_ticket_idx").on(table.ticketId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
