@@ -237,6 +237,11 @@ const MODULES_MENU: ItemMenu[] = [
   // Marketing/Réservations) — item racine plat, même raisonnement que
   // Réservations pour ce v1.
   { module: "RECRUTEMENT", libelle: "Recrutement", href: "/app/recrutement", Icone: Briefcase },
+  // Assistance client (échange du 2026-09-13, addon à la carte) — item
+  // racine plat, même raisonnement que Réservations/Recrutement. Ne
+  // gouverne que le côté agent (/app/support) ; le portail (/portail)
+  // n'apparaît jamais dans cette sidebar, réservé au rôle CLIENT.
+  { module: "SUPPORT", libelle: "Assistance client", href: "/app/support", Icone: LifeBuoy },
   { module: "PARAMETRES", libelle: "Paramètres", href: "/app/parametres", Icone: Settings },
 ];
 
