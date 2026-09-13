@@ -1,0 +1,5 @@
+ALTER TABLE "parametre_reservation" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "service_reservable" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "intervenant_reservation" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "disponibilite_reservation" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "reservation" FORCE ROW LEVEL SECURITY;

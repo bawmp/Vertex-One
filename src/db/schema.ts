@@ -95,6 +95,9 @@ export const entreprise = pgTable("entreprise", {
   // (comme les Bons de commande), mais une référence stable utile pour
   // retrouver une écriture manuelle dans le Journal des écritures.
   compteurJournauxManuels: integer("compteur_journaux_manuels").notNull().default(0),
+  // Réservations (Booking, échange du 2026-09-13) — pas un document fiscal,
+  // mais une référence lisible pour retrouver un rendez-vous (RDV-2026-000123).
+  compteurReservations: integer("compteur_reservations").notNull().default(0),
   // Verrouillage de transactions (Zoho Books > Comptable, échange du
   // 2026-09-07) — aucune écriture comptable (Facture, Dépense, Paiement,
   // Journal manuel...) ne peut être datée à cette date ou avant, contrôle
@@ -2992,5 +2995,201 @@ export const addonActif = pgTable(
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
       withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
     }),
+  ]
+).enableRLS();
+
+// Booking (équivalent Zoho Bookings, échange du 2026-09-13) — un Admin
+// configure des services et la disponibilité hebdomadaire de son personnel ;
+// un client externe réserve un créneau sur une page publique, sans compte.
+// Module volontairement indépendant du CRM (voir CLAUDE.md, "Indépendance
+// des modules") : reservation porte ses propres coordonnées client
+// (clientNom/clientTelephone/clientEmail), contactId n'étant qu'un lien
+// best-effort optionnel — jamais requis, jamais créé automatiquement,
+// puisque contact.assigneAId est NOT NULL et qu'une entreprise doit pouvoir
+// acheter Booking sans avoir le CRM. Seule parametreReservation (slug public
+// → entrepriseId) a une politique de lecture anonyme, à l'identique de
+// pageAtterrissage — service_reservable/intervenant_reservation/
+// disponibilite_reservation/reservation restent en RLS stricte : toute
+// lecture publique (services, personnel, créneaux libres) passe par une
+// Server Action qui résout d'abord entrepriseId depuis le slug puis
+// interroge via avecEntreprise(), jamais une policy SELECT anonyme
+// directement sur ces tables (qui exposerait sinon nom/téléphone/email de
+// tous les clients d'une entreprise à n'importe quelle session anonyme).
+export const statutReservation = pgEnum("statut_reservation", ["CONFIRMEE", "ANNULEE", "TERMINEE", "ABSENCE"]);
+export const jourSemaine = pgEnum("jour_semaine", ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI", "DIMANCHE"]);
+
+export const parametreReservation = pgTable(
+  "parametre_reservation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    slug: text("slug").notNull().unique(),
+    titre: text("titre").notNull().default("Prendre rendez-vous"),
+    texte: text("texte"),
+    publie: boolean("publie").notNull().default(false),
+    delaiMinimumHeures: integer("delai_minimum_heures").notNull().default(24),
+    delaiMaximumJours: integer("delai_maximum_jours").notNull().default(60),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("parametre_reservation_entreprise_unique").on(table.entrepriseId),
+    index("parametre_reservation_entreprise_idx").on(table.entrepriseId),
+    // Même patron exact que pageAtterrissage : lecture permissive uniquement
+    // quand publie = true ET aucune session active (nullif(...) IS NULL,
+    // jamais IS NULL seul — sur une connexion Neon fraîche current_setting
+    // renvoie '', pas NULL, voir CLAUDE.md), écriture toujours strictement
+    // scopée à l'entreprise.
+    pgPolicy("lecture_publique_ou_entreprise", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR (${table.publie} = true AND nullif(current_setting('app.entreprise_id', true), '') IS NULL)`,
+    }),
+    pgPolicy("ecriture_entreprise", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("modification_entreprise", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("suppression_entreprise", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const serviceReservable = pgTable(
+  "service_reservable",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    description: text("description"),
+    dureeMinutes: integer("duree_minutes").notNull(),
+    dureeTamponMinutes: integer("duree_tampon_minutes").notNull().default(0),
+    prixFcfa: integer("prix_fcfa").notNull().default(0),
+    actif: boolean("actif").notNull().default(true),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("service_reservable_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Enveloppe opt-in d'un utilisateur comme personnel réservable — nom/photo
+// affichés par jointure sur utilisateur, jamais dupliqués ici.
+export const intervenantReservation = pgTable(
+  "intervenant_reservation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    actif: boolean("actif").notNull().default(true),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("intervenant_reservation_utilisateur_unique").on(table.utilisateurId),
+    index("intervenant_reservation_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Fenêtres hebdomadaires récurrentes — plusieurs lignes par (intervenantId,
+// jourSemaine) autorisées (ex. coupure déjeuner : 09:00-12:00 et 14:00-18:00).
+// v1 : tout intervenant actif peut effectuer tout service actif (pas de
+// table de jonction service <-> intervenant) — écart volontaire, connu.
+export const disponibiliteReservation = pgTable(
+  "disponibilite_reservation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    intervenantId: text("intervenant_id")
+      .notNull()
+      .references(() => intervenantReservation.id),
+    jourSemaine: jourSemaine("jour_semaine").notNull(),
+    heureDebut: time("heure_debut").notNull(),
+    heureFin: time("heure_fin").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("disponibilite_reservation_intervenant_idx").on(table.intervenantId),
+    index("disponibilite_reservation_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const reservation = pgTable(
+  "reservation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    numero: text("numero").notNull(), // RDV-2026-000123, voir genererNumeroReservation()
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => serviceReservable.id),
+    intervenantId: text("intervenant_id")
+      .notNull()
+      .references(() => intervenantReservation.id),
+    dateDebut: timestamp("date_debut", { withTimezone: true }).notNull(),
+    dateFin: timestamp("date_fin", { withTimezone: true }).notNull(),
+    // Copiés au moment de la réservation — un changement ultérieur du
+    // service ne doit jamais réécrire l'historique (même principe que
+    // revisionSalaire).
+    dureeMinutesReservee: integer("duree_minutes_reservee").notNull(),
+    prixFcfaReserve: integer("prix_fcfa_reserve").notNull(),
+    statut: statutReservation("statut").notNull().default("CONFIRMEE"),
+    clientNom: text("client_nom").notNull(),
+    clientTelephone: text("client_telephone").notNull(),
+    clientEmail: text("client_email"),
+    notes: text("notes"),
+    // Lien best-effort optionnel vers un Contact CRM existant (jamais requis,
+    // jamais créé automatiquement) — voir commentaire de section plus haut.
+    contactId: text("contact_id").references(() => contact.id),
+    motifAnnulation: text("motif_annulation"),
+    annuleeLe: timestamp("annulee_le"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("reservation_entreprise_numero_unique").on(table.entrepriseId, table.numero),
+    index("reservation_entreprise_idx").on(table.entrepriseId),
+    index("reservation_intervenant_idx").on(table.intervenantId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    // La contrainte d'exclusion anti-chevauchement (EXCLUDE USING gist) n'est
+    // pas représentable par le DSL Drizzle — ajoutée à la main dans la
+    // migration 0075 (première utilisation de EXCLUDE/btree_gist du projet,
+    // voir le commentaire de cette migration pour la justification).
   ]
 ).enableRLS();
