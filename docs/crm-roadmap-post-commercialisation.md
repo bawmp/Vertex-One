@@ -501,6 +501,27 @@ Testé : `tsc`/`eslint`/`vitest` (212 tests, dont `reservation-logique` — 5 ca
 
 **Reste à explorer si l'utilisateur revient sur d'autres modules Zoho One** : Help Desk client externe (Zoho Desk), Recrutement (Zoho Recruit) — identifiés mais non construits, sans demande observée à ce jour.
 
+## 30. Module Recrutement (équivalent Zoho Recruit) — construit le 2026-09-13
+
+Suite directe de la section 29 — l'utilisateur a choisi Recrutement et Help Desk parmi les modules identifiés comme restants. Décision validée avant conception : une vraie page publique de candidature (comme Booking), CV inclus.
+
+**Architecture, décisions structurantes :**
+
+- **Module vendu à la carte** (`Addon = "RECRUTEMENT"`), même principe que Marketing/Réservations.
+- **Aucune lecture anonyme sur `posteOuvert`/`candidature`** — seule `parametreRecrutement` (slug public → entrepriseId) a une policy de lecture anonyme, miroir exact de `parametreReservation`/`pageAtterrissage`. Toute lecture publique (postes, détail d'un poste) passe par une Server Action qui résout d'abord `entrepriseId` puis interroge via `avecEntreprise()`.
+- **Première écriture publique avec fichier de ce projet** — un candidat téléverse son CV sans compte ni session. `televerserDocument()` (`src/lib/documents/stockage.ts`) n'avait aucune dépendance de session : directement réutilisable tel quel. Validation serveur du type MIME (PDF/Word) et de la taille (5 Mo max) avant tout appel de stockage — jamais fait confiance au seul attribut `accept` du champ HTML.
+- **L'embauche réutilise le flux `invitation` existant sans aucune modification** — `convertirCandidatureEnInvitation()` (extrait dans `src/lib/recrutement/conversion.ts` pour rester testable sans session HTTP, même principe que `approuverRegularisation()`) insère une ligne `invitation` ; `accepterInvitation()` gère ensuite l'activation du compte et la création du `dossierRH` exactement comme pour un collaborateur invité normalement. `candidature.invitationId` empêche seulement une double conversion.
+
+**Point notable, trouvé pendant la vérification en navigateur** : le message de confirmation "Invitation créée" disparaissait instantanément après une conversion réussie — le composant `FormulaireConversion` était démonté dès que le statut de la candidature passait à `EMBAUCHE` côté serveur (`revalidatePath`), avant que l'utilisateur n'ait eu le temps de le lire. Corrigé en gardant le composant monté pour les statuts `OFFRE` **et** `EMBAUCHE` (affiche alors "Déjà convertie" au lieu du formulaire) plutôt que de le faire disparaître dès la transition de statut.
+
+**Deuxième correction, même tranche** : `soumettreCandidature()` renvoyait initialement le message technique brut de `televerserDocument()` (ex. "Stockage R2 non configuré") directement au candidat externe — corrigé pour toujours afficher un message générique convivial à ce niveau, le détail technique restant seulement dans les logs serveur (déjà journalisé par `televerserDocument()` lui-même).
+
+**Construit** : 3 tables (`parametreRecrutement`, `posteOuvert`, `candidature`), RLS + FORCE RLS. UI interne (`/app/recrutement`, `.../postes`, `.../parametres`) et publique (`/carrieres/[slug]` → `/carrieres/[slug]/[posteId]`).
+
+**Écarts volontaires, connus** : pas de restriction de champs personnalisés par poste, pas de suivi d'entretiens planifiés (Booking pourrait un jour s'y greffer si un besoin réel apparaît), pas de modèles de réponse automatique par email aux candidats non retenus.
+
+Testé : `tsc`/`eslint`/`vitest` (221 tests, dont `candidature-logique` — validation de CV, conversion en invitation cohérente, double conversion refusée, candidature sans email refusée — et `candidature-fuite-rls`, y compris la policy anonyme de `parametreRecrutement`) verts, suite complète sans régression. Parcours réel en navigateur (scratch e2e, supprimé après succès) : publication → candidature publique avec CV (échec propre et convivial du stockage, R2 non configuré dans cet environnement de développement, comportement attendu et déjà documenté pour Migadu/NotchPay/Resend) → conversion en employé → invitation créée, confirmée à l'écran.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
