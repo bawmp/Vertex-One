@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { regularisationPointage, pointage } from "@/db/schema";
+import { regularisationPointage, pointage, dossierRH, shift } from "@/db/schema";
+import { calculerStatutArrivee } from "@/lib/rh/pointage";
 
 /**
  * Régularisation de pointage (échange du 2026-09-12, comparaison avec Zoho
@@ -18,6 +19,15 @@ export async function approuverRegularisation(tx: TransactionDrizzle, regularisa
   await tx.update(regularisationPointage).set({ statut: "APPROUVEE", approuveParId }).where(eq(regularisationPointage.id, regularisationId));
 
   const [existant] = await tx.select().from(pointage).where(and(eq(pointage.dossierRHId, demande.dossierRHId), eq(pointage.date, demande.date)));
+  const heureArriveeFinale = demande.heureArriveeProposee ?? existant?.heureArrivee ?? null;
+
+  // Même calcul que pointerArrivee() (échange du 2026-09-12) — une
+  // régularisation qui corrige l'arrivée doit refléter un vrai retard si le
+  // shift assigné en indique un, jamais un PRESENT systématique qui
+  // masquerait la correction elle-même.
+  const [dossier] = await tx.select({ shiftId: dossierRH.shiftId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
+  const leShift = dossier?.shiftId ? (await tx.select({ heureDebut: shift.heureDebut, toleranceMinutes: shift.toleranceMinutes }).from(shift).where(eq(shift.id, dossier.shiftId)))[0] ?? null : null;
+  const statut = heureArriveeFinale ? calculerStatutArrivee(leShift, heureArriveeFinale) : "PRESENT";
 
   if (existant) {
     await tx
@@ -25,7 +35,7 @@ export async function approuverRegularisation(tx: TransactionDrizzle, regularisa
       .set({
         heureArrivee: demande.heureArriveeProposee ?? existant.heureArrivee,
         heureDepart: demande.heureDepartProposee ?? existant.heureDepart,
-        statut: "PRESENT",
+        statut,
       })
       .where(eq(pointage.id, existant.id));
   } else {
@@ -35,7 +45,7 @@ export async function approuverRegularisation(tx: TransactionDrizzle, regularisa
       date: demande.date,
       heureArrivee: demande.heureArriveeProposee,
       heureDepart: demande.heureDepartProposee,
-      statut: "PRESENT",
+      statut,
     });
   }
 }

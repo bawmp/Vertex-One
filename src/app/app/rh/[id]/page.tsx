@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and } from "drizzle-orm";
-import { ArrowLeft, User, Download, LogOut, MessageCircleHeart, Ticket, ChartBar } from "lucide-react";
+import { ArrowLeft, User, Download, LogOut, MessageCircleHeart, Ticket, ChartBar, Clock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -27,6 +27,7 @@ import { FormulaireDocumentRH } from "./formulaire-document-rh";
 import { ListeDocumentsRH } from "./liste-documents-rh";
 import { FormulaireRegularisation } from "./formulaire-regularisation";
 import { ListeRegularisations } from "./liste-regularisations";
+import { FormulaireShift } from "./formulaire-shift";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -55,6 +56,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         nombrePersonnesACharge: dossierRH.nombrePersonnesACharge,
         soldeConges: dossierRH.soldeConges,
         politiqueCongeId: dossierRH.politiqueCongeId,
+        shiftId: dossierRH.shiftId,
         nomComplet: utilisateur.nomComplet,
       })
       .from(dossierRH)
@@ -141,11 +143,15 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     // demandes du dossier, quel que soit leur statut, pour l'historique.
     const regularisations = await tx.select().from(regularisationPointage).where(eq(regularisationPointage.dossierRHId, id)).orderBy(desc(regularisationPointage.creeLe));
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations };
+    // Shifts (échange du 2026-09-12) — mêmes patrons que politiquesActives
+    // ci-dessus : liste active pour le formulaire d'assignation.
+    const shiftsActifs = await tx.select({ id: shift.id, nom: shift.nom }).from(shift).where(and(eq(shift.entrepriseId, utilisateurConnecte.entrepriseId), eq(shift.actif, true)));
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -177,6 +183,12 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
             <Ticket className="size-3.5" aria-hidden />
             Assistance
           </Link>
+          {peutModifierDossier ? (
+            <Link href="/app/rh/shifts" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <Clock className="size-3.5" aria-hidden />
+              Shifts
+            </Link>
+          ) : null}
           <Link href={`/app/rh/${ligne.id}/depart`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <LogOut className="size-3.5" aria-hidden />
             Départ
@@ -272,6 +284,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
           </div>
         </div>
       ) : null}
+      {peutModifierDossier ? <FormulaireShift dossierRHId={ligne.id} shiftId={ligne.shiftId} shifts={shiftsActifs} /> : null}
       {estProprietaire || peutTraiterConges ? <ListeRegularisations regularisations={regularisations} peutTraiter={peutTraiterConges} /> : null}
 
       <div className="flex flex-col gap-3">

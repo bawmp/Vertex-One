@@ -253,6 +253,11 @@ export default async function PageRH() {
                 Politiques de congé
               </Link>
             ) : null}
+            {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
+              <Link href="/app/rh/shifts" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Shifts
+              </Link>
+            ) : null}
           </div>
         </div>
         {!rhDisponible ? (
