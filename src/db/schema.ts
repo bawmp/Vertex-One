@@ -3193,3 +3193,115 @@ export const reservation = pgTable(
     // voir le commentaire de cette migration pour la justification).
   ]
 ).enableRLS();
+
+// Recrutement (équivalent Zoho Recruit, échange du 2026-09-13) — un Admin
+// publie des postes ouverts ; un candidat externe postule sans compte sur
+// une page publique (CV inclus). Même patron exact que Booking pour la
+// résolution publique (parametreRecrutement, seule table avec lecture
+// anonyme, miroir de parametreReservation/pageAtterrissage) — posteOuvert et
+// candidature restent en RLS stricte, lus uniquement via avecEntreprise()
+// après résolution du slug côté serveur, jamais de policy SELECT anonyme
+// directement dessus (qui exposerait les coordonnées des candidats).
+// L'embauche réutilise le flux invitation existant tel quel (voir
+// convertirCandidatureEnEmploye(), src/lib/actions/recrutement.ts) —
+// candidature.invitationId n'existe que pour empêcher une double conversion.
+export const statutCandidature = pgEnum("statut_candidature", ["RECUE", "EN_EXAMEN", "ENTRETIEN", "OFFRE", "EMBAUCHE", "REJETEE"]);
+
+export const parametreRecrutement = pgTable(
+  "parametre_recrutement",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    slug: text("slug").notNull().unique(),
+    titre: text("titre").notNull().default("Nos offres d'emploi"),
+    texte: text("texte"),
+    publie: boolean("publie").notNull().default(false),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("parametre_recrutement_entreprise_unique").on(table.entrepriseId),
+    index("parametre_recrutement_entreprise_idx").on(table.entrepriseId),
+    // Même patron exact que pageAtterrissage/parametreReservation.
+    pgPolicy("lecture_publique_ou_entreprise", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR (${table.publie} = true AND nullif(current_setting('app.entreprise_id', true), '') IS NULL)`,
+    }),
+    pgPolicy("ecriture_entreprise", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("modification_entreprise", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("suppression_entreprise", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const posteOuvert = pgTable(
+  "poste_ouvert",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    lieu: text("lieu"),
+    actif: boolean("actif").notNull().default(true),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("poste_ouvert_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const candidature = pgTable(
+  "candidature",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    posteId: text("poste_id")
+      .notNull()
+      .references(() => posteOuvert.id),
+    nom: text("nom").notNull(),
+    telephone: text("telephone").notNull(),
+    email: text("email"),
+    message: text("message"),
+    cvCleStockage: text("cv_cle_stockage").notNull(),
+    cvNomFichier: text("cv_nom_fichier").notNull(),
+    cvTypeMime: text("cv_type_mime").notNull(),
+    cvTailleOctets: integer("cv_taille_octets").notNull(),
+    statut: statutCandidature("statut").notNull().default("RECUE"),
+    assigneAId: text("assigne_a_id").references(() => utilisateur.id),
+    // Posé une fois convertie en embauche (voir convertirCandidatureEnEmploye())
+    // — empêche une double conversion de la même candidature.
+    invitationId: text("invitation_id").references(() => invitation.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("candidature_entreprise_idx").on(table.entrepriseId),
+    index("candidature_poste_idx").on(table.posteId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
