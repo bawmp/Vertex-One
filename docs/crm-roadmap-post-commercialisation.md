@@ -556,6 +556,25 @@ Le tableau de bord affiche l'identité de l'entreprise (nom, forfait) et une lis
 
 Testé : `tsc`/`eslint` verts, parcours réel en navigateur (scratch e2e, supprimé après succès) confirmant les trois points : tableau de bord affiché sans 404, activation d'un add-on immédiatement visible, les 3 sous-pages toujours accessibles depuis la sidebar regroupée. Suite `vitest` complète non relancée jusqu'au bout dans cette tranche précise — instabilité WebSocket Neon confirmée en cours de route (connexions fermées de façon répétée, pas une erreur logique reproductible), déjà validée dans son intégralité (231/231) juste avant cette tranche ; les seuls fichiers touchés ici (page/bouton UI + un ajout de `revalidatePath`) n'ont aucune contrepartie testable en Vitest au-delà de ce que l'e2e a déjà couvert.
 
+## 33. Personnalisation par entreprise (logo + couleur de marque) — Tranche 1/4 — construit le 2026-09-13
+
+Suite à la demande "j'aimerai que chaque entreprise puisse personnaliser l'application (logo, couleurs, disposition, langue, mode sombre/clair) + un espace personnel pour l'Admin" — la portée réelle a été clarifiée avec l'utilisateur en 4 tranches (voir plan approuvé) : **logo/couleur = réglage d'entreprise** (posé par l'Admin, cette tranche) ; langue/thème/ordre de sidebar = réglage par utilisateur (Tranche 2/3, à venir) ; espace personnel Admin (Tranche 4, à venir).
+
+**Architecture, décisions structurantes :**
+
+- `entreprise.logoCleStockage`/`logoTypeMime`/`couleurMarque` (tous nullable — `null` = comportement par défaut actuel, jamais écrasé). Réutilise `televerserDocument()`/`effacerObjetStockage()` (`src/lib/documents/stockage.ts`), même flux que `televerserImageProduit()`.
+- **Route publique dédiée `/logo/[entrepriseId]`**, sans session : un logo n'est pas une donnée sensible et doit s'afficher dans `/app`, `/portail`, et les pages publiques (`/reserver`, `/carrieres`) — jamais protégé par `peut()`/`portee()` contrairement aux autres documents.
+- **Composant unique `LogoEntreprise`** (repli automatique sur `Wordmark` si aucun logo téléversé, jamais un `<img>` cassé) — remplace `Wordmark` dans `/app`, `/portail`, `/reserver/[slug]`, `/carrieres/[slug]`, `/carrieres/[slug]/[posteId]`. Volontairement absent de `(auth)/connexion`/`inscription`, `invitation/[jeton]`, `signature/[jeton]` (aucun tenant connu avant authentification, ou surface trop rare).
+- **Couleur de marque appliquée à 4 jetons CSS, pas 1** : `--primary` **et** `--sidebar-primary`/`--sidebar-ring`/`--ring` — vérifié en relisant `globals.css` avant d'implémenter, la sidebar utilise ses propres jetons volontairement découplés de `--primary` (barre latérale toujours sombre, indépendante du mode clair/sombre, décision du 2026-09-06) ; surcharger seulement `--primary` aurait laissé l'accent de la sidebar inchangé.
+- **PDF devis/factures** : `src/lib/pdf/donnees.ts` résout une URL signée fraîche du logo (jamais l'URL publique `/logo/...`, react-pdf récupère l'image lui-même côté serveur) et l'injecte dans l'en-tête (`src/lib/pdf/document-commercial.tsx`), à côté du nom de l'entreprise.
+- **Validation de la couleur isolée dans `src/lib/branding.ts`** (regex hex stricte à 6 chiffres), séparée de `src/lib/actions/entreprise-branding.ts` (`"use server"`) spécifiquement pour rester testable directement en Vitest — un test qui importe un fichier `"use server"` échoue avec l'erreur `server-only` de Next.js, pas un choix de style.
+
+**Construit** : 3 colonnes sur `entreprise`, 1 route publique, 1 composant partagé, section "Personnalisation" sur `/app/parametres` (Admin uniquement, formulaire logo + `<input type="color">`).
+
+**Écart connu et documenté, pas un bug** : le logo n'a pas pu être vérifié avec un vrai fichier stocké dans cet environnement de développement — aucune variable `R2_*` n'est configurée dans `.env.local` (même situation déjà rencontrée et documentée pour Migadu/NotchPay/Resend). Le formulaire de logo échoue donc proprement avec "Stockage R2 non configuré" tant que R2 n'est pas branché — confirmé en navigateur réel (le message s'affiche, pas de crash serveur), mais l'affichage effectif d'un logo réel dans la sidebar/le portail/les pages publiques/un PDF reste non vérifié visuellement au-delà de la relecture de code et du typage strict (même composant partagé partout, un seul chemin de code).
+
+Testé : `tsc`/`eslint` verts, `tests/entreprise-branding-logique.test.ts` (7 tests — validation hex, rejet d'une tentative d'injection CSS). Parcours réel en navigateur (scratch e2e, supprimé après succès) : couleur de marque appliquée en direct sur les 4 jetons CSS, persistée après rechargement, réinitialisation fonctionnelle ; téléversement de logo testé jusqu'à l'échec propre attendu (R2 non configuré).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
