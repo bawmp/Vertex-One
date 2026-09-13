@@ -542,6 +542,20 @@ Testé : `tsc`/`eslint`/`vitest` (231 tests, dont `portail-acces-logique` — `p
 
 **Le module RH couvre déjà l'intégralité des zones Zoho People identifiées (hors LMS) ; les trois modules Zoho One explorés cette session (Booking, Recrutement, Assistance client) sont désormais tous construits.** Reste à explorer si un besoin réel se présente : LMS (RH), base de connaissances, ou tout autre module Zoho One non encore identifié.
 
+## 32. Correction du lien Paramètres cassé + tableau de bord add-ons — fait le 2026-09-13
+
+Retour utilisateur ("je vois aussi l'onglet paramètres dans Zoho, mais chez vertexone, ce n'est pas configuré") — vérification a révélé un vrai bug, pas seulement un manque : le lien sidebar "Paramètres" pointait vers `/app/parametres`, une route sans `page.tsx` propre (seulement 3 sous-pages isolées : `entreprise`, `equipe`, `modeles-email`) — un clic menait droit au 404 générique de Next.js. Corrigé en réorganisant "Paramètres" en groupe à liste déroulante (même patron que CRM/FACO/RH), `hrefAccueil` pointant vers un nouveau vrai tableau de bord.
+
+Le tableau de bord affiche l'identité de l'entreprise (nom, forfait) et une liste des modules complémentaires (Marketing/Réservations/Recrutement/Assistance client) avec activation/désactivation en un clic, directement depuis `/app/parametres` plutôt qu'éparpillée sur 4 pages différentes — réutilise `activerAddon()`/`desactiverAddon()` déjà existants, aucune nouvelle mécanique. `FACTURATION_ABONNEMENTS` volontairement exclu de la liste : la table `addonActif` le prévoit mais aucune fonctionnalité réelle n'existe encore derrière (jamais donné l'illusion d'une fonctionnalité qui ne fait rien).
+
+**Deux bugs réels trouvés et corrigés pendant la vérification en navigateur** (au-delà du 404 initial) :
+- `addonActif` porte une RLS stricte (aucune lecture anonyme, contrairement à `parametreReservation`/`parametreRecrutement`) — la première version du tableau de bord lisait cette table via `db` direct au lieu de `avecEntreprise()`, ce qui renvoyait silencieusement zéro ligne quel que soit l'état réel (`current_setting('app.entreprise_id')` n'est positionné que dans une transaction ouverte par `avecEntreprise()`).
+- `activerAddon()`/`desactiverAddon()` ne revalidaient jamais `/app/parametres` lui-même (seulement les pages de chaque module) — une activation réussie côté serveur restait invisible sur le nouveau tableau de bord tant que la page n'était pas réellement rechargée.
+
+**Gaps réels identifiés au passage, non construits, à ne construire que sur besoin réel** (contrairement au lien cassé, ce ne sont pas des bugs — juste des zones "Paramètres" de Zoho absentes de Vertex One) : changement de forfait en libre-service (starter/pro/business), changement de mot de passe en libre-service une fois le compte actif, configuration d'un domaine email personnalisé (`domaineEmail` existe dans le schéma depuis le Palier 0 mais reste entièrement dormant — zéro action, zéro page, zéro intégration Migadu).
+
+Testé : `tsc`/`eslint` verts, parcours réel en navigateur (scratch e2e, supprimé après succès) confirmant les trois points : tableau de bord affiché sans 404, activation d'un add-on immédiatement visible, les 3 sous-pages toujours accessibles depuis la sidebar regroupée. Suite `vitest` complète non relancée jusqu'au bout dans cette tranche précise — instabilité WebSocket Neon confirmée en cours de route (connexions fermées de façon répétée, pas une erreur logique reproductible), déjà validée dans son intégralité (231/231) juste avant cette tranche ; les seuls fichiers touchés ici (page/bouton UI + un ajout de `revalidatePath`) n'ont aucune contrepartie testable en Vitest au-delà de ce que l'e2e a déjà couvert.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
