@@ -435,6 +435,23 @@ Construit :
 
 Testé : `tsc`/`eslint` verts ; `rapports-rh-logique` (4 cas sur une vraie base : agrégation complète pour un dossier actif, dossier sans activité renvoyant des zéros, ligne d'équipe reflétant correctement présence/demande en attente, agrégat entreprise avec contrats/masse salariale/tickets/dernier sondage) passe en isolation. Vérification en navigateur confirmée pour le rendu de la section Entreprise sur une base vide (capture d'écran, aucun plantage) ; la suite du parcours (section "Mes données" avec un dossier RH réel) n'a pas pu être rejouée jusqu'au bout — dégradation sévère et persistante de la latence Neon documentée dans CLAUDE.md en toute fin de session (une page qui ne charge plus du tout en 150s), jamais une erreur applicative reproductible constatée par ailleurs.
 
+## 26. Shifts (RH) — construit le 2026-09-13
+
+Comparaison avec Zoho People ("Shift Management") — volontairement très simplifié : un nom, une plage horaire, une tolérance unique en minutes avant de marquer un retard. Pas de marge avant/après distincte, pas d'heures de présence obligatoire, pas de rotation automatique planifiée, pas d'indemnité de shift — aucune de ces complexités n'a de demande observée pour une TPE camerounaise.
+
+Point notable : donne enfin un usage réel au statut `RETARD` de `pointage`, prévu dès le Palier 5 (`statutPointage` incluait déjà `RETARD`) mais jamais calculé jusqu'ici — `pointerArrivee()` renvoyait toujours `PRESENT`, faute de shift auquel comparer l'heure d'arrivée. `calculerStatutArrivee()` (fonction pure, `src/lib/rh/pointage.ts`) compare l'heure d'arrivée à l'heure de début du shift assigné + sa tolérance ; sans shift assigné, comportement inchangé (toujours `PRESENT`).
+
+Défaut trouvé et corrigé en touchant ce code : `approuverRegularisation()` (section 24) forçait aussi systématiquement `PRESENT` sur la ligne de pointage corrigée, quel que soit le shift assigné — une régularisation qui corrige une arrivée à une heure réellement tardive aurait donc silencieusement masqué le retard. Corrigé pour réutiliser le même `calculerStatutArrivee()`.
+
+Construit :
+- 1 table (`shift`), RLS + FORCE RLS. `dossierRH.shiftId` nullable (même rétrocompatibilité que `politiqueCongeId`/`categorieTicketRH` — sans shift assigné, rien ne change).
+- Gestion (créer/désactiver) réservée à l'Administrateur, même niveau que politiques de congé/sondages/catégories de tickets. Désactivation plutôt que suppression — un employé déjà assigné garde son historique.
+- UI : `/app/rh/shifts` (liste, création), formulaire d'assignation sur la fiche dossier RH.
+
+Testé : `tsc`/`eslint` verts ; `shift-logique` (8 cas : calcul pur PRESENT/RETARD à la limite exacte de la tolérance, intégration réelle avec `pointerArrivee()` et `approuverRegularisation()`) et `shift-fuite-rls` passent en isolation, ainsi que les 13 autres fichiers de tests RH exécutés ensemble (39 tests, aucune régression croisée après modification de `pointage.ts`/`regularisation.ts`) ; parcours réel en navigateur confirmé de bout en bout (création du shift → assignation → pointage d'arrivée réellement marqué RETARD selon l'heure du shift).
+
+**Le module RH couvre désormais l'intégralité des huit zones identifiées dans la comparaison avec Zoho People.** Seul le LMS (formation) reste non construit, sans demande observée à ce jour — le chantier le plus lourd des trois zones restantes identifiées, territoire entièrement nouveau.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
