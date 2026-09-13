@@ -230,36 +230,7 @@ export default async function PageRH() {
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
-          <div className="flex items-center gap-3">
-            {rhDisponible ? (
-              <Link href="/app/rh/sondages" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Sondages
-              </Link>
-            ) : null}
-            {rhDisponible ? (
-              <Link href="/app/rh/tickets" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Assistance RH
-              </Link>
-            ) : null}
-            {rhDisponible ? (
-              <Link href="/app/rh/rapports" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Rapports
-              </Link>
-            ) : null}
-            {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
-              <Link href="/app/rh/politiques-conges" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Politiques de congé
-              </Link>
-            ) : null}
-            {rhDisponible && utilisateurConnecte.role === "ADMIN" ? (
-              <Link href="/app/rh/shifts" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                Shifts
-              </Link>
-            ) : null}
-          </div>
-        </div>
+        <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
         {!rhDisponible ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
             <Lock className="size-6 text-muted-foreground" aria-hidden />

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -15,7 +15,13 @@ type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: 
 // différent de celui du parent (ex. le raccourci "Documents" sous CRM >
 // Ventes reste gouverné par le module DOCUMENTS, pas CRM) ; absent, il
 // hérite implicitement de la visibilité du groupe parent.
-type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module };
+// reserveAdmin : certains liens (Shifts/Politiques de congé) sont gardés par
+// une vérification de rôle directe dans la page elle-même, pas par un module
+// de permission dédié (contrairement à Comptabilité, réservée à
+// l'Administrateur via peut()) — reproduit ici le même filtre pour ne pas
+// afficher un lien qui mènerait systématiquement à un écran d'accès refusé
+// pour un Manager/Employé.
+type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module; reserveAdmin?: boolean };
 type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
   | { module: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
@@ -181,7 +187,45 @@ const MODULES_MENU: ItemMenu[] = [
   { module: "MESSAGERIE", libelle: "Messagerie", href: "/app/messagerie", Icone: MessageSquare },
   { module: "ANNONCES", libelle: "Annonces", href: "/app/annonces", Icone: Megaphone },
   { module: "SIGNATURE", libelle: "Signatures", href: "/app/signatures", Icone: FileSignature },
-  { module: "RH", libelle: "Ressources Humaines", href: "/app/rh", Icone: IdCard },
+  // RH regroupe l'équivalent Zoho People de Vertex One sous une seule entrée
+  // à liste déroulante, comme CRM/FACO — retour utilisateur ("organise le RH
+  // comme tu as organisé CRM et FACO"), le module existait jusque-là en item
+  // racine unique. Catégories alignées sur les vraies zones Zoho People
+  // (Attendance/Leave/Cases/Surveys/Reports) telles qu'identifiées pendant la
+  // construction du module (voir docs/crm-roadmap-post-commercialisation.md,
+  // sections 18-26) — un seul module RH gouverne toute l'entrée (comme CRM),
+  // portée/visibilité déjà uniformes sur tout le module. hrefAccueil pointe
+  // vers /app/rh, qui reste le tableau de bord (demandes en attente, dossiers
+  // d'équipe) — les catégories ci-dessous ne répètent donc pas ce contenu,
+  // seulement les pages dédiées qui existent en plus.
+  {
+    module: "RH",
+    libelle: "Ressources Humaines",
+    hrefAccueil: "/app/rh",
+    Icone: IdCard,
+    groupes: [
+      {
+        categorie: "Présence",
+        liens: [{ libelle: "Shifts", href: "/app/rh/shifts", Icone: Clock, reserveAdmin: true }],
+      },
+      {
+        categorie: "Congés",
+        liens: [{ libelle: "Politiques de congé", href: "/app/rh/politiques-conges", Icone: CalendarClock, reserveAdmin: true }],
+      },
+      {
+        categorie: "Assistance",
+        liens: [{ libelle: "Tickets RH", href: "/app/rh/tickets", Icone: LifeBuoy }],
+      },
+      {
+        categorie: "Sondages",
+        liens: [{ libelle: "Sondages", href: "/app/rh/sondages", Icone: ClipboardCheck }],
+      },
+      {
+        categorie: "Rapports",
+        liens: [{ libelle: "Rapports RH", href: "/app/rh/rapports", Icone: BarChart3 }],
+      },
+    ],
+  },
   { module: "MARKETING", libelle: "Marketing", href: "/app/marketing", Icone: Rocket },
   { module: "PARAMETRES", libelle: "Paramètres", href: "/app/parametres", Icone: Settings },
 ];
@@ -252,16 +296,22 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 libelle={item.libelle}
                 icone={<item.Icone className="size-4 shrink-0" aria-hidden />}
                 hrefAccueil={item.hrefAccueil}
-                groupes={item.groupes.map((groupe) => ({
-                  categorie: groupe.categorie,
-                  liens: groupe.liens
-                    .filter((lien) => !lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR"))
-                    .map((lien) => ({
-                      href: lien.href,
-                      libelle: lien.libelle,
-                      icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
-                    })),
-                }))}
+                groupes={item.groupes
+                  .map((groupe) => ({
+                    categorie: groupe.categorie,
+                    liens: groupe.liens
+                      .filter((lien) => (!lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
+                      .map((lien) => ({
+                        href: lien.href,
+                        libelle: lien.libelle,
+                        icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
+                      })),
+                  }))
+                  // Un lien réservé à l'Administrateur (Shifts/Politiques de
+                  // congé) peut être le seul de sa catégorie — sans ce filtre,
+                  // un Manager/Employé verrait un en-tête de catégorie
+                  // ("Présence", "Congés") sans aucun lien dessous.
+                  .filter((groupe) => groupe.liens.length > 0)}
               />
             ) : (
               <NavLink key={item.href} href={item.href}>
