@@ -464,6 +464,43 @@ Les raccourcis de navigation devenus redondants ont été retirés (pas seulemen
 
 Testé : `tsc`/`eslint` verts, parcours réel en navigateur (scratch e2e, supprimé après succès) — un Administrateur voit les cinq catégories et leurs liens, un rôle rétrogradé en MANAGER ne voit ni Shifts ni Politiques de congé ni les en-têtes de catégorie correspondants, et conserve Tickets RH/Sondages/Rapports RH.
 
+## 28. Tableau de bord à l'accueil RH — fait le 2026-09-13
+
+Demandé pendant la conception du module Booking ("j'aimerai que ajoute un tableau de bord au module RH à l'accueil"). Réutilise `rapportEntreprise()` (déjà construit pour les Rapports RH consolidés, section 25) — aucune nouvelle requête ni action serveur, seulement un appel supplémentaire dans la transaction déjà ouverte par `/app/rh`.
+
+Tuiles ajoutées sur `/app/rh`, au-dessus de la liste des Dossiers RH : Dossiers actifs + répartition des contrats, Tickets ouverts (lien vers Assistance RH), Masse salariale mensuelle (**Administrateur uniquement** — jamais un Manager, même en portée TOUT sur RH, conformément à la règle non négociable de CLAUDE.md sur le salaire), Dernier sondage clos (lien vers Sondages) si un sondage a déjà été fermé.
+
+Testé : `tsc`/`eslint` verts, parcours réel en navigateur (scratch e2e, supprimé après succès) — un Administrateur avec un dossier RH salarié voit les tuiles Dossiers actifs et Masse salariale avec les bons chiffres.
+
+## 29. Module Booking (réservation de rendez-vous, équivalent Zoho Bookings) — construit le 2026-09-13
+
+Suite à la question "y'a-t-il d'autres modules importants de Zoho One que je peux intégrer chez Vertex One ?" — trois candidats identifiés (Help Desk client externe, Recrutement, Booking), Booking choisi comme le plus pertinent pour le profil TPE de service camerounais (salon, garage, cabinet de conseil : un client réserve un créneau en ligne, sans compte). Décisions validées avec l'utilisateur avant conception : page publique complète (pas un agenda interne seulement — c'est ce qui fait la valeur du module), et le client choisit explicitement l'employé qui le reçoit (pas d'assignation automatique).
+
+**Architecture, décisions structurantes :**
+
+- **Module vendu à la carte** (`Addon = "RESERVATIONS"`, `src/lib/plans.ts`), comme Marketing — cohérent avec la règle d'indépendance des modules (CLAUDE.md) : une entreprise doit pouvoir acheter Booking sans le reste.
+- **Aucun couplage obligatoire au CRM.** `reservation` porte ses propres `clientNom`/`clientTelephone`/`clientEmail` ; `contactId` reste un lien best-effort optionnel (`resoudreContactOptionnel()`, recherche par téléphone/email, ne crée jamais de Contact) — jamais requis, jamais bloquant, contrairement au `lead` du formulaire de contact public (section 6 du CRM) qui, lui, est intrinsèquement un objet CRM.
+- **Cinq nouvelles tables** (`parametreReservation`, `serviceReservable`, `intervenantReservation`, `disponibiliteReservation`, `reservation`), RLS + FORCE RLS. Seule `parametreReservation` a une politique de lecture anonyme (miroir exact de `pageAtterrissage` — slug public → entrepriseId, visible seulement si `publie = true` et aucune session active) : toute autre lecture publique (services, personnel, créneaux libres) passe par une Server Action qui résout d'abord `entrepriseId` depuis le slug puis interroge via `avecEntreprise()` — jamais de policy SELECT anonyme directement sur `reservation`, qui exposerait sinon les coordonnées de tous les clients d'une entreprise à n'importe quelle session anonyme.
+- **Première contrainte `EXCLUDE USING gist` du projet** (nécessite `CREATE EXTENSION btree_gist`) pour empêcher réellement deux réservations concurrentes de chevaucher le même créneau du même intervenant — un vrai risque sous forte concurrence anonyme sur un créneau populaire, qu'une simple vérification applicative SELECT-puis-INSERT (le seul patron déjà existant, `demarrerMinuteur()`) ne peut pas fermer complètement puisqu'il s'agit d'un chevauchement de plage horaire, pas d'une valeur exacte. Prouvé sous concurrence réelle par un test (`Promise.allSettled()` sur deux insertions parallèles sur le même créneau — une seule réussit).
+- Calcul des créneaux disponibles (`calculerCreneauxDisponibles()`, fonction pure comme `calculerStatutArrivee()` pour les Shifts RH) : fenêtres hebdomadaires du personnel moins les réservations existantes (tampon inclus dans la comparaison, jamais dans le test d'ouverture) moins un préavis minimum configurable, jamais `new Date()` interne pour rester testable.
+- Numérotation atomique (`RDV-2026-000123`, même mécanisme `UPDATE ... RETURNING` éprouvé que Devis/Facture) et créneau revalidé côté serveur à la soumission — jamais une confiance dans le créneau affiché côté client, qui a pu devenir indisponible entre l'affichage de la page et la soumission du formulaire.
+
+**Construit :**
+- UI interne (Admin) : `/app/reservations` (rendez-vous à venir, portée-filtrés, actions annuler/absence/terminé), `.../services`, `.../staff` (bascule personnel réservable + disponibilités hebdomadaires), `.../parametres` (lien public, préavis/horizon, publication). Nouvelle entrée plate dans la sidebar (pas de regroupement en sous-menu pour ce v1, portée assez restreinte).
+- Page publique `/reserver/[slug]` — même famille que `/p/[slug]` (page d'atterrissage) et `/signature/[jeton]` : aucun compte, aucune session, assistant en 5 étapes (service → personne → date → créneau → coordonnées).
+
+**Écarts volontaires, connus** (comparaison avec Zoho Bookings) :
+- Un service n'est pas restreint à un sous-ensemble du personnel en v1 — tout intervenant actif peut effectuer tout service actif (pas de table de jonction service/intervenant).
+- Aucune exception ponctuelle de disponibilité (congé, jour férié) — seules les fenêtres hebdomadaires récurrentes existent ; un intervenant absent doit être temporairement désactivé en entier.
+- Aucun lien avec les congés RH approuvés (`demandeConge`) — Booking et RH restent indépendants par conception, un employé en congé approuvé n'est pas automatiquement masqué du calendrier public.
+- Pas de reprogrammation en libre-service ni de lien de modification par jeton (contrairement à `signataire`) — l'annulation/le report d'un rendez-vous existant reste géré par le personnel, jamais par le client lui-même après coup.
+- Pas d'encaissement en ligne au moment de la réservation — `prixFcfaReserve` est purement informatif.
+- Pas de rappel automatique par email/SMS avant le rendez-vous — la confirmation à l'écran (numéro `RDV-...`) est le seul accusé de réception pour l'instant.
+
+Testé : `tsc`/`eslint`/`vitest` (212 tests, dont `reservation-logique` — 5 cas purs de calcul de créneaux, numérotation croissante, preuve de concurrence réelle sur la contrainte EXCLUDE — et `reservation-fuite-rls`, y compris la policy anonyme de `parametreReservation`) verts, suite complète sans régression. Deux parcours réels en navigateur (scratch e2e, supprimés après succès) : configuration/publication côté Admin de bout en bout, puis un parcours public complet dans un contexte sans cookie (activation → service → personnel réservable → publication → réservation cliente confirmée, vérifiée directement en base).
+
+**Reste à explorer si l'utilisateur revient sur d'autres modules Zoho One** : Help Desk client externe (Zoho Desk), Recrutement (Zoho Recruit) — identifiés mais non construits, sans demande observée à ce jour.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
