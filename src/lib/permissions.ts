@@ -18,6 +18,7 @@ export type Module =
   | "RH"
   | "MARKETING"
   | "RESERVATIONS"
+  | "RECRUTEMENT"
   | "PARAMETRES";
 export type Action = "VOIR" | "CREER" | "MODIFIER" | "SUPPRIMER";
 export type Portee = "TOUT" | "EQUIPE" | "PROPRE";
@@ -73,6 +74,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // mais seulement pour la gestion de leurs propres rendez-vous, jamais la
     // configuration.
     RESERVATIONS: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
+    // Module complémentaire à la carte (échange du 2026-09-13), même
+    // principe que RESERVATIONS — configuration (postes, paramètres publics)
+    // réservée à l'Administrateur via vérification directe dans les actions
+    // serveur, conversion en employé (invitation) également Admin-only.
+    RECRUTEMENT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     PARAMETRES: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
   },
   MANAGER: {
@@ -99,6 +105,9 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // Gère ses propres rendez-vous et ceux de son équipe, jamais la
     // configuration (services/personnel/disponibilités), réservée Admin.
     RESERVATIONS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
+    // Passe en revue les candidatures de son équipe, jamais la configuration
+    // (postes/paramètres publics), réservée Admin.
+    RECRUTEMENT: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
   EMPLOYE: {
@@ -120,6 +129,8 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     MARKETING: { actions: ["VOIR"], portee: "TOUT" },
     // Voit/annule ses propres rendez-vous, jamais ceux d'un collègue.
     RESERVATIONS: { actions: ["VOIR", "MODIFIER"], portee: "PROPRE" },
+    // Voit les candidatures qui lui sont assignées, jamais la configuration.
+    RECRUTEMENT: { actions: ["VOIR"], portee: "PROPRE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
   CLIENT: {
@@ -147,6 +158,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // depuis /app — le client externe réserve toujours via la page publique
     // /reserver/[slug], sans compte ni session (voir src/app/reserver/).
     RESERVATIONS: { actions: [], portee: "PROPRE" },
+    RECRUTEMENT: { actions: [], portee: "PROPRE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
 };
