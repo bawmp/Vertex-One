@@ -9,7 +9,10 @@ import { getSessionCookie } from "better-auth/cookies";
 export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
-  if (!sessionCookie && request.nextUrl.pathname.startsWith("/app")) {
+  // Portail client (échange du 2026-09-13) — même vérification légère que
+  // /app/* ; le rôle CLIENT lui-même est vérifié côté Server Component
+  // (src/app/portail/layout.tsx), jamais ici.
+  if (!sessionCookie && (request.nextUrl.pathname.startsWith("/app") || request.nextUrl.pathname.startsWith("/portail"))) {
     return NextResponse.redirect(new URL("/connexion", request.url));
   }
 
@@ -17,5 +20,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: ["/app/:path*", "/portail/:path*"],
 };

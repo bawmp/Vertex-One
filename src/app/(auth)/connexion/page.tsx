@@ -19,7 +19,7 @@ export default function PageConnexion() {
     setErreur(null);
     setEnCours(true);
 
-    const { error } = await authClient.signIn.email({
+    const { data, error } = await authClient.signIn.email({
       email: String(formData.get("email")),
       password: String(formData.get("motDePasse")),
     });
@@ -31,7 +31,10 @@ export default function PageConnexion() {
       return;
     }
 
-    router.push("/app");
+    // Portail client (échange du 2026-09-13) — role est un additionalField
+    // Better-Auth déjà exposé sur l'utilisateur retourné (src/lib/auth.ts).
+    const role = (data?.user as { role?: string } | undefined)?.role;
+    router.push(role === "CLIENT" ? "/portail" : "/app");
   }
 
   return (

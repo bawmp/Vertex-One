@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
+import { BoutonInviterPortail } from "./bouton-inviter-portail";
 import { creerDossier } from "@/lib/actions/dossier";
 import { genererEtEnregistrerLienVisio, modifierNotesContact } from "@/lib/actions/contact";
 
@@ -123,6 +124,16 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
           ) : null}
         </div>
       </div>
+
+      {utilisateurConnecte.role === "ADMIN" ? (
+        <div className="flex flex-wrap gap-2">
+          {fiche.utilisateurId ? (
+            <p className="text-sm text-muted-foreground">Déjà invité(e) au portail.</p>
+          ) : (
+            <BoutonInviterPortail contactId={fiche.id} emailActuel={fiche.email} />
+          )}
+        </div>
+      ) : null}
 
       {peut(utilisateurConnecte.role, "FACTURATION", "CREER") ? (
         <div className="flex flex-wrap gap-2">
