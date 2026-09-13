@@ -104,6 +104,15 @@ export const entreprise = pgTable("entreprise", {
   // centralisé dans creerEcritures() (src/lib/comptabilite/ecritures.ts),
   // jamais dupliqué dans chaque action appelante. NULL = aucun verrouillage.
   dateVerrouillageComptable: timestamp("date_verrouillage_comptable"),
+  // Personnalisation (échange du 2026-09-13) — logo affiché dans la sidebar,
+  // le portail client, les pages publiques (Booking/Recrutement) et les PDF
+  // de devis/factures ; couleurMarque surcharge --primary (et les jetons
+  // --sidebar-primary/--sidebar-ring/--ring, volontairement découplés de
+  // --primary dans globals.css) à l'exécution. Tous nullable : sans
+  // personnalisation, l'identité Vertex One par défaut s'applique.
+  logoCleStockage: text("logo_cle_stockage"),
+  logoTypeMime: text("logo_type_mime"),
+  couleurMarque: text("couleur_marque"),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
