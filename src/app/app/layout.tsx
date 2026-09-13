@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -242,7 +242,28 @@ const MODULES_MENU: ItemMenu[] = [
   // gouverne que le côté agent (/app/support) ; le portail (/portail)
   // n'apparaît jamais dans cette sidebar, réservé au rôle CLIENT.
   { module: "SUPPORT", libelle: "Assistance client", href: "/app/support", Icone: LifeBuoy },
-  { module: "PARAMETRES", libelle: "Paramètres", href: "/app/parametres", Icone: Settings },
+  // Réorganisé en groupe (retour utilisateur, 2026-09-13 : "je vois aussi
+  // l'onglet paramètres dans Zoho, mais chez vertexone ce n'est pas
+  // configuré") — le lien plat pointait vers /app/parametres, qui n'avait
+  // aucune page.tsx propre (seulement 3 sous-pages isolées) : un clic
+  // menait droit au 404 générique de Next.js. hrefAccueil pointe maintenant
+  // vers un vrai tableau de bord (identité de l'entreprise, add-ons
+  // réellement activables) plutôt qu'une redirection creuse.
+  {
+    module: "PARAMETRES",
+    libelle: "Paramètres",
+    hrefAccueil: "/app/parametres",
+    Icone: Settings,
+    groupes: [
+      {
+        liens: [
+          { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
+          { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
+          { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
+        ],
+      },
+    ],
+  },
 ];
 
 const LIBELLE_PLAN: Record<string, string> = { starter: "Starter", pro: "Pro", business: "Business" };

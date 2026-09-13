@@ -38,6 +38,7 @@ export async function activerAddon(addon: Addon) {
   revalidatePath("/app/reservations/parametres");
   revalidatePath("/app/recrutement/parametres");
   revalidatePath("/app/support");
+  revalidatePath("/app/parametres");
 }
 
 export async function desactiverAddon(addon: Addon) {
@@ -53,4 +54,5 @@ export async function desactiverAddon(addon: Addon) {
   revalidatePath("/app/reservations/parametres");
   revalidatePath("/app/recrutement/parametres");
   revalidatePath("/app/support");
+  revalidatePath("/app/parametres");
 }
