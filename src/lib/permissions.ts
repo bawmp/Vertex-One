@@ -19,6 +19,7 @@ export type Module =
   | "MARKETING"
   | "RESERVATIONS"
   | "RECRUTEMENT"
+  | "SUPPORT"
   | "PARAMETRES";
 export type Action = "VOIR" | "CREER" | "MODIFIER" | "SUPPRIMER";
 export type Portee = "TOUT" | "EQUIPE" | "PROPRE";
@@ -79,6 +80,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // réservée à l'Administrateur via vérification directe dans les actions
     // serveur, conversion en employé (invitation) également Admin-only.
     RECRUTEMENT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
+    // Assistance client (échange du 2026-09-13, addon à la carte comme
+    // RESERVATIONS/RECRUTEMENT) — gouverne uniquement le côté agent interne
+    // (/app/support) ; le portail client (/portail) ne passe jamais par
+    // peut()/portee(), voir src/lib/portail/acces.ts.
+    SUPPORT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     PARAMETRES: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
   },
   MANAGER: {
@@ -108,6 +114,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // Passe en revue les candidatures de son équipe, jamais la configuration
     // (postes/paramètres publics), réservée Admin.
     RECRUTEMENT: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
+    SUPPORT: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
   EMPLOYE: {
@@ -131,6 +138,9 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     RESERVATIONS: { actions: ["VOIR", "MODIFIER"], portee: "PROPRE" },
     // Voit les candidatures qui lui sont assignées, jamais la configuration.
     RECRUTEMENT: { actions: ["VOIR"], portee: "PROPRE" },
+    // Voit/répond aux tickets qui lui sont assignés, jamais la configuration
+    // des catégories.
+    SUPPORT: { actions: ["VOIR", "MODIFIER"], portee: "PROPRE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
   CLIENT: {
@@ -159,6 +169,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // /reserver/[slug], sans compte ni session (voir src/app/reserver/).
     RESERVATIONS: { actions: [], portee: "PROPRE" },
     RECRUTEMENT: { actions: [], portee: "PROPRE" },
+    // Un compte CLIENT ne passe jamais par ce module de permission pour son
+    // propre support — le portail (/portail) résout l'isolation directement
+    // via son Contact lié, sans jamais appeler peut()/portee() (voir
+    // src/lib/portail/acces.ts). Cette ligne reste inutilisée en pratique.
+    SUPPORT: { actions: [], portee: "PROPRE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
 };

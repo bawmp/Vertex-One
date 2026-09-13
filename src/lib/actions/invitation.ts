@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { generateRandomString, hashPassword } from "better-auth/crypto";
 import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { db, avecEntreprise } from "@/db/client";
-import { invitation, utilisateur, compte, dossierRH } from "@/db/schema";
+import { invitation, utilisateur, compte, dossierRH, contact } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -21,6 +21,10 @@ const schemaInvitation = z.object({
   postePropose: z.string().trim().optional(),
   typeContratPropose: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]).optional(),
   dateEmbauchePropose: z.string().optional(),
+  // Assistance client (échange du 2026-09-13) — renseigné uniquement pour
+  // inviter un Contact CRM précis au portail (roleProposee = "CLIENT"),
+  // jamais pour un collaborateur interne.
+  contactId: z.string().optional(),
 });
 
 export type EtatInvitation = { erreur?: string; succes?: string } | null;
@@ -44,28 +48,40 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     postePropose: formData.get("postePropose") || undefined,
     typeContratPropose: formData.get("typeContratPropose") || undefined,
     dateEmbauchePropose: formData.get("dateEmbauchePropose") || undefined,
+    contactId: formData.get("contactId") || undefined,
   });
 
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
-  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose } = analyse.data;
+  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId } = analyse.data;
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.insert(invitation).values({
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (contactId) {
+      // RLS-scopé : ne trouve rien si ce Contact appartient à une autre
+      // entreprise, jamais une confiance dans l'id reçu du formulaire.
+      const [leContact] = await tx.select({ id: contact.id }).from(contact).where(eq(contact.id, contactId));
+      if (!leContact) return { erreur: "Contact introuvable." };
+    }
+
+    await tx.insert(invitation).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
       email,
       roleProposee,
       postePropose,
       typeContratPropose,
       dateEmbauchePropose: dateEmbauchePropose ? new Date(dateEmbauchePropose) : undefined,
+      contactId,
       jeton,
       expireLe: new Date(Date.now() + DUREE_EXPIRATION_MS),
-    })
-  );
+    });
+    return null;
+  });
+
+  if (resultat?.erreur) return resultat;
 
   // TODO Palier 0 (8bis) / envoi réel : notifier par email (Resend/Postmark)
   // et WhatsApp plutôt que d'afficher le lien à copier-coller (voir la page
@@ -141,6 +157,11 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         // l'invitation — jamais la date d'activation du compte.
         dateEmbauche: invitationValide.dateEmbauchePropose ?? new Date(),
       });
+    } else if (invitationValide.contactId) {
+      // Portail client (échange du 2026-09-13) — lie le Contact CRM visé au
+      // compte qui vient d'être créé, pour que resoudreMonContact() le
+      // retrouve dès la première connexion.
+      await tx.update(contact).set({ utilisateurId: nouvelUtilisateur.id }).where(eq(contact.id, invitationValide.contactId));
     }
 
     await tx.update(invitation).set({ utiliseeLe: new Date() }).where(eq(invitation.id, invitationValide.id));
@@ -159,5 +180,5 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
     headers: await headers(),
   });
 
-  redirect("/app");
+  redirect(invitationValide.roleProposee === "CLIENT" ? "/portail" : "/app");
 }
