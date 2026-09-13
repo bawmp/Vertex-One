@@ -8,6 +8,8 @@ import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonToggleAddon } from "./bouton-toggle-addon";
+import { FormulaireLogo } from "./formulaire-logo";
+import { FormulaireCouleur } from "./formulaire-couleur";
 import type { Addon } from "@/lib/plans";
 
 const LIBELLE_PLAN: Record<string, string> = { starter: "Starter", pro: "Pro", business: "Business", essai: "Essai" };
@@ -39,7 +41,13 @@ export default async function PageParametres() {
   }
 
   const [monEntreprise] = await db
-    .select({ nom: entreprise.nom, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
+    .select({
+      nom: entreprise.nom,
+      planAbonnement: entreprise.planAbonnement,
+      statutAbonnement: entreprise.statutAbonnement,
+      logoCleStockage: entreprise.logoCleStockage,
+      couleurMarque: entreprise.couleurMarque,
+    })
     .from(entreprise)
     .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
@@ -69,6 +77,22 @@ export default async function PageParametres() {
           {monEntreprise?.statutAbonnement === "suspendu" ? <Badge variant="danger">Suspendu</Badge> : null}
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Personnalisation</h2>
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <div>
+              <p className="mb-2 text-sm font-medium">Logo</p>
+              <FormulaireLogo entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={monEntreprise?.logoCleStockage ?? null} nomEntreprise={monEntreprise?.nom ?? ""} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">Couleur de marque</p>
+              <FormulaireCouleur couleurMarque={monEntreprise?.couleurMarque ?? null} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Modules complémentaires</h2>

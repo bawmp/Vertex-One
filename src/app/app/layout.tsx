@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, type Module } from "@/lib/permissions";
-import { Wordmark } from "@/components/wordmark";
+import { LogoEntreprise } from "@/components/logo-entreprise";
 import { Badge } from "@/components/ui/badge";
 import { NavLink, NavGroup } from "./nav-link";
 import { MenuUtilisateur } from "./menu-utilisateur";
@@ -302,16 +302,28 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       email: utilisateur.email,
       entrepriseNom: entreprise.nom,
       entreprisePlan: entreprise.planAbonnement,
+      logoCleStockage: entreprise.logoCleStockage,
+      couleurMarque: entreprise.couleurMarque,
     })
     .from(utilisateur)
     .innerJoin(entreprise, eq(entreprise.id, utilisateur.entrepriseId))
     .where(eq(utilisateur.id, utilisateurConnecte.utilisateurId));
 
+  // Personnalisation (échange du 2026-09-13) — surcharge --primary et les
+  // jetons propres à la sidebar (--sidebar-primary/--sidebar-ring),
+  // volontairement découplés de --primary dans globals.css (barre latérale
+  // toujours sombre, indépendante du mode clair/sombre) : sans surcharger
+  // les deux, la couleur de marque n'apparaîtrait que dans le contenu,
+  // jamais dans l'accent de la sidebar.
+  const styleMarque = ligne?.couleurMarque
+    ? ({ "--primary": ligne.couleurMarque, "--sidebar-primary": ligne.couleurMarque, "--sidebar-ring": ligne.couleurMarque, "--ring": ligne.couleurMarque } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" style={styleMarque}>
       <nav className="sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-4">
         <div className="mb-1 flex items-center justify-between px-2">
-          <Wordmark sombre />
+          <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} sombre />
         </div>
         <div className="mb-5 flex items-center justify-between px-2">
           <p className="truncate text-sm text-sidebar-foreground/60">{ligne?.entrepriseNom}</p>

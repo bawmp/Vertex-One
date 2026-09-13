@@ -14,7 +14,7 @@ import { cvValide } from "@/lib/recrutement/validation";
  * re-résolu côté serveur depuis le slug, jamais reçu du client.
  */
 
-export type ParametresRecrutementPublics = { entrepriseId: string; titre: string; texte: string | null };
+export type ParametresRecrutementPublics = { entrepriseId: string; titre: string; texte: string | null; logoCleStockage: string | null; couleurMarque: string | null };
 
 export async function resoudreParametresRecrutementPublics(slug: string): Promise<ParametresRecrutementPublics | null> {
   const [params] = await db
@@ -23,14 +23,18 @@ export async function resoudreParametresRecrutementPublics(slug: string): Promis
     .where(and(eq(parametreRecrutement.slug, slug), eq(parametreRecrutement.publie, true)));
   if (!params) return null;
 
-  const actif = await avecEntreprise(params.entrepriseId, async (tx) => {
-    const [monEntreprise] = await tx.select({ id: entreprise.id, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, params.entrepriseId));
-    if (!monEntreprise) return false;
-    return disponibleAddon(tx, monEntreprise, "RECRUTEMENT");
+  const resultat = await avecEntreprise(params.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx
+      .select({ id: entreprise.id, statutAbonnement: entreprise.statutAbonnement, logoCleStockage: entreprise.logoCleStockage, couleurMarque: entreprise.couleurMarque })
+      .from(entreprise)
+      .where(eq(entreprise.id, params.entrepriseId));
+    if (!monEntreprise) return null;
+    if (!(await disponibleAddon(tx, monEntreprise, "RECRUTEMENT"))) return null;
+    return { logoCleStockage: monEntreprise.logoCleStockage, couleurMarque: monEntreprise.couleurMarque };
   });
-  if (!actif) return null;
+  if (!resultat) return null;
 
-  return params;
+  return { ...params, ...resultat };
 }
 
 export type PosteOuvertPublic = { id: string; titre: string; description: string | null; lieu: string | null };

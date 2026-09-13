@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 
 // Couleurs alignées sur la palette de marque (globals.css) — valeurs
@@ -11,6 +11,8 @@ const STONE_200 = "#e7e5e4";
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#1c1917" },
   entete: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
+  blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  logo: { width: 40, height: 40, objectFit: "contain" },
   nomEntreprise: { fontSize: 16, fontWeight: 700, color: EMERALD_700 },
   typeDocument: { fontSize: 20, fontWeight: 700, textAlign: "right" },
   numero: { fontSize: 11, color: STONE_500, textAlign: "right", marginTop: 4 },
@@ -68,6 +70,7 @@ export type DocumentCommercialProps = {
     adresse: string | null;
     ville: string | null;
     assujettiTVA: boolean;
+    logoUrl?: string | null;
   };
   client: {
     nom: string;
@@ -108,12 +111,16 @@ export function DocumentCommercialPDF({
     <Document title={`${typeDocument} ${numero}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.entete}>
-          <View>
-            <Text style={styles.nomEntreprise}>{entreprise.nom}</Text>
-            {entreprise.adresse ? <Text style={styles.ligneTexte}>{entreprise.adresse}</Text> : null}
-            {entreprise.ville ? <Text style={styles.ligneTexte}>{entreprise.ville}</Text> : null}
-            {entreprise.niu ? <Text style={styles.ligneTexte}>NIU : {entreprise.niu}</Text> : null}
-            {entreprise.rccm ? <Text style={styles.ligneTexte}>RCCM : {entreprise.rccm}</Text> : null}
+          <View style={styles.blocIdentite}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt */}
+            {entreprise.logoUrl ? <Image src={entreprise.logoUrl} style={styles.logo} /> : null}
+            <View>
+              <Text style={styles.nomEntreprise}>{entreprise.nom}</Text>
+              {entreprise.adresse ? <Text style={styles.ligneTexte}>{entreprise.adresse}</Text> : null}
+              {entreprise.ville ? <Text style={styles.ligneTexte}>{entreprise.ville}</Text> : null}
+              {entreprise.niu ? <Text style={styles.ligneTexte}>NIU : {entreprise.niu}</Text> : null}
+              {entreprise.rccm ? <Text style={styles.ligneTexte}>RCCM : {entreprise.rccm}</Text> : null}
+            </View>
           </View>
           <View>
             <Text style={styles.typeDocument}>{typeDocument === "DEVIS" ? "DEVIS" : "FACTURE"}</Text>

@@ -3,6 +3,7 @@ import type { TransactionDrizzle } from "@/db/client";
 import { devis, ligneDevis, facture, ligneFacture, contact, compteClient, entreprise } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
+import { urlTelechargementDocument } from "@/lib/documents/stockage";
 
 export type ClientPourPDF = { nom: string; societeCliente: string | null; niu: string | null; telephone: string; email: string | null };
 
@@ -32,6 +33,17 @@ async function construireClientPourPDF(tx: TransactionDrizzle, contactId: string
 }
 
 /**
+ * Résout une URL signée fraîche du logo (si téléversé) pour l'en-tête PDF —
+ * jamais l'URL publique /logo/[entrepriseId] (le PDF est généré côté
+ * serveur, react-pdf récupère l'image lui-même, une URL signée directe vers
+ * R2 évite un aller-retour HTTP supplémentaire vers l'app elle-même).
+ */
+async function avecLogo<T extends { logoCleStockage: string | null }>(monEntreprise: T): Promise<T & { logoUrl: string | null }> {
+  const logoUrl = monEntreprise.logoCleStockage ? await urlTelechargementDocument(monEntreprise.logoCleStockage) : null;
+  return { ...monEntreprise, logoUrl };
+}
+
+/**
  * Extrait de la Route Handler PDF d'origine — réutilisé tel quel par
  * l'action d'envoi par email (elle a besoin exactement des mêmes données
  * pour générer la même pièce jointe), pour éviter de dupliquer la requête
@@ -51,7 +63,7 @@ export async function recupererDevisPourPDF(tx: TransactionDrizzle, utilisateurC
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { devis: d, lignes, client, entreprise: monEntreprise };
+  return { devis: d, lignes, client, entreprise: await avecLogo(monEntreprise) };
 }
 
 export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, factureId: string) {
@@ -68,5 +80,5 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { facture: f, lignes, client, entreprise: monEntreprise };
+  return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
 }

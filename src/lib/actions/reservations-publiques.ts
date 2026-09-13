@@ -16,7 +16,15 @@ import { resoudreContactOptionnel } from "@/lib/reservations/contact";
  * du client), puis avecEntreprise() pour toute lecture/écriture réelle.
  */
 
-export type ParametresPublics = { entrepriseId: string; titre: string; texte: string | null; delaiMinimumHeures: number; delaiMaximumJours: number };
+export type ParametresPublics = {
+  entrepriseId: string;
+  titre: string;
+  texte: string | null;
+  delaiMinimumHeures: number;
+  delaiMaximumJours: number;
+  logoCleStockage: string | null;
+  couleurMarque: string | null;
+};
 
 export async function resoudreParametresPublics(slug: string): Promise<ParametresPublics | null> {
   const [params] = await db
@@ -31,14 +39,18 @@ export async function resoudreParametresPublics(slug: string): Promise<Parametre
     .where(and(eq(parametreReservation.slug, slug), eq(parametreReservation.publie, true)));
   if (!params) return null;
 
-  const actif = await avecEntreprise(params.entrepriseId, async (tx) => {
-    const [monEntreprise] = await tx.select({ id: entreprise.id, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, params.entrepriseId));
-    if (!monEntreprise) return false;
-    return disponibleAddon(tx, monEntreprise, "RESERVATIONS");
+  const resultat = await avecEntreprise(params.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx
+      .select({ id: entreprise.id, statutAbonnement: entreprise.statutAbonnement, logoCleStockage: entreprise.logoCleStockage, couleurMarque: entreprise.couleurMarque })
+      .from(entreprise)
+      .where(eq(entreprise.id, params.entrepriseId));
+    if (!monEntreprise) return null;
+    if (!(await disponibleAddon(tx, monEntreprise, "RESERVATIONS"))) return null;
+    return { logoCleStockage: monEntreprise.logoCleStockage, couleurMarque: monEntreprise.couleurMarque };
   });
-  if (!actif) return null;
+  if (!resultat) return null;
 
-  return params;
+  return { ...params, ...resultat };
 }
 
 export type ServicePublic = { id: string; nom: string; description: string | null; dureeMinutes: number; dureeTamponMinutes: number; prixFcfa: number };
