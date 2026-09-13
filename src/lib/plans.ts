@@ -58,7 +58,7 @@ export function disponible(
 // fonctionnalités gated par forfait — un deuxième axe orthogonal reste plus
 // sûr ("sans rien casser de ce qui existe déjà", exactement l'exigence posée
 // par la section 5).
-export type Addon = "MARKETING" | "FACTURATION_ABONNEMENTS";
+export type Addon = "MARKETING" | "FACTURATION_ABONNEMENTS" | "RESERVATIONS";
 
 export async function disponibleAddon(
   tx: TransactionDrizzle,
