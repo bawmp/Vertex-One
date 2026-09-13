@@ -99,13 +99,15 @@ export async function soumettreCandidature(_etat: EtatCandidature, formData: For
   if (!poste) return { erreur: "Ce poste n'est plus disponible." };
 
   const contenu = Buffer.from(await cv.arrayBuffer());
-  const { televerse, cleStockage, erreur } = await televerserDocument({
+  const { televerse, cleStockage } = await televerserDocument({
     entrepriseId: params.entrepriseId,
     nomFichier: cv.name,
     typeMime: cv.type,
     contenu,
   });
-  if (!televerse) return { erreur: erreur ?? "Le téléversement du CV a échoué, réessayez plus tard." };
+  // Jamais le message technique (ex. "Stockage R2 non configuré") à un
+  // candidat externe — déjà journalisé côté serveur par televerserDocument().
+  if (!televerse) return { erreur: "Le téléversement du CV a échoué, réessayez plus tard." };
 
   await avecEntreprise(params.entrepriseId, (tx) =>
     tx.insert(candidature).values({
