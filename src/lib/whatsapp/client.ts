@@ -1,6 +1,6 @@
 /**
  * API Cloud WhatsApp Business (Meta, direct) — même traitement que
- * Migadu/NotchPay/Resend/le prestataire de chat avant configuration (voir
+ * Migadu/CinetPay/Resend/le prestataire de chat avant configuration (voir
  * CLAUDE.md) : le code réel est en place, mais aucun appel réseau n'a lieu
  * tant que WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID ne sont pas
  * configurés — un avertissement clair plutôt qu'un échec silencieux.

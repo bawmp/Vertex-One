@@ -13,7 +13,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const EXPEDITEUR_PAR_DEFAUT = "Vertex One <onboarding@resend.dev>";
 
 /**
- * Même traitement que Migadu/NotchPay (voir CLAUDE.md) : le code est réel et
+ * Même traitement que Migadu/CinetPay (voir CLAUDE.md) : le code est réel et
  * prêt, mais n'envoie rien tant que RESEND_API_KEY n'est pas configurée —
  * un avertissement clair plutôt qu'un échec silencieux, pour qu'un
  * développeur qui teste en local comprenne pourquoi aucun mail n'arrive.

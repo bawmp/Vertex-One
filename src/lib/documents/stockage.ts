@@ -20,7 +20,7 @@ const client =
     : null;
 
 /**
- * Même traitement que Migadu/NotchPay/Resend/le prestataire de chat avant
+ * Même traitement que Migadu/CinetPay/Resend/le prestataire de chat avant
  * configuration (voir CLAUDE.md) : le code réel est en place, mais aucun
  * appel R2 n'a lieu tant que les variables d'environnement ne sont pas
  * configurées.

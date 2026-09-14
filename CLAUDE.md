@@ -17,7 +17,7 @@ Suite de gestion multi-tenant pour entreprises de services au Cameroun. Spécifi
 - Aucune fonction serveur ne fait confiance à une donnée envoyée par le client (rôle, entrepriseId) — uniquement à la session signée par le serveur (Better-Auth).
 - Toute action ou tout accès à une route vérifie `peut()`/`portee()` et, si la fonctionnalité est verrouillée par forfait ou add-on, `disponible()` — toujours côté serveur, jamais seulement dans l'interface.
 - Après chaque nouveau module touchant à des données d'entreprise, un test délibéré doit vérifier qu'une entreprise fictive ne peut techniquement pas accéder aux données d'une autre.
-- Tout identifiant transmis à un service externe partagé entre plusieurs entreprises clientes (Migadu, NotchPay, le prestataire de chat...) est préfixé par l'`entrepriseId`.
+- Tout identifiant transmis à un service externe partagé entre plusieurs entreprises clientes (Migadu, CinetPay, le prestataire de chat...) est préfixé par l'`entrepriseId`.
 
 ## Latence de connexion Neon — à connaître avant de crier au bug
 
@@ -46,7 +46,7 @@ Un envoi réel (devis/facture) cumule requête Neon + rendu PDF (CPU) + appel r�
 - Un document classé `PIECE_IDENTITE` ou `DONNEES_SANTE` reste restreint au responsable du dossier et à l'Administrateur, quel que soit l'accès normal au dossier qui le contient ; sa consultation est journalisée ; sa suppression réelle doit être possible sur demande légitime.
 - Le salaire d'un employé n'est jamais rempli automatiquement et reste visible uniquement par l'Administrateur et l'intéressé.
 - Aucun calcul de cotisation sociale (CNPS), d'IRPP, ou de bulletin de paie n'est implémenté dans le produit — seule l'exportation des données vers un partenaire est prévue.
-- Le discours commercial et le code ne doivent jamais présenter le paiement Mobile Money (NotchPay) comme "instantané" ou "direct" — le modèle est custodial avec délai de reversement (voir stratégie, section 3).
+- Le discours commercial et le code ne doivent jamais présenter le paiement Mobile Money (CinetPay) comme "instantané" ou "direct" — le modèle est custodial, avec un délai de reversement de 8 jours par défaut (réductible sur demande après KYC), voir stratégie, section 3.
 
 ## Indépendance des modules — chaque module doit rester vendable et utilisable seul
 
@@ -71,7 +71,7 @@ Le pied de la sidebar (`src/app/app/menu-utilisateur.tsx`) affiche le nom comple
 
 ## Stack
 
-TypeScript de bout en bout, Next.js 16 (App Router, Turbopack), Drizzle ORM + PostgreSQL (Neon, driver `neon-serverless`), Better-Auth, Tailwind CSS + shadcn/ui, Cloudflare R2, graphile-worker, React-PDF, NotchPay (Mobile Money), API Cloud WhatsApp Business (Meta, direct), Resend/Postmark (email transactionnel), Migadu (boîte mail hébergée par entreprise cliente).
+TypeScript de bout en bout, Next.js 16 (App Router, Turbopack), Drizzle ORM + PostgreSQL (Neon, driver `neon-serverless`), Better-Auth, Tailwind CSS + shadcn/ui, Cloudflare R2, graphile-worker, React-PDF, CinetPay (Mobile Money), API Cloud WhatsApp Business (Meta, direct), Resend/Postmark (email transactionnel), Migadu (boîte mail hébergée par entreprise cliente).
 
 ## Next.js 16 — ce projet n'est pas la version que tu connais par défaut
 

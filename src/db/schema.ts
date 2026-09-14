@@ -52,6 +52,7 @@ export const moyenPaiement = pgEnum("moyen_paiement", [
   "manuel",
 ]);
 export const typeModeleEmail = pgEnum("type_modele_email", ["ENVOI_DEVIS", "ENVOI_FACTURE"]);
+export const statutTentativePaiement = pgEnum("statut_tentative_paiement", ["EN_ATTENTE", "CONFIRME", "ECHEC"]);
 
 export const entreprise = pgTable("entreprise", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
@@ -1006,7 +1007,7 @@ export const recuVente = pgTable(
     montantTVA: integer("montant_tva").notNull().default(0),
     montantTTC: integer("montant_ttc").notNull(),
     moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
-    referenceTransaction: text("reference_transaction"), // renvoyée par NotchPay — absente en saisie manuelle, comme paiement.referenceTransaction
+    referenceTransaction: text("reference_transaction"), // renvoyée par CinetPay — absente en saisie manuelle, comme paiement.referenceTransaction
     creeParId: text("cree_par_id")
       .notNull()
       .references(() => utilisateur.id),
@@ -1130,7 +1131,7 @@ export const paiement = pgTable(
       .references(() => facture.id),
     montant: integer("montant").notNull(),
     moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
-    referenceTransaction: text("reference_transaction"), // renvoyée par NotchPay — absente en saisie manuelle
+    referenceTransaction: text("reference_transaction"), // renvoyée par CinetPay — absente en saisie manuelle
     saisiParId: text("saisi_par_id").references(() => utilisateur.id), // traçabilité d'un pointage manuel
     datePaiement: timestamp("date_paiement").notNull().defaultNow(),
     // Rapprochement bancaire (Palier 4, section 4) — renseigné quand ce
@@ -1141,6 +1142,46 @@ export const paiement = pgTable(
   (table) => [
     index("paiement_entreprise_idx").on(table.entrepriseId),
     index("paiement_facture_idx").on(table.factureId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Paiement en ligne CinetPay (préparé le 2026-09-14, en attente de
+// CINETPAY_APIKEY/CINETPAY_SITE_ID — même traitement que Migadu/Resend/R2
+// avant configuration) — une ligne par tentative, créée avant l'appel à
+// l'API CinetPay (genererLienPaiement()) pour servir d'ancrage retrouvable
+// par le webhook de notification (route publique, sans session).
+//
+// RLS strictement standard (contrairement à `invitation`, pas de carve-out
+// de lecture anonyme) : le transaction_id transmis à CinetPay est
+// `${entrepriseId}__${id}` (voir idExterneUtilisateur()/idExterneCanal()
+// dans src/lib/chat/client.ts pour le même patron de préfixage — CLAUDE.md,
+// "tout identifiant transmis à un service externe partagé est préfixé par
+// l'entrepriseId"), donc le webhook connaît déjà l'entrepriseId avant même
+// d'interroger la base et peut ouvrir avecEntreprise() directement, sans
+// avoir besoin d'une politique de lecture permissive.
+export const tentativePaiementFacture = pgTable(
+  "tentative_paiement_facture",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureId: text("facture_id")
+      .notNull()
+      .references(() => facture.id),
+    montant: integer("montant").notNull(),
+    statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    confirmeLe: timestamp("confirme_le"),
+  },
+  (table) => [
+    index("tentative_paiement_facture_entreprise_idx").on(table.entrepriseId),
+    index("tentative_paiement_facture_facture_idx").on(table.factureId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

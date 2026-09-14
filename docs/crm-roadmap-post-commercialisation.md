@@ -149,7 +149,7 @@ Construit le 2026-09-07. `produit` (BIEN/SERVICE, prix vente/achat, `suiviStock`
 - Custom Modules/Blueprints
 - Multi-devises, Emplacements (Locations), Budgets, Immobilisations, Verrouillage de période
 - Rapports avancés (Ventes/Achats/Stock/Balances âgées) au-delà du Bilan/Compte de résultat déjà existant
-- Import/Export en masse, API publique/Webhooks, passerelles de paiement autres que NotchPay
+- Import/Export en masse, API publique/Webhooks, passerelles de paiement autres que CinetPay
 
 ## 7. Découplage Books/CRM — construit le 2026-09-07
 
@@ -610,6 +610,25 @@ Dernière tranche du chantier "personnalisation" (sections 33-35) — clôture l
 Testé : `tsc`/`eslint` verts, `tests/note-personnelle-fuite-rls.test.ts` (3 tests — isolation RLS entre entreprises, preuve que la RLS seule laisserait fuiter la note entre deux utilisateurs de la même entreprise, contrainte unique par utilisateur) vert. Parcours réel en navigateur (scratch e2e, supprimé après succès) : accès depuis la sidebar, sections agrégées affichées (tableau de bord sensible, tâches/documents vides pour un compte neuf), bloc-notes enregistré et persistant après rechargement. Premier chargement de `/app/mon-espace` mesuré à 23,8s de compilation Turbopack à froid (comportement attendu, documenté dans CLAUDE.md) — jamais confondu avec un bug applicatif.
 
 **Les quatre tranches du chantier "personnalisation" (logo/couleur d'entreprise, préférences personnelles, réordonnancement de la sidebar, espace personnel Admin) sont désormais toutes construites.**
+
+## 36. Paiement en ligne Mobile Money — intégration CinetPay — préparé le 2026-09-14
+
+Suite à la question "puis-je déjà vendre cette application ?" — le paiement Mobile Money s'est révélé être l'un des trois blocages réels avant toute vente (avec le stockage R2 et le domaine email Resend, voir `docs/mise-en-production-checklist.md`, nouveau). NotchPay était le choix initial documenté dans la stratégie (section 4) mais n'avait jamais été implémenté au-delà d'un TODO ; l'utilisateur a demandé CinetPay à la place (compte déjà existant côté utilisateur) — changement de prestataire, jamais de conception : le module "Paiements" était déjà isolé (`genererLienPaiement()`) précisément pour ce genre de changement, comme prévu dans la stratégie.
+
+**Compromis assumé, documenté dans la stratégie (section 4)** : CinetPay coûte plus cher que NotchPay (~1,5-3,5% par transaction contre ~1% initialement chiffré) — à intégrer dans le calcul de marge du palier Pro le jour où la facturation réelle est affinée.
+
+**Architecture, décisions structurantes :**
+
+- **Nouvelle table `tentativePaiementFacture`** (une ligne par tentative de paiement, créée avant l'appel à l'API CinetPay) — RLS strictement standard, **pas** de carve-out de lecture anonyme comme `invitation` : le `transaction_id` transmis à CinetPay est préfixé par l'entrepriseId (`idTransactionExterne()`, même patron que `idExterneUtilisateur()`/`idExterneCanal()` pour le prestataire de chat — CLAUDE.md, "tout identifiant transmis à un service externe partagé est préfixé par l'entrepriseId"), donc le webhook public de notification connaît déjà l'entrepriseId avant d'interroger la base et peut ouvrir `avecEntreprise()` directement. Décision prise après une première version avec une policy de lecture anonyme façon `invitation`, simplifiée une fois le préfixage en place — moins de surface RLS non standard à auditer.
+- **Jamais confiance dans le contenu du webhook lui-même** — CinetPay documente explicitement ne pas transmettre le statut réel dans la notification (parade anti man-in-the-middle) : `src/app/api/paiements/cinetpay/notify/route.ts` ne fait que déclencher un appel serveur-à-serveur (`verifierTransaction()`, avec notre propre `apikey`/`site_id`) qui est la seule source de vérité. Idempotent (CinetPay peut appeler la notification plusieurs fois pour la même transaction, documenté) — double vérification du statut à l'intérieur de la transaction ouverte avant toute écriture.
+- **Réutilise la mécanique comptable existante** (`genererEcrituresPaiement()`, déjà construite pour le pointage manuel) plutôt que d'en dupliquer une — un paiement CinetPay confirmé produit exactement les mêmes écritures qu'un paiement pointé à la main, seul `moyenPaiement` (`orange_money`/`mtn_momo`, mappé depuis l'opérateur renvoyé par CinetPay) diffère de `manuel`.
+- **Bouton réel sur la fiche Facture** (`BoutonPaiementEnLigne`) — remplace le texte statique "intégration à finaliser" qui ne menait à rien ; redirige le navigateur vers l'URL de paiement hébergée par CinetPay (choix de l'opérateur, saisie du numéro, code de confirmation — jamais reconstruit côté Vertex One).
+- Même traitement que Migadu/Resend/R2 avant configuration (CLAUDE.md) : tout le code ci-dessus est réel et s'exécute, mais `initierPaiement()` renvoie un message d'erreur convivial ("Intégration CinetPay non configurée pour le moment — utilisez l'encaissement manuel") tant que `CINETPAY_APIKEY`/`CINETPAY_SITE_ID` ne sont pas renseignées — la ligne `tentativePaiementFacture` est tout de même créée (traçabilité de la tentative), jamais un crash.
+- Logique pure (préfixage/analyse du `transaction_id`, mappage opérateur → `moyenPaiement`) isolée dans `src/lib/cinetpay/utilitaires.ts`, séparée de `src/lib/cinetpay/client.ts` (qui importe `"server-only"`) pour rester testable directement en Vitest — même patron que `src/lib/branding.ts` pour `entreprise-branding.ts` (Tranche 1 de la personnalisation).
+
+**Reste à faire une fois le compte CinetPay actif** (KYC validé, clés obtenues) : renseigner `CINETPAY_APIKEY`/`CINETPAY_SITE_ID`, vérifier en conditions réelles un paiement testnet/réel de bout en bout (impossible à vérifier dans cet environnement de développement, aucune clé CinetPay disponible) — le code est prêt, jamais vérifié avec un vrai encaissement.
+
+Testé : `tsc`/`eslint` verts, `tests/cinetpay-logique.test.ts` (7 tests — préfixage/analyse du transaction_id, mappage opérateur) et `tests/tentative-paiement-facture-fuite-rls.test.ts` (3 tests — isolation entre entreprises, absence de lecture anonyme) verts. Parcours réel en navigateur (scratch e2e, supprimé après succès) : bouton visible sur une Facture d'une entreprise au forfait Pro, clic crée réellement une ligne `tentativePaiementFacture` (statut `EN_ATTENTE`, montant correct) et affiche l'échec convivial attendu (CinetPay non configuré dans cet environnement) — jamais un crash serveur.
 
 ## Quand y revenir
 

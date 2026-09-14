@@ -20,7 +20,7 @@ export function idExterneCanal(entrepriseId: string, ancre: string): string {
 const CHAT_API_KEY = process.env.STREAM_CHAT_API_KEY;
 
 /**
- * Même traitement que Migadu/NotchPay/Resend avant configuration (voir
+ * Même traitement que Migadu/CinetPay/Resend avant configuration (voir
  * CLAUDE.md) : le code réel (préfixage, appels prévus) est en place, mais
  * n'appelle aucune API tant que STREAM_CHAT_API_KEY n'est pas configurée —
  * avertissement clair plutôt qu'échec silencieux.

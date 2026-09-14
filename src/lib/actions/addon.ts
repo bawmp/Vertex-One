@@ -11,7 +11,7 @@ import type { Addon } from "@/lib/plans";
 // Prix indicatifs — docs/strategie-*, section 7 : "Modules complémentaires
 // ... en options à l'unité". Aucune collecte de paiement réelle pour
 // l'addon lui-même dans cette version (même simplification que le reste du
-// produit avant l'intégration NotchPay/facturation complète des add-ons) —
+// produit avant l’intégration CinetPay/facturation complète des add-ons) —
 // l'activation ADMIN suffit à débloquer la fonctionnalité, la facturation
 // réelle du supplément reste à construire séparément.
 const PRIX_ADDON: Record<Addon, number> = {

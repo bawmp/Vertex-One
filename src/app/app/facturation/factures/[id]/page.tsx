@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATUT_FACTURE } from "@/lib/libelles";
 import { marquerFacturePayee, annulerFacture } from "@/lib/actions/facture";
 import { FormulaireEnvoiFacture } from "./formulaire-envoi-facture";
+import { BoutonPaiementEnLigne } from "./bouton-paiement-en-ligne";
 
 export default async function PageDetailFacture({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -135,16 +136,13 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
 
       {peutModifier && !estReglee ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4">
-          {paiementEnLigneDisponible ? (
-            <p className="text-sm text-muted-foreground">
-              Paiement en ligne (Mobile Money) disponible sur votre forfait — intégration NotchPay à finaliser.
-            </p>
-          ) : (
+          {!paiementEnLigneDisponible ? (
             <p className="text-sm text-muted-foreground">
               Paiement en ligne disponible à partir du forfait Pro — en attendant, pointez le règlement manuellement.
             </p>
-          )}
-          <div className="flex gap-2">
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {paiementEnLigneDisponible ? <BoutonPaiementEnLigne factureId={laFacture.id} /> : null}
             <form action={marquerFacturePayee.bind(null, laFacture.id)}>
               <Button type="submit">
                 <CheckCircle2 data-icon="inline-start" aria-hidden />

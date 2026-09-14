@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, facture, paiement, avoirFacture } from "@/db/schema";
+import { entreprise, facture, paiement, avoirFacture, contact, tentativePaiementFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -14,6 +14,11 @@ import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
+import { initierPaiement, idTransactionExterne } from "@/lib/cinetpay/client";
+
+function urlBase(): string {
+  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+}
 
 /**
  * Forfait Starter (docs/palier-1-*, section 6, étape 5) : le client paie
@@ -97,13 +102,20 @@ export async function annulerFacture(factureId: string, motif: string) {
 
 /**
  * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : génère un
- * lien de paiement NotchPay — non branché tant que NOTCHPAY_PUBLIC_KEY/
- * NOTCHPAY_PRIVATE_KEY ne sont pas configurées (même traitement que Migadu
- * au Palier 0 : le contrôle d'accès est réel, l'intégration externe est
- * différée). Rappel CLAUDE.md : NotchPay est custodial avec délai de
- * reversement — ne jamais présenter ce lien comme un encaissement "direct".
+ * lien de paiement CinetPay (Mobile Money) — non branché tant que
+ * CINETPAY_APIKEY/CINETPAY_SITE_ID ne sont pas configurées (même traitement
+ * que Migadu/Resend/R2 : le contrôle d'accès est réel, l'intégration
+ * externe est différée). Rappel CLAUDE.md : CinetPay est custodial avec
+ * délai de reversement — ne jamais présenter ce lien comme un encaissement
+ * "instantané" ou "direct".
+ *
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à CinetPay —
+ * son id sert de transaction_id (jamais l'id de la Facture, transmis à un
+ * service externe partagé entre entreprises clientes) et sert d'ancrage
+ * retrouvable par le webhook de notification (route publique, sans
+ * session, voir src/app/api/paiements/cinetpay/notify/route.ts).
  */
-export async function genererLienPaiement(_factureId: string): Promise<{ url?: string; erreur?: string }> {
+export async function genererLienPaiement(factureId: string): Promise<{ url?: string; erreur?: string }> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -113,13 +125,32 @@ export async function genererLienPaiement(_factureId: string): Promise<{ url?: s
     if (!disponible(monEntreprise, "PAIEMENTS_EN_LIGNE")) {
       return { erreur: "Le paiement en ligne est disponible à partir du forfait Pro." };
     }
-    if (!process.env.NOTCHPAY_PUBLIC_KEY) {
-      return { erreur: "Intégration NotchPay non configurée pour le moment — utilisez l'encaissement manuel." };
+
+    const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
+    if (!laFacture || laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE") {
+      return { erreur: "Cette facture n'est plus en attente de règlement." };
     }
 
-    // TODO Palier 1 : appel réel à l'API NotchPay (Collect) pour générer une
-    // authorization_url, et enregistrer le webhook de confirmation.
-    return { erreur: "Intégration NotchPay à finaliser." };
+    const [leContact] = laFacture.contactId ? await tx.select().from(contact).where(eq(contact.id, laFacture.contactId)) : [null];
+
+    const [tentative] = await tx
+      .insert(tentativePaiementFacture)
+      .values({ entrepriseId: utilisateurConnecte.entrepriseId, factureId, montant: laFacture.montantTTC })
+      .returning({ id: tentativePaiementFacture.id });
+
+    const resultat = await initierPaiement({
+      transactionId: idTransactionExterne(utilisateurConnecte.entrepriseId, tentative.id),
+      montant: laFacture.montantTTC,
+      description: `Facture ${laFacture.numero}`,
+      notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify`,
+      returnUrl: `${urlBase()}/app/facturation/factures/${factureId}`,
+      clientNom: leContact?.nom ?? "Client",
+      clientTelephone: leContact?.telephone ?? "",
+      clientEmail: leContact?.email ?? null,
+    });
+
+    if (resultat.erreur) return { erreur: resultat.erreur };
+    return { url: resultat.url };
   });
 }
 

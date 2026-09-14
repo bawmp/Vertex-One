@@ -9,7 +9,7 @@ import { addonActif } from "@/db/schema";
 export type Fonctionnalite =
   | "CRM"
   | "FACTURATION"
-  | "PAIEMENTS_EN_LIGNE" // lien NotchPay + réconciliation automatique
+  | "PAIEMENTS_EN_LIGNE" // lien CinetPay + réconciliation automatique
   | "DOSSIERS"
   | "PROJETS"
   | "CHAT_INTERNE"
