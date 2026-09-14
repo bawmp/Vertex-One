@@ -681,6 +681,20 @@ Trouvé en investiguant "je ne vois pas [`/plateforme`]" : la contrainte d'unici
 
 **Non couvert par cette correction, à garder à l'œil** : si un futur flux crée un `utilisateur` en dehors de `creerEntreprise()`/`accepterInvitation()` (import en masse, script admin), il devra lui aussi passer par `contientContrainteEmailUnique()` plutôt que de supposer l'email libre.
 
+## 40. Site vitrine (`/`, style Zoho One) — construit le 2026-09-14
+
+Suite à "j'aimerai un site internet très pro ressemblant au site de Zoho One pour commercialiser Vertex One". Jusqu'ici `/` redirigeait directement vers `/connexion` — aucune page ne présentait le produit à un visiteur. Décisions validées avec l'utilisateur (AskUserQuestion) : dans l'app actuelle sur `/` (pas de projet séparé), site multi-pages complet, aucun faux témoignage/logo client tant qu'il n'y a pas de vrais clients.
+
+**Architecture** : nouveau groupe de routes `src/app/(marketing)/` (accueil, `/modules`, `/modules/[slug]`, `/tarifs`, `/a-propos`, `/contact`) avec son propre en-tête/pied de page, distinct de la sidebar tenant et de la Console interne. Les ~12 pages module ne sont pas 12 fichiers écrits à la main : un gabarit unique `/modules/[slug]/page.tsx` piloté par `src/lib/marketing/modules.ts` (source unique de contenu, relu contre le code réel — `src/lib/plans.ts`, i18n, pages sous `src/app/app/` — pas de bullshit marketing générique). Contenu partagé (FAQ, comparatif, prix) dans `src/lib/marketing/contenu.ts`. Réutilise entièrement ce qui existait déjà : palette emerald/amber, `Wordmark`, le dégradé déjà utilisé par `/carrieres`/`/reserver`/`/p/[slug]`/`(auth)`, les composants shadcn existants (seul ajout : `accordion`, pour la FAQ).
+
+Formulaire de contact réel (`src/lib/actions/message-contact.ts`, nommé ainsi pour ne pas entrer en collision avec le Contact CRM existant) — envoie via `envoyerEmail()` vers `CONTACT_DESTINATAIRE` (nouvelle variable d'env). Un visiteur déjà connecté qui atterrit sur "/" est redirigé vers `/app` plutôt que de revoir le pitch commercial.
+
+**Découverte en testant le formulaire** : le compte propriétaire du compte Resend est `williambita7@gmail.com`, différent du compte tenant réel de l'utilisateur (`williambita7@outlook.com`, voir section 39) — les deux adresses coexistent légitimement pour deux systèmes différents, `CONTACT_DESTINATAIRE` réglé sur la première.
+
+Hors scope volontaire : pas de traduction anglaise (infrastructure i18n existante scopée à l'intérieur de l'app, pas aux pages entières), pas de captures d'écran produit (aucun asset n'existe, design typographique + icônes Lucide + dégradés).
+
+Testé : `tsc`/`eslint` verts, suite complète (289 tests) verte après un nettoyage de résidus de tests devenu nécessaire (voir section 39 — la contrainte d'email globale fait que les résidus `TEST %` non nettoyés par des runs interrompus entrent maintenant en collision, plutôt que de rester silencieusement dupliqués comme avant). Vérification réelle en navigateur (Playwright, scratch supprimé après succès) : les 6 pages rendent correctement en clair et en sombre, le menu mobile s'ouvre, l'accordéon FAQ fonctionne, un module inexistant renvoie une 404, le formulaire de contact envoie réellement un email (confirmé reçu).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
