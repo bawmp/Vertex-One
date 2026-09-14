@@ -589,6 +589,20 @@
       "when": 1789351175444,
       "tag": "0083_tentative_paiement_cinetpay",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1789359257172,
+      "tag": "0084_abonnement_plat",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1789359263051,
+      "tag": "0085_tentative_paiement_abonnement",
+      "breakpoints": true
     }
   ]
 }

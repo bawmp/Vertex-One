@@ -36,6 +36,8 @@ async function main() {
   const { default: verifierAutomatisationsMarketingEntreprise } = await import("./tasks/verifier-automatisations-marketing-entreprise");
   const { default: verifierFacturesRecurrentes } = await import("./tasks/verifier-factures-recurrentes");
   const { default: facturerRecurrenteEntreprise } = await import("./tasks/facturer-recurrente-entreprise");
+  const { default: verifierAbonnements } = await import("./tasks/verifier-abonnements");
+  const { default: traiterAbonnementEntreprise } = await import("./tasks/traiter-abonnement-entreprise");
 
   const runner = await run({
     connectionString: process.env.DATABASE_URL_WORKER,
@@ -50,6 +52,8 @@ async function main() {
       "verifier-automatisations-marketing-entreprise": verifierAutomatisationsMarketingEntreprise,
       "verifier-factures-recurrentes": verifierFacturesRecurrentes,
       "facturer-recurrente-entreprise": facturerRecurrenteEntreprise,
+      "verifier-abonnements": verifierAbonnements,
+      "traiter-abonnement-entreprise": traiterAbonnementEntreprise,
     },
   });
 

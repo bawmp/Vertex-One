@@ -6,10 +6,11 @@ import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, type Module, type RoleSysteme } from "@/lib/permissions";
 import { LogoEntreprise } from "@/components/logo-entreprise";
-import { Badge } from "@/components/ui/badge";
 import { traduire } from "@/lib/i18n/traduire";
 import { LangueProvider } from "@/lib/i18n/contexte";
 import { traduireNav, traduireCategorie } from "@/lib/i18n/nav";
+import { calculerEtatAbonnement } from "@/lib/abonnement/etat";
+import { BanniereAbonnement } from "./banniere-abonnement";
 import { NavLink, NavGroup } from "./nav-link";
 import { MenuUtilisateur } from "./menu-utilisateur";
 
@@ -269,6 +270,7 @@ const MODULES_MENU: ItemMenu[] = [
           { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
           { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
           { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
+          { libelle: "Abonnement", href: "/app/parametres/abonnement", Icone: CreditCard },
         ],
       },
     ],
@@ -304,8 +306,6 @@ export function itemMenuVisible(role: RoleSysteme, item: ItemMenu): boolean {
 export function libellesMenuVisibles(role: RoleSysteme): string[] {
   return MODULES_MENU.filter((item) => itemMenuVisible(role, item)).map((item) => item.libelle);
 }
-
-const LIBELLE_PLAN: Record<string, string> = { starter: "Starter", pro: "Pro", business: "Business" };
 
 // Deuxième vérification de session, indépendante de proxy.ts (défense en
 // profondeur — voir docs/palier-0-*, section 7 : le serveur ne fait jamais
@@ -350,13 +350,23 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       nomComplet: utilisateur.nomComplet,
       email: utilisateur.email,
       entrepriseNom: entreprise.nom,
-      entreprisePlan: entreprise.planAbonnement,
       logoCleStockage: entreprise.logoCleStockage,
       couleurMarque: entreprise.couleurMarque,
+      statutAbonnement: entreprise.statutAbonnement,
+      essaiFinLe: entreprise.essaiFinLe,
+      abonnementEcheanceLe: entreprise.abonnementEcheanceLe,
     })
     .from(utilisateur)
     .innerJoin(entreprise, eq(entreprise.id, utilisateur.entrepriseId))
     .where(eq(utilisateur.id, utilisateurConnecte.utilisateurId));
+
+  // Abonnement plat 50 000 FCFA/mois (2026-09-14) — un tenant suspendu ne
+  // voit jamais la sidebar/le contenu, redirigé vers une page hors de
+  // /app/* (pour ne jamais être elle-même interceptée par cette même
+  // redirection). En dehors de la suspension, une bannière non bloquante
+  // prévient d'une échéance proche, jamais dans la sidebar elle-même.
+  if (ligne?.statutAbonnement === "suspendu") redirect("/abonnement-expire");
+  const { evenement } = ligne ? calculerEtatAbonnement({ essaiFinLe: ligne.essaiFinLe, abonnementEcheanceLe: ligne.abonnementEcheanceLe }, new Date()) : { evenement: null };
 
   // Personnalisation (échange du 2026-09-13) — surcharge --primary et les
   // jetons propres à la sidebar (--sidebar-primary/--sidebar-ring),
@@ -375,11 +385,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         <div className="mb-1 flex items-center justify-between px-2">
           <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} sombre />
         </div>
-        <div className="mb-5 flex items-center justify-between px-2">
+        <div className="mb-5 flex items-center px-2">
           <p className="truncate text-sm text-sidebar-foreground/60">{ligne?.entrepriseNom}</p>
-          <Badge className="shrink-0 border-0 bg-white/10 text-white ring-white/15">
-            {LIBELLE_PLAN[ligne?.entreprisePlan ?? "starter"] ?? ligne?.entreprisePlan}
-          </Badge>
         </div>
 
         <p className="mb-1 px-2.5 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
@@ -423,7 +430,12 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         <MenuUtilisateur nom={ligne?.nomComplet ?? utilisateurConnecte.role} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />
       </nav>
       <main className="min-w-0 flex-1 overflow-x-hidden p-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
+        <div className="mx-auto flex max-w-6xl flex-col gap-4">
+          {evenement && ligne ? (
+            <BanniereAbonnement evenement={evenement} essaiFinLe={ligne.essaiFinLe} abonnementEcheanceLe={ligne.abonnementEcheanceLe} />
+          ) : null}
+          {children}
+        </div>
       </main>
     </div>
     </LangueProvider>

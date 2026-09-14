@@ -46,11 +46,16 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
   let idEntreprise: string;
   let idAdmin: string;
 
+  // Abonnement plat 50 000 FCFA/mois, essai gratuit de 14 jours (2026-09-14)
+  // — abonnementEcheanceLe démarre égale à essaiFinLe : le premier paiement
+  // est dû exactement quand l'essai se termine, jamais avant.
+  const essaiFinLe = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
   try {
     const resultat = await db.transaction(async (tx) => {
       const [nouvelleEntreprise] = await tx
         .insert(entreprise)
-        .values({ nom: nomEntreprise, secteurProfil })
+        .values({ nom: nomEntreprise, secteurProfil, essaiFinLe, abonnementEcheanceLe: essaiFinLe })
         .returning({ id: entreprise.id });
 
       const [nouvelUtilisateur] = await tx

@@ -35,7 +35,9 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 ## 3. Paiement Mobile Money — CinetPay
 
-**Statut : intégration préparée (code réel, voir `docs/crm-roadmap-post-commercialisation.md`, section 36), compte non créé.** Contrairement aux deux points précédents, l'intégration côté code est déjà construite (lien de paiement, webhook de confirmation, réconciliation comptable automatique) — il ne reste que la partie compte/KYC côté CinetPay.
+**Statut : intégration préparée (code réel), compte non créé.** Contrairement aux deux points précédents, l'intégration côté code est déjà construite — il ne reste que la partie compte/KYC côté CinetPay. Le même compte sert désormais à **deux usages** :
+1. Paiement des factures client par les clients d'un tenant (`docs/crm-roadmap-post-commercialisation.md`, section 36).
+2. **Abonnement plateforme** — chaque tenant paie 50 000 FCFA/mois à Vertex One lui-même (section 37) : essai gratuit de 14 jours, délai de grâce de 48h après échéance avant suspension d'accès.
 
 - [ ] Créer un compte business sur [cinetpay.com](https://cinetpay.com)
 - [ ] Soumettre et valider le KYC (nécessaire avant tout retrait de fonds réels — délai variable, parfois plusieurs jours)
@@ -44,7 +46,8 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
   CINETPAY_APIKEY="..."
   CINETPAY_SITE_ID="..."
   ```
-- [ ] Une fois les clés en place, vérifier un paiement réel de bout en bout depuis une Facture (`/app/facturation/factures/[id]`, bouton "Envoyer un lien de paiement Mobile Money") — jamais vérifié avec un vrai encaissement dans l'environnement de développement, aucune clé CinetPay n'y étant disponible.
+- [ ] Une fois les clés en place, vérifier de bout en bout : (a) un paiement de facture depuis `/app/facturation/factures/[id]` (bouton "Envoyer un lien de paiement Mobile Money"), et (b) un paiement d'abonnement depuis `/app/parametres/abonnement` (bouton "Régler mon abonnement") — ni l'un ni l'autre n'a jamais été vérifié avec un vrai encaissement dans l'environnement de développement, aucune clé CinetPay n'y étant disponible.
+- [ ] Vérifier que le worker (`npm run worker`) tourne en production — la tâche planifiée quotidienne `verifier-abonnements` (8h) est ce qui envoie les rappels d'échéance et suspend l'accès en cas de non-paiement ; sans le worker actif, aucun tenant n'est jamais relancé ni suspendu.
 
 **Rappel commercial, non négociable (voir CLAUDE.md)** : CinetPay est custodial, avec un délai de reversement par défaut de **8 jours** (réductible sur demande auprès de CinetPay après KYC) — ne jamais présenter ce paiement comme "instantané" ou "direct" dans le discours commercial.
 
@@ -56,7 +59,7 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 ## Hors scope de cette checklist (pas bloquant pour vendre)
 
-- Changement de mot de passe / changement de forfait en libre-service (gérable manuellement au démarrage)
+- Changement de mot de passe en libre-service (gérable manuellement au démarrage) — le changement de forfait n'a plus lieu d'être, un seul abonnement plat désormais
 - WhatsApp Business (Meta) — non configuré, dégrade proprement
 - Domaine email personnalisé (Migadu) — jamais branché, dormant depuis le Palier 0
 - Traduction anglaise complète — infrastructure + écrans les plus visibles seulement (voir roadmap, section 34)

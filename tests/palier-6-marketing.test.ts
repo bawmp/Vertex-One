@@ -106,14 +106,14 @@ describe("Palier 6 — Marketing", () => {
     expect(resultats.map((r) => r.contactId)).toContain(contactDossierId);
   });
 
-  test("disponibleAddon reflète l'activation réelle en base", async () => {
-    const avantActivation = await avecEntreprise(entrepriseId, (tx) => disponibleAddon(tx, { id: entrepriseId, statutAbonnement: "actif" }, "MARKETING"));
-    expect(avantActivation).toBe(false);
-
-    await avecEntreprise(entrepriseId, (tx) => tx.insert(addonActif).values({ entrepriseId, addon: "MARKETING", prixMensuel: 10_000 }));
-
-    const apresActivation = await avecEntreprise(entrepriseId, (tx) => disponibleAddon(tx, { id: entrepriseId, statutAbonnement: "actif" }, "MARKETING"));
-    expect(apresActivation).toBe(true);
+  // Abonnement plat unique (2026-09-14) — MARKETING (comme tout le reste)
+  // est désormais inclus pour toute entreprise non suspendue, indépendamment
+  // d'une activation dans addonActif (obsolète depuis le passage à
+  // l'abonnement plat, voir src/lib/plans.ts). Ce test vérifiait auparavant
+  // l'ancien modèle par add-ons à la carte.
+  test("disponibleAddon est vrai pour toute entreprise non suspendue, indépendamment d'addonActif", async () => {
+    const sansActivation = await avecEntreprise(entrepriseId, (tx) => disponibleAddon(tx, { id: entrepriseId, statutAbonnement: "actif" }, "MARKETING"));
+    expect(sansActivation).toBe(true);
 
     const entrepriseSuspendue = await avecEntreprise(entrepriseId, (tx) => disponibleAddon(tx, { id: entrepriseId, statutAbonnement: "suspendu" }, "MARKETING"));
     expect(entrepriseSuspendue).toBe(false);

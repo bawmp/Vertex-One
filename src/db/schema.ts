@@ -58,8 +58,34 @@ export const entreprise = pgTable("entreprise", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   nom: text("nom").notNull(),
   secteurProfil: text("secteur_profil").notNull(), // "agence" | "artisan" | "cabinet" | "generique"
-  planAbonnement: text("plan_abonnement").notNull().default("starter"), // starter | pro | business
-  statutAbonnement: text("statut_abonnement").notNull().default("essai"), // essai | actif | suspendu
+  planAbonnement: text("plan_abonnement").notNull().default("starter"), // starter | pro | business — non lu par la gestion d'accès depuis l'abonnement plat (2026-09-14), conservé sans être supprimé
+  statutAbonnement: text("statut_abonnement").notNull().default("essai"), // essai | actif | suspendu — désormais piloté par les dates ci-dessous (échange du 2026-09-14), voir src/lib/abonnement/etat.ts
+  // Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — remplace les
+  // paliers/add-ons : essaiFinLe fixe la fin de l'essai gratuit de 14 jours ;
+  // abonnementEcheanceLe est la prochaine date d'échéance de paiement (=
+  // essaiFinLe tant qu'aucun paiement confirmé n'a eu lieu, puis reculée de
+  // 30 jours à chaque paiement confirmé, voir prochaineEcheanceApresPaiement()).
+  // La fin de la période de grâce (48h) se DÉDUIT en lecture
+  // (abonnementEcheanceLe + 48h), jamais stockée — un seul endroit
+  // (src/lib/abonnement/etat.ts) fait ce calcul, jamais dupliqué.
+  // $defaultFn (pas juste un DEFAULT SQL) délibérément : creerEntreprise()
+  // fixe toujours les deux explicitement à l'inscription, mais des dizaines
+  // de tests insèrent une entreprise fictive minimale sans s'en soucier
+  // (RLS/logique sans lien avec la facturation) — sans valeur par défaut
+  // côté TypeScript, chacun de ces ~74 fichiers de test aurait dû être
+  // modifié pour rien.
+  essaiFinLe: timestamp("essai_fin_le")
+    .notNull()
+    .$defaultFn(() => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)),
+  abonnementEcheanceLe: timestamp("abonnement_echeance_le")
+    .notNull()
+    .$defaultFn(() => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)),
+  // Mémorise le dernier événement de rappel envoyé (ESSAI_J3/ESSAI_TERMINE/
+  // ECHEANCE_J3/ECHEANCE_DEPASSEE/SUSPENDU) — évite de renvoyer le même email
+  // chaque jour tant que la phase n'a pas changé (voir
+  // src/worker/tasks/traiter-abonnement-entreprise.ts). NULL = aucun rappel
+  // encore envoyé, ou remis à zéro après un paiement confirmé (nouveau cycle).
+  dernierRappelAbonnementEnvoye: text("dernier_rappel_abonnement_envoye"),
   creeLe: timestamp("cree_le").notNull().defaultNow(),
   // Palier 1 — mentions légales obligatoires avant le premier devis (voir
   // docs/palier-1-*, section 2). niu/rccm/adresse restent nullable ici :
@@ -1182,6 +1208,37 @@ export const tentativePaiementFacture = pgTable(
   (table) => [
     index("tentative_paiement_facture_entreprise_idx").on(table.entrepriseId),
     index("tentative_paiement_facture_facture_idx").on(table.factureId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Paiement d'abonnement plateforme CinetPay (2026-09-14) — même patron que
+// tentativePaiementFacture, mais un flux d'argent différent (le tenant paie
+// Vertex One lui-même, pas un de ses propres clients) : table et webhook
+// séparés plutôt qu'un mécanisme générique à discriminant (voir
+// src/lib/actions/abonnement.ts / src/app/api/paiements/cinetpay/notify-abonnement/route.ts).
+// RLS strictement standard, pas de carve-out de lecture anonyme — le
+// transaction_id transmis à CinetPay est préfixé par l'entrepriseId
+// (idTransactionExterne(), src/lib/cinetpay/utilitaires.ts), donc le webhook
+// connaît déjà l'entrepriseId avant d'interroger la base.
+export const tentativePaiementAbonnement = pgTable(
+  "tentative_paiement_abonnement",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    montant: integer("montant").notNull(),
+    statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    confirmeLe: timestamp("confirme_le"),
+  },
+  (table) => [
+    index("tentative_paiement_abonnement_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

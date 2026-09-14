@@ -121,16 +121,16 @@ Trois modules méritent une décision explicite de "construire vs. intégrer", c
 
 ## 5. Modèle économique et tarification
 
-Le prix doit rester simple, net, exprimé en FCFA, et payable par Mobile Money — un abonnement mensuel par entreprise (pas par utilisateur, ce qui complique la vente aux petites structures), avec des paliers qui suivent directement les paliers produit décrits en section 2 :
+**Révisé le 2026-09-14** — remplace le modèle par paliers (Starter/Pro/Business + add-ons) décrit initialement dans cette section par un **abonnement plat unique**, à la demande explicite de l'utilisateur : plus simple à vendre et à comprendre pour ce segment, sans arbitrage à faire entre paliers ni fonctionnalité verrouillée qui complique le discours commercial.
 
-- **Starter** — CRM + Devis/Facturation, conforme facturation normalisée, encaissement en **suivi manuel** (l'utilisateur marque lui-même une facture comme payée en espèces/virement) — de l'ordre de 15 000 à 25 000 FCFA/mois (chiffre indicatif à valider avec les clients pilotes)
-- **Pro** — + **Paiements en ligne automatisés** (lien de paiement Mobile Money généré sur chaque facture, réconciliation automatique) + Projets/Dossiers + Communication WhatsApp + Chat interne — de l'ordre de 35 000 à 55 000 FCFA/mois
-- **Business** — + Signature électronique + RH + Comptabilité complète — de l'ordre de 60 000 à 90 000 FCFA/mois
-- **Modules complémentaires** (support, marketing, stock) — en options à l'unité une fois développés
+- **50 000 FCFA/mois par entreprise** (pas par utilisateur), payable par Mobile Money — débloque absolument tout le produit dès l'inscription : CRM, Facturation, Paiements en ligne automatisés, Projets/Dossiers, Chat interne, Signature électronique, Comptabilité complète, RH, ainsi que Marketing/Réservations/Recrutement/Assistance client (anciens modules complémentaires à l'unité, désormais inclus).
+- **Essai gratuit de 14 jours**, tout déverrouillé, avant tout paiement exigé.
+- **Délai de grâce de 48h après l'échéance** avant suspension d'accès — le paiement Mobile Money passe par une confirmation asynchrone (webhook), une tolérance technique évite de couper un client qui vient de payer.
+- Une fois abonnée, l'entreprise est libre d'attribuer les rôles à ses collaborateurs invités sans restriction liée à un palier.
 
-Un point de conception volontaire : **la collecte automatisée des paiements (Mobile Money) est elle-même une fonctionnalité verrouillée par abonnement**, disponible à partir du palier Pro plutôt qu'incluse partout dès le Starter. Un client Starter continue à émettre des devis et factures conformes, mais encaisse et pointe ses paiements manuellement — ce qui reste largement suffisant pour se passer d'Excel et du papier, tout en donnant une raison concrète et immédiate de passer au palier supérieur (moins de saisie manuelle, moins de retard de paiement grâce au lien direct envoyé au client). C'est aussi cohérent avec la réalité économique du produit : chaque transaction Mobile Money collectée porte une commission (~1,5-3,5% chez CinetPay) qu'il faut couvrir, contrairement à une simple ligne de facturation. La section 4 (architecture) détaille comment ce verrouillage par abonnement est implémenté techniquement — le même mécanisme sert aussi à verrouiller la Signature électronique certifiée, la Comptabilité complète et le RH au palier Business, sans code spécifique à réécrire à chaque fois.
+Une entreprise dont l'abonnement n'est pas renouvelé (au-delà du délai de grâce) voit son accès entièrement suspendu jusqu'au règlement — voir `docs/crm-roadmap-post-commercialisation.md`, section 37, pour le détail technique (état essai/actif/suspendu, rappels automatiques par email).
 
-Un positionnement nettement sous le coût mensuel équivalent de Zoho One, sans les frais d'implémentation qui plombent Odoo pour ce segment, avec un essai gratuit de 14 à 30 jours (avec toutes les fonctionnalités déverrouillées pendant l'essai, y compris les paiements en ligne, pour convaincre avant de restreindre), reste un argument fort. La commission Mobile Money (~1,5-3,5% par transaction chez CinetPay) doit être intégrée dans le calcul de marge du palier Pro, de même que le délai de reversement (custodial) à anticiper dans la communication aux clients du palier Pro.
+La commission Mobile Money (~1,5-3,5% par transaction chez CinetPay) et le délai de reversement (custodial, 8 jours par défaut — voir section 3) restent à intégrer dans le calcul de marge et dans la communication aux clients, désormais sur l'ensemble de la base plutôt que sur un seul palier.
 
 ## 6. Stratégie de commercialisation
 
