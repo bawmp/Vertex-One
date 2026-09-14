@@ -12,6 +12,7 @@ import { auth } from "@/lib/auth";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { creerUtilisateurChat } from "@/lib/chat/client";
+import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
 
@@ -127,7 +128,9 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
 
   const motDePasseHash = await hashPassword(motDePasse);
 
-  const idNouvelUtilisateur = await avecEntreprise(invitationValide.entrepriseId, async (tx) => {
+  let idNouvelUtilisateur: string;
+  try {
+    idNouvelUtilisateur = await avecEntreprise(invitationValide.entrepriseId, async (tx) => {
     const [nouvelUtilisateur] = await tx
       .insert(utilisateur)
       .values({
@@ -166,8 +169,18 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
 
     await tx.update(invitation).set({ utiliseeLe: new Date() }).where(eq(invitation.id, invitationValide.id));
 
-    return nouvelUtilisateur.id;
-  });
+      return nouvelUtilisateur.id;
+    });
+  } catch (erreur) {
+    // utilisateur.email est désormais unique globalement, pas seulement par
+    // entreprise (voir CLAUDE.md/src/db/schema.ts, 2026-09-14) — une
+    // personne déjà titulaire d'un compte ailleurs ne peut pas en créer un
+    // second avec la même adresse, Better-Auth authentifiant par email seul.
+    if (contientContrainteEmailUnique(erreur)) {
+      return { erreur: "Cette adresse email est déjà associée à un autre compte Vertex One — contactez le support pour rattacher ce compte à votre entreprise." };
+    }
+    throw erreur;
+  }
 
   // Palier 3, section 6 — provisionnement chez le prestataire de chat dès
   // qu'un compte devient ACTIF, pour être immédiatement disponible dans les

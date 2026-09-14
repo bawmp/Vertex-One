@@ -178,7 +178,17 @@ export const utilisateur = pgTable(
     misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("utilisateur_entreprise_email_unique").on(table.entrepriseId, table.email),
+    // Unicité GLOBALE sur l'email (pas seulement par entreprise) — bug réel
+    // découvert le 2026-09-14 : Better-Auth authentifie par email seul, sans
+    // connaître l'entrepriseId au moment de la connexion (voir CLAUDE.md,
+    // "le cas particulier des tables d'authentification"). Avec l'ancienne
+    // contrainte composite (entrepriseId, email), la même adresse pouvait
+    // s'inscrire dans plusieurs entreprises différentes — Better-Auth ne
+    // sait alors plus quel compte authentifier et échoue avec "Invalid
+    // email or password" même avec le bon mot de passe. Confirmé en
+    // conditions réelles (double inscription accidentelle avec le même
+    // email → connexion cassée) avant d'être corrigé ici.
+    uniqueIndex("utilisateur_email_unique").on(table.email),
     index("utilisateur_entreprise_idx").on(table.entrepriseId),
     // Permissive et non stricte : Better-Auth lit/écrit cette table avant
     // qu'une session (donc un app.entreprise_id) n'existe — voir CLAUDE.md,

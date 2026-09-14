@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { LogOut, Languages, Sun, Moon, Monitor } from "lucide-react";
@@ -23,6 +23,16 @@ export function MenuUtilisateur({ nom, email, langue: langueInitiale }: { nom: s
   const { theme: themeActifNextThemes, setTheme } = useTheme();
   const [enCours, setEnCours] = useState(false);
   const [langue, setLangue] = useState<Langue>(langueInitiale ?? "fr");
+  // next-themes ne connaît le thème réel (localStorage) qu'après le montage
+  // côté client — themeActifNextThemes vaut undefined pendant le rendu
+  // serveur ET le premier rendu client, avant de refléter la vraie valeur.
+  // Sans ce garde-fou, l'icône rendue par le serveur (Monitor, faute de
+  // savoir mieux) ne correspond pas à celle du client une fois le thème
+  // résolu (ex. Moon) — erreur d'hydratation React réelle, constatée dans
+  // les logs du serveur de dev. On force donc Monitor jusqu'au montage.
+  const [monte, setMonte] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- patron standard next-themes pour éviter le mismatch d'hydratation (un seul re-rendu juste après le montage, jamais en cascade).
+  useEffect(() => setMonte(true), []);
 
   async function deconnexion() {
     setEnCours(true);
@@ -52,7 +62,7 @@ export function MenuUtilisateur({ nom, email, langue: langueInitiale }: { nom: s
     await authClient.updateUser({ theme: suivant });
   }
 
-  const IconeTheme = themeActifNextThemes === "dark" ? Moon : themeActifNextThemes === "light" ? Sun : Monitor;
+  const IconeTheme = !monte ? Monitor : themeActifNextThemes === "dark" ? Moon : themeActifNextThemes === "light" ? Sun : Monitor;
 
   const initiales =
     nom

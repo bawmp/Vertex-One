@@ -668,6 +668,19 @@ Suite directe de la section 37 — réponse à "comment puis-je la contrôler un
 
 Testé : `tsc`/`eslint` verts, `tests/plateforme-acces-logique.test.ts` (6 tests — liste blanche), `tests/journal-action-plateforme-fuite-rls.test.ts` (3 tests — isolation entre entreprises) et `tests/plateforme-lecture-ecriture-refusee.test.ts` (3 tests — preuve réelle contre la base que l'écriture est impossible) verts. Parcours réel en navigateur (scratch e2e, supprimé après succès) : un Admin normal (pas dans `PLATEFORME_ADMINS`) qui visite `/plateforme` est refoulé vers `/app` ; un compte dont l'email est dans `PLATEFORME_ADMINS` voit la Console, retrouve l'entreprise du premier compte dans la liste, la suspend manuellement — effet réel immédiat en base (`statutAbonnement` passé à `"suspendu"`) et ligne d'audit créée avec le bon email et la bonne action.
 
+## 39. Bug réel corrigé — email non unique globalement cassait la connexion Better-Auth — 2026-09-14
+
+Trouvé en investiguant "je ne vois pas [`/plateforme`]" : la contrainte d'unicité sur `utilisateur.email` était composite (`entrepriseId`, `email`) plutôt que globale. Better-Auth authentifie par email seul, **sans connaître l'entrepriseId au moment de la connexion** (voir CLAUDE.md, "le cas particulier des tables d'authentification") — avec l'ancienne contrainte, la même adresse pouvait s'inscrire dans plusieurs entreprises différentes, et Better-Auth ne savait plus quel compte authentifier ("Invalid email or password" même avec le bon mot de passe). Confirmé en conditions réelles : le compte du fondateur avait 3 lignes `utilisateur` pour la même adresse (1 réelle du 2026-09-05, 2 doublons accidentels créés en testant la Console plateforme), plus 9 autres groupes de doublons issus de résidus de tests interrompus ailleurs dans la base.
+
+**Corrigé :**
+
+- `utilisateur_email_unique` : index unique **global** sur `email` (`drizzle/0087_email_unique_global.sql`), plus l'ancienne contrainte composite retirée.
+- `src/lib/erreurs-db.ts` (`contientContrainteEmailUnique()`) — détecte la violation en vérifiant `.message` **et** `.cause.message` (Drizzle enveloppe l'erreur Postgres différemment selon le point d'échec). Câblé dans `creerEntreprise()` (message déjà existant, désormais fondé sur le bon nom de contrainte) et, nouveau, dans `accepterInvitation()` — inviter quelqu'un dont l'email a déjà un compte ailleurs est maintenant un scénario réel, géré proprement plutôt que de planter en 500.
+- Nettoyage ponctuel des résidus `TEST %` (102 entreprises, patron déjà documenté dans CLAUDE.md) — nécessaire car de nombreux fichiers de test réutilisent un email codé en dur par exécution ; sous l'ancienne contrainte composite ça ne collisionnait jamais entre résidus de runs différents, sous la nouvelle contrainte globale si. Suite complète (289 tests / 86 fichiers) revérifiée verte après nettoyage.
+- En marge, corrigé aussi un vrai mismatch d'hydratation React trouvé dans les logs pendant cette vérification (`src/app/app/menu-utilisateur.tsx`) : l'icône du bouton thème (`next-themes`) dépend d'un état que le serveur ne connaît pas encore au premier rendu — rendu forcé sur `Monitor` jusqu'au montage client, patron standard next-themes.
+
+**Non couvert par cette correction, à garder à l'œil** : si un futur flux crée un `utilisateur` en dehors de `creerEntreprise()`/`accepterInvitation()` (import en masse, script admin), il devra lui aussi passer par `contientContrainteEmailUnique()` plutôt que de supposer l'email libre.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

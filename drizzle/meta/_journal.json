@@ -610,6 +610,13 @@
       "when": 1789370228230,
       "tag": "0086_journal_action_plateforme",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1789409563539,
+      "tag": "0087_email_unique_global",
+      "breakpoints": true
     }
   ]
 }

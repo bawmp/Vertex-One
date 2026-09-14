@@ -9,6 +9,7 @@ import { db } from "@/db/client";
 import { entreprise, utilisateur, compte } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { creerUtilisateurChat } from "@/lib/chat/client";
+import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 
 const schemaInscription = z.object({
   nomEntreprise: z.string().trim().min(2, "Le nom de l'entreprise est trop court."),
@@ -86,7 +87,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
     idEntreprise = resultat.entrepriseId;
     idAdmin = resultat.utilisateurId;
   } catch (erreur) {
-    if (erreur instanceof Error && erreur.message.includes("utilisateur_entreprise_email_unique")) {
+    if (contientContrainteEmailUnique(erreur)) {
       return { erreur: "Cette adresse email est déjà utilisée." };
     }
     throw erreur;
