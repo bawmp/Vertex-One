@@ -695,6 +695,24 @@ Hors scope volontaire : pas de traduction anglaise (infrastructure i18n existant
 
 Testé : `tsc`/`eslint` verts, suite complète (289 tests) verte après un nettoyage de résidus de tests devenu nécessaire (voir section 39 — la contrainte d'email globale fait que les résidus `TEST %` non nettoyés par des runs interrompus entrent maintenant en collision, plutôt que de rester silencieusement dupliqués comme avant). Vérification réelle en navigateur (Playwright, scratch supprimé après succès) : les 6 pages rendent correctement en clair et en sombre, le menu mobile s'ouvre, l'accordéon FAQ fonctionne, un module inexistant renvoie une 404, le formulaire de contact envoie réellement un email (confirmé reçu).
 
+## 41. Site vitrine : couleurs joviales, animations, chatbot IA "Kyria" — construit le 2026-09-15
+
+Suite à trois retours sur le site vitrine, à l'image de zoho.com/one : des couleurs plus joviales, beaucoup d'animations, et un chatbot IA nommé Kyria — présenté explicitement par l'utilisateur comme la première brique d'un assistant destiné à être réintégré plus tard **dans l'application** elle-même.
+
+**Couleurs** : aucune modification des tokens globaux (`src/app/globals.css`, utilisés par toute l'application) — le site vitrine devient plus coloré uniquement via un champ `classeFond` par module (`src/lib/marketing/modules.ts`, 12 teintes Tailwind distinctes, ex. `bg-blue-500`), utilisé comme fond de puce d'icône dans les grilles de modules, plus un héros enrichi de touches teal/amber et de formes floues animées.
+
+**Animations** : `tw-animate-css` était déjà importé dans `globals.css` — aucune nouvelle dépendance (pas de framer-motion). `src/app/(marketing)/reveal.tsx` (IntersectionObserver, une fois, respecte `prefers-reduced-motion`) anime l'entrée de chaque section/carte au défilement ; `src/app/(marketing)/compteur-anime.tsx` anime les statistiques (prix, essai) de 0 vers leur valeur ; `@keyframes flotter-lentement` (additif dans `globals.css`) fait dériver lentement des taches de couleur en arrière-plan des héros.
+
+**Kyria** : chatbot réel (pas une interface vide), construit pour être réutilisable telle quelle dans l'application plus tard :
+- `src/lib/kyria/contexte.ts` — construit le prompt système à partir des faits déjà centralisés (`MODULES_MARKETING`, prix, essai, délai de grâce, comparatif) — jamais de duplication, jamais d'invention. Règles impératives dans le prompt : jamais "instantané" pour le paiement Mobile Money, jamais de nom de concurrent, rester sur le sujet Vertex One.
+- `src/lib/kyria/client.ts` — appel direct à l'API Anthropic (`fetch`, pas de SDK, même choix que CinetPay/WhatsApp), modèle `claude-haiku-4-5-20251001` (coût maîtrisé pour un chat public sans authentification), `kyriaConfigure()`/dégradation propre tant que `ANTHROPIC_API_KEY` n'est pas configurée (même patron que Resend/CinetPay/R2, voir CLAUDE.md).
+- `src/app/api/kyria/route.ts` — route publique, validation zod, aucun lien avec `avecEntreprise()` (aucune donnée d'entreprise en jeu).
+- `src/app/(marketing)/kyria/kyria-chat.tsx` — bulle flottante violet/indigo (couleur volontairement distincte de l'emerald de marque, pour identifier "assistant IA" à part), montée une seule fois dans `src/app/(marketing)/layout.tsx`.
+
+**Hors scope, volontaire** : pas de limitation de débit/anti-abus sur `/api/kyria` (à ajouter avant une mise en production à fort trafic — voir `docs/mise-en-production-checklist.md`), pas de persistance des conversations (historique en mémoire navigateur uniquement), pas d'intégration dans `/app` pour l'instant (seule la logique de contexte est déjà réutilisable).
+
+Testé : `tsc`/`eslint` verts. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) : couleurs par module et animations d'entrée visibles au défilement réel (clair et sombre), compteurs animés atteignent leur valeur finale, bulle Kyria ouvre un vrai panneau de chat et dégrade proprement ("Kyria n'est pas encore configurée") tant qu'aucune clé Anthropic n'est renseignée — comportement confirmé sans clé, une vraie conversation reste à vérifier une fois la clé fournie par l'utilisateur.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

@@ -70,12 +70,25 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
   ```
   `PLATEFORME_ADMINS` : l'email d'un compte tenant **déjà existant** (le vôtre) — aucune nouvelle inscription nécessaire, la prochaine connexion avec ce compte suffit pour voir le lien "Console interne".
 
+## 5. Chatbot IA "Kyria" (site vitrine) — clé Anthropic
+
+**Statut : code réel construit et testé (sans clé), compte à créer.** `/` (site vitrine) affiche une bulle de chat "Kyria" qui répond réellement aux questions sur Vertex One — voir `docs/crm-roadmap-post-commercialisation.md`, section 41.
+
+- [ ] Créer une clé API sur [console.anthropic.com](https://console.anthropic.com)
+- [ ] Renseigner dans `.env.local` / production :
+  ```
+  ANTHROPIC_API_KEY="..."
+  ```
+- [ ] Une fois la clé en place, vérifier une vraie conversation (ex. "combien coûte l'abonnement ?" doit répondre 50 000 FCFA/mois, "le paiement est-il instantané ?" doit répondre non) — jamais vérifié avec une vraie clé dans l'environnement de développement.
+- [ ] Avant un trafic important : ajouter une limitation de débit sur `/api/kyria` (aucune pour l'instant, voir roadmap section 41) — un chat public sans authentification est exposé aux abus/coûts incontrôlés sans ce garde-fou.
+
 ## Ordre suggéré
 
 1. **R2** (5 minutes, débloque immédiatement logos/documents/CV)
 2. **Resend** (le délai de propagation DNS peut prendre du temps — à lancer tôt)
 3. **CinetPay** (le plus long : KYC avant toute chose ; en attendant, l'encaissement manuel reste pleinement utilisable pour vendre dès que R2 et Resend sont prêts)
 4. **Console interne** (5 minutes, indépendant des trois autres — peut être fait à tout moment)
+5. **Kyria** (5 minutes, indépendant des autres — dégrade proprement tant que la clé n'existe pas)
 
 ## Hors scope de cette checklist (pas bloquant pour vendre)
 

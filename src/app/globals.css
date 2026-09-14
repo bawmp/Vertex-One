@@ -153,3 +153,26 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Animation d'arrière-plan du héros du site vitrine uniquement
+ * (src/app/(marketing)/page.tsx et modules/[slug]/page.tsx) — additif,
+ * ne redéfinit aucun token existant, aucun effet sur le reste de
+ * l'application. Dérive lentement, jamais de mouvement brusque.
+ */
+@keyframes flotter-lentement {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, -4%) scale(1.08); }
+}
+.animate-flotter-lentement {
+  animation: flotter-lentement 14s ease-in-out infinite;
+}
+.animate-flotter-lentement-inverse {
+  animation: flotter-lentement 18s ease-in-out infinite reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-flotter-lentement,
+  .animate-flotter-lentement-inverse {
+    animation: none;
+  }
+}

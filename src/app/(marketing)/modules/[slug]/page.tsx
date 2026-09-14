@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MODULES_MARKETING, trouverModuleMarketing } from "@/lib/marketing/modules";
+import { Reveal } from "../../reveal";
 
 export function generateStaticParams() {
   return MODULES_MARKETING.map((module) => ({ slug: module.slug }));
@@ -26,9 +27,15 @@ export default async function PageModule({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      <section className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 text-white">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 py-16 text-center">
-          <moduleMarketing.icone className="size-10" aria-hidden />
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white">
+        <div
+          aria-hidden
+          className="animate-flotter-lentement pointer-events-none absolute -top-16 right-1/4 size-64 rounded-full bg-amber-400/25 blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 py-16 text-center">
+          <span className={`flex size-16 items-center justify-center rounded-2xl ${moduleMarketing.classeFond} shadow-lg`}>
+            <moduleMarketing.icone className="size-8" aria-hidden />
+          </span>
           <h1 className="text-4xl font-semibold tracking-tight">{moduleMarketing.nom}</h1>
           <p className="max-w-xl text-lg text-emerald-50/90">{moduleMarketing.resume}</p>
         </div>
@@ -37,11 +44,11 @@ export default async function PageModule({ params }: { params: Promise<{ slug: s
       <section className="mx-auto max-w-2xl px-6 py-16">
         <h2 className="text-xl font-semibold">Ce que fait vraiment ce module</h2>
         <ul className="mt-6 flex flex-col gap-4">
-          {moduleMarketing.capacites.map((capacite) => (
-            <li key={capacite} className="flex items-start gap-3">
+          {moduleMarketing.capacites.map((capacite, index) => (
+            <Reveal key={capacite} as="li" delai={index * 60} className="flex items-start gap-3">
               <Check className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
               <span className="text-muted-foreground">{capacite}</span>
-            </li>
+            </Reveal>
           ))}
         </ul>
 

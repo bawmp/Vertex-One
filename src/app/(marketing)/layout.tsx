@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { EnTeteMarketing } from "./en-tete";
+import { KyriaChat } from "./kyria/kyria-chat";
 
 const LIENS_PIED = [
   { href: "/modules", libelle: "Modules" },
@@ -42,6 +43,7 @@ export default function LayoutMarketing({ children }: { children: React.ReactNod
           © {new Date().getFullYear()} Vertex One — Fait au Cameroun.
         </div>
       </footer>
+      <KyriaChat />
     </div>
   );
 }

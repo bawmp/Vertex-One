@@ -14,12 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS } from "@/lib/marketing/contenu";
+import { Reveal } from "./reveal";
+import { CompteurAnime } from "./compteur-anime";
 
 const ATOUTS = [
-  { icone: Smartphone, titre: "Mobile Money natif", description: "Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients." },
-  { icone: MessageCircle, titre: "WhatsApp-first", description: "Signatures, relances et notifications par le canal que vos clients utilisent déjà tous les jours." },
-  { icone: Landmark, titre: "Conforme au Cameroun", description: "SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup." },
-  { icone: HandCoins, titre: "Sans coût d'implémentation", description: "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique." },
+  { icone: Smartphone, titre: "Mobile Money natif", classeFond: "bg-blue-500", description: "Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients." },
+  { icone: MessageCircle, titre: "WhatsApp-first", classeFond: "bg-emerald-500", description: "Signatures, relances et notifications par le canal que vos clients utilisent déjà tous les jours." },
+  { icone: Landmark, titre: "Conforme au Cameroun", classeFond: "bg-amber-500", description: "SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup." },
+  { icone: HandCoins, titre: "Sans coût d'implémentation", classeFond: "bg-rose-500", description: "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique." },
 ];
 
 /**
@@ -29,13 +31,20 @@ const ATOUTS = [
  * /app ici, décision explicite de l'utilisateur le 2026-09-14.
  */
 export default function PageAccueil() {
-
   return (
     <>
       {/* Héros */}
-      <section className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 text-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
-          <Badge variant="brand" className="bg-white/10 text-white ring-white/20">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white">
+        <div
+          aria-hidden
+          className="animate-flotter-lentement pointer-events-none absolute -top-24 -left-24 size-80 rounded-full bg-amber-400/30 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="animate-flotter-lentement-inverse pointer-events-none absolute -right-24 top-1/3 size-96 rounded-full bg-emerald-300/20 blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
+          <Badge variant="brand" className="animate-pulse bg-white/10 text-white ring-white/20">
             Essai gratuit {DUREE_ESSAI_JOURS} jours — sans carte bancaire
           </Badge>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -46,11 +55,22 @@ export default function PageAccueil() {
             international, pensée Mobile Money-first et WhatsApp-first, en français, sans les coûts d&apos;implémentation.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" className="bg-white text-emerald-800 hover:bg-emerald-50" render={<Link href="/inscription" />} nativeButton={false}>
+            <Button
+              size="lg"
+              className="bg-white text-emerald-800 transition-transform hover:-translate-y-0.5 hover:bg-emerald-50"
+              render={<Link href="/inscription" />}
+              nativeButton={false}
+            >
               Essayer gratuitement
               <ArrowRight data-icon="inline-end" aria-hidden />
             </Button>
-            <Button size="lg" variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10" render={<Link href="/tarifs" />} nativeButton={false}>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white/30 bg-transparent text-white transition-transform hover:-translate-y-0.5 hover:bg-white/10"
+              render={<Link href="/tarifs" />}
+              nativeButton={false}
+            >
               Voir les tarifs
             </Button>
           </div>
@@ -62,7 +82,7 @@ export default function PageAccueil() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-6 py-6 text-center sm:flex-row sm:justify-center sm:gap-3">
           <Check className="size-5 shrink-0 text-primary" aria-hidden />
           <p className="text-sm font-medium text-foreground sm:text-base">
-            Un seul prix, {PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString("fr-FR")} FCFA/mois — tous les modules inclus, aucun
+            Un seul prix, <CompteurAnime valeur={PRIX_ABONNEMENT_MENSUEL_FCFA} /> FCFA/mois — tous les modules inclus, aucun
             mur de forfait, invitez toute votre équipe sans coût supplémentaire.
           </p>
         </div>
@@ -70,24 +90,30 @@ export default function PageAccueil() {
 
       {/* Grille des modules */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">Un module pour chaque partie de votre activité</h2>
-          <p className="mt-3 text-muted-foreground">
-            Tous inclus dans le même abonnement, dès le premier jour — aucun n&apos;est verrouillé derrière un forfait
-            supérieur.
-          </p>
-        </div>
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-semibold tracking-tight">Un module pour chaque partie de votre activité</h2>
+            <p className="mt-3 text-muted-foreground">
+              Tous inclus dans le même abonnement, dès le premier jour — aucun n&apos;est verrouillé derrière un forfait
+              supérieur.
+            </p>
+          </div>
+        </Reveal>
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULES_MARKETING.map((module) => (
-            <Link key={module.slug} href={`/modules/${module.slug}`}>
-              <Card className="h-full transition-colors hover:bg-muted/40">
-                <CardContent className="flex flex-col gap-3">
-                  <module.icone className="size-6 text-primary" aria-hidden />
-                  <h3 className="font-semibold">{module.nom}</h3>
-                  <p className="text-sm text-muted-foreground">{module.resume}</p>
-                </CardContent>
-              </Card>
-            </Link>
+          {MODULES_MARKETING.map((module, index) => (
+            <Reveal key={module.slug} delai={index * 60}>
+              <Link href={`/modules/${module.slug}`}>
+                <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
+                  <CardContent className="flex flex-col gap-3">
+                    <span className={`flex size-11 items-center justify-center rounded-xl ${module.classeFond} text-white`}>
+                      <module.icone className="size-5.5" aria-hidden />
+                    </span>
+                    <h3 className="font-semibold">{module.nom}</h3>
+                    <p className="text-sm text-muted-foreground">{module.resume}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </Reveal>
           ))}
         </div>
         <div className="mt-8 text-center">
@@ -101,16 +127,20 @@ export default function PageAccueil() {
       {/* Pourquoi Vertex One */}
       <section className="bg-muted/30 py-20">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight">Pensé pour le Cameroun, pas adapté après coup</h2>
-          </div>
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-semibold tracking-tight">Pensé pour le Cameroun, pas adapté après coup</h2>
+            </div>
+          </Reveal>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {ATOUTS.map((atout) => (
-              <div key={atout.titre} className="flex flex-col gap-2">
-                <atout.icone className="size-6 text-primary" aria-hidden />
+            {ATOUTS.map((atout, index) => (
+              <Reveal key={atout.titre} delai={index * 80} className="flex flex-col gap-2">
+                <span className={`flex size-11 items-center justify-center rounded-xl ${atout.classeFond} text-white`}>
+                  <atout.icone className="size-5.5" aria-hidden />
+                </span>
                 <h3 className="font-semibold">{atout.titre}</h3>
                 <p className="text-sm text-muted-foreground">{atout.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -118,13 +148,15 @@ export default function PageAccueil() {
 
       {/* Comparatif */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">Comment on se compare</h2>
-          <p className="mt-3 text-muted-foreground">
-            Face aux solutions généralistes qui offrent le même type de service, sur des critères vérifiables.
-          </p>
-        </div>
-        <div className="mt-10 overflow-x-auto">
+        <Reveal>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-semibold tracking-tight">Comment on se compare</h2>
+            <p className="mt-3 text-muted-foreground">
+              Face aux solutions généralistes qui offrent le même type de service, sur des critères vérifiables.
+            </p>
+          </div>
+        </Reveal>
+        <Reveal delai={100} className="mt-10 overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left">
@@ -143,12 +175,12 @@ export default function PageAccueil() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Reveal>
       </section>
 
       {/* Lancement honnête, pas de fausse preuve sociale */}
       <section className="bg-muted/30 py-20">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
+        <Reveal className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
           <Rocket className="size-8 text-primary" aria-hidden />
           <h2 className="text-2xl font-semibold tracking-tight">En cours de lancement au Cameroun</h2>
           <p className="text-muted-foreground">
@@ -156,30 +188,41 @@ export default function PageAccueil() {
             code est réel, testé, et prêt à gérer votre activité dès aujourd&apos;hui. Essayez-le gratuitement pendant{" "}
             {DUREE_ESSAI_JOURS} jours et faites-vous votre propre avis.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-6 py-20">
-        <h2 className="text-center text-3xl font-semibold tracking-tight">Questions fréquentes</h2>
-        <Accordion className="mt-10">
-          {FAQ_ACCUEIL.map((item) => (
-            <AccordionItem key={item.question} value={item.question}>
-              <AccordionTrigger>{item.question}</AccordionTrigger>
-              <AccordionContent>{item.reponse}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        <Reveal>
+          <h2 className="text-center text-3xl font-semibold tracking-tight">Questions fréquentes</h2>
+          <Accordion className="mt-10">
+            {FAQ_ACCUEIL.map((item) => (
+              <AccordionItem key={item.question} value={item.question}>
+                <AccordionTrigger>{item.question}</AccordionTrigger>
+                <AccordionContent>{item.reponse}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Reveal>
       </section>
 
       {/* CTA final */}
-      <section className="bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 py-20 text-white">
-        <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-6 text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 py-20 text-white">
+        <div
+          aria-hidden
+          className="animate-flotter-lentement pointer-events-none absolute -bottom-20 left-1/4 size-72 rounded-full bg-amber-400/25 blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6 px-6 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">Prêt à essayer Vertex One ?</h2>
           <p className="text-emerald-50/90">
             {DUREE_ESSAI_JOURS} jours d&apos;essai gratuit, tous les modules inclus. Aucune carte bancaire requise.
           </p>
-          <Button size="lg" className="bg-white text-emerald-800 hover:bg-emerald-50" render={<Link href="/inscription" />} nativeButton={false}>
+          <Button
+            size="lg"
+            className="bg-white text-emerald-800 transition-transform hover:-translate-y-0.5 hover:bg-emerald-50"
+            render={<Link href="/inscription" />}
+            nativeButton={false}
+          >
             Créer mon entreprise
             <ArrowRight data-icon="inline-end" aria-hidden />
           </Button>

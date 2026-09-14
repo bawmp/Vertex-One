@@ -30,6 +30,14 @@ export type ModuleMarketing = {
   nom: string;
   resume: string;
   icone: LucideIcon;
+  /**
+   * Fond coloré de la puce d'icône (site vitrine uniquement — jamais utilisé
+   * dans l'application, qui garde sa propre palette emerald/amber). Classe
+   * Tailwind complète et littérale (jamais construite par concaténation),
+   * pour que le scanner JIT de Tailwind la détecte. Une teinte distincte par
+   * module, à l'image de la grille d'icônes colorées de Zoho One.
+   */
+  classeFond: string;
   capacites: string[];
 };
 
@@ -39,6 +47,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "CRM",
     resume: "Prospects, opportunités et pipeline commercial, du premier contact à la facture.",
     icone: Handshake,
+    classeFond: "bg-blue-500",
     capacites: [
       "Suivi des prospects du statut Nouveau à Gagné/Perdu, avec qualification et proposition comme étapes intermédiaires",
       "Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)",
@@ -51,6 +60,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Facturation",
     resume: "Devis, factures, acomptes et relances — jusqu'au paiement Mobile Money.",
     icone: Receipt,
+    classeFond: "bg-amber-500",
     capacites: [
       "Numéro de facture généré uniquement au moment exact de l'émission, jamais avant, par une opération protégée contre les doublons",
       "TVA calculée ligne par ligne à 19,25 %, avec blocage de toute émission tant que le NIU de l'entreprise n'est pas renseigné",
@@ -64,6 +74,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Achats & Fournisseurs",
     resume: "Bons de commande, factures fournisseurs et suivi des échéances à payer.",
     icone: ShoppingCart,
+    classeFond: "bg-orange-500",
     capacites: [
       "Fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur",
       "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients",
@@ -75,6 +86,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Comptabilité",
     resume: "Plan comptable SYSCOHADA, journaux, rapprochement bancaire et budgets.",
     icone: Calculator,
+    classeFond: "bg-teal-500",
     capacites: [
       "Plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise",
       "Journaux manuels et rapprochement bancaire par import de relevé",
@@ -88,6 +100,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Ressources Humaines",
     resume: "Dossiers employés, congés, pointage et suivi d'activité — hors paie.",
     icone: Users,
+    classeFond: "bg-purple-500",
     capacites: [
       "Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)",
       "Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé",
@@ -100,6 +113,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Recrutement",
     resume: "Postes ouverts, candidatures et conversion directe en compte employé.",
     icone: Briefcase,
+    classeFond: "bg-pink-500",
     capacites: [
       "Postes ouverts et candidatures avec CV stocké en toute sécurité",
       "Suivi du candidat de Reçue à Entretien, Offre puis Embauche",
@@ -111,6 +125,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Assistance client",
     resume: "Tickets clients par catégorie, avec assignation et suivi de résolution.",
     icone: LifeBuoy,
+    classeFond: "bg-cyan-500",
     capacites: [
       "Tickets rattachés à un Contact (pas nécessairement un utilisateur du portail)",
       "Catégories avec agent par défaut, assignation manuelle possible",
@@ -122,6 +137,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Réservations",
     resume: "Prise de rendez-vous en ligne, services, disponibilités et intervenants.",
     icone: CalendarCheck,
+    classeFond: "bg-rose-500",
     capacites: [
       "Services réservables avec durée, tampon entre rendez-vous et prix en FCFA",
       "Disponibilités hebdomadaires par intervenant, y compris les coupures (ex. pause déjeuner)",
@@ -134,6 +150,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Projets",
     resume: "Dossiers clients permanents et projets bornés, avec feuille de temps.",
     icone: FolderKanban,
+    classeFond: "bg-indigo-500",
     capacites: [
       "Distinction claire entre un Dossier client (permanent) et un Projet (une mission précise, avec une fin)",
       "Vocabulaire adapté à votre secteur (Chantier pour un artisan, Mission pour un cabinet)",
@@ -146,6 +163,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Documents & Signatures",
     resume: "Stockage classé par sensibilité et signature électronique avec preuve.",
     icone: FileSignature,
+    classeFond: "bg-violet-500",
     capacites: [
       "Documents classés par catégorie — les pièces d'identité et données de santé restent réservées au responsable du dossier et à l'Administrateur, avec journalisation de chaque consultation",
       "Signature électronique avec empreinte du document au moment de l'envoi",
@@ -158,6 +176,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Marketing",
     resume: "Campagnes email et WhatsApp, pages d'atterrissage et relances automatiques.",
     icone: Megaphone,
+    classeFond: "bg-fuchsia-500",
     capacites: [
       "Campagnes par email ou WhatsApp, ciblées par statut de prospect ou ancienneté d'inactivité",
       "Pages d'atterrissage publiques pour capter de nouveaux prospects",
@@ -169,6 +188,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     nom: "Communication interne",
     resume: "Messagerie par canal et fil d'annonces, pour toute l'équipe.",
     icone: MessageSquare,
+    classeFond: "bg-sky-500",
     capacites: [
       "Canaux de discussion rattachés à un projet, une équipe, ou libres",
       "Fil d'annonces internes façon intranet",
