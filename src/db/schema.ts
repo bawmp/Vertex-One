@@ -3431,3 +3431,37 @@ export const messageTicketSupport = pgTable(
     }),
   ]
 ).enableRLS();
+
+// Espace personnel Admin (Tranche 4, 2026-09-14) — bloc-notes strictement
+// privé, une seule ligne par utilisateur (upsert). La RLS protège la
+// frontière entre entreprises comme partout ailleurs, mais ne peut pas
+// distinguer deux utilisateurs de la même entreprise (même entrepriseId des
+// deux côtés) — même limite déjà rencontrée pour ticketSupport/
+// messageTicketSupport (voir src/lib/portail/acces.ts) : l'isolation
+// individuelle est donc renforcée en application, jamais seulement en base
+// (voir src/lib/actions/note-personnelle.ts, qui filtre systématiquement
+// sur utilisateurId = soi-même). Personne d'autre, pas même un autre Admin,
+// ne doit lire la note d'un collègue.
+export const notePersonnelle = pgTable(
+  "note_personnelle",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    contenu: text("contenu").notNull().default(""),
+    misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("note_personnelle_utilisateur_unique").on(table.utilisateurId),
+    index("note_personnelle_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();

@@ -26,6 +26,7 @@ const CLES_NAV_PAR_LIBELLE: Record<string, Exclude<keyof Dictionnaire["nav"], "c
   "Assistance client": "support",
   Paramètres: "parametres",
   "Mon compte": "monCompte",
+  "Espace personnel": "monEspace",
 };
 
 const CLES_CATEGORIE_PAR_LIBELLE: Record<string, keyof Dictionnaire["nav"]["categories"]> = {

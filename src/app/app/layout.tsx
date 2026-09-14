@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog, Lock } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -29,8 +29,11 @@ type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
   // module absent (ex. "Mon compte") : visible à tout utilisateur connecté,
   // aucune vérification peut() — un réglage personnel n'est jamais gouverné
-  // par la matrice de permissions par module.
-  | { module?: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
+  // par la matrice de permissions par module. reserveAdmin (ex. "Espace
+  // personnel", Tranche 4) : même garde directe par rôle déjà utilisée pour
+  // certains sous-liens (Shifts/Politiques de congé) — un espace privé de
+  // l'Admin n'a pas de module de permission dédié.
+  | { module?: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined; reserveAdmin?: boolean }
   // module optionnel ici : CRM a un seul module qui gouverne tout le groupe
   // (les liens y ajoutent le leur seulement pour un raccourci ponctuel vers
   // un module différent, ex. Documents/Campagnes). FACO n'a pas de module
@@ -275,6 +278,11 @@ const MODULES_MENU: ItemMenu[] = [
   // permission, seulement recupererUtilisateurConnecte(). Filtré à part dans
   // itemVisible ci-dessous (jamais gouverné par peut(), qui exige un module).
   { libelle: "Mon compte", href: "/app/mon-compte", Icone: UserCog },
+  // Espace personnel Admin (Tranche 4, 2026-09-14) — reserveAdmin plutôt
+  // qu'un module de permission dédié : un espace privé de l'Admin (tâches,
+  // documents, tableau de bord sensible, bloc-notes) n'a pas d'équivalent
+  // dans la matrice peut()/portee().
+  { libelle: "Espace personnel", href: "/app/mon-espace", Icone: Lock, reserveAdmin: true },
 ];
 
 
@@ -285,7 +293,10 @@ const MODULES_MENU: ItemMenu[] = [
 // sur /app/mon-compte (réordonnancement personnel, Tranche 3) — même liste
 // que celle affichée dans la sidebar, jamais recalculée différemment.
 export function itemMenuVisible(role: RoleSysteme, item: ItemMenu): boolean {
-  if (!item.groupes) return !item.module || peut(role, item.module, "VOIR");
+  if (!item.groupes) {
+    if (item.reserveAdmin && role !== "ADMIN") return false;
+    return !item.module || peut(role, item.module, "VOIR");
+  }
   if (item.module) return peut(role, item.module, "VOIR");
   return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(role, lien.module, "VOIR")));
 }

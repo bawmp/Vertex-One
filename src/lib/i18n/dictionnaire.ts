@@ -26,6 +26,7 @@ export const fr = {
     support: "Assistance client",
     parametres: "Paramètres",
     monCompte: "Mon compte",
+    monEspace: "Espace personnel",
     categories: {
       articles: "Articles",
       ventes: "Ventes",
@@ -49,6 +50,7 @@ export const fr = {
     recrutement: { titre: "Recrutement" },
     support: { titre: "Assistance client" },
     parametres: { titre: "Paramètres" },
+    monEspace: { titre: "Espace personnel" },
   },
   menuUtilisateur: {
     deconnexion: "Se déconnecter",
@@ -95,6 +97,7 @@ export const en: Profond<Dictionnaire> = {
     support: "Customer support",
     parametres: "Settings",
     monCompte: "My account",
+    monEspace: "Personal space",
     categories: {
       articles: "Items",
       ventes: "Sales",
@@ -118,6 +121,7 @@ export const en: Profond<Dictionnaire> = {
     recrutement: { titre: "Recruitment" },
     support: { titre: "Customer support" },
     parametres: { titre: "Settings" },
+    monEspace: { titre: "Personal space" },
   },
   menuUtilisateur: {
     deconnexion: "Sign out",
