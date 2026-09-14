@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { peut, type Module } from "@/lib/permissions";
+import { peut, type Module, type RoleSysteme } from "@/lib/permissions";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { Badge } from "@/components/ui/badge";
+import { traduire } from "@/lib/i18n/traduire";
+import { LangueProvider } from "@/lib/i18n/contexte";
+import { traduireNav, traduireCategorie } from "@/lib/i18n/nav";
 import { NavLink, NavGroup } from "./nav-link";
 import { MenuUtilisateur } from "./menu-utilisateur";
 
@@ -24,7 +27,10 @@ type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: 
 type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module; reserveAdmin?: boolean };
 type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
-  | { module: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
+  // module absent (ex. "Mon compte") : visible à tout utilisateur connecté,
+  // aucune vérification peut() — un réglage personnel n'est jamais gouverné
+  // par la matrice de permissions par module.
+  | { module?: Module; libelle: string; href: string; Icone: IconeComposant; groupes?: undefined }
   // module optionnel ici : CRM a un seul module qui gouverne tout le groupe
   // (les liens y ajoutent le leur seulement pour un raccourci ponctuel vers
   // un module différent, ex. Documents/Campagnes). FACO n'a pas de module
@@ -256,7 +262,7 @@ const MODULES_MENU: ItemMenu[] = [
     Icone: Settings,
     groupes: [
       {
-        liens: [
+  liens: [
           { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
           { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
           { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
@@ -264,7 +270,29 @@ const MODULES_MENU: ItemMenu[] = [
       },
     ],
   },
+  // Tranche 2 (2026-09-13) — accessible à tout utilisateur connecté, pas
+  // seulement l'Admin (contrairement à Paramètres) : aucun `module` de
+  // permission, seulement recupererUtilisateurConnecte(). Filtré à part dans
+  // itemVisible ci-dessous (jamais gouverné par peut(), qui exige un module).
+  { libelle: "Mon compte", href: "/app/mon-compte", Icone: UserCog },
 ];
+
+
+// Un item plat, ou groupé avec un module unifiant (CRM), reste gouverné par
+// ce seul module. Un item groupé sans module unique (FACO) n'est visible que
+// si au moins un de ses liens l'est. Un item sans module (ex. "Mon compte")
+// est toujours visible à un utilisateur connecté. Exporté pour réutilisation
+// sur /app/mon-compte (réordonnancement personnel, Tranche 3) — même liste
+// que celle affichée dans la sidebar, jamais recalculée différemment.
+export function itemMenuVisible(role: RoleSysteme, item: ItemMenu): boolean {
+  if (!item.groupes) return !item.module || peut(role, item.module, "VOIR");
+  if (item.module) return peut(role, item.module, "VOIR");
+  return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(role, lien.module, "VOIR")));
+}
+
+export function libellesMenuVisibles(role: RoleSysteme): string[] {
+  return MODULES_MENU.filter((item) => itemMenuVisible(role, item)).map((item) => item.libelle);
+}
 
 const LIBELLE_PLAN: Record<string, string> = { starter: "Starter", pro: "Pro", business: "Business" };
 
@@ -275,18 +303,28 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  // Un item plat, ou groupé avec un module unifiant (CRM), reste gouverné par
-  // ce seul module. Un item groupé sans module unique (FACO — ses quatre
-  // sous-modules ont des visibilités différentes par rôle) n'est affiché que
-  // si au moins un de ses liens l'est, sinon un rôle qui ne voit que
-  // Facturation/Achats/Produits (jamais Comptabilité, réservée à
-  // l'Administrateur) perdrait l'accès à toute l'entrée.
-  const itemVisible = (item: ItemMenu) => {
-    if (!item.groupes) return peut(utilisateurConnecte.role, item.module, "VOIR");
-    if (item.module) return peut(utilisateurConnecte.role, item.module, "VOIR");
-    return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(utilisateurConnecte.role, lien.module, "VOIR")));
-  };
-  const menuVisible = MODULES_MENU.filter(itemVisible);
+  const menuVisible = MODULES_MENU.filter((item) => itemMenuVisible(utilisateurConnecte.role, item));
+
+  // Réorganisation personnelle de la sidebar (Tranche 3, 2026-09-13) — la clé
+  // stable est item.libelle (français, toujours présent, déjà utilisé comme
+  // React key ci-dessous) plutôt qu'un identifiant de module : FACO et "Mon
+  // compte" n'ont pas de `module` unique. Array.prototype.sort est stable
+  // (garanti depuis ES2019) : deux entrées absentes de l'ordre enregistré
+  // (indexOf === -1) gardent leur ordre relatif d'origine, toujours en fin de
+  // liste — un nouveau module ajouté après coup n'est donc jamais masqué.
+  const ordrePersonnel = utilisateurConnecte.ordreModules;
+  const menuOrdonne = ordrePersonnel
+    ? [...menuVisible].sort((a, b) => {
+        const iA = ordrePersonnel.indexOf(a.libelle);
+        const iB = ordrePersonnel.indexOf(b.libelle);
+        if (iA === -1 && iB === -1) return 0;
+        if (iA === -1) return 1;
+        if (iB === -1) return -1;
+        return iA - iB;
+      })
+    : menuVisible;
+
+  const t = traduire(utilisateurConnecte.langue);
 
   // Une seule requête jointe plutôt que deux round-trips séparés — ce layout
   // s'exécute à chaque navigation complète vers /app/*, et CLAUDE.md
@@ -320,6 +358,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     : undefined;
 
   return (
+    <LangueProvider dictionnaire={t}>
     <div className="flex min-h-screen bg-background" style={styleMarque}>
       <nav className="sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-4">
         <div className="mb-1 flex items-center justify-between px-2">
@@ -337,16 +376,16 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         </p>
 
         <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-          {menuVisible.map((item) =>
+          {menuOrdonne.map((item) =>
             item.groupes ? (
               <NavGroup
                 key={item.libelle}
-                libelle={item.libelle}
+                libelle={traduireNav(item.libelle, t)}
                 icone={<item.Icone className="size-4 shrink-0" aria-hidden />}
                 hrefAccueil={item.hrefAccueil}
                 groupes={item.groupes
                   .map((groupe) => ({
-                    categorie: groupe.categorie,
+                    categorie: groupe.categorie ? traduireCategorie(groupe.categorie, t) : groupe.categorie,
                     liens: groupe.liens
                       .filter((lien) => (!lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
                       .map((lien) => ({
@@ -364,17 +403,18 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
             ) : (
               <NavLink key={item.href} href={item.href}>
                 <item.Icone className="size-4 shrink-0" aria-hidden />
-                {item.libelle}
+                {traduireNav(item.libelle, t)}
               </NavLink>
             )
           )}
         </div>
 
-        <MenuUtilisateur nom={ligne?.nomComplet ?? utilisateurConnecte.role} email={ligne?.email ?? ""} />
+        <MenuUtilisateur nom={ligne?.nomComplet ?? utilisateurConnecte.role} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />
       </nav>
       <main className="min-w-0 flex-1 overflow-x-hidden p-8">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
+    </LangueProvider>
   );
 }

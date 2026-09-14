@@ -137,6 +137,16 @@ export const utilisateur = pgTable(
     role: roleSysteme("role").notNull().default("EMPLOYE"),
     statut: statutUtilisateur("statut").notNull().default("ACTIF"),
     managerId: text("manager_id"), // auto-référence vers utilisateur.id — portée "EQUIPE"
+    // Préférences personnelles (échange du 2026-09-13) — jamais imposées aux
+    // collègues, contrairement au logo/couleur d'entreprise (voir
+    // entreprise.couleurMarque). additionalFields sur src/lib/auth.ts, sans
+    // input:false (contrairement à role/statut/entrepriseId) : l'utilisateur
+    // doit pouvoir les changer lui-même via authClient.updateUser().
+    langue: text("langue").notNull().default("fr"), // "fr" | "en"
+    theme: text("theme").notNull().default("systeme"), // "clair" | "sombre" | "systeme"
+    // Ordre personnel des modules de la sidebar (Tranche 3) — null = ordre
+    // par défaut (celui codé dans MODULES_MENU), jamais rien de plus.
+    ordreModules: json("ordre_modules").$type<string[]>(),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
   },

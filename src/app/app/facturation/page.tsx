@@ -125,7 +125,7 @@ export default async function PageFacturation() {
 
   return (
     <div className="flex flex-col gap-8">
-      <TableauDeBord donnees={tableauDeBord} facturesClientVisibles={facturesVisibles} />
+      <TableauDeBord donnees={tableauDeBord} facturesClientVisibles={facturesVisibles} langue={utilisateurConnecte.langue} />
 
       {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 

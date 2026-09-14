@@ -568,6 +568,13 @@
       "when": 1789322284294,
       "tag": "0080_personnalisation_entreprise",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1789340370020,
+      "tag": "0081_preferences_utilisateur",
+      "breakpoints": true
     }
   ]
 }

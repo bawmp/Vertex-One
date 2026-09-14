@@ -5,14 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { STATUT_PROJET } from "@/lib/libelles";
 import type { TableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
+import { traduire, interpoler } from "@/lib/i18n/traduire";
+import type { Langue } from "@/lib/session";
 
 export function TableauDeBord({
   donnees,
   facturesClientVisibles,
+  langue,
 }: {
   donnees: TableauDeBordFaco;
   facturesClientVisibles: { statut: string; montantTTC: number }[];
+  langue?: Langue;
 }) {
+  const t = traduire(langue);
   const impayeesClient = facturesClientVisibles.filter((f) => f.statut === "EMISE" || f.statut === "EN_RETARD" || f.statut === "PARTIELLEMENT_PAYEE");
   const enRetardClient = impayeesClient.filter((f) => f.statut === "EN_RETARD");
   const totalImpayeClient = impayeesClient.reduce((s, f) => s + f.montantTTC, 0);
@@ -27,7 +32,7 @@ export function TableauDeBord({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Bonjour, {donnees.monNom}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(t.pages.faco.bonjour, { nom: donnees.monNom })}</h1>
         <p className="mt-1 text-muted-foreground">{donnees.nomEntreprise}</p>
       </div>
 

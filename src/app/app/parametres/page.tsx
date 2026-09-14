@@ -4,6 +4,7 @@ import { Settings, Lock } from "lucide-react";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, addonActif } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { traduire } from "@/lib/i18n/traduire";
 import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,12 +60,13 @@ export default async function PageParametres() {
     tx.select({ addon: addonActif.addon }).from(addonActif).where(eq(addonActif.entrepriseId, utilisateurConnecte.entrepriseId))
   );
   const nomsActifs = new Set(addonsActifs.map((a) => a.addon));
+  const t = traduire(utilisateurConnecte.langue);
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <Settings className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Paramètres</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.pages.parametres.titre}</h1>
       </div>
 
       <Card>

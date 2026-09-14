@@ -5,6 +5,7 @@ import { avecEntreprise } from "@/db/client";
 import { lead, contact, deal, historiqueStatutDeal, interaction, tacheCrm, reunionCrm, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { traduire, interpoler } from "@/lib/i18n/traduire";
 import { STATUT_DEAL } from "@/lib/libelles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,12 +133,13 @@ export default async function PageAccueilCrm() {
   });
 
   const totalPipeline = donnees.pipelineParEtape.reduce((somme, p) => somme + p.montant, 0);
+  const t = traduire(utilisateurConnecte.langue);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Bienvenue, {donnees.monNom}</h1>
-        <p className="mt-1 text-muted-foreground">Accueil de votre activité commerciale.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(t.pages.crm.bienvenue, { nom: donnees.monNom })}</h1>
+        <p className="mt-1 text-muted-foreground">{t.pages.crm.sousTitre}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

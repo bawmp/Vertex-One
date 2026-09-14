@@ -5,6 +5,7 @@ import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile } 
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { traduire } from "@/lib/i18n/traduire";
 import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
@@ -146,12 +147,13 @@ export default async function PageRH() {
 
   const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport } = donnees;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
+  const t = traduire(utilisateurConnecte.langue);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <Users className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Ressources Humaines</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
       </div>
 
       {demandesEnAttente.length > 0 ? (

@@ -5,6 +5,7 @@ import { LifeBuoy, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, categorieTicketSupport, ticketSupport } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { traduire } from "@/lib/i18n/traduire";
 import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
@@ -71,11 +72,13 @@ export default async function PageSupport() {
     return { actif: true as const, categories, tickets, tousLesUtilisateurs };
   });
 
+  const t = traduire(utilisateurConnecte.langue);
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <LifeBuoy className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Assistance client</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.pages.support.titre}</h1>
       </div>
 
       {!donnees.actif ? (

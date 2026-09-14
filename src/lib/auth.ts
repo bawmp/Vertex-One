@@ -46,6 +46,15 @@ export const auth = betterAuth({
       role: { type: "string", required: true, defaultValue: "EMPLOYE", input: false },
       statut: { type: "string", required: true, defaultValue: "ACTIF", input: false },
       managerId: { type: "string", required: false },
+      // Préférences personnelles (Tranche 2, 2026-09-13) — pas de
+      // input:false : l'utilisateur doit pouvoir les modifier lui-même via
+      // authClient.updateUser({ langue })/{ theme }.
+      langue: { type: "string", required: true, defaultValue: "fr" },
+      theme: { type: "string", required: true, defaultValue: "systeme" },
+      // Ordre personnel des modules de la sidebar (Tranche 3) — modifié
+      // uniquement via definirOrdreModules() (src/lib/actions/preferences.ts),
+      // jamais directement par l'utilisateur via updateUser().
+      ordreModules: { type: "string[]", required: false },
     },
   },
   // Doit rester le dernier plugin : permet aux Server Actions de poser les

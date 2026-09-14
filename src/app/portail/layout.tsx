@@ -6,6 +6,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { resoudreMonContact } from "@/lib/portail/acces";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { MenuUtilisateur } from "@/app/app/menu-utilisateur";
+import { traduire } from "@/lib/i18n/traduire";
+import { LangueProvider } from "@/lib/i18n/contexte";
 
 /**
  * Portail client (échange du 2026-09-13) — premier vrai usage du rôle
@@ -42,17 +44,19 @@ export default async function LayoutPortail({ children }: { children: React.Reac
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background" style={styleMarque}>
-      <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-        <div className="flex items-center gap-3">
-          <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />
-          <span className="text-sm text-muted-foreground">{ligne?.entrepriseNom}</span>
-        </div>
-        <div className="w-64">
-          <MenuUtilisateur nom={ligne?.nomComplet ?? "Client"} email={ligne?.email ?? ""} />
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 p-8">{children}</main>
-    </div>
+    <LangueProvider dictionnaire={traduire(utilisateurConnecte.langue)}>
+      <div className="flex min-h-screen flex-col bg-background" style={styleMarque}>
+        <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+          <div className="flex items-center gap-3">
+            <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />
+            <span className="text-sm text-muted-foreground">{ligne?.entrepriseNom}</span>
+          </div>
+          <div className="w-64">
+            <MenuUtilisateur nom={ligne?.nomComplet ?? "Client"} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-3xl flex-1 p-8">{children}</main>
+      </div>
+    </LangueProvider>
   );
 }

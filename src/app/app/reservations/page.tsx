@@ -5,6 +5,7 @@ import { CalendarCheck, Lock, Package, Users, Settings } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, reservation, serviceReservable, intervenantReservation, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { traduire } from "@/lib/i18n/traduire";
 import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
@@ -75,12 +76,14 @@ export default async function PageReservations() {
     return { actif: true as const, reservations };
   });
 
+  const t = traduire(utilisateurConnecte.langue);
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <CalendarCheck className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Réservations</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.pages.reservations.titre}</h1>
         </div>
         {donnees.actif && utilisateurConnecte.role === "ADMIN" ? (
           <div className="flex items-center gap-3">

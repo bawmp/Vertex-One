@@ -3,10 +3,22 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import type { RoleSysteme } from "@/lib/permissions";
 
+export type Langue = "fr" | "en";
+export type Theme = "clair" | "sombre" | "systeme";
+
 export type UtilisateurConnecte = {
   utilisateurId: string;
   entrepriseId: string;
   role: RoleSysteme;
+  // Optionnels sur le type (pas sur ce que renvoie réellement cette
+  // fonction, qui les peuple toujours) pour ne pas casser les dizaines de
+  // littéraux UtilisateurConnecte construits à la main dans les tests
+  // (permissions/portée), qui ne s'en servent jamais — tout code qui les lit
+  // réellement doit donc prévoir un repli (langue ?? "fr", etc.), jamais
+  // supposer leur présence.
+  langue?: Langue;
+  theme?: Theme;
+  ordreModules?: string[] | null;
 };
 
 /**
@@ -23,6 +35,9 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
     entrepriseId: string;
     role: RoleSysteme;
     statut: string;
+    langue: Langue;
+    theme: Theme;
+    ordreModules: string[] | null;
   };
 
   // utilisateur.statut est déjà exposé sur la session (additionalFields,
@@ -37,5 +52,8 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
     utilisateurId: user.id,
     entrepriseId: user.entrepriseId,
     role: user.role,
+    langue: user.langue ?? "fr",
+    theme: user.theme ?? "systeme",
+    ordreModules: user.ordreModules ?? null,
   };
 }
