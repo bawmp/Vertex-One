@@ -51,11 +51,31 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 **Rappel commercial, non négociable (voir CLAUDE.md)** : CinetPay est custodial, avec un délai de reversement par défaut de **8 jours** (réductible sur demande auprès de CinetPay après KYC) — ne jamais présenter ce paiement comme "instantané" ou "direct" dans le discours commercial.
 
+## 4. Console interne plateforme — rôle Postgres et variables d'environnement
+
+**Statut : code réel construit et testé, rôle à créer une seule fois en production.** `/plateforme` (vue propriétaire, toutes les entreprises clientes) a besoin d'un rôle Postgres dédié, séparé de celui de l'application — voir `docs/crm-roadmap-post-commercialisation.md`, section 38, pour le détail.
+
+- [ ] Dans la console SQL de Neon (production), exécuter une fois :
+  ```sql
+  CREATE ROLE plateforme_lecture WITH LOGIN PASSWORD '...' BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  GRANT USAGE ON SCHEMA public TO plateforme_lecture;
+  GRANT SELECT ON ALL TABLES IN SCHEMA public TO plateforme_lecture;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO plateforme_lecture;
+  ```
+  (Choisir un mot de passe fort dédié — jamais réutiliser celui de `DATABASE_URL`/`DATABASE_URL_MIGRATIONS`.)
+- [ ] Renseigner dans les variables d'environnement de l'hébergeur :
+  ```
+  DATABASE_URL_PLATEFORME="postgresql://plateforme_lecture:motdepasse@<même hôte que DATABASE_URL>/vertexone?sslmode=require"
+  PLATEFORME_ADMINS="votre-email@exemple.cm"
+  ```
+  `PLATEFORME_ADMINS` : l'email d'un compte tenant **déjà existant** (le vôtre) — aucune nouvelle inscription nécessaire, la prochaine connexion avec ce compte suffit pour voir le lien "Console interne".
+
 ## Ordre suggéré
 
 1. **R2** (5 minutes, débloque immédiatement logos/documents/CV)
 2. **Resend** (le délai de propagation DNS peut prendre du temps — à lancer tôt)
 3. **CinetPay** (le plus long : KYC avant toute chose ; en attendant, l'encaissement manuel reste pleinement utilisable pour vendre dès que R2 et Resend sont prêts)
+4. **Console interne** (5 minutes, indépendant des trois autres — peut être fait à tout moment)
 
 ## Hors scope de cette checklist (pas bloquant pour vendre)
 

@@ -603,6 +603,13 @@
       "when": 1789359263051,
       "tag": "0085_tentative_paiement_abonnement",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1789370228230,
+      "tag": "0086_journal_action_plateforme",
+      "breakpoints": true
     }
   ]
 }

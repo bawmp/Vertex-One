@@ -1247,6 +1247,35 @@ export const tentativePaiementAbonnement = pgTable(
   ]
 ).enableRLS();
 
+// Console interne plateforme (2026-09-14) — journal d'audit des actions
+// manuelles du staff Vertex One sur l'abonnement d'une entreprise (prolonger
+// l'essai, réactiver, suspendre — voir src/lib/actions/plateforme.ts).
+// Écrite dans la MÊME transaction avecEntreprise() que la mutation qu'elle
+// trace, jamais séparément. RLS strictement standard, comme
+// tentativePaiementAbonnement — aucune dérogation nécessaire, cette table
+// n'est jamais lue anonymement ni depuis un webhook externe.
+export const journalActionPlateforme = pgTable(
+  "journal_action_plateforme",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    staffEmail: text("staff_email").notNull(),
+    action: text("action").notNull(), // "ESSAI_ETENDU" | "REACTIVE_MANUELLEMENT" | "SUSPENDU_MANUELLEMENT"
+    details: text("details"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("journal_action_plateforme_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Une facture n'est jamais supprimée, quel que soit le rôle (règle posée au
 // Palier 0) — une annulation crée cette trace à la place.
 export const avoirFacture = pgTable(
