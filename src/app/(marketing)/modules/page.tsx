@@ -16,8 +16,8 @@ export default function PageModules() {
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="text-4xl font-semibold tracking-tight">Tous les modules, un seul abonnement</h1>
         <p className="mt-4 text-muted-foreground">
-          Aucun module n&apos;est verrouillé derrière un forfait supérieur — contrairement à Zoho One, qui vend chaque
-          application séparément.
+          Aucun module n&apos;est verrouillé derrière un forfait supérieur — contrairement à beaucoup de suites de
+          gestion internationales, qui vendent chaque application séparément.
         </p>
       </div>
       <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

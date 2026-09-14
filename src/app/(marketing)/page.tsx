@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -13,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { recupererUtilisateurConnecte } from "@/lib/session";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS } from "@/lib/marketing/contenu";
 
@@ -21,12 +19,16 @@ const ATOUTS = [
   { icone: Smartphone, titre: "Mobile Money natif", description: "Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients." },
   { icone: MessageCircle, titre: "WhatsApp-first", description: "Signatures, relances et notifications par le canal que vos clients utilisent déjà tous les jours." },
   { icone: Landmark, titre: "Conforme au Cameroun", description: "SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup." },
-  { icone: HandCoins, titre: "Sans coût d'implémentation", description: "Aucun intégrateur à payer pour démarrer, contrairement à un déploiement Odoo classique." },
+  { icone: HandCoins, titre: "Sans coût d'implémentation", description: "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique." },
 ];
 
-export default async function PageAccueil() {
-  const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (utilisateurConnecte) redirect("/app");
+/**
+ * Le site vitrine reste accessible en permanence, connecté ou non (comme
+ * zoho.com — le site marketing ne redirige jamais un client existant vers
+ * l'application, qui a son propre point d'entrée) : pas de redirection vers
+ * /app ici, décision explicite de l'utilisateur le 2026-09-14.
+ */
+export default function PageAccueil() {
 
   return (
     <>
@@ -118,16 +120,17 @@ export default async function PageAccueil() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight">Comment on se compare</h2>
-          <p className="mt-3 text-muted-foreground">Une comparaison honnête, sur des critères vérifiables.</p>
+          <p className="mt-3 text-muted-foreground">
+            Face aux solutions généralistes qui offrent le même type de service, sur des critères vérifiables.
+          </p>
         </div>
         <div className="mt-10 overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+          <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="py-3 pr-4 font-medium text-muted-foreground">Critère</th>
                 <th className="py-3 px-4 font-semibold text-primary">Vertex One</th>
-                <th className="py-3 px-4 font-medium text-muted-foreground">Zoho One</th>
-                <th className="py-3 px-4 font-medium text-muted-foreground">Odoo</th>
+                <th className="py-3 px-4 font-medium text-muted-foreground">{COMPARATIF.libelleConcurrent}</th>
               </tr>
             </thead>
             <tbody>
@@ -135,8 +138,7 @@ export default async function PageAccueil() {
                 <tr key={ligne.critere} className="border-b border-border align-top">
                   <td className="py-3 pr-4 font-medium">{ligne.critere}</td>
                   <td className="py-3 px-4 bg-primary/5">{ligne.vertexOne}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{ligne.zohoOne}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{ligne.odoo}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{ligne.generaliste}</td>
                 </tr>
               ))}
             </tbody>

@@ -13,13 +13,22 @@ export const PRIX_ABONNEMENT_MENSUEL_FCFA = 50_000;
 export const DUREE_ESSAI_JOURS = 14;
 export const DELAI_GRACE_HEURES = 48;
 
+/**
+ * Comparaison volontairement générique, sans nommer de concurrent précis
+ * (décision explicite de l'utilisateur, 2026-09-14 : parler "des solutions
+ * qui offrent le même service" plutôt que de citer une marque) — la colonne
+ * de droite représente les grandes suites de gestion internationales
+ * généralistes (le type de logiciel qu'on trouve en cherchant "CRM" ou
+ * "logiciel de gestion" à l'échelle mondiale), jamais un nom précis.
+ */
 export const COMPARATIF = {
+  libelleConcurrent: "Suites de gestion internationales généralistes",
   criteres: [
-    { critere: "Paiement", vertexOne: "Mobile Money natif (Orange Money, MTN MoMo), facturé en FCFA", zohoOne: "Carte bancaire internationale, facturé en dollars", odoo: "Dépend de l'intégration choisie, rarement Mobile Money natif" },
-    { critere: "Mise en route", vertexOne: "Essai immédiat, aucun coût d'implémentation", zohoOne: "Configuration en libre-service", odoo: "Implémentation souvent confiée à un intégrateur (40 à 60 % du coût total)" },
-    { critere: "Modules inclus", vertexOne: "Un seul prix, tous les modules inclus", zohoOne: "Chaque application vendue séparément ou par palier", odoo: "Chaque module a un coût de licence propre" },
-    { critere: "Langue & conformité locale", vertexOne: "Français, SYSCOHADA, prêt pour la facturation électronique 2026", zohoOne: "Interface multilingue générique, non pensée pour le Cameroun", odoo: "Dépend entièrement du paramétrage" },
-    { critere: "Support", vertexOne: "Support humain local", zohoOne: "Support centralisé, décalage horaire", odoo: "Dépend de l'intégrateur choisi" },
+    { critere: "Paiement", vertexOne: "Mobile Money natif (Orange Money, MTN MoMo), facturé en FCFA", generaliste: "Carte bancaire internationale, facturé en devise étrangère" },
+    { critere: "Mise en route", vertexOne: "Essai immédiat, aucun coût d'implémentation", generaliste: "Configuration en libre-service, ou implémentation confiée à un intégrateur (40 à 60 % du coût total selon la solution)" },
+    { critere: "Modules inclus", vertexOne: "Un seul prix, tous les modules inclus", generaliste: "Chaque application ou module vendu séparément, ou par palier" },
+    { critere: "Langue & conformité locale", vertexOne: "Français, SYSCOHADA, prêt pour la facturation électronique 2026", generaliste: "Interface multilingue générique, rarement pensée pour le Cameroun" },
+    { critere: "Support", vertexOne: "Support humain local", generaliste: "Support centralisé, souvent en décalage horaire" },
   ],
 };
 
