@@ -144,6 +144,33 @@ export const entreprise = pgTable("entreprise", {
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
 
+/**
+ * Département/service (2026-09-15) — étiquette organisationnelle pure pour
+ * regrouper des employés (affichage RH), jamais une frontière de visibilité :
+ * volontairement non branché dans portee()/idsVisibles() (src/lib/portee.ts)
+ * — décision de sécurité/produit distincte, non prise ici. Même gabarit que
+ * categorieTicketSupport (RLS standard + FORCE ROW LEVEL SECURITY).
+ */
+export const service = pgTable(
+  "service",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("service_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const utilisateur = pgTable(
   "utilisateur",
   {
@@ -164,6 +191,9 @@ export const utilisateur = pgTable(
     role: roleSysteme("role").notNull().default("EMPLOYE"),
     statut: statutUtilisateur("statut").notNull().default("ACTIF"),
     managerId: text("manager_id"), // auto-référence vers utilisateur.id — portée "EQUIPE"
+    // Département (2026-09-15) — étiquette organisationnelle, jamais utilisée
+    // pour la visibilité des données (voir le commentaire sur la table `service`).
+    serviceId: text("service_id").references(() => service.id),
     // Préférences personnelles (échange du 2026-09-13) — jamais imposées aux
     // collègues, contrairement au logo/couleur d'entreprise (voir
     // entreprise.couleurMarque). additionalFields sur src/lib/auth.ts, sans
@@ -190,6 +220,10 @@ export const utilisateur = pgTable(
     // email → connexion cassée) avant d'être corrigé ici.
     uniqueIndex("utilisateur_email_unique").on(table.email),
     index("utilisateur_entreprise_idx").on(table.entrepriseId),
+    // Portée "EQUIPE" (src/lib/portee.ts) interroge cette colonne à chaque
+    // itération d'un parcours multi-niveaux (2026-09-15) — sans index, une
+    // entreprise de 100+ employés ferait un scan complet à chaque niveau.
+    index("utilisateur_manager_idx").on(table.managerId),
     // Permissive et non stricte : Better-Auth lit/écrit cette table avant
     // qu'une session (donc un app.entreprise_id) n'existe — voir CLAUDE.md,
     // "Le cas particulier des tables d'authentification". La RLS stricte
@@ -213,6 +247,11 @@ export const invitation = pgTable(
     postePropose: text("poste_propose"),
     typeContratPropose: text("type_contrat_propose"), // "CDI" | "CDD" | "STAGE" | "PRESTATAIRE"
     dateEmbauchePropose: timestamp("date_embauche_propose"), // saisie humaine, jamais déduite
+    // Manager proposé (2026-09-15) — copié vers utilisateur.managerId à
+    // l'activation (accepterInvitation()), même patron que postePropose.
+    // Pas de .references() : mirror volontaire de utilisateur.managerId,
+    // qui n'en a pas non plus (auto-référence jamais contrainte en dur).
+    managerPropose: text("manager_propose"),
     // Assistance client (échange du 2026-09-13) — renseigné seulement quand
     // roleProposee = "CLIENT" et qu'on invite un Contact CRM précis au
     // portail (jamais pour un collaborateur interne). Référence tardive

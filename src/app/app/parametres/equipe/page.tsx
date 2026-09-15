@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ne } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
-import { invitation } from "@/db/schema";
+import { invitation, utilisateur, service } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { GestionServices } from "./gestion-services";
 
 export default async function PageEquipe() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -20,12 +21,20 @@ export default async function PageEquipe() {
     );
   }
 
-  const invitations = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx
-      .select()
-      .from(invitation)
-      .where(eq(invitation.entrepriseId, utilisateurConnecte.entrepriseId))
-      .orderBy(desc(invitation.expireLe))
+  const [invitations, collegues, services] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    Promise.all([
+      tx
+        .select()
+        .from(invitation)
+        .where(eq(invitation.entrepriseId, utilisateurConnecte.entrepriseId))
+        .orderBy(desc(invitation.expireLe)),
+      // Pour le sélecteur de manager — quiconque peut être désigné comme
+      // manager d'un nouvel invité, pas seulement les comptes déjà rôle
+      // MANAGER (une vraie hiérarchie n'a pas besoin de correspondre au
+      // rôle système à 4 niveaux).
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.role, "CLIENT")),
+      tx.select({ id: service.id, nom: service.nom }).from(service),
+    ])
   );
 
   return (
@@ -35,7 +44,9 @@ export default async function PageEquipe() {
         <p className="text-muted-foreground">Inviter un nouveau collaborateur (Manager ou Employé).</p>
       </div>
 
-      <FormulaireInvitation />
+      <FormulaireInvitation collegues={collegues} />
+
+      <GestionServices services={services} />
 
       <div>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Invitations</h2>

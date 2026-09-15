@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import { modifierDossierRH } from "@/lib/actions/rh";
 
 function versDateInput(d: Date | null): string {
@@ -21,6 +22,10 @@ export function FormulaireDossierRH({
   dateEmbauche,
   dateFinContrat,
   nombrePersonnesACharge,
+  managerId,
+  serviceId,
+  collegues,
+  services,
 }: {
   dossierRHId: string;
   poste: string;
@@ -28,6 +33,10 @@ export function FormulaireDossierRH({
   dateEmbauche: Date;
   dateFinContrat: Date | null;
   nombrePersonnesACharge: number;
+  managerId: string | null;
+  serviceId: string | null;
+  collegues: PersonneSelectionnable[];
+  services: { id: string; nom: string }[];
 }) {
   const [etat, action, enCours] = useActionState(modifierDossierRH, null);
   const [ouvert, setOuvert] = useState(false);
@@ -79,6 +88,22 @@ export function FormulaireDossierRH({
             <div className="flex flex-col gap-2">
               <Label htmlFor="dateFinContrat">Fin de contrat (si CDD)</Label>
               <Input id="dateFinContrat" name="dateFinContrat" type="date" defaultValue={versDateInput(dateFinContrat)} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="managerId">Manager</Label>
+              <SelecteurPersonne id="managerId" name="managerId" personnes={collegues} defaultValue={managerId} placeholder="Rechercher un manager…" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="serviceId">Département</Label>
+              <Select id="serviceId" name="serviceId" defaultValue={serviceId ?? ""}>
+                <option value="">Aucun</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nom}</option>
+                ))}
+              </Select>
             </div>
           </div>
 

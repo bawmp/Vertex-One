@@ -5,8 +5,8 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { ajouterClearance } from "@/lib/actions/depart";
 
 export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDepartId: string; collegues: { id: string; nomComplet: string }[] }) {
@@ -33,14 +33,7 @@ export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDep
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="responsableId">Responsable</Label>
-          <Select id="responsableId" name="responsableId" required>
-            <option value="">Sélectionner…</option>
-            {collegues.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nomComplet}
-              </option>
-            ))}
-          </Select>
+          <SelecteurPersonne id="responsableId" name="responsableId" personnes={collegues} required />
         </div>
       </div>
 

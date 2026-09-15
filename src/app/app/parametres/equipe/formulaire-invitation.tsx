@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import { creerInvitation } from "@/lib/actions/invitation";
 
-export function FormulaireInvitation() {
+export function FormulaireInvitation({ collegues }: { collegues: PersonneSelectionnable[] }) {
   const [etat, action, enCours] = useActionState(creerInvitation, null);
 
   return (
@@ -52,6 +53,11 @@ export function FormulaireInvitation() {
           <div className="flex flex-col gap-2">
             <Label htmlFor="dateEmbauchePropose">Date d&apos;embauche réelle</Label>
             <Input id="dateEmbauchePropose" name="dateEmbauchePropose" type="date" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="managerPropose">Manager (optionnel)</Label>
+            <SelecteurPersonne id="managerPropose" name="managerPropose" personnes={collegues} placeholder="Rechercher un manager…" />
           </div>
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}

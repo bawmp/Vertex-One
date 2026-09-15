@@ -5,8 +5,8 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { creerTache } from "@/lib/actions/tache";
 
 export function FormulaireNouvelleTache({
@@ -47,13 +47,7 @@ export function FormulaireNouvelleTache({
 
       <div className="flex flex-col gap-1">
         <Label htmlFor="assigneAId">Assignée à</Label>
-        <Select id="assigneAId" name="assigneAId" defaultValue={utilisateurId} className="max-w-56">
-          {collegues.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nomComplet}
-            </option>
-          ))}
-        </Select>
+        <SelecteurPersonne id="assigneAId" name="assigneAId" personnes={collegues} defaultValue={utilisateurId} className="max-w-56" />
       </div>
 
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}

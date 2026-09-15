@@ -713,6 +713,19 @@ Suite à trois retours sur le site vitrine, à l'image de zoho.com/one : des cou
 
 Testé : `tsc`/`eslint` verts. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) : couleurs par module et animations d'entrée visibles au défilement réel (clair et sombre), compteurs animés atteignent leur valeur finale, bulle Kyria ouvre un vrai panneau de chat et dégrade proprement ("Kyria n'est pas encore configurée") tant qu'aucune clé Anthropic n'est renseignée — comportement confirmé sans clé, une vraie conversation reste à vérifier une fois la clé fournie par l'utilisateur.
 
+## 42. Scalabilité à ~100 employés — hiérarchie multi-niveaux, sélecteur cherchable, départements — 2026-09-15
+
+Suite à "que se passe si une PME a 100 employés ?" : trois frictions identifiées (portée EQUIPE à un seul niveau, `<select>` sans recherche, aucune notion de département), corrigées sur demande explicite de l'utilisateur.
+
+**Découverte en creusant, plus grave que prévu** : `utilisateur.managerId` était déjà lu par `idsVisibles()` (portée EQUIPE) mais **aucune interface ne permettait de le renseigner** — la portée EQUIPE était donc inerte depuis toujours pour tout Manager, pas seulement limitée à un niveau. Corrigé en même temps que la récursion, sinon la récursion seule n'aurait rien changé en pratique.
+
+- **`src/lib/portee.ts`** — `idsVisibles()` fait maintenant un parcours en largeur (BFS) sur toute la hiérarchie de management, pas un seul niveau. Anti-cycle par `Set` de visités + plafond de sécurité (15 niveaux). Nouvel index `utilisateur_manager_idx` (absent jusqu'ici).
+- **Manager assignable** à deux endroits, tous deux nouveaux : à l'invitation (`invitation.managerPropose`, copié vers `utilisateur.managerId` à l'activation) et après coup pour un employé existant (`formulaire-dossier-rh.tsx`, réservé à l'Administrateur).
+- **`src/components/selecteur-personne.tsx`** — remplace les `<select>` natifs pour choisir une personne, recherche par nom via `@base-ui/react/combobox` (déjà une dépendance transitive du projet, ajouté au registre shadcn avec `npx shadcn add combobox` — aucune nouvelle dépendance). Supporte l'usage formulaire classique (`name`) et la réassignation instantanée hors formulaire (`onValueChange`, pour les contrôles de tickets/candidatures qui agissaient déjà par `onChange` direct). Déployé sur les 5 sélecteurs de personne existants (tâches, tickets support/RH, candidatures, clôture de départ) + les 2 nouveaux sélecteurs de manager. Confirmé par recherche exhaustive : deals/leads/projets n'ont aucun sélecteur de personne aujourd'hui (auto-assignation au créateur), rien à y remplacer.
+- **Table `service`** (département) — étiquette organisationnelle pure, jamais branchée dans `portee()`/`idsVisibles()` (décision de portée explicite, pas prise unilatéralement). CRUD Admin minimal (créer/renommer/archiver, `src/app/app/parametres/equipe/gestion-services.tsx`) ; archiver repasse les employés rattachés à "Aucun" plutôt que de casser une référence.
+
+Testé : `tsc`/`eslint` verts, `tests/portee-equipe-recursive.test.ts` (hiérarchie à 4 niveaux, chaîne corrompue en cycle, isolation entre entreprises), `tests/service-fuite-rls.test.ts`. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) — parcours complet avec 3 comptes réels (Admin, Manager M, Employé E rattaché à M, Employé E2 rattaché à E) : **M accède au dossier RH de E2 (2 niveaux en dessous de lui) sans erreur 404** — preuve directe, de bout en bout, que la portée récursive et l'assignation de manager fonctionnent ensemble. Département créé et assigné confirmé par les logs serveur (`modifierDossierRH`/`creerService` exécutés avec succès).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

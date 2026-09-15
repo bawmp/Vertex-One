@@ -26,6 +26,9 @@ const schemaInvitation = z.object({
   // inviter un Contact CRM précis au portail (roleProposee = "CLIENT"),
   // jamais pour un collaborateur interne.
   contactId: z.string().optional(),
+  // Manager (2026-09-15) — copié vers utilisateur.managerId à l'activation,
+  // pour que la portée "EQUIPE" (src/lib/portee.ts) ait quelque chose à lire.
+  managerPropose: z.string().optional(),
 });
 
 export type EtatInvitation = { erreur?: string; succes?: string } | null;
@@ -50,13 +53,14 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     typeContratPropose: formData.get("typeContratPropose") || undefined,
     dateEmbauchePropose: formData.get("dateEmbauchePropose") || undefined,
     contactId: formData.get("contactId") || undefined,
+    managerPropose: formData.get("managerPropose") || undefined,
   });
 
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
-  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId } = analyse.data;
+  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId, managerPropose } = analyse.data;
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
 
@@ -68,6 +72,12 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       if (!leContact) return { erreur: "Contact introuvable." };
     }
 
+    if (managerPropose) {
+      // RLS-scopé, même logique que contactId ci-dessus.
+      const [leManager] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(eq(utilisateur.id, managerPropose));
+      if (!leManager) return { erreur: "Manager introuvable." };
+    }
+
     await tx.insert(invitation).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
       email,
@@ -76,6 +86,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       typeContratPropose,
       dateEmbauchePropose: dateEmbauchePropose ? new Date(dateEmbauchePropose) : undefined,
       contactId,
+      managerPropose,
       jeton,
       expireLe: new Date(Date.now() + DUREE_EXPIRATION_MS),
     });
@@ -139,6 +150,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         nomComplet,
         role: invitationValide.roleProposee,
         statut: "ACTIF",
+        managerId: invitationValide.managerPropose,
       })
       .returning({ id: utilisateur.id });
 

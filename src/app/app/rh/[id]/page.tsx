@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ne } from "drizzle-orm";
 import { ArrowLeft, User, Download, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -58,6 +58,8 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         politiqueCongeId: dossierRH.politiqueCongeId,
         shiftId: dossierRH.shiftId,
         nomComplet: utilisateur.nomComplet,
+        managerId: utilisateur.managerId,
+        serviceId: utilisateur.serviceId,
       })
       .from(dossierRH)
       .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
@@ -147,11 +149,20 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     // ci-dessus : liste active pour le formulaire d'assignation.
     const shiftsActifs = await tx.select({ id: shift.id, nom: shift.nom }).from(shift).where(and(eq(shift.entrepriseId, utilisateurConnecte.entrepriseId), eq(shift.actif, true)));
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs };
+    // Manager + département (2026-09-15) — collègues éligibles (tout le
+    // monde sauf la personne elle-même) et départements existants, pour le
+    // formulaire d'édition ci-dessous.
+    const [collegues, services, [departementActuel]] = await Promise.all([
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.id, ligne.utilisateurId)),
+      tx.select({ id: service.id, nom: service.nom }).from(service),
+      ligne.serviceId ? tx.select({ nom: service.nom }).from(service).where(eq(service.id, ligne.serviceId)) : Promise.resolve([]),
+    ]);
+
+    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel: departementActuel?.nom ?? null };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -219,6 +230,10 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               <p className="text-muted-foreground">Politique de congé</p>
               <p className="font-medium">{politiqueAssignee ? `${politiqueAssignee.nom} — droit annuel : ${politiqueAssignee.droitAnnuel} j.` : "Aucune"}</p>
             </div>
+            <div>
+              <p className="text-muted-foreground">Département</p>
+              <p className="font-medium">{nomDepartementActuel ?? "Non renseigné"}</p>
+            </div>
           </div>
           {peutModifierDossier ? (
             <div className="flex flex-wrap items-end gap-2 border-t pt-3">
@@ -234,6 +249,10 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               dateEmbauche={ligne.dateEmbauche}
               dateFinContrat={ligne.dateFinContrat}
               nombrePersonnesACharge={ligne.nombrePersonnesACharge}
+              managerId={ligne.managerId}
+              serviceId={ligne.serviceId}
+              collegues={collegues}
+              services={services}
             />
           ) : null}
         </CardContent>

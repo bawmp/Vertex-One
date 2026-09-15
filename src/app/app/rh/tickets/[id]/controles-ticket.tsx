@@ -2,6 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { changerStatutTicket, reassignerTicket } from "@/lib/actions/ticket-rh";
 
 const STATUTS = [
@@ -48,13 +49,13 @@ export function ControlesTicket({
       {peutReassigner ? (
         <div className="flex flex-col gap-1">
           <Label htmlFor="agent">Agent assigné</Label>
-          <Select id="agent" defaultValue={agentActuelId ?? ""} className="w-48" onChange={(e) => reassignerTicket(ticketId, e.target.value)}>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nomComplet}
-              </option>
-            ))}
-          </Select>
+          <SelecteurPersonne
+            id="agent"
+            personnes={agents}
+            defaultValue={agentActuelId}
+            className="w-48"
+            onValueChange={(id) => reassignerTicket(ticketId, id)}
+          />
         </div>
       ) : null}
     </div>

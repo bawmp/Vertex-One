@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, demandeConge, evaluation } from "@/db/schema";
+import { entreprise, dossierRH, demandeConge, evaluation, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -143,6 +143,11 @@ const schemaModificationDossier = z.object({
   dateEmbauche: z.string().min(1),
   dateFinContrat: z.string().optional(),
   nombrePersonnesACharge: z.coerce.number().int().min(0).default(0),
+  // Manager/département (2026-09-15) — "" (aucune sélection) traité comme
+  // absent, jamais transmis tel quel à une colonne qui référence une autre
+  // table (violerait la contrainte de clé étrangère).
+  managerId: z.string().optional(),
+  serviceId: z.string().optional(),
 });
 
 export type EtatDossierRH = { erreur?: string } | null;
@@ -168,14 +173,19 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
     dateEmbauche: formData.get("dateEmbauche"),
     dateFinContrat: formData.get("dateFinContrat") || undefined,
     nombrePersonnesACharge: formData.get("nombrePersonnesACharge") || 0,
+    managerId: formData.get("managerId") || undefined,
+    serviceId: formData.get("serviceId") || undefined,
   });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-  const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, nombrePersonnesACharge } = analyse.data;
+  const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, nombrePersonnesACharge, managerId, serviceId } = analyse.data;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [dossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
+    if (!dossier) return;
+
+    await tx
       .update(dossierRH)
       .set({
         poste,
@@ -184,8 +194,13 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
         dateFinContrat: dateFinContrat ? new Date(dateFinContrat) : null,
         nombrePersonnesACharge,
       })
-      .where(eq(dossierRH.id, dossierRHId))
-  );
+      .where(eq(dossierRH.id, dossierRHId));
+
+    await tx
+      .update(utilisateur)
+      .set({ managerId: managerId ?? null, serviceId: serviceId ?? null })
+      .where(eq(utilisateur.id, dossier.utilisateurId));
+  });
 
   revalidatePath(`/app/rh/${dossierRHId}`);
   return null;

@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { inArray, notInArray, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { utilisateur as tableUtilisateur, dossier, projet, tache } from "@/db/schema";
 import { portee, type Module } from "@/lib/permissions";
@@ -19,14 +19,34 @@ export async function idsVisibles(
   if (scope === "TOUT") return "TOUT";
   if (scope === "PROPRE") return [utilisateurConnecte.utilisateurId];
 
-  // EQUIPE : l'utilisateur lui-même + les collaborateurs qui lui sont rattachés.
-  const membres = await tx
-    .select({ id: tableUtilisateur.id })
-    .from(tableUtilisateur)
-    .where(eq(tableUtilisateur.managerId, utilisateurConnecte.utilisateurId));
+  // EQUIPE : l'utilisateur lui-même + toute son équipe étendue (ses
+  // subordonnés directs, les subordonnés de ses subordonnés, etc.) —
+  // parcours en largeur plutôt qu'un WITH RECURSIVE (aucun précédent dans ce
+  // projet, tout passe par le query builder Drizzle ; voir le commentaire
+  // sur PROFONDEUR_MAX_EQUIPE). Corrigé le 2026-09-15 : la version
+  // précédente ne remontait qu'un seul niveau — un directeur ne voyait donc
+  // que ses subordonnés directs, jamais ceux de ses managers intermédiaires.
+  const visites = new Set([utilisateurConnecte.utilisateurId]);
+  let frontiere = [utilisateurConnecte.utilisateurId];
 
-  return [utilisateurConnecte.utilisateurId, ...membres.map((m) => m.id)];
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_EQUIPE && frontiere.length > 0; profondeur++) {
+    const membres = await tx
+      .select({ id: tableUtilisateur.id })
+      .from(tableUtilisateur)
+      .where(and(inArray(tableUtilisateur.managerId, frontiere), notInArray(tableUtilisateur.id, [...visites])));
+
+    if (membres.length === 0) break;
+    frontiere = membres.map((m) => m.id);
+    for (const id of frontiere) visites.add(id);
+  }
+
+  return [...visites];
 }
+
+// Garde-fou anti-boucle infinie si une chaîne de management est corrompue
+// (ex. A gère B qui gère A) — une hiérarchie réelle ne dépasse jamais 15
+// niveaux, ce plafond n'a donc aucun effet dans un cas normal.
+const PROFONDEUR_MAX_EQUIPE = 15;
 
 /**
  * Portée sur un Projet (Palier 2, section 5) : plus riche qu'un simple

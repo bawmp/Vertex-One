@@ -2,6 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { changerStatutCandidature, assignerCandidature } from "@/lib/actions/recrutement";
 
 const STATUTS = [
@@ -46,14 +47,13 @@ export function ControlesCandidature({
       {peutReassigner ? (
         <div className="flex flex-col gap-1">
           <Label htmlFor={`agent-${candidatureId}`}>Recruteur</Label>
-          <Select id={`agent-${candidatureId}`} defaultValue={agentActuelId ?? ""} className="w-44" onChange={(e) => assignerCandidature(candidatureId, e.target.value)}>
-            <option value="">—</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nomComplet}
-              </option>
-            ))}
-          </Select>
+          <SelecteurPersonne
+            id={`agent-${candidatureId}`}
+            personnes={agents}
+            defaultValue={agentActuelId}
+            className="w-44"
+            onValueChange={(id) => assignerCandidature(candidatureId, id)}
+          />
         </div>
       ) : null}
     </div>
