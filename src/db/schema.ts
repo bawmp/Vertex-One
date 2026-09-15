@@ -54,10 +54,45 @@ export const moyenPaiement = pgEnum("moyen_paiement", [
 export const typeModeleEmail = pgEnum("type_modele_email", ["ENVOI_DEVIS", "ENVOI_FACTURE"]);
 export const statutTentativePaiement = pgEnum("statut_tentative_paiement", ["EN_ATTENTE", "CONFIRME", "ECHEC"]);
 
+/**
+ * Groupe d'entreprises / filiales (2026-09-15) — lien purement
+ * organisationnel entre plusieurs `entreprise` par ailleurs totalement
+ * indépendantes (données, abonnement, connexion — chacune garde tout ça
+ * séparément, décision explicite de l'utilisateur). Pas de RLS ici,
+ * volontaire et sûr : même statut que `entreprise` elle-même (voir son
+ * commentaire) — cette table ne porte aucune donnée sensible, seulement un
+ * nom, et n'est jamais lue autrement qu'avec un `groupeId` déjà connu.
+ */
+export const groupe = pgTable("groupe", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  nom: text("nom").notNull(),
+  creeLe: timestamp("cree_le").notNull().defaultNow(),
+});
+
+/**
+ * Jeton pour rattacher une nouvelle filiale à un groupe existant — même
+ * logique que `invitation` (jeton aléatoire non devinable + expiration),
+ * mais pas de RLS non plus : ni `groupe` ni cette table ne portent de
+ * donnée sensible, seul le jeton lui-même (non énumérable) protège l'accès.
+ */
+export const invitationGroupe = pgTable("invitation_groupe", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  groupeId: text("groupe_id")
+    .notNull()
+    .references(() => groupe.id),
+  jeton: text("jeton").notNull().unique(),
+  expireLe: timestamp("expire_le").notNull(),
+  utiliseeLe: timestamp("utilisee_le"),
+  creeLe: timestamp("cree_le").notNull().defaultNow(),
+});
+
 export const entreprise = pgTable("entreprise", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   nom: text("nom").notNull(),
   secteurProfil: text("secteur_profil").notNull(), // "agence" | "artisan" | "cabinet" | "generique"
+  // Groupe (2026-09-15) — lien organisationnel optionnel vers d'autres
+  // entreprises, aucun partage de données (voir le commentaire sur `groupe`).
+  groupeId: text("groupe_id").references(() => groupe.id),
   planAbonnement: text("plan_abonnement").notNull().default("starter"), // starter | pro | business — non lu par la gestion d'accès depuis l'abonnement plat (2026-09-14), conservé sans être supprimé
   statutAbonnement: text("statut_abonnement").notNull().default("essai"), // essai | actif | suspendu — désormais piloté par les dates ci-dessous (échange du 2026-09-14), voir src/lib/abonnement/etat.ts
   // Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — remplace les

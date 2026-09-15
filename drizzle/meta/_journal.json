@@ -631,6 +631,13 @@
       "when": 1789442356485,
       "tag": "0089_autorisation_departement_rh",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1789449590920,
+      "tag": "0090_groupe_filiales",
+      "breakpoints": true
     }
   ]
 }
