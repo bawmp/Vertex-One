@@ -49,6 +49,10 @@ export const FAQ_ACCUEIL = [
     question: "Que se passe-t-il si je ne renouvelle pas à temps ?",
     reponse: `Vous êtes prévenu avant l'échéance, puis un délai de grâce de ${DELAI_GRACE_HEURES} heures s'applique après la date de renouvellement avant toute suspension de l'accès.`,
   },
+  {
+    question: "Je possède plusieurs entreprises — puis-je toutes les gérer avec Vertex One ?",
+    reponse: "Oui. Reliez vos entreprises en un groupe (Paramètres → Entreprise) pour voir toutes vos filiales d'un coup d'œil. Chacune garde sa propre connexion, ses propres données et son propre abonnement — le groupe n'est qu'une vue d'ensemble, aucune donnée n'est jamais partagée entre elles.",
+  },
 ];
 
 export const FAQ_TARIFS = [

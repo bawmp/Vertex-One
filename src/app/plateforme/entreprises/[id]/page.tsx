@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, Users2 } from "lucide-react";
 import { recupererDetailEntreprise } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,7 +28,7 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
   const detail = await recupererDetailEntreprise(id);
   if (!detail) notFound();
 
-  const { entreprise, paiements, journal } = detail;
+  const { entreprise, paiements, journal, nomGroupe, filiales } = detail;
   const libelle = LIBELLE_STATUT[entreprise.statutAbonnement] ?? { texte: entreprise.statutAbonnement, variant: "brand" as const };
 
   return (
@@ -60,6 +60,31 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
           </div>
         </CardContent>
       </Card>
+
+      {nomGroupe ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users2 className="size-4" aria-hidden />
+              Groupe : {nomGroupe}
+            </CardTitle>
+            <CardDescription>Lien organisationnel uniquement — chaque filiale garde ses propres données et son propre abonnement.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
+              {filiales.map((f) => {
+                const l = LIBELLE_STATUT[f.statutAbonnement] ?? { texte: f.statutAbonnement, variant: "brand" as const };
+                return (
+                  <Link key={f.id} href={`/plateforme/entreprises/${f.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                    <p className="font-medium">{f.nom}</p>
+                    <Badge variant={l.variant}>{l.texte}</Badge>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

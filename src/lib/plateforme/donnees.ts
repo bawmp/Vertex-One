@@ -1,7 +1,7 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, ne, and } from "drizzle-orm";
 import { dbPlateforme } from "@/db/plateforme";
-import { entreprise, tentativePaiementAbonnement, journalActionPlateforme } from "@/db/schema";
+import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe } from "@/db/schema";
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
@@ -65,5 +65,18 @@ export async function recupererDetailEntreprise(entrepriseId: string) {
     dbPlateforme.select().from(journalActionPlateforme).where(eq(journalActionPlateforme.entrepriseId, entrepriseId)).orderBy(desc(journalActionPlateforme.creeLe)),
   ]);
 
-  return { entreprise: monEntreprise, paiements, journal };
+  // Groupe (2026-09-15) — visible côté staff comme côté client (Paramètres
+  // → Entreprise), toujours en lecture seule ici (dbPlateforme).
+  let nomGroupe: string | null = null;
+  let filiales: { id: string; nom: string; statutAbonnement: string }[] = [];
+  if (monEntreprise.groupeId) {
+    const [g] = await dbPlateforme.select({ nom: groupe.nom }).from(groupe).where(eq(groupe.id, monEntreprise.groupeId));
+    nomGroupe = g?.nom ?? null;
+    filiales = await dbPlateforme
+      .select({ id: entreprise.id, nom: entreprise.nom, statutAbonnement: entreprise.statutAbonnement })
+      .from(entreprise)
+      .where(and(eq(entreprise.groupeId, monEntreprise.groupeId), ne(entreprise.id, entrepriseId)));
+  }
+
+  return { entreprise: monEntreprise, paiements, journal, nomGroupe, filiales };
 }

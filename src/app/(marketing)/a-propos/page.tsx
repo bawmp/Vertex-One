@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Rocket, Building2, Wrench, Briefcase, LayoutGrid } from "lucide-react";
+import { ArrowRight, Rocket, Building2, Wrench, Briefcase, LayoutGrid, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "../reveal";
 
@@ -63,6 +63,17 @@ export default function PageAPropos() {
           </Reveal>
         ))}
       </div>
+
+      <Reveal delai={80} className="mt-10 flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-6">
+        <Users2 className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden />
+        <div>
+          <h3 className="font-semibold">Vous possédez plusieurs entreprises ?</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Reliez-les en groupe pour voir toutes vos filiales d&apos;un coup d&apos;œil — chacune garde sa propre
+            connexion, ses propres données et son propre abonnement.
+          </p>
+        </div>
+      </Reveal>
 
       <div className="mt-16 text-center">
         <Button size="lg" className="transition-transform hover:-translate-y-0.5" render={<Link href="/inscription" />} nativeButton={false}>
