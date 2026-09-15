@@ -106,6 +106,8 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé",
       "Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé",
       "Sondages internes et tickets RH par catégorie",
+      "Hiérarchie de management à plusieurs niveaux — un manager voit toute son équipe étendue, pas seulement ses subordonnés directs",
+      "Organisation par département, avec visibilité RH cloisonnée entre départements — un manager ne voit que le sien, sauf permission explicite de l'Administrateur",
     ],
   },
   {

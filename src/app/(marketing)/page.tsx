@@ -7,6 +7,7 @@ import {
   Landmark,
   HandCoins,
   Rocket,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -122,6 +123,20 @@ export default function PageAccueil() {
             <ArrowRight data-icon="inline-end" aria-hidden />
           </Button>
         </div>
+      </section>
+
+      {/* Kyria */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <Reveal className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 px-6 py-12 text-center text-white sm:px-12">
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-white/15">
+            <Sparkles className="size-7" aria-hidden />
+          </span>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Une question ? Demandez à Kyria</h2>
+          <p className="max-w-xl text-violet-50/90">
+            Notre assistante IA répond en direct à vos questions sur Vertex One — tarifs, modules, essai gratuit —
+            directement depuis la bulle en bas à droite de votre écran, à tout moment.
+          </p>
+        </Reveal>
       </section>
 
       {/* Pourquoi Vertex One */}
