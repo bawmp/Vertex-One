@@ -624,6 +624,13 @@
       "when": 1789433642588,
       "tag": "0088_service_manager_recursif",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1789442356485,
+      "tag": "0089_autorisation_departement_rh",
+      "breakpoints": true
     }
   ]
 }

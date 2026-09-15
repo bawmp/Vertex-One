@@ -26,6 +26,7 @@ export function FormulaireDossierRH({
   serviceId,
   collegues,
   services,
+  departementsAutorises,
 }: {
   dossierRHId: string;
   poste: string;
@@ -37,6 +38,8 @@ export function FormulaireDossierRH({
   serviceId: string | null;
   collegues: PersonneSelectionnable[];
   services: { id: string; nom: string }[];
+  /** Départements — autres que le sien — que cette personne peut voir en plus, en RH (accordé par l'Admin). */
+  departementsAutorises: string[];
 }) {
   const [etat, action, enCours] = useActionState(modifierDossierRH, null);
   const [ouvert, setOuvert] = useState(false);
@@ -106,6 +109,31 @@ export function FormulaireDossierRH({
               </Select>
             </div>
           </div>
+
+          {services.filter((s) => s.id !== serviceId).length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <Label>Accès à d&apos;autres départements (RH)</Label>
+              <p className="text-xs text-muted-foreground">
+                En plus de son propre département et de son équipe, cette personne verra aussi les dossiers RH des départements cochés.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {services
+                  .filter((s) => s.id !== serviceId)
+                  .map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="departementsAutorises"
+                        value={s.id}
+                        defaultChecked={departementsAutorises.includes(s.id)}
+                        className="size-4 rounded border-input"
+                      />
+                      {s.nom}
+                    </label>
+                  ))}
+              </div>
+            </div>
+          ) : null}
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

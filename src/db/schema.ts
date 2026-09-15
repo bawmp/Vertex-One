@@ -233,6 +233,40 @@ export const utilisateur = pgTable(
   ]
 ).enableRLS();
 
+/**
+ * Autorisation exceptionnelle, accordée par l'Administrateur, pour qu'un
+ * Manager voie aussi les données RH d'un département qui n'est pas le sien
+ * (2026-09-15). N'entre jamais en jeu pour la hiérarchie de management
+ * (toujours visible, quel que soit le département — voir idsVisibles(),
+ * src/lib/portee.ts) : uniquement pour étendre la visibilité RH au-delà de
+ * son propre département, jamais pour la restreindre.
+ */
+export const autorisationDepartementRh = pgTable(
+  "autorisation_departement_rh",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    serviceId: text("service_id")
+      .notNull()
+      .references(() => service.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("autorisation_departement_rh_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("autorisation_departement_rh_unique").on(table.utilisateurId, table.serviceId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const invitation = pgTable(
   "invitation",
   {

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, demandeConge, evaluation, utilisateur } from "@/db/schema";
+import { entreprise, dossierRH, demandeConge, evaluation, utilisateur, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -181,6 +181,11 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
   }
   const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, nombrePersonnesACharge, managerId, serviceId } = analyse.data;
 
+  // Cases à cocher (2026-09-15) — pas dans le schéma zod ci-dessus (formData.getAll,
+  // pas .get) : chaque valeur cochée est un serviceId dont l'accès RH est
+  // accordé en plus du département propre de la personne.
+  const departementsAutorises = formData.getAll("departementsAutorises").map(String);
+
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [dossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
     if (!dossier) return;
@@ -200,6 +205,19 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
       .update(utilisateur)
       .set({ managerId: managerId ?? null, serviceId: serviceId ?? null })
       .where(eq(utilisateur.id, dossier.utilisateurId));
+
+    // Remplacement intégral, plus simple qu'un diff pour un volume attendu
+    // de quelques départements — jamais cent.
+    await tx.delete(autorisationDepartementRh).where(eq(autorisationDepartementRh.utilisateurId, dossier.utilisateurId));
+    if (departementsAutorises.length > 0) {
+      await tx.insert(autorisationDepartementRh).values(
+        departementsAutorises.map((serviceIdAutorise) => ({
+          entrepriseId: utilisateurConnecte.entrepriseId,
+          utilisateurId: dossier.utilisateurId,
+          serviceId: serviceIdAutorise,
+        }))
+      );
+    }
   });
 
   revalidatePath(`/app/rh/${dossierRHId}`);

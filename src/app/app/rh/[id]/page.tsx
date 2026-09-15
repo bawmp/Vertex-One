@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { ArrowLeft, User, Download, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service } from "@/db/schema";
+import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -150,19 +150,37 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     const shiftsActifs = await tx.select({ id: shift.id, nom: shift.nom }).from(shift).where(and(eq(shift.entrepriseId, utilisateurConnecte.entrepriseId), eq(shift.actif, true)));
 
     // Manager + département (2026-09-15) — collègues éligibles (tout le
-    // monde sauf la personne elle-même) et départements existants, pour le
-    // formulaire d'édition ci-dessous.
-    const [collegues, services, [departementActuel]] = await Promise.all([
+    // monde sauf la personne elle-même), départements existants, et
+    // autorisations RH déjà accordées à cette personne pour d'autres
+    // départements, pour le formulaire d'édition ci-dessous.
+    const [collegues, services, [departementActuel], autorisationsExistantes] = await Promise.all([
       tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.id, ligne.utilisateurId)),
       tx.select({ id: service.id, nom: service.nom }).from(service),
       ligne.serviceId ? tx.select({ nom: service.nom }).from(service).where(eq(service.id, ligne.serviceId)) : Promise.resolve([]),
+      tx.select({ serviceId: autorisationDepartementRh.serviceId }).from(autorisationDepartementRh).where(eq(autorisationDepartementRh.utilisateurId, ligne.utilisateurId)),
     ]);
 
-    return { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel: departementActuel?.nom ?? null };
+    return {
+      ligne,
+      demandes,
+      evaluations,
+      pointageDuJour,
+      estProprietaire,
+      politiquesActives,
+      politiqueAssignee,
+      revisionsSalaire,
+      documentsRH,
+      regularisations,
+      shiftsActifs,
+      collegues,
+      services,
+      nomDepartementActuel: departementActuel?.nom ?? null,
+      departementsAutorises: autorisationsExistantes.map((a) => a.serviceId),
+    };
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel } = donnees;
+  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -253,6 +271,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               serviceId={ligne.serviceId}
               collegues={collegues}
               services={services}
+              departementsAutorises={departementsAutorises}
             />
           ) : null}
         </CardContent>

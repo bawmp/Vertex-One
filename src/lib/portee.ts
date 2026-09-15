@@ -1,6 +1,6 @@
-import { inArray, notInArray, and } from "drizzle-orm";
+import { eq, inArray, notInArray, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { utilisateur as tableUtilisateur, dossier, projet, tache } from "@/db/schema";
+import { utilisateur as tableUtilisateur, dossier, projet, tache, autorisationDepartementRh } from "@/db/schema";
 import { portee, type Module } from "@/lib/permissions";
 import type { UtilisateurConnecte } from "@/lib/session";
 
@@ -38,6 +38,33 @@ export async function idsVisibles(
     if (membres.length === 0) break;
     frontiere = membres.map((m) => m.id);
     for (const id of frontiere) visites.add(id);
+  }
+
+  // Frontière de département, RH uniquement (2026-09-15) — toujours une
+  // ADDITION à la hiérarchie déjà calculée ci-dessus, jamais une
+  // soustraction : la hiérarchie reste visible quel que soit le département
+  // de chacun. Un Manager voit en plus son propre département, puis tout
+  // département explicitement autorisé par l'Administrateur
+  // (autorisationDepartementRh) — jamais les autres.
+  if (module === "RH") {
+    const [visiteur] = await tx.select({ serviceId: tableUtilisateur.serviceId }).from(tableUtilisateur).where(eq(tableUtilisateur.id, utilisateurConnecte.utilisateurId));
+
+    const autorisations = await tx
+      .select({ serviceId: autorisationDepartementRh.serviceId })
+      .from(autorisationDepartementRh)
+      .where(eq(autorisationDepartementRh.utilisateurId, utilisateurConnecte.utilisateurId));
+
+    const departementsVisibles = new Set<string>();
+    if (visiteur?.serviceId) departementsVisibles.add(visiteur.serviceId);
+    for (const a of autorisations) departementsVisibles.add(a.serviceId);
+
+    if (departementsVisibles.size > 0) {
+      const membresDepartements = await tx
+        .select({ id: tableUtilisateur.id })
+        .from(tableUtilisateur)
+        .where(inArray(tableUtilisateur.serviceId, [...departementsVisibles]));
+      for (const m of membresDepartements) visites.add(m.id);
+    }
   }
 
   return [...visites];

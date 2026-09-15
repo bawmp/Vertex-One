@@ -726,6 +726,19 @@ Suite à "que se passe si une PME a 100 employés ?" : trois frictions identifi�
 
 Testé : `tsc`/`eslint` verts, `tests/portee-equipe-recursive.test.ts` (hiérarchie à 4 niveaux, chaîne corrompue en cycle, isolation entre entreprises), `tests/service-fuite-rls.test.ts`. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) — parcours complet avec 3 comptes réels (Admin, Manager M, Employé E rattaché à M, Employé E2 rattaché à E) : **M accède au dossier RH de E2 (2 niveaux en dessous de lui) sans erreur 404** — preuve directe, de bout en bout, que la portée récursive et l'assignation de manager fonctionnent ensemble. Département créé et assigné confirmé par les logs serveur (`modifierDossierRH`/`creerService` exécutés avec succès).
 
+## 43. Barrière par département en RH — 2026-09-15
+
+Suite directe de la section 42 : "les employés ou manager d'un département ne doivent pas avoir de vue sur un autre département, sauf permission de l'admin." Décisions validées avec l'utilisateur (AskUserQuestion) : périmètre RH uniquement (pas CRM/Facturation/Projets) ; la hiérarchie de management garde toujours priorité (un subordonné reste visible quel que soit son département) ; permission fine, département par département, accordée par l'Admin.
+
+**Un Employé (portée RH "PROPRE", jamais "ÉQUIPE") ne voyait déjà personne d'autre** — la demande pour les "employés" était donc déjà satisfaite sans rien construire ; seul le comportement des Managers change réellement.
+
+**Principe d'implémentation — addition, jamais soustraction** : un Manager ne voyait jusqu'ici que sa hiérarchie (portée ÉQUIPE). Il n'existe donc aucune visibilité plus large à restreindre — `idsVisibles()` (`src/lib/portee.ts`), pour le module RH uniquement, **ajoute** à l'ensemble hiérarchique déjà calculé : (1) les collègues de son propre département, (2) les collègues des départements explicitement autorisés. Aucune ligne n'est jamais retirée : la hiérarchie reste toujours visible, quel que soit le département de chacun — c'est ce qui satisfait mécaniquement "la hiérarchie garde priorité" sans code conditionnel.
+
+- **Table `autorisationDepartementRh`** (`src/db/schema.ts`) — RLS standard, `{utilisateurId, serviceId}` unique : à qui on accorde l'accès, à quel département en plus du sien.
+- **Interface** — nouvelle section "Accès à d'autres départements" sur `src/app/app/rh/[id]/formulaire-dossier-rh.tsx` (déjà le lieu où manager/département se règlent) : une case à cocher par département autre que le sien, Admin uniquement. `modifierDossierRH()` (`src/lib/actions/rh.ts`) remplace intégralement les autorisations de la personne à chaque sauvegarde (plus simple qu'un diff, volume attendu : quelques départements).
+
+Testé : `tsc`/`eslint` verts, `tests/portee-departement-rh.test.ts` (hiérarchie prioritaire, même département visible, autre département invisible puis visible après autorisation, confirmation qu'un autre module comme CRM n'est jamais affecté) et `tests/autorisation-departement-rh-fuite-rls.test.ts` verts. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) avec 5 comptes réels (Admin + 2 Managers + 2 Employés, deux départements Ventes/Support) : un Manager voit son collègue non-subordonné du même département, ne voit pas un employé d'un autre département sans lien, puis le voit immédiatement après que l'Admin lui a accordé l'accès à ce département — confirmé par le contenu réel de la page, pas seulement le code HTTP (ce projet renvoie 200 avec un contenu "404" pour toute page introuvable en développement, un comportement de l'environnement de dev, pas une fuite — vérifié séparément sur un id de dossier RH totalement inexistant).
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
