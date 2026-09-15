@@ -35,7 +35,7 @@ export default function PageAccueil() {
   return (
     <>
       {/* Héros */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 text-white">
         <div
           aria-hidden
           className="animate-flotter-lentement pointer-events-none absolute -top-24 -left-24 size-80 rounded-full bg-amber-400/30 blur-3xl"
@@ -127,7 +127,7 @@ export default function PageAccueil() {
 
       {/* Kyria */}
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <Reveal className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 px-6 py-12 text-center text-white sm:px-12">
+        <Reveal className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 px-6 py-12 text-center text-white sm:px-12">
           <span className="flex size-14 items-center justify-center rounded-2xl bg-white/15">
             <Sparkles className="size-7" aria-hidden />
           </span>
@@ -222,7 +222,7 @@ export default function PageAccueil() {
       </section>
 
       {/* CTA final */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 py-20 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 py-20 text-white">
         <div
           aria-hidden
           className="animate-flotter-lentement pointer-events-none absolute -bottom-20 left-1/4 size-72 rounded-full bg-amber-400/25 blur-3xl"

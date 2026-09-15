@@ -27,7 +27,7 @@ export default async function PageModule({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 text-white">
         <div
           aria-hidden
           className="animate-flotter-lentement pointer-events-none absolute -top-16 right-1/4 size-64 rounded-full bg-amber-400/25 blur-3xl"

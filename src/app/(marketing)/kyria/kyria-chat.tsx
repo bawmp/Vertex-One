@@ -65,7 +65,7 @@ export function KyriaChat() {
     <div className="fixed bottom-5 right-5 z-20 flex flex-col items-end gap-3">
       {ouvert ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 zoom-in-95 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl duration-300">
-          <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-white">
+          <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4.5" aria-hidden />
               <span className="font-semibold">Kyria</span>
@@ -121,7 +121,7 @@ export function KyriaChat() {
 
       <Button
         size="icon-lg"
-        className={`rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg transition-transform hover:-translate-y-0.5 hover:from-violet-500 hover:to-indigo-500 ${ouvert ? "" : "animate-pulse"}`}
+        className={`rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg transition-transform hover:-translate-y-0.5 hover:from-violet-400 hover:to-indigo-400 ${ouvert ? "" : "animate-pulse"}`}
         aria-label={ouvert ? "Fermer Kyria" : "Discuter avec Kyria"}
         onClick={() => setOuvert((v) => !v)}
       >
