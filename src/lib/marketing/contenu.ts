@@ -51,7 +51,7 @@ export const FAQ_ACCUEIL = [
   },
   {
     question: "Je possède plusieurs entreprises — puis-je toutes les gérer avec Vertex One ?",
-    reponse: "Oui. Reliez vos entreprises en un groupe (Paramètres → Entreprise) pour voir toutes vos filiales d'un coup d'œil. Chacune garde sa propre connexion, ses propres données et son propre abonnement — le groupe n'est qu'une vue d'ensemble, aucune donnée n'est jamais partagée entre elles.",
+    reponse: "Oui. Reliez vos entreprises en un groupe (Paramètres → Entreprise) pour voir toutes vos filiales d'un coup d'œil. Chacune garde sa propre connexion, ses propres données et son propre abonnement à part entière (voir Tarifs) — le groupe n'est qu'une vue d'ensemble, aucune donnée ni facturation n'est jamais partagée entre elles.",
   },
 ];
 
@@ -71,5 +71,9 @@ export const FAQ_TARIFS = [
   {
     question: "Que se passe-t-il à la fin de l'essai gratuit ?",
     reponse: `Vous êtes notifié avant l'échéance de votre essai de ${DUREE_ESSAI_JOURS} jours. Sans renouvellement, un délai de grâce de ${DELAI_GRACE_HEURES} heures s'applique avant la suspension de l'accès — vos données restent intactes.`,
+  },
+  {
+    question: "J'ai plusieurs entreprises (filiales) — le prix est-il dégressif ?",
+    reponse: `Non. Vous pouvez relier vos entreprises en groupe pour les voir d'un coup d'œil, mais chacune reste un abonnement Vertex One à part entière, à ${PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString("fr-FR")} FCFA/mois, avec son propre essai et sa propre échéance. Aucune remise groupée, aucune facture unique pour l'instant.`,
   },
 ];
