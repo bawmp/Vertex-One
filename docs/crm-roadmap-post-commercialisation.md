@@ -782,6 +782,12 @@ Suite à un partage de la page de réglages de Zoho Forms par l'utilisateur, pou
 
 Testé : `tsc`/`eslint` verts, `tests/one-form-logique.test.ts` étendu (refus avant ouverture, refus après fermeture, refus une fois la limite atteinte, soumission toujours acceptée avec `notifierParEmail` activé) — 10 tests verts. Vérification réelle en navigateur (Playwright, scratch supprimé après usage) : formulaire publié avec une limite d'une réponse, premier visiteur anonyme accepté, second visiteur voit directement le message "Ce formulaire a atteint son nombre maximal de réponses." à la place du formulaire (pas seulement un rejet au clic sur Envoyer). Suite complète non concluante lors de cette vérification — la session cumulait déjà plusieurs heures de tests répétés (plusieurs suites complètes + parcours Playwright), et les échecs observés (51 fichiers puis 23 sur deux passages, fichiers différents à chaque fois, aucun lié à One Form, erreurs "Connection terminated unexpectedly"/timeouts génériques) correspondent exactement au palier de latence Neon documenté dans CLAUDE.md sous sollicitation prolongée, pas à une régression — confirmé par une exécution isolée des deux fichiers One Form, verte à 15/15.
 
+## 47. Tableau de bord personnalisable (épingles/widgets) — reporté à plus tard, 2026-09-17
+
+Suite au partage par l'utilisateur de l'espace personnel Zoho One (tableau de bord à widgets, épingles, conversations/threads) : la quasi-totalité de cette page relève de l'ambition beaucoup plus large de Zoho One (suite bureautique complète — mail, agenda, stockage de fichiers, notes, coffre-fort, chat d'équipe), hors du positionnement de Vertex One (suite de gestion métier). Vertex One a déjà un tableau de bord fixe à `/app` (`src/app/app/page.tsx` : CA du mois, factures en retard, pipeline, tâches en retard, dossiers sans projet actif) — pas personnalisable par widgets.
+
+**Explicitement reporté par l'utilisateur** ("plus tard, dans les mises à jour") : rendre ce tableau de bord personnalisable (épingler ses propres raccourcis/widgets), plutôt qu'une liste fixe d'indicateurs identique pour tout le monde. Pas de conception détaillée pour l'instant — à spécifier quand ce chantier sera repris.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
