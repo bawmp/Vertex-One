@@ -58,7 +58,7 @@ type ItemMenu =
 const MODULES_MENU: ItemMenu[] = [
   {
     module: "CRM",
-    libelle: "CRM",
+    libelle: "One CRM",
     hrefAccueil: "/app/crm",
     Icone: Users,
     groupes: [
@@ -74,7 +74,7 @@ const MODULES_MENU: ItemMenu[] = [
           // Palier 6) — présents dans "Ventes" chez Zoho, donc dupliqués ici
           // plutôt que déplacés, pour ne retirer l'accès direct à personne
           // (retour utilisateur, 2026-09-06).
-          { libelle: "Documents", href: "/app/documents", Icone: FileText, module: "DOCUMENTS" },
+          { libelle: "One Docs", href: "/app/documents", Icone: FileText, module: "DOCUMENTS" },
           { libelle: "Campagnes", href: "/app/marketing", Icone: Megaphone, module: "MARKETING" },
         ],
       },
@@ -100,7 +100,7 @@ const MODULES_MENU: ItemMenu[] = [
   // vérifie sa propre permission — jamais une page entièrement verrouillée à
   // l'Administrateur comme /app/comptabilite l'est.
   {
-    libelle: "FACO",
+    libelle: "One Books",
     hrefAccueil: "/app/facturation",
     Icone: Landmark,
     groupes: [
@@ -158,7 +158,7 @@ const MODULES_MENU: ItemMenu[] = [
       {
         categorie: "Suivi des heures",
         liens: [
-          { libelle: "Projets", href: "/app/projets", Icone: FolderKanban, module: "PROJETS" },
+          { libelle: "One Projects", href: "/app/projets", Icone: FolderKanban, module: "PROJETS" },
           { libelle: "Feuille de temps", href: "/app/projets/feuille-temps", Icone: Clock, module: "PROJETS" },
         ],
       },
@@ -192,11 +192,11 @@ const MODULES_MENU: ItemMenu[] = [
       },
     ],
   },
-  { module: "PROJETS", libelle: "Projets", href: "/app/projets", Icone: FolderKanban },
-  { module: "DOCUMENTS", libelle: "Documents", href: "/app/documents", Icone: FileText },
-  { module: "MESSAGERIE", libelle: "Messagerie", href: "/app/messagerie", Icone: MessageSquare },
-  { module: "ANNONCES", libelle: "Annonces", href: "/app/annonces", Icone: Megaphone },
-  { module: "SIGNATURE", libelle: "Signatures", href: "/app/signatures", Icone: FileSignature },
+  { module: "PROJETS", libelle: "One Projects", href: "/app/projets", Icone: FolderKanban },
+  { module: "DOCUMENTS", libelle: "One Docs", href: "/app/documents", Icone: FileText },
+  { module: "MESSAGERIE", libelle: "One Chat", href: "/app/messagerie", Icone: MessageSquare },
+  { module: "ANNONCES", libelle: "One Announcements", href: "/app/annonces", Icone: Megaphone },
+  { module: "SIGNATURE", libelle: "One Sign", href: "/app/signatures", Icone: FileSignature },
   // RH regroupe l'équivalent Zoho People de Vertex One sous une seule entrée
   // à liste déroulante, comme CRM/FACO — retour utilisateur ("organise le RH
   // comme tu as organisé CRM et FACO"), le module existait jusque-là en item
@@ -210,7 +210,7 @@ const MODULES_MENU: ItemMenu[] = [
   // seulement les pages dédiées qui existent en plus.
   {
     module: "RH",
-    libelle: "Ressources Humaines",
+    libelle: "One People",
     hrefAccueil: "/app/rh",
     Icone: IdCard,
     groupes: [
@@ -236,22 +236,22 @@ const MODULES_MENU: ItemMenu[] = [
       },
     ],
   },
-  { module: "MARKETING", libelle: "Marketing", href: "/app/marketing", Icone: Rocket },
+  { module: "MARKETING", libelle: "One Marketing", href: "/app/marketing", Icone: Rocket },
   // Booking (échange du 2026-09-13, addon à la carte comme Marketing) — item
   // racine plat, pas de regroupement en sous-menu pour ce v1 (portée assez
   // restreinte pour rester une seule entrée, comme Projets/Documents) ; les
   // pages Services/Personnel/Paramètres restent atteignables depuis l'accueil
   // /app/reservations lui-même.
-  { module: "RESERVATIONS", libelle: "Réservations", href: "/app/reservations", Icone: CalendarCheck },
+  { module: "RESERVATIONS", libelle: "One Bookings", href: "/app/reservations", Icone: CalendarCheck },
   // Recrutement (échange du 2026-09-13, addon à la carte comme
   // Marketing/Réservations) — item racine plat, même raisonnement que
   // Réservations pour ce v1.
-  { module: "RECRUTEMENT", libelle: "Recrutement", href: "/app/recrutement", Icone: Briefcase },
+  { module: "RECRUTEMENT", libelle: "One Recruit", href: "/app/recrutement", Icone: Briefcase },
   // Assistance client (échange du 2026-09-13, addon à la carte) — item
   // racine plat, même raisonnement que Réservations/Recrutement. Ne
   // gouverne que le côté agent (/app/support) ; le portail (/portail)
   // n'apparaît jamais dans cette sidebar, réservé au rôle CLIENT.
-  { module: "SUPPORT", libelle: "Assistance client", href: "/app/support", Icone: LifeBuoy },
+  { module: "SUPPORT", libelle: "One Desk", href: "/app/support", Icone: LifeBuoy },
   // One Form (addon à la carte) — item racine plat, même raisonnement que
   // Réservations/Recrutement/Assistance client.
   { module: "ONE_FORM", libelle: "One Form", href: "/app/one-form", Icone: ClipboardList },

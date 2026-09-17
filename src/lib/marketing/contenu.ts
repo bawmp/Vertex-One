@@ -58,7 +58,7 @@ export const FAQ_ACCUEIL = [
 export const FAQ_TARIFS = [
   {
     question: "Le prix change-t-il selon le nombre de modules utilisés ?",
-    reponse: "Non. Un seul prix, tous les modules inclus dès le premier jour — CRM, Facturation, RH, Projets, Documents, Réservations, Recrutement, Assistance client et plus. Aucun module n'est verrouillé derrière un forfait supérieur.",
+    reponse: "Non. Un seul prix, tous les modules inclus dès le premier jour — One CRM, One Invoicing, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk et plus. Aucun module n'est verrouillé derrière un forfait supérieur.",
   },
   {
     question: "Le prix change-t-il selon le nombre d'employés ?",

@@ -13,7 +13,7 @@ const SECTEURS = [
   { icone: Building2, nom: "Agences", classeFond: "bg-blue-500", description: "Communication, conseil, événementiel — pipeline commercial et facturation au même endroit." },
   { icone: Wrench, nom: "Artisans", classeFond: "bg-orange-500", description: "Vocabulaire adapté (Chantier plutôt que Projet), du devis jusqu'au paiement Mobile Money." },
   { icone: Briefcase, nom: "Cabinets", classeFond: "bg-purple-500", description: "Dossiers clients permanents, missions bornées, documents sensibles protégés." },
-  { icone: LayoutGrid, nom: "Toute autre entreprise de services", classeFond: "bg-teal-500", description: "Le tronc commun (CRM, facturation, RH, documents) s'adapte à votre activité." },
+  { icone: LayoutGrid, nom: "Toute autre entreprise de services", classeFond: "bg-teal-500", description: "Le tronc commun (One CRM, One Invoicing, One People, One Docs) s'adapte à votre activité." },
 ];
 
 export default function PageAPropos() {

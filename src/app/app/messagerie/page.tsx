@@ -53,7 +53,7 @@ export default async function PageMessagerie() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <MessageSquare className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Messagerie</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">One Chat</h1>
       </div>
 
       {!process.env.STREAM_CHAT_API_KEY ? (

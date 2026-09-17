@@ -46,7 +46,7 @@ export type ModuleMarketing = {
 export const MODULES_MARKETING: ModuleMarketing[] = [
   {
     slug: "crm",
-    nom: "CRM",
+    nom: "One CRM",
     resume: "Prospects, opportunités et pipeline commercial, du premier contact à la facture.",
     icone: Handshake,
     classeFond: "bg-blue-500",
@@ -59,7 +59,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "facturation",
-    nom: "Facturation",
+    nom: "One Invoicing",
     resume: "Devis, factures, acomptes et relances — jusqu'au paiement Mobile Money.",
     icone: Receipt,
     classeFond: "bg-amber-500",
@@ -73,7 +73,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "achats",
-    nom: "Achats & Fournisseurs",
+    nom: "One Purchases",
     resume: "Bons de commande, factures fournisseurs et suivi des échéances à payer.",
     icone: ShoppingCart,
     classeFond: "bg-orange-500",
@@ -85,7 +85,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "comptabilite",
-    nom: "Comptabilité",
+    nom: "One Accounting",
     resume: "Plan comptable SYSCOHADA, journaux, rapprochement bancaire et budgets.",
     icone: Calculator,
     classeFond: "bg-teal-500",
@@ -99,7 +99,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "rh",
-    nom: "Ressources Humaines",
+    nom: "One People",
     resume: "Dossiers employés, congés, pointage et suivi d'activité — hors paie.",
     icone: Users,
     classeFond: "bg-purple-500",
@@ -114,7 +114,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "recrutement",
-    nom: "Recrutement",
+    nom: "One Recruit",
     resume: "Postes ouverts, candidatures et conversion directe en compte employé.",
     icone: Briefcase,
     classeFond: "bg-pink-500",
@@ -126,7 +126,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "assistance-client",
-    nom: "Assistance client",
+    nom: "One Desk",
     resume: "Tickets clients par catégorie, avec assignation et suivi de résolution.",
     icone: LifeBuoy,
     classeFond: "bg-cyan-500",
@@ -138,7 +138,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "reservations",
-    nom: "Réservations",
+    nom: "One Bookings",
     resume: "Prise de rendez-vous en ligne, services, disponibilités et intervenants.",
     icone: CalendarCheck,
     classeFond: "bg-rose-500",
@@ -151,7 +151,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "projets",
-    nom: "Projets",
+    nom: "One Projects",
     resume: "Dossiers clients permanents et projets bornés, avec feuille de temps.",
     icone: FolderKanban,
     classeFond: "bg-indigo-500",
@@ -164,7 +164,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "documents-signatures",
-    nom: "Documents & Signatures",
+    nom: "One Docs & Sign",
     resume: "Stockage classé par sensibilité et signature électronique avec preuve.",
     icone: FileSignature,
     classeFond: "bg-violet-500",
@@ -177,7 +177,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "marketing",
-    nom: "Marketing",
+    nom: "One Marketing",
     resume: "Campagnes email et WhatsApp, pages d'atterrissage et relances automatiques.",
     icone: Megaphone,
     classeFond: "bg-fuchsia-500",
@@ -219,7 +219,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "communication-interne",
-    nom: "Communication interne",
+    nom: "One Connect",
     resume: "Messagerie par canal et fil d'annonces, pour toute l'équipe.",
     icone: MessageSquare,
     classeFond: "bg-sky-500",

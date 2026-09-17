@@ -16,7 +16,10 @@ describe("i18n — traduire() et repli sur le français", () => {
 
   test("langue 'en' renvoie les clés traduites présentes dans le dictionnaire anglais", () => {
     const t = traduire("en");
-    expect(t.nav.rh).toBe("Human Resources");
+    // Noms de marque "One <mot anglais>" (échange du 2026-09-17, à l'image
+    // de Zoho CRM/Books/People/Sign...) — jamais traduits, identiques en
+    // français et en anglais.
+    expect(t.nav.rh).toBe("One People");
     expect(t.menuUtilisateur.deconnexion).toBe("Sign out");
   });
 

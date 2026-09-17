@@ -52,7 +52,7 @@ export default function PageAccueil() {
             La suite de gestion tout-en-un pour les entreprises de services au Cameroun
           </h1>
           <p className="max-w-2xl text-lg text-emerald-50/90">
-            CRM, facturation, RH, projets, réservations et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
+            One CRM, One Invoicing, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
             international, pensée Mobile Money-first et WhatsApp-first, en français, sans les coûts d&apos;implémentation.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">

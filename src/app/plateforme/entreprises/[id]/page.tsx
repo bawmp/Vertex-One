@@ -22,11 +22,11 @@ const LIBELLE_ACTION: Record<string, string> = {
 };
 
 const LIBELLE_ADDON: Record<string, string> = {
-  MARKETING: "Marketing",
+  MARKETING: "One Marketing",
   FACTURATION_ABONNEMENTS: "Facturation par abonnements",
-  RESERVATIONS: "Réservations",
-  RECRUTEMENT: "Recrutement",
-  SUPPORT: "Assistance client",
+  RESERVATIONS: "One Bookings",
+  RECRUTEMENT: "One Recruit",
+  SUPPORT: "One Desk",
   ONE_FORM: "One Form",
   ONE_VAULT: "One Vault",
 };

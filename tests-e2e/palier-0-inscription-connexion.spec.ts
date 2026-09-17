@@ -41,8 +41,9 @@ test("inscription crée l'entreprise, connecte l'Administrateur, et affiche le m
   await expect(page.locator("nav").getByText("ADMIN", { exact: true })).toBeVisible();
 
   // ADMIN a VOIR sur tous les modules (matrice, src/lib/permissions.ts) —
-  // les cinq entrées du menu doivent être visibles.
-  for (const libelle of ["CRM", "Facturation", "Projets", "Documents", "Paramètres"]) {
+  // les cinq entrées du menu doivent être visibles. Noms "One <mot anglais>"
+  // à l'image de Zoho (Zoho CRM, Zoho Books...) — voir échange du 2026-09-17.
+  for (const libelle of ["One CRM", "One Books", "One Projects", "One Docs", "Paramètres"]) {
     await expect(page.getByRole("link", { name: libelle })).toBeVisible();
   }
 });

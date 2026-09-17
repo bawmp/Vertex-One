@@ -11,19 +11,23 @@ import type { Dictionnaire } from "./dictionnaire";
  * (ex. /app/mon-compte, réordonnancement personnel) sans embarquer de code
  * serveur dans le bundle client.
  */
+// Libellés de premier niveau renommés "One <mot anglais>" à l'image de Zoho
+// (Zoho CRM, Zoho Books, Zoho People, Zoho Sign...) — échange du 2026-09-17.
+// Les clés ci-dessous DOIVENT correspondre exactement aux `libelle` utilisés
+// dans MODULES_MENU (src/app/app/layout.tsx), pas aux anciens noms français.
 const CLES_NAV_PAR_LIBELLE: Record<string, Exclude<keyof Dictionnaire["nav"], "categories">> = {
-  CRM: "crm",
-  FACO: "faco",
-  Projets: "projets",
-  Documents: "documents",
-  Messagerie: "messagerie",
-  Annonces: "annonces",
-  Signatures: "signatures",
-  "Ressources Humaines": "rh",
-  Marketing: "marketing",
-  Réservations: "reservations",
-  Recrutement: "recrutement",
-  "Assistance client": "support",
+  "One CRM": "crm",
+  "One Books": "faco",
+  "One Projects": "projets",
+  "One Docs": "documents",
+  "One Chat": "messagerie",
+  "One Announcements": "annonces",
+  "One Sign": "signatures",
+  "One People": "rh",
+  "One Marketing": "marketing",
+  "One Bookings": "reservations",
+  "One Recruit": "recrutement",
+  "One Desk": "support",
   Paramètres: "parametres",
   "Mon compte": "monCompte",
   "Espace personnel": "monEspace",
