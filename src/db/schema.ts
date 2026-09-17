@@ -3242,6 +3242,177 @@ export const pageAtterrissage = pgTable(
   ]
 ).enableRLS();
 
+// One Form (2026-09-17) — constructeur de formulaires façon Zoho Forms,
+// module complémentaire à la carte comme Marketing/Réservations (voir
+// addon "ONE_FORM", src/lib/plans.ts). Champ fichier, logique
+// conditionnelle, multi-pages et paiement intégré volontairement hors
+// scope V1.
+export const typeChampFormulaire = pgEnum("type_champ_formulaire", [
+  "TEXTE_COURT",
+  "TEXTE_LONG",
+  "EMAIL",
+  "TELEPHONE",
+  "NOMBRE",
+  "DATE",
+  "CHOIX_UNIQUE",
+  "CHOIX_MULTIPLE",
+  "LISTE_DEROULANTE",
+]);
+
+/**
+ * Même patron exact que `pageAtterrissage` ci-dessus pour la RLS : écriture
+ * toujours strictement scopée à l'entreprise, lecture permissive
+ * uniquement quand `publie = true` ET qu'aucune session n'est active
+ * (`nullif(current_setting('app.entreprise_id', true), '') IS NULL` —
+ * jamais `IS NULL` seul, voir CLAUDE.md) — c'est ce qui permet à la page
+ * publique /formulaire/[slug] de lire ce formulaire sans authentification.
+ */
+export const formulaire = pgTable(
+  "formulaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    slug: text("slug").notNull().unique(),
+    publie: boolean("publie").notNull().default(false),
+    messageConfirmation: text("message_confirmation").notNull().default("Merci, votre réponse a bien été enregistrée."),
+    // Heuristique volontairement simple (pas de correspondance de champs
+    // configurable en V1) : voir soumettreReponseFormulaire(),
+    // src/lib/actions/one-form.ts.
+    creerLeadALaReponse: boolean("creer_lead_a_la_reponse").notNull().default(false),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("formulaire_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("lecture_publique_ou_entreprise", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR (${table.publie} = true AND nullif(current_setting('app.entreprise_id', true), '') IS NULL)`,
+    }),
+    pgPolicy("ecriture_entreprise", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("modification_entreprise", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("suppression_entreprise", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Lecture publique dérivée du `formulaire` parent (le champ lui-même ne
+ * porte pas `publie`) — même idiome nullif/current_setting que ci-dessus,
+ * combiné à une sous-requête sur le formulaire parent.
+ */
+export const champFormulaire = pgTable(
+  "champ_formulaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    formulaireId: text("formulaire_id")
+      .notNull()
+      .references(() => formulaire.id),
+    type: typeChampFormulaire("type").notNull(),
+    libelle: text("libelle").notNull(),
+    obligatoire: boolean("obligatoire").notNull().default(false),
+    options: json("options").$type<string[]>(),
+    ordre: integer("ordre").notNull().default(0),
+  },
+  (table) => [
+    index("champ_formulaire_entreprise_idx").on(table.entrepriseId),
+    index("champ_formulaire_formulaire_idx").on(table.formulaireId),
+    pgPolicy("lecture_publique_ou_entreprise", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR (nullif(current_setting('app.entreprise_id', true), '') IS NULL AND EXISTS (SELECT 1 FROM ${formulaire} WHERE ${formulaire.id} = ${table.formulaireId} AND ${formulaire.publie} = true))`,
+    }),
+    pgPolicy("ecriture_entreprise", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("modification_entreprise", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("suppression_entreprise", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Volontairement AUCUNE lecture ni écriture anonyme, contrairement à
+ * `formulaire`/`champFormulaire` ci-dessus — la Server Action publique de
+ * soumission résout `formulaire` par son slug (lecture anonyme déjà
+ * permise ci-dessus), récupère son entrepriseId, puis écrit ici via
+ * avecEntreprise(formulaire.entrepriseId, ...) — exactement le patron déjà
+ * utilisé par accepterInvitation() (src/lib/actions/invitation.ts).
+ * Personne ne doit jamais pouvoir lire les réponses d'un autre.
+ */
+export const reponseFormulaire = pgTable(
+  "reponse_formulaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    formulaireId: text("formulaire_id")
+      .notNull()
+      .references(() => formulaire.id),
+    leadId: text("lead_id").references(() => lead.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("reponse_formulaire_entreprise_idx").on(table.entrepriseId),
+    index("reponse_formulaire_formulaire_idx").on(table.formulaireId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const valeurChampReponse = pgTable(
+  "valeur_champ_reponse",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    reponseFormulaireId: text("reponse_formulaire_id")
+      .notNull()
+      .references(() => reponseFormulaire.id),
+    champFormulaireId: text("champ_formulaire_id")
+      .notNull()
+      .references(() => champFormulaire.id),
+    valeur: text("valeur").notNull(),
+  },
+  (table) => [
+    index("valeur_champ_reponse_entreprise_idx").on(table.entrepriseId),
+    index("valeur_champ_reponse_reponse_idx").on(table.reponseFormulaireId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Verrouillage à la carte, indépendant du forfait (docs/palier-6-*, section
 // 5) — voir disponibleAddon() dans src/lib/plans.ts. Réservé pour l'instant
 // à l'addon "MARKETING" (Campagnes/automatisations/Page d'atterrissage,

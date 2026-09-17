@@ -20,6 +20,7 @@ export type Module =
   | "RESERVATIONS"
   | "RECRUTEMENT"
   | "SUPPORT"
+  | "ONE_FORM"
   | "PARAMETRES";
 export type Action = "VOIR" | "CREER" | "MODIFIER" | "SUPPRIMER";
 export type Portee = "TOUT" | "EQUIPE" | "PROPRE";
@@ -67,6 +68,10 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // s'adresse à un segment de prospects de toute l'entreprise, pas à un
     // sous-ensemble par utilisateur.
     MARKETING: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
+    // One Form (2026-09-17) — module complémentaire à la carte, même
+    // raisonnement que MARKETING : construction/gestion des formulaires
+    // réservée Admin/Manager, visibilité large (pas un module personnel).
+    ONE_FORM: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Module complémentaire à la carte (disponibleAddon(), comme MARKETING),
     // échange du 2026-09-13. Configuration (services, personnel, disponibilités,
     // paramètres publics) réservée à l'Administrateur via une vérification
@@ -108,6 +113,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // pas de portée — docs/palier-5-*, section 5).
     RH: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     MARKETING: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
+    ONE_FORM: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
     // Gère ses propres rendez-vous et ceux de son équipe, jamais la
     // configuration (services/personnel/disponibilités), réservée Admin.
     RESERVATIONS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
@@ -134,6 +140,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // dossier collègue (portée PROPRE, pas EQUIPE ici).
     RH: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
     MARKETING: { actions: ["VOIR"], portee: "TOUT" },
+    ONE_FORM: { actions: ["VOIR"], portee: "TOUT" },
     // Voit/annule ses propres rendez-vous, jamais ceux d'un collègue.
     RESERVATIONS: { actions: ["VOIR", "MODIFIER"], portee: "PROPRE" },
     // Voit les candidatures qui lui sont assignées, jamais la configuration.
@@ -164,6 +171,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // section 2).
     RH: { actions: [], portee: "PROPRE" },
     MARKETING: { actions: [], portee: "PROPRE" },
+    ONE_FORM: { actions: [], portee: "PROPRE" },
     // Un compte CLIENT (portail restreint) ne gère jamais de rendez-vous
     // depuis /app — le client externe réserve toujours via la page publique
     // /reserver/[slug], sans compte ni session (voir src/app/reserver/).

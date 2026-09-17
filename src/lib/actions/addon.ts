@@ -20,6 +20,7 @@ const PRIX_ADDON: Record<Addon, number> = {
   RESERVATIONS: 10_000,
   RECRUTEMENT: 10_000,
   SUPPORT: 10_000,
+  ONE_FORM: 10_000,
 };
 
 export async function activerAddon(addon: Addon) {
@@ -38,6 +39,7 @@ export async function activerAddon(addon: Addon) {
   revalidatePath("/app/reservations/parametres");
   revalidatePath("/app/recrutement/parametres");
   revalidatePath("/app/support");
+  revalidatePath("/app/one-form");
   revalidatePath("/app/parametres");
 }
 
@@ -54,5 +56,6 @@ export async function desactiverAddon(addon: Addon) {
   revalidatePath("/app/reservations/parametres");
   revalidatePath("/app/recrutement/parametres");
   revalidatePath("/app/support");
+  revalidatePath("/app/one-form");
   revalidatePath("/app/parametres");
 }

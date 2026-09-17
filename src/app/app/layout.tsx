@@ -252,6 +252,9 @@ const MODULES_MENU: ItemMenu[] = [
   // gouverne que le côté agent (/app/support) ; le portail (/portail)
   // n'apparaît jamais dans cette sidebar, réservé au rôle CLIENT.
   { module: "SUPPORT", libelle: "Assistance client", href: "/app/support", Icone: LifeBuoy },
+  // One Form (addon à la carte) — item racine plat, même raisonnement que
+  // Réservations/Recrutement/Assistance client.
+  { module: "ONE_FORM", libelle: "One Form", href: "/app/one-form", Icone: ClipboardList },
   // Réorganisé en groupe (retour utilisateur, 2026-09-13 : "je vois aussi
   // l'onglet paramètres dans Zoho, mais chez vertexone ce n'est pas
   // configuré") — le lien plat pointait vers /app/parametres, qui n'avait
