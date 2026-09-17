@@ -11,6 +11,7 @@ import {
   FileSignature,
   Megaphone,
   MessageSquare,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,7 +23,7 @@ import {
  * pages sous src/app/app/), pas une description marketing générique.
  *
  * Depuis l'abonnement plat unique (2026-09-14, voir src/lib/plans.ts), les
- * 12 modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
+ * 13 modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
  * vendu séparément, contrairement à Zoho One.
  */
 export type ModuleMarketing = {
@@ -183,6 +184,19 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Campagnes par email ou WhatsApp, ciblées par statut de prospect ou ancienneté d'inactivité",
       "Pages d'atterrissage publiques pour capter de nouveaux prospects",
       "Automatisations prêtes à l'emploi — par exemple relancer un prospect resté sans réponse depuis 7 jours",
+    ],
+  },
+  {
+    slug: "one-form",
+    nom: "One Form",
+    resume: "Formulaires personnalisés à publier via un lien public, réponses centralisées.",
+    icone: ClipboardList,
+    classeFond: "bg-lime-500",
+    capacites: [
+      "9 types de champs (texte, email, téléphone, nombre, date, choix unique ou multiple, liste déroulante)",
+      "Lien public partageable, sans compte ni connexion requise pour y répondre",
+      "Réponses centralisées et consultables directement dans l'application",
+      "Création automatique d'un Lead CRM à chaque réponse, en option",
     ],
   },
   {
