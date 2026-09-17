@@ -2,6 +2,15 @@
 
 Note vivante, pas une spécification figée : à cocher/mettre à jour au fil de l'avancement, jusqu'à ce que les trois points ci-dessous soient levés. Créée le 2026-09-14 suite à la question directe "puis-je déjà vendre cette application ?" — le cœur du produit (CRM, Facturation, RH, Projets, Documents, Réservations, Recrutement, Assistance client) est testé et fonctionnel ; ce sont ces trois intégrations externes, non configurées dans l'environnement de développement, qui bloquent un vrai client aujourd'hui.
 
+## 0. Hébergement et domaine — décidé, pas encore fait (2026-09-17)
+
+**Statut : rien de créé encore.** Discuté avec l'utilisateur : l'entreprise (Vertex Technology) a déjà un domaine, mais Vertex One aura son propre domaine dédié plutôt qu'un sous-domaine — cohérence marketing (le site vend "Vertex One" comme produit à part entière) et isolation de la réputation d'envoi email (Resend) par rapport aux autres communications de l'entreprise-mère.
+
+- [ ] **Domaine** — acheter un domaine dédié (ex. `vertexone.cm`, `vertexone.app`, `vertexone.com` selon disponibilité/prix — le `.cm` camerounais peut avoir des conditions d'enregistrement plus restrictives, à vérifier avant de s'y engager).
+- [ ] **Hébergement de l'application** — Vercel (zéro-config pour Next.js, gratuit pour démarrer, HTTPS/CDN automatiques). Connecter le dépôt GitHub, renseigner toutes les variables d'environnement listées dans ce fichier et `.env.example` dans les réglages du projet Vercel.
+- [ ] **Hébergement du worker** — Vercel ne supporte pas un processus long-vivant (le worker graphile-worker a besoin d'une connexion persistante LISTEN/NOTIFY, voir CLAUDE.md). Un second service séparé (Railway ou Render, ~5-7 $/mois) dédié uniquement à `npm run worker`, avec `DATABASE_URL_WORKER` (endpoint direct Neon, sans "-pooler").
+- [ ] Une fois le domaine actif : mettre à jour `BETTER_AUTH_URL` en production avec l'URL réelle (ex. `https://vertexone.cm`), condition pour que Better-Auth émette des cookies de session valides.
+
 ## 1. Stockage de fichiers — Cloudflare R2
 
 **Statut : non configuré.** Sans ça, aucun fichier ne se sauvegarde réellement (logo d'entreprise, documents RH, pièces d'identité, CV de candidats, pièces jointes) — le code échoue proprement (pas de crash), mais rien n'est stocké.
@@ -82,13 +91,39 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 - [ ] Une fois la clé en place, vérifier une vraie conversation (ex. "combien coûte l'abonnement ?" doit répondre 50 000 FCFA/mois, "le paiement est-il instantané ?" doit répondre non) — jamais vérifié avec une vraie clé dans l'environnement de développement.
 - [ ] Avant un trafic important : ajouter une limitation de débit sur `/api/kyria` (aucune pour l'instant, voir roadmap section 41) — un chat public sans authentification est exposé aux abus/coûts incontrôlés sans ce garde-fou.
 
+## 6. Anti-spam One Form — Cloudflare Turnstile
+
+**Statut : code réel construit et testé (sans clé), compte à créer.** Contrairement aux autres intégrations de cette liste, l'absence de clé ne bloque rien — le formulaire public reste utilisable sans protection anti-spam, ce qui est le vrai risque à corriger avant un usage à fort trafic.
+
+- [ ] [dash.cloudflare.com](https://dash.cloudflare.com) → Turnstile → ajouter un site
+- [ ] Renseigner dans `.env.local` / production :
+  ```
+  TURNSTILE_SECRET_KEY="..."
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY="..."
+  ```
+- [ ] Vérifier qu'une soumission depuis `/formulaire/[slug]` affiche bien le widget et qu'un jeton invalide est refusé.
+
+## 7. Chiffrement One Vault — clé maîtresse
+
+**Statut : bloquant pour ce module précisément, pas pour le reste du produit.** Sans `VAULT_ENCRYPTION_KEY`, le module One Vault refuse toute création/modification de secret (fail-closed, volontaire — voir `src/lib/vault/crypto.ts`) plutôt que de stocker un mot de passe en clair. Aucun compte externe à créer, juste une clé à générer une seule fois.
+
+- [ ] Générer une clé avec `openssl rand -base64 32`
+- [ ] Renseigner dans `.env.local` / production :
+  ```
+  VAULT_ENCRYPTION_KEY="..."
+  ```
+- [ ] **Ne jamais régénérer cette clé une fois des secrets réels enregistrés** — tout secret chiffré avec l'ancienne clé deviendrait définitivement indéchiffrable (voir le comportement testé dans `tests/one-vault-crypto.test.ts`). La perdre équivaut à perdre tous les secrets stockés : la sauvegarder dans un gestionnaire de secrets séparé (pas seulement dans les variables d'environnement de l'hébergeur), pas uniquement sur la machine de développement.
+
 ## Ordre suggéré
 
+0. **Domaine + hébergement** (à lancer en premier — le domaine conditionne la vérification Resend et `BETTER_AUTH_URL`, autant l'acheter tôt même si les autres étapes n'attendent pas dessus)
 1. **R2** (5 minutes, débloque immédiatement logos/documents/CV)
-2. **Resend** (le délai de propagation DNS peut prendre du temps — à lancer tôt)
+2. **Resend** (le délai de propagation DNS peut prendre du temps — à lancer tôt, une fois le domaine choisi)
 3. **CinetPay** (le plus long : KYC avant toute chose ; en attendant, l'encaissement manuel reste pleinement utilisable pour vendre dès que R2 et Resend sont prêts)
-4. **Console interne** (5 minutes, indépendant des trois autres — peut être fait à tout moment)
+4. **Console interne** (5 minutes, indépendant des autres — peut être fait à tout moment)
 5. **Kyria** (5 minutes, indépendant des autres — dégrade proprement tant que la clé n'existe pas)
+6. **One Vault** (5 minutes, générer la clé — ne rien reporter à plus tard une fois de vrais secrets enregistrés)
+7. **Turnstile** (5 minutes, indépendant des autres — recommandé avant d'ouvrir un formulaire One Form à un trafic public important)
 
 ## Hors scope de cette checklist (pas bloquant pour vendre)
 
