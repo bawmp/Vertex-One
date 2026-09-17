@@ -3283,6 +3283,16 @@ export const formulaire = pgTable(
     // configurable en V1) : voir soumettreReponseFormulaire(),
     // src/lib/actions/one-form.ts.
     creerLeadALaReponse: boolean("creer_lead_a_la_reponse").notNull().default(false),
+    // Notification par email au créateur à chaque réponse (2026-09-17) —
+    // opt-in comme creerLeadALaReponse, dégrade proprement (silencieux) tant
+    // que RESEND_API_KEY n'est pas configurée, voir src/lib/email/client.ts.
+    notifierParEmail: boolean("notifier_par_email").notNull().default(false),
+    // Disponibilité (2026-09-17) — toutes nullables : un formulaire sans
+    // limite n'a ni date ni plafond. Vérifiées dans soumettreReponseFormulaire()
+    // ET affichées sur la page publique avant même d'afficher le formulaire.
+    ouvertureLe: timestamp("ouverture_le"),
+    fermetureLe: timestamp("fermeture_le"),
+    limiteReponses: integer("limite_reponses"),
     creeParId: text("cree_par_id")
       .notNull()
       .references(() => utilisateur.id),

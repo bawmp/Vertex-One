@@ -1,6 +1,7 @@
 import { eq, and, asc } from "drizzle-orm";
 import { db } from "@/db/client";
 import { formulaire, champFormulaire } from "@/db/schema";
+import { verifierDisponibiliteFormulaire } from "@/lib/actions/one-form";
 import { FormulaireRemplissagePublic } from "./formulaire-remplissage-public";
 
 /**
@@ -24,7 +25,9 @@ export default async function PageFormulairePublic({ params }: { params: Promise
     );
   }
 
-  const champs = await db.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, leFormulaire.id)).orderBy(asc(champFormulaire.ordre));
+  const raisonIndisponible = await verifierDisponibiliteFormulaire(leFormulaire);
+
+  const champs = raisonIndisponible ? [] : await db.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, leFormulaire.id)).orderBy(asc(champFormulaire.ordre));
 
   return (
     <div className="flex min-h-screen flex-col items-center gap-8 bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 p-4 py-16 text-emerald-50">
@@ -34,11 +37,15 @@ export default async function PageFormulairePublic({ params }: { params: Promise
       </div>
 
       <div className="w-full max-w-xl rounded-lg bg-background p-6 text-foreground shadow-lg">
-        <FormulaireRemplissagePublic
-          slug={slug}
-          champs={champs.map((c) => ({ id: c.id, type: c.type, libelle: c.libelle, obligatoire: c.obligatoire, options: c.options ?? null }))}
-          messageConfirmation={leFormulaire.messageConfirmation}
-        />
+        {raisonIndisponible ? (
+          <p className="text-sm text-muted-foreground">{raisonIndisponible}</p>
+        ) : (
+          <FormulaireRemplissagePublic
+            slug={slug}
+            champs={champs.map((c) => ({ id: c.id, type: c.type, libelle: c.libelle, obligatoire: c.obligatoire, options: c.options ?? null }))}
+            messageConfirmation={leFormulaire.messageConfirmation}
+          />
+        )}
       </div>
     </div>
   );

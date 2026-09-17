@@ -15,9 +15,22 @@ type Formulaire = {
   description: string | null;
   messageConfirmation: string;
   creerLeadALaReponse: boolean;
+  notifierParEmail: boolean;
+  ouvertureLe: Date | null;
+  fermetureLe: Date | null;
+  limiteReponses: number | null;
   publie: boolean;
   slug: string;
 };
+
+// <input type="datetime-local"> attend "yyyy-MM-ddTHH:mm" en heure locale —
+// toISOString() décalerait l'affichage vers l'UTC, ce qui montrerait une
+// heure différente de celle réellement enregistrée.
+function versDatetimeLocal(date: Date | null): string {
+  if (!date) return "";
+  const dec = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${dec(date.getMonth() + 1)}-${dec(date.getDate())}T${dec(date.getHours())}:${dec(date.getMinutes())}`;
+}
 
 export function FormulaireParametres({ formulaire, urlPublique, peutModifier, peutSupprimer }: { formulaire: Formulaire; urlPublique: string; peutModifier: boolean; peutSupprimer: boolean }) {
   const [etat, action, enCours] = useActionState(modifierParametresFormulaire, null);
@@ -81,6 +94,38 @@ export function FormulaireParametres({ formulaire, urlPublique, peutModifier, pe
           <input type="checkbox" name="creerLeadALaReponse" defaultChecked={formulaire.creerLeadALaReponse} className="size-4" disabled={!peutModifier} />
           Créer un Lead CRM à chaque réponse (si un champ Téléphone est rempli)
         </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="notifierParEmail" defaultChecked={formulaire.notifierParEmail} className="size-4" disabled={!peutModifier} />
+          M&apos;avertir par email à chaque nouvelle réponse
+        </label>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed p-3">
+          <p className="text-sm font-medium">Disponibilité (optionnelle)</p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="ouvertureLe">Ouverture</Label>
+              <Input id="ouvertureLe" name="ouvertureLe" type="datetime-local" defaultValue={versDatetimeLocal(formulaire.ouvertureLe)} disabled={!peutModifier} />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="fermetureLe">Fermeture</Label>
+              <Input id="fermetureLe" name="fermetureLe" type="datetime-local" defaultValue={versDatetimeLocal(formulaire.fermetureLe)} disabled={!peutModifier} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 sm:w-56">
+            <Label htmlFor="limiteReponses">Nombre maximal de réponses</Label>
+            <Input
+              id="limiteReponses"
+              name="limiteReponses"
+              type="number"
+              min={1}
+              step={1}
+              defaultValue={formulaire.limiteReponses ?? ""}
+              placeholder="Illimité"
+              disabled={!peutModifier}
+            />
+          </div>
+        </div>
 
         {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

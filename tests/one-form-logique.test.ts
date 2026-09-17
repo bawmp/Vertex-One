@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, count } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, formulaire, champFormulaire, reponseFormulaire, valeurChampReponse, lead } from "@/db/schema";
 
@@ -16,6 +16,26 @@ import { entreprise, utilisateur, formulaire, champFormulaire, reponseFormulaire
 async function soumettreReponseFormulaire(slug: string, formData: FormData): Promise<{ erreur?: string }> {
   const [formulaireCible] = await db.select().from(formulaire).where(and(eq(formulaire.slug, slug), eq(formulaire.publie, true)));
   if (!formulaireCible) return { erreur: "Ce formulaire n'existe pas ou n'est plus disponible." };
+
+  const maintenant = new Date();
+  if (formulaireCible.ouvertureLe && maintenant < formulaireCible.ouvertureLe) {
+    return { erreur: "Ce formulaire n'est pas encore ouvert aux réponses." };
+  }
+  if (formulaireCible.fermetureLe && maintenant > formulaireCible.fermetureLe) {
+    return { erreur: "Ce formulaire n'accepte plus de réponses." };
+  }
+  if (formulaireCible.limiteReponses !== null) {
+    const total = await avecEntreprise(formulaireCible.entrepriseId, async (tx) => {
+      const [{ valeur }] = await tx.select({ valeur: count() }).from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, formulaireCible.id));
+      return valeur;
+    });
+    if (total >= formulaireCible.limiteReponses) {
+      return { erreur: "Ce formulaire a atteint son nombre maximal de réponses." };
+    }
+  }
+  // verifierTurnstile() (src/lib/turnstile/client.ts) est fail-open tant que
+  // TURNSTILE_SECRET_KEY n'est pas configurée — non reproduite ici, aucun
+  // effet en environnement de test sans cette clé.
 
   const champs = await db.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, formulaireCible.id)).orderBy(asc(champFormulaire.ordre));
 
@@ -191,5 +211,71 @@ describe("One Form — logique métier", () => {
   test("soumission publique : refuse pour un formulaire inconnu ou non publié", async () => {
     const resultat = await soumettreReponseFormulaire("slug-inexistant", new FormData());
     expect(resultat.erreur).toBeDefined();
+  });
+
+  test("soumission publique : refuse avant la date d'ouverture", async () => {
+    const [form] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(formulaire)
+        .values({ entrepriseId, titre: "TEST Pas Encore Ouvert", slug: `test-pas-ouvert-${entrepriseId}`, publie: true, creeParId: utilisateurId, ouvertureLe: new Date(Date.now() + 3_600_000) })
+        .returning({ id: formulaire.id })
+    );
+
+    const resultat = await soumettreReponseFormulaire(`test-pas-ouvert-${entrepriseId}`, new FormData());
+    expect(resultat.erreur).toContain("pas encore ouvert");
+
+    const reponses = await avecEntreprise(entrepriseId, (tx) => tx.select().from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, form.id)));
+    expect(reponses).toHaveLength(0);
+  });
+
+  test("soumission publique : refuse après la date de fermeture", async () => {
+    const [form] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(formulaire)
+        .values({ entrepriseId, titre: "TEST Ferme", slug: `test-ferme-${entrepriseId}`, publie: true, creeParId: utilisateurId, fermetureLe: new Date(Date.now() - 3_600_000) })
+        .returning({ id: formulaire.id })
+    );
+
+    const resultat = await soumettreReponseFormulaire(`test-ferme-${entrepriseId}`, new FormData());
+    expect(resultat.erreur).toContain("n'accepte plus");
+  });
+
+  test("soumission publique : refuse une fois la limite de réponses atteinte", async () => {
+    const [form] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(formulaire)
+        .values({ entrepriseId, titre: "TEST Limite", slug: `test-limite-${entrepriseId}`, publie: true, creeParId: utilisateurId, limiteReponses: 1 })
+        .returning({ id: formulaire.id })
+    );
+
+    const premiere = await soumettreReponseFormulaire(`test-limite-${entrepriseId}`, new FormData());
+    expect(premiere.erreur).toBeUndefined();
+
+    const seconde = await soumettreReponseFormulaire(`test-limite-${entrepriseId}`, new FormData());
+    expect(seconde.erreur).toContain("nombre maximal");
+
+    const reponses = await avecEntreprise(entrepriseId, (tx) => tx.select().from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, form.id)));
+    expect(reponses).toHaveLength(1);
+  });
+
+  // L'envoi effectif de l'email (envoyerEmail(), src/lib/email/client.ts)
+  // n'est pas reproduit ici — non testable sans mocker Resend, et déjà
+  // couvert par le degré de dégradation propre documenté dans CLAUDE.md
+  // (RESEND_API_KEY absente ⇒ avertissement, jamais un crash). Ce test
+  // vérifie seulement qu'activer notifierParEmail n'empêche pas la
+  // soumission de réussir.
+  test("un formulaire avec notifierParEmail activé accepte toujours les réponses", async () => {
+    const [form] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(formulaire)
+        .values({ entrepriseId, titre: "TEST Notification", slug: `test-notification-${entrepriseId}`, publie: true, creeParId: utilisateurId, notifierParEmail: true })
+        .returning({ id: formulaire.id })
+    );
+
+    const resultat = await soumettreReponseFormulaire(`test-notification-${entrepriseId}`, new FormData());
+    expect(resultat.erreur).toBeUndefined();
+
+    const reponses = await avecEntreprise(entrepriseId, (tx) => tx.select().from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, form.id)));
+    expect(reponses).toHaveLength(1);
   });
 });

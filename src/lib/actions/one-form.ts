@@ -1,14 +1,17 @@
 "use server";
 
 import { z } from "zod";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, count } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { generateRandomString } from "better-auth/crypto";
 import { db, avecEntreprise } from "@/db/client";
-import { formulaire, champFormulaire, reponseFormulaire, valeurChampReponse, lead } from "@/db/schema";
+import { formulaire, champFormulaire, reponseFormulaire, valeurChampReponse, lead, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { verifierTurnstile } from "@/lib/turnstile/client";
+import { envoyerEmail } from "@/lib/email/client";
+import { corpsVersHtml } from "@/lib/email/modeles";
 
 export type EtatOneForm = { erreur?: string; succes?: string } | null;
 
@@ -66,6 +69,23 @@ const schemaParametres = z.object({
   description: z.string().trim().optional(),
   messageConfirmation: z.string().trim().min(1, "Le message de confirmation ne peut pas être vide."),
   creerLeadALaReponse: z.coerce.boolean(),
+  notifierParEmail: z.coerce.boolean(),
+  // datetime-local envoie une chaîne locale sans fuseau (ex. "2026-09-20T14:30")
+  // — new Date() l'interprète dans le fuseau du serveur, cohérent avec le
+  // reste du produit (aucune gestion de fuseau par entreprise ailleurs).
+  ouvertureLe: z
+    .string()
+    .optional()
+    .transform((v) => (v ? new Date(v) : null)),
+  fermetureLe: z
+    .string()
+    .optional()
+    .transform((v) => (v ? new Date(v) : null)),
+  limiteReponses: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number(v) : null))
+    .refine((v) => v === null || (Number.isInteger(v) && v > 0), "La limite de réponses doit être un nombre entier positif."),
 });
 
 export async function modifierParametresFormulaire(_etat: EtatOneForm, formData: FormData): Promise<EtatOneForm> {
@@ -78,12 +98,23 @@ export async function modifierParametresFormulaire(_etat: EtatOneForm, formData:
     description: formData.get("description") || undefined,
     messageConfirmation: formData.get("messageConfirmation"),
     creerLeadALaReponse: formData.get("creerLeadALaReponse") === "on",
+    notifierParEmail: formData.get("notifierParEmail") === "on",
+    ouvertureLe: formData.get("ouvertureLe") || undefined,
+    fermetureLe: formData.get("fermetureLe") || undefined,
+    limiteReponses: formData.get("limiteReponses") || undefined,
   });
   if (!analyse.success) return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
-  const { formulaireId, titre, description, messageConfirmation, creerLeadALaReponse } = analyse.data;
+  const { formulaireId, titre, description, messageConfirmation, creerLeadALaReponse, notifierParEmail, ouvertureLe, fermetureLe, limiteReponses } = analyse.data;
+
+  if (ouvertureLe && fermetureLe && ouvertureLe >= fermetureLe) {
+    return { erreur: "La date d'ouverture doit précéder la date de fermeture." };
+  }
 
   await avecEntreprise(utilisateurConnecte!.entrepriseId, (tx) =>
-    tx.update(formulaire).set({ titre, description, messageConfirmation, creerLeadALaReponse }).where(eq(formulaire.id, formulaireId))
+    tx
+      .update(formulaire)
+      .set({ titre, description, messageConfirmation, creerLeadALaReponse, notifierParEmail, ouvertureLe, fermetureLe, limiteReponses })
+      .where(eq(formulaire.id, formulaireId))
   );
 
   revalidatePath(`/app/one-form/${formulaireId}`);
@@ -173,6 +204,37 @@ export async function reordonnerChamps(formulaireId: string, idsOrdonnes: string
 
 const schemaSoumission = z.record(z.string(), z.string());
 
+type FormulaireCible = typeof formulaire.$inferSelect;
+
+/**
+ * Partagée entre la page publique (affiche un message à la place du
+ * formulaire plutôt que de laisser un visiteur remplir un formulaire fermé)
+ * et soumettreReponseFormulaire() (rejet serveur, toujours vérifié même si
+ * le client contourne l'affichage). reponseFormulaire n'a aucune policy de
+ * lecture anonyme (RLS strictement standard, voir src/db/schema.ts) — le
+ * comptage passe donc par avecEntreprise(), jamais un db.select() nu qui
+ * renverrait toujours 0 ligne et rendrait la limite inopérante.
+ */
+export async function verifierDisponibiliteFormulaire(formulaireCible: FormulaireCible): Promise<string | null> {
+  const maintenant = new Date();
+  if (formulaireCible.ouvertureLe && maintenant < formulaireCible.ouvertureLe) {
+    return "Ce formulaire n'est pas encore ouvert aux réponses.";
+  }
+  if (formulaireCible.fermetureLe && maintenant > formulaireCible.fermetureLe) {
+    return "Ce formulaire n'accepte plus de réponses.";
+  }
+  if (formulaireCible.limiteReponses !== null) {
+    const total = await avecEntreprise(formulaireCible.entrepriseId, async (tx) => {
+      const [{ valeur }] = await tx.select({ valeur: count() }).from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, formulaireCible.id));
+      return valeur;
+    });
+    if (total >= formulaireCible.limiteReponses) {
+      return "Ce formulaire a atteint son nombre maximal de réponses.";
+    }
+  }
+  return null;
+}
+
 /**
  * Route publique — même patron que accepterInvitation() (src/lib/actions/
  * invitation.ts) : résout `formulaire` par son slug via une lecture
@@ -184,6 +246,18 @@ const schemaSoumission = z.record(z.string(), z.string());
 export async function soumettreReponseFormulaire(slug: string, formData: FormData): Promise<{ erreur?: string }> {
   const [formulaireCible] = await db.select().from(formulaire).where(and(eq(formulaire.slug, slug), eq(formulaire.publie, true)));
   if (!formulaireCible) return { erreur: "Ce formulaire n'existe pas ou n'est plus disponible." };
+
+  const raisonIndisponible = await verifierDisponibiliteFormulaire(formulaireCible);
+  if (raisonIndisponible) return { erreur: raisonIndisponible };
+
+  // Widget Cloudflare Turnstile rendu en implicite (script + <div
+  // class="cf-turnstile">, voir formulaire-remplissage-public.tsx) : à
+  // l'intérieur d'un <form>, il ajoute lui-même ce champ caché au submit —
+  // aucun JavaScript applicatif à écrire pour le récupérer.
+  const jetonTurnstile = String(formData.get("cf-turnstile-response") ?? "");
+  if (!(await verifierTurnstile(jetonTurnstile))) {
+    return { erreur: "Vérification anti-spam échouée — veuillez réessayer." };
+  }
 
   const champs = await db.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, formulaireCible.id)).orderBy(asc(champFormulaire.ordre));
 
@@ -229,6 +303,24 @@ export async function soumettreReponseFormulaire(slug: string, formData: FormDat
           })
           .returning({ id: lead.id });
         await tx.update(reponseFormulaire).set({ leadId: nouveauLead.id }).where(eq(reponseFormulaire.id, reponse.id));
+      }
+    }
+
+    if (formulaireCible.notifierParEmail) {
+      const [createur] = await tx.select({ email: utilisateur.email }).from(utilisateur).where(eq(utilisateur.id, formulaireCible.creeParId));
+      if (createur?.email) {
+        const corps = champs
+          .filter((c) => valeurs[c.id])
+          .map((c) => `${c.libelle} : ${valeurs[c.id]}`)
+          .join("\n");
+        // Ne bloque jamais la soumission : un échec d'envoi (ex. Resend non
+        // configurée, voir CLAUDE.md) reste silencieux pour le visiteur, qui
+        // a bien répondu quoi qu'il arrive côté notification.
+        await envoyerEmail({
+          to: createur.email,
+          subject: `Nouvelle réponse — ${formulaireCible.titre}`,
+          html: corpsVersHtml(corps || "(réponse sans champ rempli)"),
+        });
       }
     }
   });

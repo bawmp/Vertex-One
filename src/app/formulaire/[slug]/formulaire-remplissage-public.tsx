@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,17 @@ export function FormulaireRemplissagePublic({ slug, champs, messageConfirmation 
           <ChampFormulaire champ={champ} />
         </div>
       ))}
+
+      {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+        <>
+          {/* Rendu implicite Cloudflare Turnstile : ajoute lui-même un champ
+              caché "cf-turnstile-response" au submit du <form> englobant —
+              aucun JavaScript applicatif à écrire pour le récupérer, voir
+              soumettreReponseFormulaire() (src/lib/actions/one-form.ts). */}
+          <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+          <div className="cf-turnstile" data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
+        </>
+      ) : null}
 
       {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
 
