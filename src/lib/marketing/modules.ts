@@ -197,6 +197,9 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Lien public partageable, sans compte ni connexion requise pour y répondre",
       "Réponses centralisées et consultables directement dans l'application",
       "Création automatique d'un Lead CRM à chaque réponse, en option",
+      "Notification par email à chaque nouvelle réponse, en option",
+      "Protection anti-spam intégrée sur le formulaire public",
+      "Disponibilité programmable : date d'ouverture, date de fermeture, nombre maximal de réponses",
     ],
   },
   {
