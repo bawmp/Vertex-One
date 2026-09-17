@@ -1,10 +1,34 @@
 import "server-only";
 import { desc, eq, ne, and } from "drizzle-orm";
 import { dbPlateforme } from "@/db/plateforme";
-import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe } from "@/db/schema";
+import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe, campagne, serviceReservable, posteOuvert, ticketSupport, formulaire } from "@/db/schema";
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
+import type { Addon } from "@/lib/plans";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
+
+// disponibleAddon() (src/lib/plans.ts) renvoie toujours true depuis
+// l'abonnement plat (2026-09-14) — le bouton "Activer" de chaque module ne
+// s'affiche donc plus jamais, et la table addonActif reste vide en pratique
+// pour tous les vrais clients. L'usage réel (au moins une ligne créée dans
+// la table cœur du module) est le seul signal fiable pour le staff — voir
+// échange du 2026-09-17.
+async function utilise(entrepriseId: string, table: typeof campagne | typeof serviceReservable | typeof posteOuvert | typeof ticketSupport | typeof formulaire): Promise<boolean> {
+  const [ligne] = await dbPlateforme.select({ id: table.id }).from(table).where(eq(table.entrepriseId, entrepriseId)).limit(1);
+  return !!ligne;
+}
+
+export async function recupererModulesUtilises(entrepriseId: string): Promise<Addon[]> {
+  const paires: [Addon, typeof campagne | typeof serviceReservable | typeof posteOuvert | typeof ticketSupport | typeof formulaire][] = [
+    ["MARKETING", campagne],
+    ["RESERVATIONS", serviceReservable],
+    ["RECRUTEMENT", posteOuvert],
+    ["SUPPORT", ticketSupport],
+    ["ONE_FORM", formulaire],
+  ];
+  const resultats = await Promise.all(paires.map(async ([addon, table]) => ((await utilise(entrepriseId, table)) ? addon : null)));
+  return resultats.filter((a): a is Addon => a !== null);
+}
 
 export type EntrepriseAttention = { id: string; nom: string; evenement: EvenementAbonnement };
 
@@ -60,9 +84,10 @@ export async function recupererDetailEntreprise(entrepriseId: string) {
   const [monEntreprise] = await dbPlateforme.select().from(entreprise).where(eq(entreprise.id, entrepriseId));
   if (!monEntreprise) return null;
 
-  const [paiements, journal] = await Promise.all([
+  const [paiements, journal, modulesUtilises] = await Promise.all([
     dbPlateforme.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.entrepriseId, entrepriseId)).orderBy(desc(tentativePaiementAbonnement.creeLe)),
     dbPlateforme.select().from(journalActionPlateforme).where(eq(journalActionPlateforme.entrepriseId, entrepriseId)).orderBy(desc(journalActionPlateforme.creeLe)),
+    recupererModulesUtilises(entrepriseId),
   ]);
 
   // Groupe (2026-09-15) — visible côté staff comme côté client (Paramètres
@@ -78,5 +103,5 @@ export async function recupererDetailEntreprise(entrepriseId: string) {
       .where(and(eq(entreprise.groupeId, monEntreprise.groupeId), ne(entreprise.id, entrepriseId)));
   }
 
-  return { entreprise: monEntreprise, paiements, journal, nomGroupe, filiales };
+  return { entreprise: monEntreprise, paiements, journal, nomGroupe, filiales, modulesUtilises };
 }

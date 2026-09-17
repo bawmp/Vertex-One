@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2, Users2 } from "lucide-react";
+import { ArrowLeft, Building2, Users2, Puzzle } from "lucide-react";
 import { recupererDetailEntreprise } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,6 +21,15 @@ const LIBELLE_ACTION: Record<string, string> = {
   SUSPENDU_MANUELLEMENT: "Suspendu manuellement",
 };
 
+const LIBELLE_ADDON: Record<string, string> = {
+  MARKETING: "Marketing",
+  FACTURATION_ABONNEMENTS: "Facturation par abonnements",
+  RESERVATIONS: "Réservations",
+  RECRUTEMENT: "Recrutement",
+  SUPPORT: "Assistance client",
+  ONE_FORM: "One Form",
+};
+
 const formatDate = (date: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(date);
 
 export default async function PagePlateformeEntrepriseDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +37,7 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
   const detail = await recupererDetailEntreprise(id);
   if (!detail) notFound();
 
-  const { entreprise, paiements, journal, nomGroupe, filiales } = detail;
+  const { entreprise, paiements, journal, nomGroupe, filiales, modulesUtilises } = detail;
   const libelle = LIBELLE_STATUT[entreprise.statutAbonnement] ?? { texte: entreprise.statutAbonnement, variant: "brand" as const };
 
   return (
@@ -58,6 +67,32 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
             <p className="text-xs text-muted-foreground">Échéance de l&apos;abonnement</p>
             <p className="font-medium">{formatDate(entreprise.abonnementEcheanceLe)}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Puzzle className="size-4" aria-hidden />
+            Modules à la carte utilisés
+          </CardTitle>
+          <CardDescription>
+            Marketing, Réservations, Recrutement, Assistance client et One Form restent tous inclus dans l&apos;abonnement — ceci reflète
+            l&apos;usage réel (au moins une donnée créée), pas une activation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {modulesUtilises.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {modulesUtilises.map((addon) => (
+                <Badge key={addon} variant="brand">
+                  {LIBELLE_ADDON[addon] ?? addon}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun module à la carte utilisé pour le moment.</p>
+          )}
         </CardContent>
       </Card>
 
