@@ -35,11 +35,21 @@ export default async function PageDetailOneVault({ params }: { params: Promise<{
 
       <h1 className="text-2xl font-semibold tracking-tight">{secret.titre}</h1>
 
-      <FormulaireSecret
-        secret={{ id: secret.id, titre: secret.titre, identifiant: secret.identifiant, url: secret.url, partage: secret.partage }}
-        peutModifier={peutModifier}
-        peutSupprimer={peutSupprimer}
-      />
+      {secret.supprimeLe ? (
+        <p className="text-sm text-muted-foreground">
+          Ce secret est dans la corbeille — restaurez-le depuis la{" "}
+          <Link href="/app/one-vault/corbeille" className="font-medium text-primary hover:underline">
+            Corbeille
+          </Link>{" "}
+          pour le modifier.
+        </p>
+      ) : (
+        <FormulaireSecret
+          secret={{ id: secret.id, titre: secret.titre, identifiant: secret.identifiant, url: secret.url, partage: secret.partage }}
+          peutModifier={peutModifier}
+          peutSupprimer={peutSupprimer}
+        />
+      )}
     </div>
   );
 }

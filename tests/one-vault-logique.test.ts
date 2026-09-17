@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { eq, or } from "drizzle-orm";
+import { eq, or, and, isNull, isNotNull, desc } from "drizzle-orm";
 import { db, avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { entreprise, utilisateur, secretVault, journalAccesSecretVault } from "@/db/schema";
 import { chiffrerContenuSecret, dechiffrerContenuSecret } from "@/lib/vault/crypto";
@@ -33,6 +33,51 @@ async function revelerSecret(tx: TransactionDrizzle, entrepriseId: string, role:
   const [ligne] = await tx.select({ contenuChiffre: secretVault.contenuChiffre }).from(secretVault).where(eq(secretVault.id, secretId));
   await tx.insert(journalAccesSecretVault).values({ entrepriseId, secretId, utilisateurId, action: "consultation" });
   return { ok: true as const, ...dechiffrerContenuSecret(ligne.contenuChiffre) };
+}
+
+// Corbeille (2026-09-17) — reproduit recupererSecrets()/recupererCorbeille()/
+// restaurerSecret()/supprimerDefinitivement() à l'identique.
+async function idsListeActive(tx: TransactionDrizzle, role: RoleTest, utilisateurId: string): Promise<string[]> {
+  const filtre = filtreVisibilite(role, utilisateurId);
+  const lignes = await tx
+    .select({ id: secretVault.id })
+    .from(secretVault)
+    .where(filtre ? and(isNull(secretVault.supprimeLe), filtre) : isNull(secretVault.supprimeLe));
+  return lignes.map((l) => l.id);
+}
+
+async function idsCorbeille(tx: TransactionDrizzle, role: RoleTest, utilisateurId: string): Promise<string[]> {
+  const filtre = filtreVisibilite(role, utilisateurId);
+  const lignes = await tx
+    .select({ id: secretVault.id })
+    .from(secretVault)
+    .where(filtre ? and(isNotNull(secretVault.supprimeLe), filtre) : isNotNull(secretVault.supprimeLe));
+  return lignes.map((l) => l.id);
+}
+
+async function supprimerDefinitivementTest(tx: TransactionDrizzle, role: RoleTest, utilisateurId: string, secretId: string): Promise<void> {
+  const visible = await secretVisiblePour(tx, role, utilisateurId, secretId);
+  if (!visible) return;
+  const [ligne] = await tx.select({ supprimeLe: secretVault.supprimeLe }).from(secretVault).where(eq(secretVault.id, secretId));
+  if (!ligne?.supprimeLe) return;
+  await tx.delete(secretVault).where(eq(secretVault.id, secretId));
+}
+
+// Journal global (2026-09-17) — reproduit recupererJournal() à l'identique.
+async function journalVisible(tx: TransactionDrizzle, role: RoleTest, utilisateurId: string) {
+  const lignes = await tx
+    .select({
+      id: journalAccesSecretVault.id,
+      action: journalAccesSecretVault.action,
+      secretPartage: secretVault.partage,
+      secretCreeParId: secretVault.creeParId,
+    })
+    .from(journalAccesSecretVault)
+    .leftJoin(secretVault, eq(journalAccesSecretVault.secretId, secretVault.id))
+    .orderBy(desc(journalAccesSecretVault.creeLe));
+
+  if (role === "ADMIN") return lignes;
+  return lignes.filter((l) => l.secretCreeParId !== null && (l.secretPartage || l.secretCreeParId === utilisateurId));
 }
 
 describe("One Vault — logique métier", () => {
@@ -132,5 +177,85 @@ describe("One Vault — logique métier", () => {
 
     const journal = await avecEntreprise(entrepriseId, (tx) => tx.select().from(journalAccesSecretVault).where(eq(journalAccesSecretVault.secretId, prive.id)));
     expect(journal).toHaveLength(0);
+  });
+
+  test("un secret mis à la corbeille disparaît de la liste active et apparaît dans la corbeille, avec la même règle de visibilité", async () => {
+    const [prive] = await avecEntreprise(entrepriseId, (tx) =>
+      tx.insert(secretVault).values({ entrepriseId, titre: "Secret À Corbeille", contenuChiffre: chiffrerContenuSecret({ motDePasse: "a", notes: "" }), creeParId: employeAId, partage: false }).returning({ id: secretVault.id })
+    );
+
+    expect(await avecEntreprise(entrepriseId, (tx) => idsListeActive(tx, "EMPLOYE", employeAId))).toContain(prive.id);
+
+    await avecEntreprise(entrepriseId, (tx) => tx.update(secretVault).set({ supprimeLe: new Date() }).where(eq(secretVault.id, prive.id)));
+
+    expect(await avecEntreprise(entrepriseId, (tx) => idsListeActive(tx, "EMPLOYE", employeAId))).not.toContain(prive.id);
+    expect(await avecEntreprise(entrepriseId, (tx) => idsCorbeille(tx, "EMPLOYE", employeAId))).toContain(prive.id);
+    // Un autre Employé (non créateur, secret privé) ne le voit ni dans la
+    // liste active ni dans la corbeille.
+    expect(await avecEntreprise(entrepriseId, (tx) => idsCorbeille(tx, "EMPLOYE", employeBId))).not.toContain(prive.id);
+    // L'Admin voit tout, y compris dans la corbeille.
+    expect(await avecEntreprise(entrepriseId, (tx) => idsCorbeille(tx, "ADMIN", adminId))).toContain(prive.id);
+  });
+
+  test("restaurer un secret le fait réapparaître dans la liste active", async () => {
+    const [secret] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(secretVault)
+        .values({ entrepriseId, titre: "Secret À Restaurer", contenuChiffre: chiffrerContenuSecret({ motDePasse: "b", notes: "" }), creeParId: employeAId, partage: false, supprimeLe: new Date() })
+        .returning({ id: secretVault.id })
+    );
+
+    expect(await avecEntreprise(entrepriseId, (tx) => idsCorbeille(tx, "EMPLOYE", employeAId))).toContain(secret.id);
+
+    await avecEntreprise(entrepriseId, (tx) => tx.update(secretVault).set({ supprimeLe: null }).where(eq(secretVault.id, secret.id)));
+
+    expect(await avecEntreprise(entrepriseId, (tx) => idsListeActive(tx, "EMPLOYE", employeAId))).toContain(secret.id);
+    expect(await avecEntreprise(entrepriseId, (tx) => idsCorbeille(tx, "EMPLOYE", employeAId))).not.toContain(secret.id);
+  });
+
+  test("supprimerDefinitivement refuse tant que le secret n'est pas déjà dans la corbeille", async () => {
+    const [secret] = await avecEntreprise(entrepriseId, (tx) =>
+      tx.insert(secretVault).values({ entrepriseId, titre: "Secret Actif Protégé", contenuChiffre: chiffrerContenuSecret({ motDePasse: "c", notes: "" }), creeParId: employeAId, partage: false }).returning({ id: secretVault.id })
+    );
+
+    await avecEntreprise(entrepriseId, (tx) => supprimerDefinitivementTest(tx, "ADMIN", adminId, secret.id));
+
+    const [toujoursLa] = await avecEntreprise(entrepriseId, (tx) => tx.select({ id: secretVault.id }).from(secretVault).where(eq(secretVault.id, secret.id)));
+    expect(toujoursLa).toBeDefined();
+  });
+
+  test("supprimerDefinitivement supprime réellement un secret déjà dans la corbeille, sans effacer son journal", async () => {
+    const [secret] = await avecEntreprise(entrepriseId, (tx) =>
+      tx
+        .insert(secretVault)
+        .values({ entrepriseId, titre: "Secret Définitif", contenuChiffre: chiffrerContenuSecret({ motDePasse: "d", notes: "" }), creeParId: employeAId, partage: false, supprimeLe: new Date() })
+        .returning({ id: secretVault.id })
+    );
+    await avecEntreprise(entrepriseId, (tx) => tx.insert(journalAccesSecretVault).values({ entrepriseId, secretId: secret.id, utilisateurId: employeAId, action: "suppression" }));
+
+    await avecEntreprise(entrepriseId, (tx) => supprimerDefinitivementTest(tx, "ADMIN", adminId, secret.id));
+
+    const [disparu] = await avecEntreprise(entrepriseId, (tx) => tx.select({ id: secretVault.id }).from(secretVault).where(eq(secretVault.id, secret.id)));
+    expect(disparu).toBeUndefined();
+
+    const journalSurvivant = await avecEntreprise(entrepriseId, (tx) => tx.select().from(journalAccesSecretVault).where(eq(journalAccesSecretVault.secretId, secret.id)));
+    expect(journalSurvivant.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("le journal global respecte la visibilité privé/partagé : un Employé ne voit pas les entrées d'un secret privé d'un collègue", async () => {
+    const [prive] = await avecEntreprise(entrepriseId, (tx) =>
+      tx.insert(secretVault).values({ entrepriseId, titre: "Secret Journal Privé", contenuChiffre: chiffrerContenuSecret({ motDePasse: "e", notes: "" }), creeParId: employeAId, partage: false }).returning({ id: secretVault.id })
+    );
+    await avecEntreprise(entrepriseId, (tx) => revelerSecret(tx, entrepriseId, "EMPLOYE", employeAId, prive.id));
+
+    const journalA = await avecEntreprise(entrepriseId, (tx) => journalVisible(tx, "EMPLOYE", employeAId));
+    expect(journalA.some((j) => j.id)).toBe(true); // au moins une ligne visible pour le créateur
+
+    const journalB = await avecEntreprise(entrepriseId, (tx) => journalVisible(tx, "EMPLOYE", employeBId));
+    const idsJournalA = new Set((await avecEntreprise(entrepriseId, (tx) => journalVisible(tx, "EMPLOYE", employeAId))).map((j) => j.id));
+    expect(journalB.some((j) => idsJournalA.has(j.id))).toBe(false);
+
+    const journalAdmin = await avecEntreprise(entrepriseId, (tx) => journalVisible(tx, "ADMIN", adminId));
+    expect(idsJournalA.size > 0 && journalAdmin.length >= idsJournalA.size).toBe(true);
   });
 });

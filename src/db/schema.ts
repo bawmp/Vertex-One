@@ -3451,6 +3451,11 @@ export const secretVault = pgTable(
       .references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+    // Corbeille (2026-09-17) — suppression douce : nul = actif, sinon dans la
+    // corbeille (récupérable via restaurerSecret()). La suppression réelle
+    // (supprimerDefinitivement()) exige que ce champ soit déjà renseigné —
+    // jamais un raccourci direct depuis la liste principale.
+    supprimeLe: timestamp("supprime_le"),
   },
   (table) => [
     index("secret_vault_entreprise_idx").on(table.entrepriseId),
@@ -3467,7 +3472,8 @@ export const secretVault = pgTable(
  * consultation de la liste, qui n'affiche que titre/identifiant/URL en
  * clair) — même patron que `journalAccesDocument` ci-dessus : `secretId`
  * sans référence (survit à une suppression réelle du secret, droit à
- * l'effacement).
+ * l'effacement). `action` : "consultation" | "modification" | "suppression"
+ * | "restauration".
  */
 export const journalAccesSecretVault = pgTable(
   "journal_acces_secret_vault",

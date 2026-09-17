@@ -1,11 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, or, and, isNull, isNotNull, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
-import { secretVault, journalAccesSecretVault } from "@/db/schema";
+import { secretVault, journalAccesSecretVault, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { vaultConfigure, chiffrerContenuSecret, dechiffrerContenuSecret } from "@/lib/vault/crypto";
@@ -60,8 +60,30 @@ export async function recupererSecrets() {
         misAJourLe: secretVault.misAJourLe,
       })
       .from(secretVault)
-      .where(filtre)
+      .where(filtre ? and(isNull(secretVault.supprimeLe), filtre) : isNull(secretVault.supprimeLe))
       .orderBy(desc(secretVault.misAJourLe))
+  );
+}
+
+/** Corbeille (2026-09-17) — même règle de visibilité que la liste principale. */
+export async function recupererCorbeille() {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return [];
+
+  const filtre = filtreVisibilite(utilisateurConnecte);
+  return avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx
+      .select({
+        id: secretVault.id,
+        titre: secretVault.titre,
+        partage: secretVault.partage,
+        creeParId: secretVault.creeParId,
+        supprimeLe: secretVault.supprimeLe,
+      })
+      .from(secretVault)
+      .where(filtre ? and(isNotNull(secretVault.supprimeLe), filtre) : isNotNull(secretVault.supprimeLe))
+      .orderBy(desc(secretVault.supprimeLe))
   );
 }
 
@@ -166,6 +188,13 @@ export async function modifierSecret(_etat: EtatOneVault, formData: FormData): P
   return null;
 }
 
+/**
+ * Suppression douce (corbeille, 2026-09-17) — jamais une suppression réelle
+ * directement depuis la liste principale, pour laisser un filet de
+ * rattrapage à une erreur sur un secret partagé par toute l'équipe. La
+ * suppression réelle passe uniquement par supprimerDefinitivement(), depuis
+ * la corbeille elle-même.
+ */
 export async function supprimerSecret(secretId: string): Promise<void> {
   const { utilisateurConnecte, erreur } = await garde("SUPPRIMER");
   if (erreur || !utilisateurConnecte) return;
@@ -175,11 +204,50 @@ export async function supprimerSecret(secretId: string): Promise<void> {
     if (!visible) return;
 
     await tx.insert(journalAccesSecretVault).values({ entrepriseId: utilisateurConnecte.entrepriseId, secretId, utilisateurId: utilisateurConnecte.utilisateurId, action: "suppression" });
-    await tx.delete(secretVault).where(eq(secretVault.id, secretId));
+    await tx.update(secretVault).set({ supprimeLe: new Date() }).where(eq(secretVault.id, secretId));
   });
 
   revalidatePath("/app/one-vault");
+  revalidatePath("/app/one-vault/corbeille");
   redirect("/app/one-vault");
+}
+
+export async function restaurerSecret(secretId: string): Promise<void> {
+  const { utilisateurConnecte, erreur } = await garde("MODIFIER");
+  if (erreur || !utilisateurConnecte) return;
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visible = await secretVisiblePour(tx, utilisateurConnecte, secretId);
+    if (!visible) return;
+
+    await tx.update(secretVault).set({ supprimeLe: null }).where(eq(secretVault.id, secretId));
+    await tx.insert(journalAccesSecretVault).values({ entrepriseId: utilisateurConnecte.entrepriseId, secretId, utilisateurId: utilisateurConnecte.utilisateurId, action: "restauration" });
+  });
+
+  revalidatePath("/app/one-vault");
+  revalidatePath("/app/one-vault/corbeille");
+}
+
+/** Suppression réelle — exige que le secret soit déjà dans la corbeille. */
+export async function supprimerDefinitivement(secretId: string): Promise<void> {
+  const { utilisateurConnecte, erreur } = await garde("SUPPRIMER");
+  if (erreur || !utilisateurConnecte) return;
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visible = await secretVisiblePour(tx, utilisateurConnecte, secretId);
+    if (!visible) return;
+
+    const [ligne] = await tx.select({ supprimeLe: secretVault.supprimeLe }).from(secretVault).where(eq(secretVault.id, secretId));
+    if (!ligne?.supprimeLe) return;
+
+    // journalAccesSecretVault n'a volontairement aucune référence vers
+    // secretVault (voir son commentaire, src/db/schema.ts) — ses lignes
+    // survivent à cette suppression réelle, contrairement au secret
+    // lui-même.
+    await tx.delete(secretVault).where(eq(secretVault.id, secretId));
+  });
+
+  revalidatePath("/app/one-vault/corbeille");
 }
 
 /**
@@ -221,5 +289,52 @@ export async function recupererSecretPourEdition(secretId: string) {
     if (!secret) return null;
     if (utilisateurConnecte.role !== "ADMIN" && !secret.partage && secret.creeParId !== utilisateurConnecte.utilisateurId) return null;
     return secret;
+  });
+}
+
+export type LigneJournal = {
+  id: string;
+  action: string;
+  creeLe: Date;
+  secretTitre: string | null;
+  utilisateurNom: string | null;
+};
+
+/**
+ * Journal global du module (2026-09-17) — pas de page dédiée jusqu'ici
+ * malgré la journalisation déjà en place depuis la création du module.
+ * `secretVault` est jointe en LEFT JOIN (jamais de référence FK sur
+ * `journalAccesSecretVault.secretId`, voir son commentaire) : une ligne
+ * dont le secret a depuis été supprimé définitivement reste consultable,
+ * mais seulement par l'Administrateur — impossible de revérifier après
+ * coup si elle concernait un secret privé d'un tiers.
+ */
+export async function recupererJournal(): Promise<LigneJournal[]> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return [];
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const lignes = await tx
+      .select({
+        id: journalAccesSecretVault.id,
+        action: journalAccesSecretVault.action,
+        creeLe: journalAccesSecretVault.creeLe,
+        secretTitre: secretVault.titre,
+        secretPartage: secretVault.partage,
+        secretCreeParId: secretVault.creeParId,
+        utilisateurNom: utilisateur.nomComplet,
+      })
+      .from(journalAccesSecretVault)
+      .leftJoin(secretVault, eq(journalAccesSecretVault.secretId, secretVault.id))
+      .leftJoin(utilisateur, eq(journalAccesSecretVault.utilisateurId, utilisateur.id))
+      .orderBy(desc(journalAccesSecretVault.creeLe));
+
+    const visibles =
+      utilisateurConnecte.role === "ADMIN"
+        ? lignes
+        : lignes.filter((l) => l.secretCreeParId !== null && (l.secretPartage || l.secretCreeParId === utilisateurConnecte.utilisateurId));
+
+    return visibles.map((l) => ({ id: l.id, action: l.action, creeLe: l.creeLe, secretTitre: l.secretTitre, utilisateurNom: l.utilisateurNom }));
   });
 }

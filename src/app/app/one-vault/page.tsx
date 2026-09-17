@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { KeyRound, Lock } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, Lock, ScrollText, Trash2 } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,6 +9,7 @@ import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
 import { recupererSecrets } from "@/lib/actions/one-vault";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BoutonActiverOneVault } from "./bouton-activer-one-vault";
 import { FormulaireNouveauSecret } from "./formulaire-nouveau-secret";
 import { LigneSecret } from "./ligne-secret";
@@ -51,6 +53,17 @@ export default async function PageOneVault() {
         )
       ) : (
         <>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" render={<Link href="/app/one-vault/journal" />} nativeButton={false}>
+              <ScrollText data-icon="inline-start" aria-hidden />
+              Journal
+            </Button>
+            <Button variant="outline" size="sm" render={<Link href="/app/one-vault/corbeille" />} nativeButton={false}>
+              <Trash2 data-icon="inline-start" aria-hidden />
+              Corbeille
+            </Button>
+          </div>
+
           {peutGerer ? <FormulaireNouveauSecret /> : null}
 
           <Card className="p-0">
