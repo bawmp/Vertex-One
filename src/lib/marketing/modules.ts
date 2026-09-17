@@ -12,6 +12,7 @@ import {
   Megaphone,
   MessageSquare,
   ClipboardList,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,7 +24,7 @@ import {
  * pages sous src/app/app/), pas une description marketing générique.
  *
  * Depuis l'abonnement plat unique (2026-09-14, voir src/lib/plans.ts), les
- * 13 modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
+ * 14 modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
  * vendu séparément, contrairement à Zoho One.
  */
 export type ModuleMarketing = {
@@ -200,6 +201,20 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Notification par email à chaque nouvelle réponse, en option",
       "Protection anti-spam intégrée sur le formulaire public",
       "Disponibilité programmable : date d'ouverture, date de fermeture, nombre maximal de réponses",
+    ],
+  },
+  {
+    slug: "one-vault",
+    nom: "One Vault",
+    resume: "Identifiants et notes sensibles chiffrés, privés ou partagés avec l'équipe.",
+    icone: KeyRound,
+    classeFond: "bg-yellow-500",
+    capacites: [
+      "Mots de passe et notes chiffrés au repos, jamais stockés en clair",
+      "Chaque secret est privé par défaut, visible uniquement par son créateur et l'Administrateur",
+      "Partage avec toute l'équipe en un clic, pour les identifiants communs",
+      "Générateur de mot de passe intégré",
+      "Journal de consultation à chaque révélation d'un mot de passe",
     ],
   },
   {
