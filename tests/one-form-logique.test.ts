@@ -229,7 +229,7 @@ describe("One Form — logique métier", () => {
   });
 
   test("soumission publique : refuse après la date de fermeture", async () => {
-    const [form] = await avecEntreprise(entrepriseId, (tx) =>
+    await avecEntreprise(entrepriseId, (tx) =>
       tx
         .insert(formulaire)
         .values({ entrepriseId, titre: "TEST Ferme", slug: `test-ferme-${entrepriseId}`, publie: true, creeParId: utilisateurId, fermetureLe: new Date(Date.now() - 3_600_000) })

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog, Lock } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog, Lock, KeyRound } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -255,6 +255,9 @@ const MODULES_MENU: ItemMenu[] = [
   // One Form (addon à la carte) — item racine plat, même raisonnement que
   // Réservations/Recrutement/Assistance client.
   { module: "ONE_FORM", libelle: "One Form", href: "/app/one-form", Icone: ClipboardList },
+  // One Vault (addon à la carte) — item racine plat, même raisonnement que
+  // One Form/Réservations/Recrutement/Assistance client.
+  { module: "ONE_VAULT", libelle: "One Vault", href: "/app/one-vault", Icone: KeyRound },
   // Réorganisé en groupe (retour utilisateur, 2026-09-13 : "je vois aussi
   // l'onglet paramètres dans Zoho, mais chez vertexone ce n'est pas
   // configuré") — le lien plat pointait vers /app/parametres, qui n'avait

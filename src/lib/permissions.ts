@@ -21,6 +21,7 @@ export type Module =
   | "RECRUTEMENT"
   | "SUPPORT"
   | "ONE_FORM"
+  | "ONE_VAULT"
   | "PARAMETRES";
 export type Action = "VOIR" | "CREER" | "MODIFIER" | "SUPPRIMER";
 export type Portee = "TOUT" | "EQUIPE" | "PROPRE";
@@ -72,6 +73,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // raisonnement que MARKETING : construction/gestion des formulaires
     // réservée Admin/Manager, visibilité large (pas un module personnel).
     ONE_FORM: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
+    // One Vault (2026-09-17) — module complémentaire à la carte. La portée
+    // TOUT ne gouverne QUE les actions ici : la visibilité fine (secret
+    // privé vs partagé) est un filtre applicatif dans src/lib/actions/
+    // one-vault.ts, pas modélisable par Portee (voir son commentaire).
+    ONE_VAULT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Module complémentaire à la carte (disponibleAddon(), comme MARKETING),
     // échange du 2026-09-13. Configuration (services, personnel, disponibilités,
     // paramètres publics) réservée à l'Administrateur via une vérification
@@ -114,6 +120,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     RH: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
     MARKETING: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
     ONE_FORM: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "TOUT" },
+    ONE_VAULT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Gère ses propres rendez-vous et ceux de son équipe, jamais la
     // configuration (services/personnel/disponibilités), réservée Admin.
     RESERVATIONS: { actions: ["VOIR", "CREER", "MODIFIER"], portee: "EQUIPE" },
@@ -141,6 +148,11 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     RH: { actions: ["VOIR", "CREER"], portee: "PROPRE" },
     MARKETING: { actions: ["VOIR"], portee: "TOUT" },
     ONE_FORM: { actions: ["VOIR"], portee: "TOUT" },
+    // Doit pouvoir créer/gérer ses propres identifiants privés (ex. ses
+    // accès personnels à un outil), pas seulement consulter — la
+    // restriction réelle (ne jamais voir un secret privé d'un collègue)
+    // vient du filtre applicatif, pas de la portée.
+    ONE_VAULT: { actions: ["VOIR", "CREER", "MODIFIER", "SUPPRIMER"], portee: "TOUT" },
     // Voit/annule ses propres rendez-vous, jamais ceux d'un collègue.
     RESERVATIONS: { actions: ["VOIR", "MODIFIER"], portee: "PROPRE" },
     // Voit les candidatures qui lui sont assignées, jamais la configuration.
@@ -172,6 +184,7 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     RH: { actions: [], portee: "PROPRE" },
     MARKETING: { actions: [], portee: "PROPRE" },
     ONE_FORM: { actions: [], portee: "PROPRE" },
+    ONE_VAULT: { actions: [], portee: "PROPRE" },
     // Un compte CLIENT (portail restreint) ne gère jamais de rendez-vous
     // depuis /app — le client externe réserve toujours via la page publique
     // /reserver/[slug], sans compte ni session (voir src/app/reserver/).

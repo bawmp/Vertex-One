@@ -28,6 +28,7 @@ const LIBELLE_ADDON: Record<string, string> = {
   RECRUTEMENT: "Recrutement",
   SUPPORT: "Assistance client",
   ONE_FORM: "One Form",
+  ONE_VAULT: "One Vault",
 };
 
 const formatDate = (date: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(date);

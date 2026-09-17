@@ -21,6 +21,7 @@ const PRIX_ADDON: Record<Addon, number> = {
   RECRUTEMENT: 10_000,
   SUPPORT: 10_000,
   ONE_FORM: 10_000,
+  ONE_VAULT: 10_000,
 };
 
 export async function activerAddon(addon: Addon) {
@@ -40,6 +41,7 @@ export async function activerAddon(addon: Addon) {
   revalidatePath("/app/recrutement/parametres");
   revalidatePath("/app/support");
   revalidatePath("/app/one-form");
+  revalidatePath("/app/one-vault");
   revalidatePath("/app/parametres");
 }
 

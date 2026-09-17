@@ -1,7 +1,7 @@
 import "server-only";
 import { desc, eq, ne, and } from "drizzle-orm";
 import { dbPlateforme } from "@/db/plateforme";
-import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe, campagne, serviceReservable, posteOuvert, ticketSupport, formulaire } from "@/db/schema";
+import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe, campagne, serviceReservable, posteOuvert, ticketSupport, formulaire, secretVault } from "@/db/schema";
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
 import type { Addon } from "@/lib/plans";
 
@@ -13,18 +13,21 @@ const PRIX_ABONNEMENT_MENSUEL = 50_000;
 // pour tous les vrais clients. L'usage réel (au moins une ligne créée dans
 // la table cœur du module) est le seul signal fiable pour le staff — voir
 // échange du 2026-09-17.
-async function utilise(entrepriseId: string, table: typeof campagne | typeof serviceReservable | typeof posteOuvert | typeof ticketSupport | typeof formulaire): Promise<boolean> {
+type TableCoeurAddon = typeof campagne | typeof serviceReservable | typeof posteOuvert | typeof ticketSupport | typeof formulaire | typeof secretVault;
+
+async function utilise(entrepriseId: string, table: TableCoeurAddon): Promise<boolean> {
   const [ligne] = await dbPlateforme.select({ id: table.id }).from(table).where(eq(table.entrepriseId, entrepriseId)).limit(1);
   return !!ligne;
 }
 
 export async function recupererModulesUtilises(entrepriseId: string): Promise<Addon[]> {
-  const paires: [Addon, typeof campagne | typeof serviceReservable | typeof posteOuvert | typeof ticketSupport | typeof formulaire][] = [
+  const paires: [Addon, TableCoeurAddon][] = [
     ["MARKETING", campagne],
     ["RESERVATIONS", serviceReservable],
     ["RECRUTEMENT", posteOuvert],
     ["SUPPORT", ticketSupport],
     ["ONE_FORM", formulaire],
+    ["ONE_VAULT", secretVault],
   ];
   const resultats = await Promise.all(paires.map(async ([addon, table]) => ((await utilise(entrepriseId, table)) ? addon : null)));
   return resultats.filter((a): a is Addon => a !== null);

@@ -35,7 +35,7 @@ export function disponible(entreprise: { planAbonnement: string; statutAbonnemen
 // (aucune UI ne les active plus), jamais supprimés pour éviter un churn
 // inutile. Le type Addon reste utilisé comme littéral typé aux 15 points
 // d'appel existants.
-export type Addon = "MARKETING" | "FACTURATION_ABONNEMENTS" | "RESERVATIONS" | "RECRUTEMENT" | "SUPPORT" | "ONE_FORM";
+export type Addon = "MARKETING" | "FACTURATION_ABONNEMENTS" | "RESERVATIONS" | "RECRUTEMENT" | "SUPPORT" | "ONE_FORM" | "ONE_VAULT";
 
 export async function disponibleAddon(_tx: TransactionDrizzle, entreprise: { id: string; statutAbonnement: string }, _addon: Addon): Promise<boolean> {
   return entreprise.statutAbonnement !== "suspendu";

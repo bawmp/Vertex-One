@@ -3423,6 +3423,77 @@ export const valeurChampReponse = pgTable(
   ]
 ).enableRLS();
 
+/**
+ * One Vault (2026-09-17) — gestionnaire de secrets façon Zoho Vault. RLS
+ * strictement standard : aucune façade anonyme comme pour `formulaire`
+ * (ce module n'a jamais besoin d'être lu sans session). Le filtre
+ * privé/partagé (`partage`) est un filtre applicatif, pas une politique RLS
+ * — comme `PROPRE` l'est déjà partout ailleurs dans ce projet (portee.ts) :
+ * aucune policy de ce dépôt n'encode une notion par-utilisateur, seulement
+ * par-entreprise. `motDePasse`/`notes` ne sont jamais stockés en clair —
+ * chiffrés ensemble dans `contenuChiffre` via src/lib/vault/crypto.ts
+ * (AES-256-GCM, clé maîtresse côté serveur).
+ */
+export const secretVault = pgTable(
+  "secret_vault",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    identifiant: text("identifiant"), // nom d'utilisateur/email, en clair — utile pour la liste sans déchiffrer
+    url: text("url"),
+    contenuChiffre: text("contenu_chiffre").notNull(), // base64(iv+authTag+ciphertext) de { motDePasse, notes }
+    partage: boolean("partage").notNull().default(false),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("secret_vault_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Journalise chaque révélation d'un mot de passe (pas la simple
+ * consultation de la liste, qui n'affiche que titre/identifiant/URL en
+ * clair) — même patron que `journalAccesDocument` ci-dessus : `secretId`
+ * sans référence (survit à une suppression réelle du secret, droit à
+ * l'effacement).
+ */
+export const journalAccesSecretVault = pgTable(
+  "journal_acces_secret_vault",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    secretId: text("secret_id").notNull(),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    action: text("action").notNull(), // "consultation" | "modification" | "suppression"
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("journal_acces_secret_vault_entreprise_idx").on(table.entrepriseId),
+    index("journal_acces_secret_vault_secret_idx").on(table.secretId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Verrouillage à la carte, indépendant du forfait (docs/palier-6-*, section
 // 5) — voir disponibleAddon() dans src/lib/plans.ts. Réservé pour l'instant
 // à l'addon "MARKETING" (Campagnes/automatisations/Page d'atterrissage,
