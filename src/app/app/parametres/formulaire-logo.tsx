@@ -11,8 +11,8 @@ export function FormulaireLogo({ entrepriseId, logoCleStockage, nomEntreprise }:
 
   return (
     <form action={action} className="flex items-center gap-4">
-      <div className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed p-2">
-        <LogoEntreprise entrepriseId={entrepriseId} logoCleStockage={logoCleStockage} nomEntreprise={nomEntreprise} />
+      <div className={`flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${logoCleStockage ? "border-border" : "border-dashed p-2"}`}>
+        <LogoEntreprise entrepriseId={entrepriseId} logoCleStockage={logoCleStockage} nomEntreprise={nomEntreprise} recadre />
       </div>
       <div className="flex flex-col gap-2">
         <input type="file" name="logo" accept="image/*" className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium" required />
