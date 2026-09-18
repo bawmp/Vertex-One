@@ -2,24 +2,25 @@
 
 Note vivante, pas une spécification figée : à cocher/mettre à jour au fil de l'avancement, jusqu'à ce que les trois points ci-dessous soient levés. Créée le 2026-09-14 suite à la question directe "puis-je déjà vendre cette application ?" — le cœur du produit (CRM, Facturation, RH, Projets, Documents, Réservations, Recrutement, Assistance client) est testé et fonctionnel ; ce sont ces trois intégrations externes, non configurées dans l'environnement de développement, qui bloquent un vrai client aujourd'hui.
 
-## 0. Hébergement et domaine — décidé, pas encore fait (2026-09-17)
+## 0. Hébergement et domaine — en grande partie fait (2026-09-17/18)
 
-**Statut : rien de créé encore.** Discuté avec l'utilisateur : l'entreprise (Vertex Technology) a déjà un domaine, mais Vertex One aura son propre domaine dédié plutôt qu'un sous-domaine — cohérence marketing (le site vend "Vertex One" comme produit à part entière) et isolation de la réputation d'envoi email (Resend) par rapport aux autres communications de l'entreprise-mère.
+Discuté avec l'utilisateur : l'entreprise (Vertex Technology) a déjà un domaine, mais Vertex One a son propre domaine dédié plutôt qu'un sous-domaine — cohérence marketing (le site vend "Vertex One" comme produit à part entière) et isolation de la réputation d'envoi email (Resend) par rapport aux autres communications de l'entreprise-mère.
 
-- [ ] **Domaine** — acheter un domaine dédié (ex. `vertexone.cm`, `vertexone.app`, `vertexone.com` selon disponibilité/prix — le `.cm` camerounais peut avoir des conditions d'enregistrement plus restrictives, à vérifier avant de s'y engager).
-- [ ] **Hébergement de l'application** — Vercel (zéro-config pour Next.js, gratuit pour démarrer, HTTPS/CDN automatiques). Connecter le dépôt GitHub, renseigner toutes les variables d'environnement listées dans ce fichier et `.env.example` dans les réglages du projet Vercel.
-- [ ] **Hébergement du worker** — Vercel ne supporte pas un processus long-vivant (le worker graphile-worker a besoin d'une connexion persistante LISTEN/NOTIFY, voir CLAUDE.md). Un second service séparé (Railway ou Render, ~5-7 $/mois) dédié uniquement à `npm run worker`, avec `DATABASE_URL_WORKER` (endpoint direct Neon, sans "-pooler").
-- [ ] Une fois le domaine actif : mettre à jour `BETTER_AUTH_URL` en production avec l'URL réelle (ex. `https://vertexone.cm`), condition pour que Better-Auth émette des cookies de session valides.
+- [x] **Domaine** — `vertexone.cm` acheté. En attente d'activation par le registre (délai normal pour un `.cm`, en cours).
+- [x] **Hébergement de l'application** — déployé sur Vercel (compte personnel, pas de Team — carte non acceptée pour créer une Team, contournable plus tard), connecté au dépôt GitHub `bawmp/Vertex-One`, branche `main`. URL actuelle : `https://vertex-one-bawmp.vercel.app`. Base de données de production créée (projet Neon séparé, base `vertexone-prod`, même compute que le développement — voir note ci-dessous), rôles restreints `app_vertexone_prod`/`plateforme_lecture_prod` créés et vérifiés (`NOBYPASSRLS` confirmé, insertion refusée sans `app.entreprise_id`), 95 migrations appliquées. Inscription réelle testée en production : compte ADMIN créé et fonctionnel.
+- [x] **Hébergement du worker** — déployé sur Railway, commande de démarrage personnalisée `npm run worker`, connecté au même dépôt/branche. Logs confirmés (worker actif).
+- [ ] **Domaine à connecter** — dès que `vertexone.cm` devient actif : l'ajouter dans Vercel (Settings → Domains), mettre à jour les enregistrements DNS chez le registrar, puis remettre `BETTER_AUTH_URL` sur `https://vertexone.cm` (actuellement réglée temporairement sur l'URL `.vercel.app`) — **à la fois sur Vercel et sur Railway**, les deux en dépendent (Better-Auth pour les cookies de session, le worker pour construire les liens dans les emails de rappel d'abonnement).
+
+**Note sur la base de production** : `vertexone-prod` est une base séparée du développement (`neondb`) mais dans le **même projet Neon**, donc le même compute — un test de charge en dev pourrait ralentir la production. Acceptable tant qu'il n'y a pas de vrais clients ; à séparer en projet Neon distinct si ça devient un problème réel.
 
 ## 1. Stockage de fichiers — Cloudflare R2
 
-**Statut : non configuré.** Sans ça, aucun fichier ne se sauvegarde réellement (logo d'entreprise, documents RH, pièces d'identité, CV de candidats, pièces jointes) — le code échoue proprement (pas de crash), mais rien n'est stocké.
+**Statut : configuré et vérifié (2026-09-18).** Compte Cloudflare existant réutilisé (déjà utilisé pour un autre projet, bh2-group) — un bucket dédié avec un jeton API restreint à ce seul bucket suffit à isoler les deux usages, pas besoin d'un compte séparé. Upload réel testé en production (logo d'entreprise) : succès.
 
-- [ ] Créer un compte sur [dash.cloudflare.com](https://dash.cloudflare.com)
-- [ ] R2 → créer un bucket (ex. `vertex-one-documents`)
-- [ ] R2 → "Manage API Tokens" → jeton avec permission **Object Read & Write** sur ce bucket
-- [ ] Noter l'**Account ID** (visible dans l'URL du tableau de bord R2)
-- [ ] Renseigner dans `.env.local` (et les variables d'environnement de l'hébergeur en production) :
+- [x] Compte Cloudflare (existant, réutilisé)
+- [x] R2 → bucket créé (`vertex-one-documents`)
+- [x] R2 → jeton d'API du compte, permission **Lecture et écriture d'objets**, restreint à ce bucket
+- [x] Renseigné dans Vercel (production) :
   ```
   R2_ACCOUNT_ID="..."
   R2_ACCESS_KEY_ID="..."
