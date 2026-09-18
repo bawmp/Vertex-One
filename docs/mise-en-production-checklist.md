@@ -44,12 +44,12 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 ## 3. Paiement Mobile Money — CinetPay
 
-**Statut : intégration préparée (code réel), compte non créé.** Contrairement aux deux points précédents, l'intégration côté code est déjà construite — il ne reste que la partie compte/KYC côté CinetPay. Le même compte sert désormais à **deux usages** :
+**Statut (2026-09-18) : compte créé, en bac à sable (sandbox), KYC en attente de validation.** Contrairement aux deux points précédents, l'intégration côté code est déjà construite — il ne reste que la validation côté CinetPay avant de pouvoir encaisser réellement. Le même compte sert désormais à **deux usages** :
 1. Paiement des factures client par les clients d'un tenant (`docs/crm-roadmap-post-commercialisation.md`, section 36).
 2. **Abonnement plateforme** — chaque tenant paie 50 000 FCFA/mois à Vertex One lui-même (section 37) : essai gratuit de 14 jours, délai de grâce de 48h après échéance avant suspension d'accès.
 
-- [ ] Créer un compte business sur [cinetpay.com](https://cinetpay.com)
-- [ ] Soumettre et valider le KYC (nécessaire avant tout retrait de fonds réels — délai variable, parfois plusieurs jours)
+- [x] Créer un compte business sur [cinetpay.com](https://cinetpay.com)
+- [ ] Soumettre et valider le KYC (en cours — nécessaire avant tout retrait de fonds réels, délai variable, parfois plusieurs jours) — en attendant, les clés de bac à sable ne permettent que des paiements de test, jamais un vrai encaissement
 - [ ] Renseigner dans `.env.local` / production :
   ```
   CINETPAY_APIKEY="..."
