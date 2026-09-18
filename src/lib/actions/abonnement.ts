@@ -6,7 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { initierPaiement, idTransactionExterne } from "@/lib/cinetpay/client";
+import { initierPaiement } from "@/lib/cinetpay/client";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
 
@@ -44,7 +44,7 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
       .returning({ id: tentativePaiementAbonnement.id });
 
     const resultat = await initierPaiement({
-      transactionId: idTransactionExterne(utilisateurConnecte.entrepriseId, tentative.id),
+      transactionId: tentative.id,
       montant: PRIX_ABONNEMENT_MENSUEL,
       description: "Abonnement Vertex One — mensuel",
       notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify-abonnement`,

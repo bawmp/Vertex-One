@@ -4,15 +4,15 @@ import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, tentativePaiementAbonnement } from "@/db/schema";
 
 /**
- * Abonnement plat CinetPay (2026-09-14) — test de fuite délibérée entre deux
- * entreprises fictives, voir CLAUDE.md : "après chaque nouveau module
- * touchant à des données d'entreprise, un test délibéré doit vérifier
- * qu'une entreprise fictive ne peut techniquement pas accéder aux données
- * d'une autre." Même structure que tests/tentative-paiement-facture-fuite-rls.test.ts —
- * RLS strictement standard (contrairement à `invitation`), aucune lecture
- * anonyme : le webhook retrouve l'entrepriseId via le préfixage du
- * transaction_id (voir tests/cinetpay-logique.test.ts), jamais via une
- * policy dérogatoire.
+ * Abonnement plat CinetPay (2026-09-14, migré vers cinetpay-js le
+ * 2026-09-18) — test de fuite délibérée entre deux entreprises fictives,
+ * voir CLAUDE.md : "après chaque nouveau module touchant à des données
+ * d'entreprise, un test délibéré doit vérifier qu'une entreprise fictive ne
+ * peut techniquement pas accéder aux données d'une autre." Même structure
+ * que tests/tentative-paiement-facture-fuite-rls.test.ts — carve-out de
+ * lecture anonyme façon `invitation` depuis la migration (voir le
+ * commentaire sur tentativePaiementAbonnement dans src/db/schema.ts),
+ * écriture anonyme toujours strictement rejetée.
  */
 describe("Tentative de paiement Abonnement — isolation RLS entre entreprises", () => {
   let kiroId: string;
@@ -57,9 +57,19 @@ describe("Tentative de paiement Abonnement — isolation RLS entre entreprises",
     expect(depuisKiro).toHaveLength(0);
   });
 
-  test("aucune lecture anonyme (contrairement à invitation) — une requête sans session ne renvoie rien", async () => {
+  test("lecture anonyme par id exact réussit (nécessaire au webhook public, même patron que invitation)", async () => {
     const sansSession = await db.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentativeMbargaId));
-    expect(sansSession).toHaveLength(0);
+    expect(sansSession).toHaveLength(1);
+    expect(sansSession[0].entrepriseId).toBe(mbargaId);
+  });
+
+  test("écriture anonyme rejetée — une mise à jour sans avecEntreprise() ne modifie jamais rien", async () => {
+    const resultat = await db
+      .update(tentativePaiementAbonnement)
+      .set({ statut: "CONFIRME" })
+      .where(eq(tentativePaiementAbonnement.id, tentativeMbargaId))
+      .returning({ id: tentativePaiementAbonnement.id });
+    expect(resultat).toHaveLength(0);
   });
 
   test("l'entreprise propriétaire voit bien sa propre tentative", async () => {

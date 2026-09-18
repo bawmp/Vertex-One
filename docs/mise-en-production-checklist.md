@@ -45,18 +45,21 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 ## 3. Paiement Mobile Money — CinetPay
 
-**Statut (2026-09-18) : compte créé, en bac à sable (sandbox), KYC en attente de validation.** Contrairement aux deux points précédents, l'intégration côté code est déjà construite — il ne reste que la validation côté CinetPay avant de pouvoir encaisser réellement. Le même compte sert désormais à **deux usages** :
+**Statut (2026-09-18) : migré vers le package officiel `cinetpay-js`, round-trip réel vérifié en bac à sable (authentification + initialisation + vérification de statut), KYC toujours en attente de validation.** Le même compte sert **deux usages** :
 1. Paiement des factures client par les clients d'un tenant (`docs/crm-roadmap-post-commercialisation.md`, section 36).
 2. **Abonnement plateforme** — chaque tenant paie 50 000 FCFA/mois à Vertex One lui-même (section 37) : essai gratuit de 14 jours, délai de grâce de 48h après échéance avant suspension d'accès.
 
 - [x] Créer un compte business sur [cinetpay.com](https://cinetpay.com)
 - [ ] Soumettre et valider le KYC (en cours — nécessaire avant tout retrait de fonds réels, délai variable, parfois plusieurs jours) — en attendant, les clés de bac à sable ne permettent que des paiements de test, jamais un vrai encaissement
-- [ ] Renseigner dans `.env.local` / production :
+- [x] Renseigner dans `.env.local` (clés sandbox) :
   ```
   CINETPAY_APIKEY="..."
-  CINETPAY_SITE_ID="..."
+  CINETPAY_APIPASSWORD="..."
   ```
-- [ ] Une fois les clés en place, vérifier de bout en bout : (a) un paiement de facture depuis `/app/facturation/factures/[id]` (bouton "Envoyer un lien de paiement Mobile Money"), et (b) un paiement d'abonnement depuis `/app/parametres/abonnement` (bouton "Régler mon abonnement") — ni l'un ni l'autre n'a jamais été vérifié avec un vrai encaissement dans l'environnement de développement, aucune clé CinetPay n'y étant disponible.
+- [ ] Renseigner les mêmes variables dans l'environnement de **production** (clés `sk_live_...` une fois le KYC validé — les clés `sk_test_...` de dev ne fonctionneront jamais en dehors du bac à sable)
+- [ ] **Whitelister l'IP de sortie de production** dans le tableau de bord CinetPay (section Intégration/API — "This Ip is not whitelisted", code 2011, sinon) : Vercel (qui exécute les Server Actions déclenchant le paiement) n'a pas d'IP de sortie fixe par défaut, contrairement à une machine de dev classique — à résoudre avant tout test en production (IP statique payante côté Vercel, ou faire transiter l'appel par Railway où tourne déjà le worker, qui peut avoir une IP plus stable).
+- [x] Vérifié en bac à sable (script scratch contre le vrai `cinetpay-js`, supprimé après usage) : authentification OAuth réussie, `payment.initialize()` renvoie une vraie `paymentUrl` CinetPay avec redirection, `payment.getStatus()` correctement remonté.
+- [ ] Une fois les clés live en place, vérifier de bout en bout en conditions réelles : (a) un paiement de facture depuis `/app/facturation/factures/[id]` (bouton "Envoyer un lien de paiement Mobile Money"), et (b) un paiement d'abonnement depuis `/app/parametres/abonnement` (bouton "Régler mon abonnement") — jamais vérifié avec un vrai encaissement (argent réel) à ce stade, seulement en bac à sable.
 - [ ] Vérifier que le worker (`npm run worker`) tourne en production — la tâche planifiée quotidienne `verifier-abonnements` (8h) est ce qui envoie les rappels d'échéance et suspend l'accès en cas de non-paiement ; sans le worker actif, aucun tenant n'est jamais relancé ni suspendu.
 
 **Rappel commercial, non négociable (voir CLAUDE.md)** : CinetPay est custodial, avec un délai de reversement par défaut de **8 jours** (réductible sur demande auprès de CinetPay après KYC) — ne jamais présenter ce paiement comme "instantané" ou "direct" dans le discours commercial.

@@ -1294,20 +1294,20 @@ export const paiement = pgTable(
   ]
 ).enableRLS();
 
-// Paiement en ligne CinetPay (préparé le 2026-09-14, en attente de
-// CINETPAY_APIKEY/CINETPAY_SITE_ID — même traitement que Migadu/Resend/R2
-// avant configuration) — une ligne par tentative, créée avant l'appel à
-// l'API CinetPay (genererLienPaiement()) pour servir d'ancrage retrouvable
-// par le webhook de notification (route publique, sans session).
+// Paiement en ligne CinetPay (préparé le 2026-09-14, migré vers le SDK
+// cinetpay-js le 2026-09-18 — package officiel, API v1) — une ligne par
+// tentative, créée avant l'appel à l'API CinetPay (genererLienPaiement())
+// pour servir d'ancrage retrouvable par le webhook de notification (route
+// publique, sans session).
 //
-// RLS strictement standard (contrairement à `invitation`, pas de carve-out
-// de lecture anonyme) : le transaction_id transmis à CinetPay est
-// `${entrepriseId}__${id}` (voir idExterneUtilisateur()/idExterneCanal()
-// dans src/lib/chat/client.ts pour le même patron de préfixage — CLAUDE.md,
-// "tout identifiant transmis à un service externe partagé est préfixé par
-// l'entrepriseId"), donc le webhook connaît déjà l'entrepriseId avant même
-// d'interroger la base et peut ouvrir avecEntreprise() directement, sans
-// avoir besoin d'une politique de lecture permissive.
+// Carve-out de lecture anonyme, même patron que `invitation` : l'API v1 de
+// CinetPay impose merchantTransactionId ≤ 30 caractères, ce qui exclut le
+// préfixage `${entrepriseId}__${id}` utilisé par l'ancienne API v2 (deux
+// cuid2 de 24 caractères dépassent largement la limite). Le `id` de cette
+// table (cuid2, 24 caractères) sert donc tel quel de merchantTransactionId,
+// et le webhook retrouve l'entrepriseId par une lecture anonyme (policy
+// ci-dessous), avant d'ouvrir avecEntreprise() pour la mise à jour — jamais
+// l'inverse. Écriture toujours stricte.
 export const tentativePaiementFacture = pgTable(
   "tentative_paiement_facture",
   {
@@ -1326,10 +1326,24 @@ export const tentativePaiementFacture = pgTable(
   (table) => [
     index("tentative_paiement_facture_entreprise_idx").on(table.entrepriseId),
     index("tentative_paiement_facture_facture_idx").on(table.factureId),
-    pgPolicy("isolation_entreprise", {
-      for: "all",
+    pgPolicy("isolation_entreprise_lecture", {
+      for: "select",
+      // nullif(..., '') IS NULL plutôt que IS NULL seul — voir CLAUDE.md
+      // (current_setting renvoie '' et non NULL sur une connexion fraîche).
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
+    }),
+    pgPolicy("isolation_entreprise_ecriture", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_modification", {
+      for: "update",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
       withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_suppression", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
     }),
   ]
 ).enableRLS();
@@ -1339,10 +1353,10 @@ export const tentativePaiementFacture = pgTable(
 // Vertex One lui-même, pas un de ses propres clients) : table et webhook
 // séparés plutôt qu'un mécanisme générique à discriminant (voir
 // src/lib/actions/abonnement.ts / src/app/api/paiements/cinetpay/notify-abonnement/route.ts).
-// RLS strictement standard, pas de carve-out de lecture anonyme — le
-// transaction_id transmis à CinetPay est préfixé par l'entrepriseId
-// (idTransactionExterne(), src/lib/cinetpay/utilitaires.ts), donc le webhook
-// connaît déjà l'entrepriseId avant d'interroger la base.
+// Carve-out de lecture anonyme, même patron que `invitation` et
+// tentativePaiementFacture (voir son commentaire ci-dessus pour le détail :
+// migration cinetpay-js du 2026-09-18, limite de 30 caractères sur
+// merchantTransactionId). Écriture toujours stricte.
 export const tentativePaiementAbonnement = pgTable(
   "tentative_paiement_abonnement",
   {
@@ -1357,10 +1371,22 @@ export const tentativePaiementAbonnement = pgTable(
   },
   (table) => [
     index("tentative_paiement_abonnement_entreprise_idx").on(table.entrepriseId),
-    pgPolicy("isolation_entreprise", {
-      for: "all",
+    pgPolicy("isolation_entreprise_lecture", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
+    }),
+    pgPolicy("isolation_entreprise_ecriture", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_modification", {
+      for: "update",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
       withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_suppression", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
     }),
   ]
 ).enableRLS();

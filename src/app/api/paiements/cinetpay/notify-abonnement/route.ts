@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { avecEntreprise } from "@/db/client";
+import { db, avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
-import { verifierTransaction, analyserIdTransactionExterne } from "@/lib/cinetpay/client";
+import { verifierTransaction } from "@/lib/cinetpay/client";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 
 /**
@@ -12,52 +12,53 @@ import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
  * clients) : route et table séparées plutôt qu'un webhook générique à
  * discriminant.
  *
- * cpm_trans_id est préfixé par l'entrepriseId (idTransactionExterne(), même
- * patron que le prestataire de chat) — cette route ouvre donc avecEntreprise()
- * directement, sans lecture anonyme ni policy RLS dérogatoire.
+ * merchant_transaction_id (= tentativePaiementAbonnement.id) est retrouvé
+ * par une lecture anonyme (policy RLS de lecture permissive dédiée, même
+ * patron que `invitation` — voir src/db/schema.ts), puis la mise à jour
+ * s'exécute dans avecEntreprise() une fois l'entrepriseId connu.
  *
  * CinetPay ne transmet jamais le statut réel dans la notification elle-même
  * (mesure anti man-in-the-middle documentée par CinetPay) — verifierTransaction()
- * (appel serveur-à-serveur avec notre propre apikey) est la seule source de
- * vérité. Idempotent : CinetPay peut appeler cette URL plusieurs fois pour
- * la même transaction.
+ * (appel serveur-à-serveur avec nos propres identifiants) est la seule
+ * source de vérité. Idempotent : CinetPay peut appeler cette URL plusieurs
+ * fois pour la même transaction.
  */
 export async function POST(request: Request) {
-  let transactionIdBrut: string | null = null;
+  let transactionId: string | null = null;
   try {
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const corps = await request.json();
-      transactionIdBrut = corps?.cpm_trans_id ?? corps?.transaction_id ?? null;
+      transactionId = corps?.merchant_transaction_id ?? null;
     } else {
       const formData = await request.formData();
-      transactionIdBrut = (formData.get("cpm_trans_id") as string | null) ?? (formData.get("transaction_id") as string | null);
+      transactionId = formData.get("merchant_transaction_id") as string | null;
     }
   } catch {
     return new NextResponse("Requête invalide", { status: 400 });
   }
 
-  if (!transactionIdBrut) return new NextResponse("cpm_trans_id manquant", { status: 400 });
+  if (!transactionId) return new NextResponse("merchant_transaction_id manquant", { status: 400 });
 
-  const analyse = analyserIdTransactionExterne(transactionIdBrut);
-  if (!analyse) return new NextResponse("transaction_id invalide", { status: 400 });
-  const { entrepriseId, tentativeId } = analyse;
+  const [tentativeAnonyme] = await db.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, transactionId));
+  if (!tentativeAnonyme) return new NextResponse("Transaction inconnue", { status: 404 });
 
-  const verification = await verifierTransaction(transactionIdBrut);
+  const verification = await verifierTransaction(transactionId);
+  const entrepriseId = tentativeAnonyme.entrepriseId;
 
-  const trouvee = await avecEntreprise(entrepriseId, async (tx) => {
-    const [tentative] = await tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentativeId));
-    if (!tentative || tentative.statut === "CONFIRME") return Boolean(tentative);
+  await avecEntreprise(entrepriseId, async (tx) => {
+    const [tentative] = await tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, transactionId));
+    if (!tentative || tentative.statut === "CONFIRME") return;
 
     if (verification.statut === "REFUSED" || verification.statut === "CANCELLED") {
-      await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC" }).where(eq(tentativePaiementAbonnement.id, tentativeId));
-      return true;
+      await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC" }).where(eq(tentativePaiementAbonnement.id, transactionId));
+      return;
     }
 
-    if (verification.statut !== "ACCEPTED") return true; // PENDING/INCONNU — CinetPay rappellera
+    if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — CinetPay rappellera
 
     const [monEntreprise] = await tx.select({ abonnementEcheanceLe: entreprise.abonnementEcheanceLe }).from(entreprise).where(eq(entreprise.id, entrepriseId));
-    if (!monEntreprise) return true;
+    if (!monEntreprise) return;
 
     const nouvelleEcheance = prochaineEcheanceApresPaiement(monEntreprise.abonnementEcheanceLe, new Date());
 
@@ -69,11 +70,8 @@ export async function POST(request: Request) {
       .update(entreprise)
       .set({ abonnementEcheanceLe: nouvelleEcheance, statutAbonnement: "actif", dernierRappelAbonnementEnvoye: null })
       .where(eq(entreprise.id, entrepriseId));
-    await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: new Date() }).where(eq(tentativePaiementAbonnement.id, tentativeId));
-
-    return true;
+    await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: new Date() }).where(eq(tentativePaiementAbonnement.id, transactionId));
   });
 
-  if (!trouvee) return new NextResponse("Transaction inconnue", { status: 404 });
   return new NextResponse("OK", { status: 200 });
 }

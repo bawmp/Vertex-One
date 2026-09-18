@@ -14,7 +14,7 @@ import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { initierPaiement, idTransactionExterne } from "@/lib/cinetpay/client";
+import { initierPaiement } from "@/lib/cinetpay/client";
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -103,11 +103,11 @@ export async function annulerFacture(factureId: string, motif: string) {
 /**
  * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : génère un
  * lien de paiement CinetPay (Mobile Money) — non branché tant que
- * CINETPAY_APIKEY/CINETPAY_SITE_ID ne sont pas configurées (même traitement
- * que Migadu/Resend/R2 : le contrôle d'accès est réel, l'intégration
- * externe est différée). Rappel CLAUDE.md : CinetPay est custodial avec
- * délai de reversement — ne jamais présenter ce lien comme un encaissement
- * "instantané" ou "direct".
+ * CINETPAY_APIKEY/CINETPAY_APIPASSWORD ne sont pas configurées (même
+ * traitement que Migadu/Resend/R2 : le contrôle d'accès est réel,
+ * l'intégration externe est différée). Rappel CLAUDE.md : CinetPay est
+ * custodial avec délai de reversement — ne jamais présenter ce lien comme un
+ * encaissement "instantané" ou "direct".
  *
  * Une ligne tentativePaiementFacture est créée AVANT l'appel à CinetPay —
  * son id sert de transaction_id (jamais l'id de la Facture, transmis à un
@@ -139,7 +139,7 @@ export async function genererLienPaiement(factureId: string): Promise<{ url?: st
       .returning({ id: tentativePaiementFacture.id });
 
     const resultat = await initierPaiement({
-      transactionId: idTransactionExterne(utilisateurConnecte.entrepriseId, tentative.id),
+      transactionId: tentative.id,
       montant: laFacture.montantTTC,
       description: `Facture ${laFacture.numero}`,
       notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify`,

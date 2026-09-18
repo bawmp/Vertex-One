@@ -4,15 +4,17 @@ import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, facture, tentativePaiementFacture } from "@/db/schema";
 
 /**
- * Paiement en ligne CinetPay (2026-09-14) — test de fuite délibérée entre
- * deux entreprises fictives, voir CLAUDE.md : "après chaque nouveau module
- * touchant à des données d'entreprise, un test délibéré doit vérifier
- * qu'une entreprise fictive ne peut techniquement pas accéder aux données
- * d'une autre." Contrairement à `invitation`, cette table n'a pas de
- * carve-out de lecture anonyme (RLS strictement standard) — le webhook
- * retrouve l'entrepriseId via le préfixage du transaction_id, jamais via
- * une policy dérogatoire (voir tests/cinetpay-logique.test.ts pour la
- * logique de préfixage elle-même).
+ * Paiement en ligne CinetPay (2026-09-14, migré vers cinetpay-js le
+ * 2026-09-18) — test de fuite délibérée entre deux entreprises fictives,
+ * voir CLAUDE.md : "après chaque nouveau module touchant à des données
+ * d'entreprise, un test délibéré doit vérifier qu'une entreprise fictive ne
+ * peut techniquement pas accéder aux données d'une autre." Cette table a,
+ * depuis la migration, un carve-out de lecture anonyme façon `invitation` —
+ * l'API v1 de CinetPay impose merchantTransactionId ≤ 30 caractères,
+ * incompatible avec l'ancien préfixage entrepriseId+id (voir le commentaire
+ * sur tentativePaiementFacture dans src/db/schema.ts). Ce test vérifie donc
+ * à la fois que la lecture anonyme fonctionne bien (par id exact) ET que
+ * l'écriture anonyme reste, elle, strictement rejetée.
  */
 describe("Tentative de paiement Facture — isolation RLS entre entreprises", () => {
   let kiroId: string;
@@ -86,12 +88,22 @@ describe("Tentative de paiement Facture — isolation RLS entre entreprises", ()
     expect(depuisKiro).toHaveLength(0);
   });
 
-  test("aucune lecture anonyme (contrairement à invitation) — une requête sans session ne renvoie rien", async () => {
-    // Contrairement à `invitation`, cette table n'a pas de policy de lecture
-    // permissive : un db.select() direct (sans avecEntreprise()) ne doit
-    // renvoyer aucune ligne, quel que soit l'id demandé.
+  test("lecture anonyme par id exact réussit (nécessaire au webhook public, même patron que invitation)", async () => {
     const sansSession = await db.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentativeMbargaId));
-    expect(sansSession).toHaveLength(0);
+    expect(sansSession).toHaveLength(1);
+    expect(sansSession[0].entrepriseId).toBe(mbargaId);
+  });
+
+  test("écriture anonyme rejetée — une mise à jour sans avecEntreprise() ne modifie jamais rien", async () => {
+    const resultat = await db
+      .update(tentativePaiementFacture)
+      .set({ statut: "CONFIRME" })
+      .where(eq(tentativePaiementFacture.id, tentativeMbargaId))
+      .returning({ id: tentativePaiementFacture.id });
+    expect(resultat).toHaveLength(0);
+
+    const [tentativeInchangee] = await avecEntreprise(mbargaId, (tx) => tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentativeMbargaId)));
+    expect(tentativeInchangee.statut).toBe("EN_ATTENTE");
   });
 
   test("l'entreprise propriétaire voit bien sa propre tentative", async () => {
