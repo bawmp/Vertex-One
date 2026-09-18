@@ -66,22 +66,18 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 ## 4. Console interne plateforme — rôle Postgres et variables d'environnement
 
-**Statut : code réel construit et testé, rôle à créer une seule fois en production.** `/plateforme` (vue propriétaire, toutes les entreprises clientes) a besoin d'un rôle Postgres dédié, séparé de celui de l'application — voir `docs/crm-roadmap-post-commercialisation.md`, section 38, pour le détail.
+**Statut (2026-09-18) : le rôle existe déjà en production** (`plateforme_lecture_prod`, créé lors de la mise en place initiale du 2026-09-17/18 — voir section 0 ; vérifié directement : `BYPASSRLS` actif, `SELECT` accordé sur 105 tables + ACL par défaut pour les futures tables). Il ne manque que le mot de passe (jamais enregistré nulle part de récupérable) et les deux variables d'environnement côté Vercel.
 
-- [ ] Dans la console SQL de Neon (production), exécuter une fois :
+- [ ] Dans la console SQL de Neon (projet `vertexone-prod`), exécuter une fois :
   ```sql
-  CREATE ROLE plateforme_lecture WITH LOGIN PASSWORD '...' BYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  GRANT USAGE ON SCHEMA public TO plateforme_lecture;
-  GRANT SELECT ON ALL TABLES IN SCHEMA public TO plateforme_lecture;
-  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO plateforme_lecture;
+  ALTER ROLE plateforme_lecture_prod WITH PASSWORD '...';
   ```
-  (Choisir un mot de passe fort dédié — jamais réutiliser celui de `DATABASE_URL`/`DATABASE_URL_MIGRATIONS`.)
-- [ ] Renseigner dans les variables d'environnement de l'hébergeur :
+- [ ] Renseigner dans les variables d'environnement de Vercel (production) :
   ```
-  DATABASE_URL_PLATEFORME="postgresql://plateforme_lecture:motdepasse@<même hôte que DATABASE_URL>/vertexone?sslmode=require"
+  DATABASE_URL_PLATEFORME="postgresql://plateforme_lecture_prod:motdepasse@ep-quiet-band-a59v7aa3-pooler.us-east-2.aws.neon.tech/vertexone-prod?sslmode=require&channel_binding=require"
   PLATEFORME_ADMINS="votre-email@exemple.cm"
   ```
-  `PLATEFORME_ADMINS` : l'email d'un compte tenant **déjà existant** (le vôtre) — aucune nouvelle inscription nécessaire, la prochaine connexion avec ce compte suffit pour voir le lien "Console interne".
+  `PLATEFORME_ADMINS` : compte ADMIN déjà existant en production (inscription réelle testée le 2026-09-17/18) — aucune nouvelle inscription nécessaire, la prochaine connexion avec ce compte suffit pour voir le lien "Console interne". Valeurs réelles échangées en conversation le 2026-09-18, jamais enregistrées ici en clair.
 
 ## 5. Chatbot IA "Kyria" (site vitrine) — clé Anthropic
 
@@ -111,11 +107,11 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 **Statut : bloquant pour ce module précisément, pas pour le reste du produit.** Sans `VAULT_ENCRYPTION_KEY`, le module One Vault refuse toute création/modification de secret (fail-closed, volontaire — voir `src/lib/vault/crypto.ts`) plutôt que de stocker un mot de passe en clair. Aucun compte externe à créer, juste une clé à générer une seule fois.
 
-- [ ] Générer une clé avec `openssl rand -base64 32`
-- [ ] Renseigner dans `.env.local` / production :
+- [ ] Générer une clé dédiée à la production avec `openssl rand -base64 32` — **différente de celle du développement** (jamais partager une clé de chiffrement entre environnements) — et la renseigner dans les variables d'environnement de Vercel :
   ```
   VAULT_ENCRYPTION_KEY="..."
   ```
+  (Valeur réelle générée et échangée en conversation le 2026-09-18, jamais enregistrée ici en clair.)
 - [ ] **Ne jamais régénérer cette clé une fois des secrets réels enregistrés** — tout secret chiffré avec l'ancienne clé deviendrait définitivement indéchiffrable (voir le comportement testé dans `tests/one-vault-crypto.test.ts`). La perdre équivaut à perdre tous les secrets stockés : la sauvegarder dans un gestionnaire de secrets séparé (pas seulement dans les variables d'environnement de l'hébergeur), pas uniquement sur la machine de développement.
 
 ## Ordre suggéré

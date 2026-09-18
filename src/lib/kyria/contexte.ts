@@ -19,7 +19,7 @@ Faits réels sur Vertex One (ne jamais en inventer d'autres, ne jamais contredir
 - Abonnement unique : ${PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString("fr-FR")} FCFA/mois, TOUS les modules inclus, aucun forfait ni add-on séparé.
 - Essai gratuit de ${DUREE_ESSAI_JOURS} jours, sans carte bancaire.
 - Délai de grâce de ${DELAI_GRACE_HEURES} heures après l'échéance avant toute suspension d'accès.
-- Paiement par Mobile Money (Orange Money, MTN MoMo) via CinetPay.
+- Paiement par Mobile Money (Orange Money, MTN MoMo) via CinetPay — modèle custodial, avec un délai de reversement de 8 jours par défaut (réductible sur demande auprès de CinetPay après KYC). Jamais instantané ni direct.
 - Employés et collaborateurs illimités, rôles attribués librement une fois l'abonnement souscrit.
 
 Modules disponibles :
