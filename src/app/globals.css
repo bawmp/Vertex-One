@@ -176,3 +176,98 @@
     animation: none;
   }
 }
+/*
+ * Espace candidats (/carrieres) — thème clair forcé : la page doit rester vive
+ * et joyeuse même quand le téléphone du visiteur est en mode sombre. Redéclare
+ * les jetons clairs de :root sous `.espace-clair` (un descendant de `.dark`
+ * l'emporte sur `.dark`). La couleur de marque de l'entreprise est posée en
+ * style en ligne (--primary) sur un élément descendant et reste prioritaire.
+ */
+.espace-clair {
+  color-scheme: light;
+  --background: var(--color-stone-50);
+  --foreground: var(--color-stone-900);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--color-stone-900);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--color-stone-900);
+  --primary: var(--color-emerald-600);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--color-stone-100);
+  --secondary-foreground: var(--color-stone-900);
+  --muted: var(--color-stone-100);
+  --muted-foreground: var(--color-stone-500);
+  --accent: var(--color-emerald-50);
+  --accent-foreground: var(--color-emerald-800);
+  --border: var(--color-stone-200);
+  --input: var(--color-stone-200);
+  --ring: var(--color-emerald-500);
+}
+
+/* Entrée en fondu + montée, échelonnée via --delai. Sans JavaScript. */
+@keyframes carrieres-monter {
+  from { opacity: 0; transform: translateY(28px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.carrieres-monter {
+  animation: carrieres-monter 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--delai, 0ms);
+}
+/* Là où le navigateur le permet, les blocs se révèlent au défilement plutôt qu'au chargement. */
+@supports (animation-timeline: view()) {
+  .carrieres-reveler {
+    animation: carrieres-monter linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+    animation-delay: 0ms;
+  }
+}
+
+@keyframes carrieres-degrade {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.carrieres-degrade {
+  background-size: 200% auto;
+  animation: carrieres-degrade 8s ease-in-out infinite;
+}
+
+@keyframes carrieres-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.carrieres-pop { animation: carrieres-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes carrieres-coche { to { stroke-dashoffset: 0; } }
+.carrieres-coche {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: carrieres-coche 0.6s 0.45s ease-out forwards;
+}
+
+@keyframes carrieres-confetti {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+.carrieres-confetti { animation: carrieres-confetti 1.6s cubic-bezier(0.15, 0.7, 0.3, 1) both; animation-delay: var(--delai, 0ms); }
+
+@keyframes carrieres-tortiller {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-8deg) scale(1.1); }
+  75% { transform: rotate(8deg) scale(1.1); }
+}
+.carrieres-tortiller:hover { animation: carrieres-tortiller 0.6s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .carrieres-monter,
+  .carrieres-reveler,
+  .carrieres-degrade,
+  .carrieres-pop,
+  .carrieres-confetti,
+  .carrieres-tortiller:hover {
+    animation: none;
+  }
+  .carrieres-coche { animation: none; stroke-dashoffset: 0; }
+  .carrieres-confetti { opacity: 0; }
+}

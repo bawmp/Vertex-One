@@ -61,6 +61,7 @@ export default async function PagePostesOuverts() {
               <div className="flex items-center gap-2">
                 <p className="font-medium">{p.titre}</p>
                 {p.lieu ? <Badge variant="neutral">{p.lieu}</Badge> : null}
+                {p.typeContrat ? <Badge variant="brand">{p.typeContrat}</Badge> : null}
                 {!p.actif ? <Badge variant="warning">Désactivé</Badge> : null}
               </div>
               {p.actif ? <BoutonDesactiverPoste posteId={p.id} /> : null}

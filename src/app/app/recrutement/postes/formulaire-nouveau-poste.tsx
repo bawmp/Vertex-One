@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerPosteOuvert } from "@/lib/actions/recrutement";
+import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
 
 export function FormulaireNouveauPoste() {
   const [etat, action, enCours] = useActionState(creerPosteOuvert, null);
@@ -38,8 +41,19 @@ export function FormulaireNouveauPoste() {
             <Input id="lieu" name="lieu" placeholder="Douala" className="max-w-64" />
           </div>
           <div className="flex flex-col gap-2">
+            <Label htmlFor="typeContrat">Type de contrat (optionnel)</Label>
+            <Select id="typeContrat" name="typeContrat" defaultValue="" className="max-w-64">
+              <option value="">Non précisé</option>
+              {TYPES_CONTRAT.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
             <Label htmlFor="description">Description (optionnel)</Label>
-            <Input id="description" name="description" />
+            <Textarea id="description" name="description" rows={5} placeholder={"Missions, profil recherché, ce que vous offrez..."} />
           </div>
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}

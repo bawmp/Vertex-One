@@ -2,28 +2,52 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, posteOuvert, candidature, invitation } from "@/db/schema";
-import { cvValide, TAILLE_MAX_CV_OCTETS } from "@/lib/recrutement/validation";
+import { validerCv, TAILLE_MAX_CV_OCTETS } from "@/lib/recrutement/validation";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
 
-function fichierFactice(taille: number, type: string): File {
-  return new File([new Uint8Array(taille)], "cv.pdf", { type });
+const PDF = Buffer.from("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+const DOCX = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from("....word/document.xml....")]);
+const XLSX = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from("....xl/workbook.xml....")]);
+const HTML = Buffer.from("<html><script>alert(1)</script></html>");
+
+// Le type MIME et le nom envoyés par le navigateur sont volontairement
+// mensongers dans ces tests : seul le contenu réel compte.
+function fichier(contenu: Buffer | Uint8Array, nom = "cv.pdf", type = "application/pdf"): File {
+  return new File([contenu as BlobPart], nom, { type });
 }
 
-describe("Recrutement — validation du CV (fonction pure)", () => {
-  test("fichier vide : refusé", () => {
-    expect(cvValide(fichierFactice(0, "application/pdf"))).not.toBeNull();
+describe("Recrutement — validation du CV par son contenu réel (fonction pure)", () => {
+  test("fichier vide : refusé", async () => {
+    expect((await validerCv(fichier(Buffer.alloc(0)))).ok).toBe(false);
   });
 
-  test("fichier trop volumineux : refusé", () => {
-    expect(cvValide(fichierFactice(TAILLE_MAX_CV_OCTETS + 1, "application/pdf"))).not.toBeNull();
+  test("fichier trop volumineux : refusé", async () => {
+    expect((await validerCv(fichier(Buffer.alloc(TAILLE_MAX_CV_OCTETS + 1, 0x20)))).ok).toBe(false);
   });
 
-  test("type MIME non autorisé : refusé", () => {
-    expect(cvValide(fichierFactice(1000, "image/png"))).not.toBeNull();
+  test("un vrai PDF est accepté", async () => {
+    expect((await validerCv(fichier(PDF))).ok).toBe(true);
   });
 
-  test("PDF de taille raisonnable : accepté", () => {
-    expect(cvValide(fichierFactice(1000, "application/pdf"))).toBeNull();
+  test("un vrai DOCX est accepté, même avec un type MIME vide", async () => {
+    expect((await validerCv(fichier(DOCX, "cv.docx", ""))).ok).toBe(true);
+  });
+
+  test("une image déclarée comme PDF est refusée", async () => {
+    expect((await validerCv(fichier(PNG, "cv.pdf", "application/pdf"))).ok).toBe(false);
+  });
+
+  test("du HTML déguisé en PDF est refusé", async () => {
+    expect((await validerCv(fichier(HTML, "cv.pdf", "application/pdf"))).ok).toBe(false);
+  });
+
+  test("un classeur Excel n'est pas un CV", async () => {
+    expect((await validerCv(fichier(XLSX, "cv.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))).ok).toBe(false);
+  });
+
+  test("un PDF sans type MIME déclaré reste accepté (seul le contenu compte)", async () => {
+    expect((await validerCv(fichier(PDF, "cv", ""))).ok).toBe(true);
   });
 });
 

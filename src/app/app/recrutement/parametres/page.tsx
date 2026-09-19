@@ -9,6 +9,7 @@ import { disponibleAddon } from "@/lib/plans";
 import { BoutonActiverRecrutement } from "../bouton-activer-recrutement";
 import { FormulaireParametresRecrutement } from "./formulaire-parametres";
 import { BoutonPublierRecrutement } from "./bouton-publier";
+import { LienPublicCarrieres } from "./lien-public";
 
 export default async function PageParametresRecrutement() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -50,12 +51,20 @@ export default async function PageParametresRecrutement() {
           <FormulaireParametresRecrutement params={donnees.params} />
 
           {donnees.params ? (
-            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-              <p className="text-sm text-muted-foreground">
-                Page publique : <span className="font-mono">/carrieres/{donnees.params.slug}</span>
-              </p>
+            <>
+            <div className="flex flex-col gap-3 rounded-lg border border-dashed p-4">
+              <p className="text-sm font-medium">Lien à partager avec les candidats</p>
+              <LienPublicCarrieres url={`${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/carrieres/${donnees.params.slug}`} publie={donnees.params.publie} />
               <BoutonPublierRecrutement publie={donnees.params.publie} />
             </div>
+
+            <ol className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+              <li><span className="font-medium text-foreground">1.</span> Créez vos offres dans « Postes ouverts ».</li>
+              <li><span className="font-medium text-foreground">2.</span> Publiez la page ci-dessus.</li>
+              <li><span className="font-medium text-foreground">3.</span> Partagez le lien : chaque candidat choisit une offre, remplit le formulaire et joint son CV.</li>
+              <li><span className="font-medium text-foreground">4.</span> Vous êtes prévenu par email et retrouvez la candidature dans « Recrutement ».</li>
+            </ol>
+            </>
           ) : null}
         </div>
       )}

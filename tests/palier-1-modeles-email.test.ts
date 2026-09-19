@@ -18,6 +18,13 @@ describe("Palier 1 — modèles d'email personnalisables", () => {
     expect(html).toBe("<p>Bonjour,</p>\n<p>&nbsp;</p>\n<p>Cordialement</p>");
   });
 
+  test("corpsVersHtml neutralise le HTML saisi par un tiers (nom de client, réponse de visiteur, candidature)", () => {
+    const html = corpsVersHtml('Nom : <a href="https://piege.example">Cliquez ici</a> & <img src=x onerror=alert(1)>');
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;a href=&quot;https://piege.example&quot;&gt;Cliquez ici&lt;/a&gt; &amp; &lt;img");
+  });
+
   describe("recupererModele (base réelle)", () => {
     let entrepriseId: string;
 

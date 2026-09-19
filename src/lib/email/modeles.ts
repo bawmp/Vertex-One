@@ -37,10 +37,20 @@ export function interpoler(texte: string, variables: Record<string, string>): st
 // react-pdf/react-email ne sont pas nécessaires pour un corps aussi simple —
 // un <p> par ligne suffit, cohérent avec l'esprit "gabarit minimal" déjà
 // choisi pour gabaritRelanceFacture.
+/**
+ * Le texte est échappé : il peut contenir des données saisies par un tiers
+ * (nom d'un client, réponse d'un visiteur anonyme à un formulaire, candidature).
+ * Sans cela, du HTML injecté (liens, images, mise en forme trompeuse) serait
+ * rendu tel quel dans l'email reçu par l'entreprise.
+ */
+export function echapperHtml(texte: string): string {
+  return texte.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 export function corpsVersHtml(corps: string): string {
   return corps
     .split("\n")
-    .map((ligne) => `<p>${ligne.length > 0 ? ligne : "&nbsp;"}</p>`)
+    .map((ligne) => `<p>${ligne.length > 0 ? echapperHtml(ligne) : "&nbsp;"}</p>`)
     .join("\n");
 }
 

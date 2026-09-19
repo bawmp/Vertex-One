@@ -673,6 +673,20 @@
       "when": 1789698201555,
       "tag": "0095_cinetpay_rls_lecture_anonyme",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1789855516928,
+      "tag": "0096_one_form_champ_fichier",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1789858525686,
+      "tag": "0097_recrutement_avantages_contrat",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/se
 import { disponibleAddon } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
+import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
 
 const CHEMIN = "/app/recrutement";
 
@@ -24,6 +25,17 @@ const schemaParametres = z.object({
     .regex(/^[a-z0-9-]+$/, "Le lien ne peut contenir que des lettres minuscules, chiffres et tirets."),
   titre: z.string().trim().min(2, "Le titre est requis."),
   texte: z.string().trim().optional(),
+  // Un atout par ligne, plafonné pour rester lisible sur la page publique.
+  avantages: z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? "")
+        .split("\n")
+        .map((ligne) => ligne.trim().slice(0, 90))
+        .filter(Boolean)
+        .slice(0, 8)
+    ),
 });
 
 export async function configurerParametresRecrutement(_etat: EtatRecrutementConfig, formData: FormData): Promise<EtatRecrutementConfig> {
@@ -33,11 +45,11 @@ export async function configurerParametresRecrutement(_etat: EtatRecrutementConf
     return { erreur: "Seul l'Administrateur peut configurer le recrutement." };
   }
 
-  const analyse = schemaParametres.safeParse({ slug: formData.get("slug"), titre: formData.get("titre"), texte: formData.get("texte") || "" });
+  const analyse = schemaParametres.safeParse({ slug: formData.get("slug"), titre: formData.get("titre"), texte: formData.get("texte") || "", avantages: formData.get("avantages") || "" });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-  const { slug, titre, texte } = analyse.data;
+  const { slug, titre, texte, avantages } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -49,9 +61,9 @@ export async function configurerParametresRecrutement(_etat: EtatRecrutementConf
 
     try {
       if (existant) {
-        await tx.update(parametreRecrutement).set({ slug, titre, texte: texte || null }).where(eq(parametreRecrutement.id, existant.id));
+        await tx.update(parametreRecrutement).set({ slug, titre, texte: texte || null, avantages: avantages.length > 0 ? avantages : null }).where(eq(parametreRecrutement.id, existant.id));
       } else {
-        await tx.insert(parametreRecrutement).values({ entrepriseId: utilisateurConnecte.entrepriseId, slug, titre, texte: texte || undefined });
+        await tx.insert(parametreRecrutement).values({ entrepriseId: utilisateurConnecte.entrepriseId, slug, titre, texte: texte || undefined, avantages: avantages.length > 0 ? avantages : undefined });
       }
     } catch {
       return { erreur: "Ce lien est déjà utilisé — choisissez-en un autre." };
@@ -79,6 +91,7 @@ const schemaPoste = z.object({
   titre: z.string().trim().min(1, "Le titre est requis."),
   description: z.string().trim().optional(),
   lieu: z.string().trim().optional(),
+  typeContrat: z.enum(TYPES_CONTRAT).optional().or(z.literal("")),
 });
 
 export async function creerPosteOuvert(_etat: EtatRecrutementConfig, formData: FormData): Promise<EtatRecrutementConfig> {
@@ -88,11 +101,11 @@ export async function creerPosteOuvert(_etat: EtatRecrutementConfig, formData: F
     return { erreur: "Seul l'Administrateur peut créer un poste." };
   }
 
-  const analyse = schemaPoste.safeParse({ titre: formData.get("titre"), description: formData.get("description") || "", lieu: formData.get("lieu") || "" });
+  const analyse = schemaPoste.safeParse({ titre: formData.get("titre"), description: formData.get("description") || "", lieu: formData.get("lieu") || "", typeContrat: formData.get("typeContrat") || "" });
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
-  const { titre, description, lieu } = analyse.data;
+  const { titre, description, lieu, typeContrat } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -100,7 +113,7 @@ export async function creerPosteOuvert(_etat: EtatRecrutementConfig, formData: F
       return { erreur: "Le module Recrutement n'est pas activé pour votre entreprise." };
     }
 
-    await tx.insert(posteOuvert).values({ entrepriseId: utilisateurConnecte.entrepriseId, titre, description: description || undefined, lieu: lieu || undefined, creeParId: utilisateurConnecte.utilisateurId });
+    await tx.insert(posteOuvert).values({ entrepriseId: utilisateurConnecte.entrepriseId, titre, description: description || undefined, lieu: lieu || undefined, typeContrat: typeContrat || undefined, creeParId: utilisateurConnecte.utilisateurId });
     return null;
   });
 

@@ -111,6 +111,29 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
   (Valeur réelle générée et échangée en conversation le 2026-09-18, jamais enregistrée ici en clair.)
 - [ ] **Ne jamais régénérer cette clé une fois des secrets réels enregistrés** — tout secret chiffré avec l'ancienne clé deviendrait définitivement indéchiffrable (voir le comportement testé dans `tests/one-vault-crypto.test.ts`). La perdre équivaut à perdre tous les secrets stockés : la sauvegarder dans un gestionnaire de secrets séparé (pas seulement dans les variables d'environnement de l'hébergeur), pas uniquement sur la machine de développement.
 
+## 8. Migration de production — champ « Fichier » de One Form
+
+**Les migrations ne s'appliquent pas automatiquement au déploiement Vercel.** Le code du champ « Fichier » (2026-09-19) est déployé par un simple push, mais tant que la valeur d'enum n'existe pas dans la base de production, ajouter un champ de ce type échoue (le reste de One Form n'est pas affecté).
+
+- [ ] Dans la console SQL de Neon, projet `vertexone-prod` (**pas** `neondb`), exécuter une fois :
+  ```sql
+  ALTER TYPE "type_champ_formulaire" ADD VALUE IF NOT EXISTS 'FICHIER';
+  ```
+  (Sans risque et sans effet sur les données : ajoute seulement une valeur autorisée. Rejouable sans erreur grâce à `IF NOT EXISTS`.)
+- [ ] Vérifier ensuite sur `vertexone.cm` : créer un formulaire, ajouter un champ « Fichier », le publier, envoyer un PDF depuis le lien public.
+
+## 9. Migration de production — page carrières (One Recruit)
+
+**À appliquer AVANT de pousser le code.** Contrairement au champ « Fichier » (§8), la page publique `/carrieres/[slug]` lit les deux nouvelles colonnes dans sa requête : déployée sur une base de production non migrée, elle afficherait « page introuvable » pour toute entreprise qui a déjà publié sa page carrières.
+
+- [ ] Dans la console SQL de Neon, projet `vertexone-prod` (**pas** `neondb`), exécuter une fois :
+  ```sql
+  ALTER TABLE "parametre_recrutement" ADD COLUMN IF NOT EXISTS "avantages" json;
+  ALTER TABLE "poste_ouvert" ADD COLUMN IF NOT EXISTS "type_contrat" text;
+  ```
+  (Deux colonnes nullables, sans effet sur les données existantes, rejouable sans erreur.)
+- [ ] Vérifier ensuite sur `vertexone.cm` : Recrutement → Paramètres (lien public affiché), créer un poste avec un type de contrat, ouvrir la page publique, postuler avec un PDF.
+
 ## Ordre suggéré
 
 0. **Domaine + hébergement** (à lancer en premier — le domaine conditionne la vérification Resend et `BETTER_AUTH_URL`, autant l'acheter tôt même si les autres étapes n'attendent pas dessus)
