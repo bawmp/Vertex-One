@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Paperclip } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { formaterTaille } from "@/lib/one-form/fichiers";
 
 type Champ = { id: string; libelle: string };
-type Reponse = { id: string; creeLe: Date; leadCree: boolean; valeurs: Record<string, string> };
+type FichierRecu = { valeurId: string; nom: string; taille: number };
+type Reponse = { id: string; creeLe: Date; leadCree: boolean; valeurs: Record<string, string>; fichiers: Record<string, FichierRecu> };
 
 export function ListeReponses({ champs, reponses }: { champs: Champ[]; reponses: Reponse[] }) {
   const [ouvertId, setOuvertId] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function ListeReponses({ champs, reponses }: { champs: Champ[]; reponses:
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {ouvert ? <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden /> : <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
-                  <span className="truncate">{apercu ?? "—"}</span>
+                  <span className="truncate">{apercu ?? (Object.keys(r.fichiers).length > 0 ? "Fichier reçu" : "—")}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                   {r.leadCree ? <span className="text-emerald-600">Lead créé</span> : null}
@@ -43,7 +45,18 @@ export function ListeReponses({ champs, reponses }: { champs: Champ[]; reponses:
                   {champs.map((c) => (
                     <div key={c.id} className="flex justify-between gap-3">
                       <span className="text-muted-foreground">{c.libelle}</span>
-                      <span className="text-right">{r.valeurs[c.id] ?? "—"}</span>
+                      {r.fichiers[c.id] ? (
+                        <a
+                          href={`/app/one-form/fichier/${r.fichiers[c.id].valeurId}`}
+                          className="flex min-w-0 items-center gap-1.5 text-right text-primary underline-offset-2 hover:underline"
+                        >
+                          <Paperclip className="size-3.5 shrink-0" aria-hidden />
+                          <span className="truncate">{r.fichiers[c.id].nom}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">({formaterTaille(r.fichiers[c.id].taille)})</span>
+                        </a>
+                      ) : (
+                        <span className="text-right">{r.valeurs[c.id] ?? "—"}</span>
+                      )}
                     </div>
                   ))}
                 </div>

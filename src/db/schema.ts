@@ -3270,9 +3270,12 @@ export const pageAtterrissage = pgTable(
 
 // One Form (2026-09-17) — constructeur de formulaires façon Zoho Forms,
 // module complémentaire à la carte comme Marketing/Réservations (voir
-// addon "ONE_FORM", src/lib/plans.ts). Champ fichier, logique
-// conditionnelle, multi-pages et paiement intégré volontairement hors
-// scope V1.
+// addon "ONE_FORM", src/lib/plans.ts). Logique conditionnelle, multi-pages
+// et paiement intégré volontairement hors scope V1. Champ FICHIER ajouté le
+// 2026-09-19 (migration 0096) : le fichier vit sur R2, sa référence (clé,
+// nom, taille) est un JSON dans valeurChampReponse.valeur, et les types
+// acceptés sont des catégories stockées dans champFormulaire.options — voir
+// src/lib/one-form/fichiers.ts.
 export const typeChampFormulaire = pgEnum("type_champ_formulaire", [
   "TEXTE_COURT",
   "TEXTE_LONG",
@@ -3283,6 +3286,7 @@ export const typeChampFormulaire = pgEnum("type_champ_formulaire", [
   "CHOIX_UNIQUE",
   "CHOIX_MULTIPLE",
   "LISTE_DEROULANTE",
+  "FICHIER",
 ]);
 
 /**
@@ -3774,6 +3778,10 @@ export const parametreRecrutement = pgTable(
     slug: text("slug").notNull().unique(),
     titre: text("titre").notNull().default("Nos offres d'emploi"),
     texte: text("texte"),
+    // "Ce que nous offrons" (2026-09-19) — liste libre saisie par l'Admin,
+    // affichée en cartes sur la page publique. Jamais de valeurs par défaut
+    // inventées : sans saisie, la section n'apparaît pas.
+    avantages: json("avantages").$type<string[]>(),
     publie: boolean("publie").notNull().default(false),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
@@ -3811,6 +3819,9 @@ export const posteOuvert = pgTable(
     titre: text("titre").notNull(),
     description: text("description"),
     lieu: text("lieu"),
+    // CDI, CDD, Stage, Freelance... (2026-09-19) — libellé libre validé côté
+    // serveur contre une liste fermée, voir TYPES_CONTRAT.
+    typeContrat: text("type_contrat"),
     actif: boolean("actif").notNull().default(true),
     creeParId: text("cree_par_id")
       .notNull()

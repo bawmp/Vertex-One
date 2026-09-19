@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { ajouterChamp } from "@/lib/actions/one-form";
+import { CATEGORIES_FICHIER, LIBELLE_CATEGORIE, TAILLE_MAX_TOTAL_LIBELLE } from "@/lib/one-form/fichiers";
 
 const TYPES_CHAMP: { valeur: string; libelle: string }[] = [
   { valeur: "TEXTE_COURT", libelle: "Texte court" },
@@ -20,6 +21,7 @@ const TYPES_CHAMP: { valeur: string; libelle: string }[] = [
   { valeur: "CHOIX_UNIQUE", libelle: "Choix unique" },
   { valeur: "CHOIX_MULTIPLE", libelle: "Choix multiple" },
   { valeur: "LISTE_DEROULANTE", libelle: "Liste déroulante" },
+  { valeur: "FICHIER", libelle: "Fichier (PDF, image…)" },
 ];
 
 const TYPES_AVEC_OPTIONS = new Set(["CHOIX_UNIQUE", "CHOIX_MULTIPLE", "LISTE_DEROULANTE"]);
@@ -54,6 +56,19 @@ export function FormulaireAjoutChamp({ formulaireId }: { formulaireId: string })
           <Label htmlFor="options">Options (une par ligne)</Label>
           <Textarea id="options" name="options" rows={3} placeholder={"Option A\nOption B\nOption C"} />
         </div>
+      ) : null}
+
+      {type === "FICHIER" ? (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-1 text-sm font-medium">Formats acceptés</legend>
+          {CATEGORIES_FICHIER.map((categorie) => (
+            <label key={categorie} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="categories" value={categorie} defaultChecked className="size-4" />
+              {LIBELLE_CATEGORIE[categorie]}
+            </label>
+          ))}
+          <p className="text-xs text-muted-foreground">Taille maximale : {TAILLE_MAX_TOTAL_LIBELLE} au total par envoi. Les photos trop lourdes sont réduites automatiquement.</p>
+        </fieldset>
       ) : null}
 
       <label className="flex items-center gap-2 text-sm">

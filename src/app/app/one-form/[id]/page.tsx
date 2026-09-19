@@ -11,6 +11,7 @@ import { ListeChamps } from "../liste-champs";
 import { FormulaireAjoutChamp } from "../formulaire-ajout-champ";
 import { FormulaireParametres } from "../formulaire-parametres";
 import { ListeReponses } from "../liste-reponses";
+import { decoderValeurFichier } from "@/lib/one-form/fichiers";
 
 export default async function PageDetailOneForm({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,20 +34,29 @@ export default async function PageDetailOneForm({ params }: { params: Promise<{ 
     const champs = await tx.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, id)).orderBy(asc(champFormulaire.ordre));
     const reponses = await tx.select().from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, id)).orderBy(desc(reponseFormulaire.creeLe));
 
+    const champsFichier = new Set(champs.filter((c) => c.type === "FICHIER").map((c) => c.id));
     const valeursParReponse = new Map<string, Record<string, string>>();
+    const fichiersParReponse = new Map<string, Record<string, { valeurId: string; nom: string; taille: number }>>();
     for (const r of reponses) {
       const lignes = await tx.select().from(valeurChampReponse).where(eq(valeurChampReponse.reponseFormulaireId, r.id));
       valeursParReponse.set(
         r.id,
-        Object.fromEntries(lignes.map((l) => [l.champFormulaireId, l.valeur]))
+        Object.fromEntries(lignes.filter((l) => !champsFichier.has(l.champFormulaireId)).map((l) => [l.champFormulaireId, l.valeur]))
       );
+      const fichiers: Record<string, { valeurId: string; nom: string; taille: number }> = {};
+      for (const l of lignes) {
+        if (!champsFichier.has(l.champFormulaireId)) continue;
+        const decode = decoderValeurFichier(l.valeur);
+        if (decode) fichiers[l.champFormulaireId] = { valeurId: l.id, nom: decode.nom, taille: decode.taille };
+      }
+      fichiersParReponse.set(r.id, fichiers);
     }
 
-    return { leFormulaire, champs, reponses, valeursParReponse };
+    return { leFormulaire, champs, reponses, valeursParReponse, fichiersParReponse };
   });
 
   if (!donnees) notFound();
-  const { leFormulaire, champs, reponses, valeursParReponse } = donnees;
+  const { leFormulaire, champs, reponses, valeursParReponse, fichiersParReponse } = donnees;
 
   const peutModifier = peut(utilisateurConnecte.role, "ONE_FORM", "MODIFIER");
   const peutSupprimer = peut(utilisateurConnecte.role, "ONE_FORM", "SUPPRIMER");
@@ -81,7 +91,7 @@ export default async function PageDetailOneForm({ params }: { params: Promise<{ 
         <TabsPanel value="reponses">
           <ListeReponses
             champs={champs.map((c) => ({ id: c.id, libelle: c.libelle }))}
-            reponses={reponses.map((r) => ({ id: r.id, creeLe: r.creeLe, leadCree: !!r.leadId, valeurs: valeursParReponse.get(r.id) ?? {} }))}
+            reponses={reponses.map((r) => ({ id: r.id, creeLe: r.creeLe, leadCree: !!r.leadId, valeurs: valeursParReponse.get(r.id) ?? {}, fichiers: fichiersParReponse.get(r.id) ?? {} }))}
           />
         </TabsPanel>
       </Tabs>

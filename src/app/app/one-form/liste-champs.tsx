@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { reordonnerChamps, supprimerChamp } from "@/lib/actions/one-form";
+import { categoriesDuChamp, libelleCategories } from "@/lib/one-form/fichiers";
 
 const LIBELLE_TYPE: Record<string, string> = {
   TEXTE_COURT: "Texte court",
@@ -17,9 +18,10 @@ const LIBELLE_TYPE: Record<string, string> = {
   CHOIX_UNIQUE: "Choix unique",
   CHOIX_MULTIPLE: "Choix multiple",
   LISTE_DEROULANTE: "Liste déroulante",
+  FICHIER: "Fichier",
 };
 
-type Champ = { id: string; libelle: string; type: string; obligatoire: boolean };
+type Champ = { id: string; libelle: string; type: string; obligatoire: boolean; options?: string[] | null };
 
 export function ListeChamps({ formulaireId, champsInitiaux, peutModifier }: { formulaireId: string; champsInitiaux: Champ[]; peutModifier: boolean }) {
   const [champs, setChamps] = useState(champsInitiaux);
@@ -67,6 +69,7 @@ export function ListeChamps({ formulaireId, champsInitiaux, peutModifier }: { fo
           <div className="flex items-center gap-2">
             <span className="font-medium">{champ.libelle}</span>
             <Badge variant="neutral">{LIBELLE_TYPE[champ.type] ?? champ.type}</Badge>
+            {champ.type === "FICHIER" ? <span className="text-xs text-muted-foreground">{libelleCategories(categoriesDuChamp(champ.options))}</span> : null}
             {champ.obligatoire ? <Badge variant="warning">Obligatoire</Badge> : null}
           </div>
           {peutModifier ? (

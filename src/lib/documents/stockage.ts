@@ -35,8 +35,11 @@ export async function televerserDocument(params: {
   nomFichier: string;
   typeMime: string;
   contenu: Buffer;
+  // Sous-dossier optionnel (ex. "formulaires/<id>") — la clé reste toujours
+  // préfixée par l'entrepriseId, jamais l'inverse.
+  dossier?: string;
 }): Promise<{ cleStockage: string; televerse: boolean; erreur?: string }> {
-  const cleStockage = `${params.entrepriseId}/${createId()}-${params.nomFichier}`;
+  const cleStockage = params.dossier ? `${params.entrepriseId}/${params.dossier}/${createId()}-${params.nomFichier}` : `${params.entrepriseId}/${createId()}-${params.nomFichier}`;
 
   if (!client || !R2_BUCKET_NAME) {
     console.warn("[documents] R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET_NAME non configurés — stockage non disponible.");
@@ -66,12 +69,17 @@ export async function televerserDocument(params: {
  * passer par le contrôle d'accès applicatif (peut()/portee() +
  * restriction PIECE_IDENTITE/DONNEES_SANTE, voir src/lib/documents/acces.ts).
  */
-export async function urlTelechargementDocument(cleStockage: string): Promise<string | null> {
+export async function urlTelechargementDocument(cleStockage: string, nomTelechargement?: string): Promise<string | null> {
   if (!client || !R2_BUCKET_NAME) {
     console.warn("[documents] R2 non configuré — pas d'URL de téléchargement possible.");
     return null;
   }
-  return getSignedUrl(client, new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: cleStockage }), { expiresIn: 600 });
+  // Avec nomTelechargement, le navigateur reçoit toujours le fichier en
+  // téléchargement (jamais affiché dans le navigateur) — indispensable pour un
+  // contenu venu d'un visiteur anonyme.
+  const nomAscii = nomTelechargement?.replace(/[^ -~]|["\\]/g, "_");
+  const disposition = nomTelechargement ? `attachment; filename="${nomAscii}"; filename*=UTF-8''${encodeURIComponent(nomTelechargement)}` : undefined;
+  return getSignedUrl(client, new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: cleStockage, ResponseContentDisposition: disposition }), { expiresIn: 600 });
 }
 
 /**

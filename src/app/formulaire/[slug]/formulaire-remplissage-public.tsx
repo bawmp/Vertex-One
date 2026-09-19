@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { soumettreReponseFormulaire } from "@/lib/actions/one-form";
+import { attributAccept, categoriesDuChamp, formaterTaille, libelleCategories, TAILLE_MAX_TOTAL_LIBELLE, TAILLE_MAX_TOTAL_OCTETS } from "@/lib/one-form/fichiers";
 
 type Champ = { id: string; type: string; libelle: string; obligatoire: boolean; options: string[] | null };
 
@@ -23,15 +24,36 @@ export function FormulaireRemplissagePublic({ slug, champs, messageConfirmation 
 
   function envoyer(formData: FormData) {
     setErreur(null);
+    // Confort : évite un aller-retour vers le serveur (et l'erreur brute de la
+    // plateforme au-delà de 4,5 Mo). Le serveur revérifie toujours.
+    const tailleFichiers = [...formData.values()].reduce((total, v) => (v instanceof File ? total + v.size : total), 0);
+    if (tailleFichiers > TAILLE_MAX_TOTAL_OCTETS) {
+      setErreur(`Les fichiers dépassent ${TAILLE_MAX_TOTAL_LIBELLE} au total (${formaterTaille(tailleFichiers)}). Réduisez-les ou retirez-en un.`);
+      return;
+    }
     startTransition(async () => {
       const resultat = await soumettreReponseFormulaire(slug, formData);
-      if (resultat.erreur) setErreur(resultat.erreur);
-      else setEnvoye(true);
+      if (resultat.erreur) {
+        setErreur(resultat.erreur);
+        // Le jeton Turnstile n'est valable qu'une fois (déjà consommé par la
+        // vérification serveur) : sans nouveau défi, tout renvoi échouerait.
+        (window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset();
+      } else setEnvoye(true);
     });
   }
 
   return (
-    <form action={envoyer} className="flex flex-col gap-4">
+    // onSubmit plutôt que action={...} : React 19 vide automatiquement les
+    // champs d'un formulaire après une action, même quand elle renvoie une
+    // erreur — le visiteur perdait alors tout ce qu'il avait saisi (et ses
+    // fichiers) à la moindre erreur de validation.
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        envoyer(new FormData(e.currentTarget));
+      }}
+      className="flex flex-col gap-4"
+    >
       {champs.map((champ) => (
         <div key={champ.id} className="flex flex-col gap-2">
           <Label htmlFor={champ.id}>
@@ -112,7 +134,73 @@ function ChampFormulaire({ champ }: { champ: Champ }) {
           ))}
         </div>
       );
+    case "FICHIER":
+      return <ChampFichier champ={champ} />;
     default:
       return <Input id={champ.id} name={champ.id} type="text" required={requis} />;
   }
+}
+
+const SEUIL_REDUCTION_OCTETS = 1.5 * 1024 * 1024;
+const COTE_MAX_PIXELS = 2000;
+
+/** Réduit une grosse photo (JPEG, qualité 85 %) pour tenir dans la limite d'envoi ; null si impossible (le fichier d'origine est alors gardé). */
+async function reduireImage(fichier: File): Promise<File | null> {
+  try {
+    const image = await createImageBitmap(fichier);
+    const echelle = Math.min(1, COTE_MAX_PIXELS / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * echelle);
+    canvas.height = Math.round(image.height * echelle);
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    if (!blob || blob.size >= fichier.size) return null;
+    return new File([blob], fichier.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return null;
+  }
+}
+
+function ChampFichier({ champ }: { champ: Champ }) {
+  const categories = categoriesDuChamp(champ.options);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function choisir(e: React.ChangeEvent<HTMLInputElement>) {
+    const champSaisie = e.target;
+    setMessage(null);
+    let fichier = champSaisie.files?.[0];
+    if (!fichier) return;
+
+    if (fichier.type.startsWith("image/") && fichier.size > SEUIL_REDUCTION_OCTETS) {
+      const reduit = await reduireImage(fichier);
+      if (reduit) {
+        const transfert = new DataTransfer();
+        transfert.items.add(reduit);
+        champSaisie.files = transfert.files;
+        fichier = reduit;
+      }
+    }
+    if (fichier.size > TAILLE_MAX_TOTAL_OCTETS) {
+      champSaisie.value = "";
+      setMessage(`Ce fichier fait ${formaterTaille(fichier.size)} : la taille maximale est ${TAILLE_MAX_TOTAL_LIBELLE}.`);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <input
+        id={champ.id}
+        name={champ.id}
+        type="file"
+        accept={attributAccept(categories)}
+        required={champ.obligatoire}
+        onChange={choisir}
+        className="block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium"
+      />
+      <p className="text-xs text-muted-foreground">
+        {libelleCategories(categories)} — {TAILLE_MAX_TOTAL_LIBELLE} maximum.
+      </p>
+      {message ? <p className="text-xs text-destructive">{message}</p> : null}
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { eq, and, asc, count } from "drizzle-orm";
+import { eq, and, asc, count, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { generateRandomString } from "better-auth/crypto";
@@ -12,10 +12,41 @@ import { peut } from "@/lib/permissions";
 import { verifierTurnstile } from "@/lib/turnstile/client";
 import { envoyerEmail } from "@/lib/email/client";
 import { corpsVersHtml } from "@/lib/email/modeles";
+import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
+import {
+  categoriesDuChamp,
+  categoriesValides,
+  decoderValeurFichier,
+  encoderValeurFichier,
+  formaterTaille,
+  nomAffichable,
+  nomFichierSain,
+  validerFichier,
+  TAILLE_MAX_TOTAL_LIBELLE,
+  TAILLE_MAX_TOTAL_OCTETS,
+} from "@/lib/one-form/fichiers";
 
 export type EtatOneForm = { erreur?: string; succes?: string } | null;
 
-const TYPES_CHAMP = ["TEXTE_COURT", "TEXTE_LONG", "EMAIL", "TELEPHONE", "NOMBRE", "DATE", "CHOIX_UNIQUE", "CHOIX_MULTIPLE", "LISTE_DEROULANTE"] as const;
+const TYPES_CHAMP = ["TEXTE_COURT", "TEXTE_LONG", "EMAIL", "TELEPHONE", "NOMBRE", "DATE", "CHOIX_UNIQUE", "CHOIX_MULTIPLE", "LISTE_DEROULANTE", "FICHIER"] as const;
+
+/**
+ * Efface les objets R2 d'une liste de valeurs de champs FICHIER. Meilleur
+ * effort : un échec d'effacement n'annule jamais la suppression en base, il est
+ * seulement journalisé (un fichier orphelin est moins grave qu'une suppression
+ * bloquée).
+ */
+async function effacerFichiersDesValeurs(valeurs: string[]): Promise<void> {
+  for (const brut of valeurs) {
+    const fichier = decoderValeurFichier(brut);
+    if (!fichier) continue;
+    try {
+      await effacerObjetStockage(fichier.cle);
+    } catch (erreur) {
+      console.error(`[one-form] échec d'effacement R2 pour ${fichier.cle} :`, erreur instanceof Error ? erreur.message : erreur);
+    }
+  }
+}
 
 async function garde(action: "CREER" | "MODIFIER" | "SUPPRIMER") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -49,7 +80,18 @@ export async function supprimerFormulaire(formulaireId: string): Promise<void> {
   const { utilisateurConnecte, erreur } = await garde("SUPPRIMER");
   if (erreur || !utilisateurConnecte) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const valeursFichiers = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const champsFichier = await tx
+      .select({ id: champFormulaire.id })
+      .from(champFormulaire)
+      .where(and(eq(champFormulaire.formulaireId, formulaireId), eq(champFormulaire.type, "FICHIER")));
+    const lignesFichiers = champsFichier.length
+      ? await tx
+          .select({ valeur: valeurChampReponse.valeur })
+          .from(valeurChampReponse)
+          .where(inArray(valeurChampReponse.champFormulaireId, champsFichier.map((c) => c.id)))
+      : [];
+
     const reponses = await tx.select({ id: reponseFormulaire.id }).from(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, formulaireId));
     for (const r of reponses) {
       await tx.delete(valeurChampReponse).where(eq(valeurChampReponse.reponseFormulaireId, r.id));
@@ -57,7 +99,11 @@ export async function supprimerFormulaire(formulaireId: string): Promise<void> {
     await tx.delete(reponseFormulaire).where(eq(reponseFormulaire.formulaireId, formulaireId));
     await tx.delete(champFormulaire).where(eq(champFormulaire.formulaireId, formulaireId));
     await tx.delete(formulaire).where(eq(formulaire.id, formulaireId));
+    return lignesFichiers.map((l) => l.valeur);
   });
+
+  // Droit à l'effacement : les fichiers reçus disparaissent réellement de R2.
+  await effacerFichiersDesValeurs(valeursFichiers);
 
   revalidatePath("/app/one-form");
   redirect("/app/one-form");
@@ -152,12 +198,21 @@ export async function ajouterChamp(_etat: EtatOneForm, formData: FormData): Prom
   if (!analyse.success) return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   const { formulaireId, type, libelle, obligatoire, options } = analyse.data;
 
-  const optionsListe = options
-    ? options
-        .split("\n")
-        .map((o) => o.trim())
-        .filter(Boolean)
-    : undefined;
+  let optionsListe: string[] | undefined;
+  if (type === "FICHIER") {
+    // Pour un champ fichier, `options` porte les catégories de fichiers
+    // acceptées (IMAGE/PDF/DOCUMENT), jamais un texte libre saisi par le client.
+    const categories = categoriesValides(formData.getAll("categories"));
+    if (categories.length === 0) return { erreur: "Choisissez au moins un type de fichier accepté." };
+    optionsListe = categories;
+  } else {
+    optionsListe = options
+      ? options
+          .split("\n")
+          .map((o) => o.trim())
+          .filter(Boolean)
+      : undefined;
+  }
 
   await avecEntreprise(utilisateurConnecte!.entrepriseId, async (tx) => {
     const existants = await tx.select({ ordre: champFormulaire.ordre }).from(champFormulaire).where(eq(champFormulaire.formulaireId, formulaireId));
@@ -181,7 +236,19 @@ export async function supprimerChamp(champId: string, formulaireId: string): Pro
   const { utilisateurConnecte, erreur } = await garde("MODIFIER");
   if (erreur || !utilisateurConnecte) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(champFormulaire).where(eq(champFormulaire.id, champId)));
+  const valeursFichiers = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [champ] = await tx.select({ type: champFormulaire.type }).from(champFormulaire).where(eq(champFormulaire.id, champId));
+    if (!champ) return [];
+    // Les réponses déjà reçues référencent ce champ (clé étrangère) : leurs
+    // valeurs sont supprimées avec lui, sinon la suppression échouait dès
+    // qu'une réponse existait.
+    const lignes = await tx.select({ valeur: valeurChampReponse.valeur }).from(valeurChampReponse).where(eq(valeurChampReponse.champFormulaireId, champId));
+    await tx.delete(valeurChampReponse).where(eq(valeurChampReponse.champFormulaireId, champId));
+    await tx.delete(champFormulaire).where(eq(champFormulaire.id, champId));
+    return champ.type === "FICHIER" ? lignes.map((l) => l.valeur) : [];
+  });
+
+  await effacerFichiersDesValeurs(valeursFichiers);
 
   revalidatePath(`/app/one-form/${formulaireId}`);
 }
@@ -262,7 +329,30 @@ export async function soumettreReponseFormulaire(slug: string, formData: FormDat
   const champs = await db.select().from(champFormulaire).where(eq(champFormulaire.formulaireId, formulaireCible.id)).orderBy(asc(champFormulaire.ordre));
 
   const valeurs: Record<string, string> = {};
+  const fichiersRecus: { champ: (typeof champs)[number]; nomOriginal: string; octets: Buffer; mime: string; extension: string }[] = [];
+  let tailleTotale = 0;
+
   for (const champ of champs) {
+    if (champ.type === "FICHIER") {
+      // Jamais String(File) : un fichier n'est pas une valeur texte. Tout est
+      // revalidé ici côté serveur — le navigateur peut mentir sur le nom, le
+      // type MIME et la taille (la vérification côté client n'est que du confort).
+      const fichier = formData.get(champ.id);
+      if (!(fichier instanceof File) || fichier.size === 0) {
+        if (champ.obligatoire) return { erreur: `Le champ "${champ.libelle}" est obligatoire.` };
+        continue;
+      }
+      const octets = Buffer.from(await fichier.arrayBuffer());
+      const validation = validerFichier({ taille: octets.length, octets, categories: categoriesDuChamp(champ.options) });
+      if (!validation.ok) return { erreur: `${champ.libelle} : ${validation.erreur}` };
+      tailleTotale += octets.length;
+      if (tailleTotale > TAILLE_MAX_TOTAL_OCTETS) {
+        return { erreur: `Les fichiers envoyés dépassent ${TAILLE_MAX_TOTAL_LIBELLE} au total.` };
+      }
+      fichiersRecus.push({ champ, nomOriginal: fichier.name, octets, mime: validation.format.mime, extension: validation.format.extension });
+      continue;
+    }
+
     const brut = formData.getAll(champ.id).map(String).filter(Boolean);
     const valeur = brut.join(", ");
     if (champ.obligatoire && !valeur) {
@@ -270,8 +360,41 @@ export async function soumettreReponseFormulaire(slug: string, formData: FormDat
     }
     if (valeur) valeurs[champ.id] = valeur;
   }
+
+  // Téléversement sur R2 avant toute écriture en base : si l'un échoue, ceux
+  // déjà envoyés sont effacés et aucune réponse n'est enregistrée.
+  const clesTeleversees: string[] = [];
+  for (const recu of fichiersRecus) {
+    const resultat = await televerserDocument({
+      entrepriseId: formulaireCible.entrepriseId,
+      nomFichier: nomFichierSain(recu.nomOriginal, recu.extension),
+      typeMime: recu.mime,
+      contenu: recu.octets,
+      dossier: `formulaires/${formulaireCible.id}`,
+    });
+    if (!resultat.televerse) {
+      for (const cle of clesTeleversees) await effacerObjetStockage(cle).catch(() => undefined);
+      return { erreur: "L'envoi du fichier a échoué — veuillez réessayer dans un instant." };
+    }
+    clesTeleversees.push(resultat.cleStockage);
+    valeurs[recu.champ.id] = encoderValeurFichier({
+      cle: resultat.cleStockage,
+      nom: nomAffichable(recu.nomOriginal),
+      taille: recu.octets.length,
+      type: recu.mime,
+    });
+  }
   schemaSoumission.parse(valeurs); // garde-fou de type, ne devrait jamais échouer ici
 
+  // Texte lisible d'une valeur pour l'email de notification (un fichier
+  // s'affiche par son nom, jamais par son JSON de stockage).
+  const texteValeur = (champ: (typeof champs)[number], valeur: string) => {
+    if (champ.type !== "FICHIER") return valeur;
+    const fichier = decoderValeurFichier(valeur);
+    return fichier ? `${fichier.nom} (${formaterTaille(fichier.taille)}) — à télécharger dans l'application` : "(fichier)";
+  };
+
+  try {
   await avecEntreprise(formulaireCible.entrepriseId, async (tx) => {
     const [reponse] = await tx
       .insert(reponseFormulaire)
@@ -311,7 +434,7 @@ export async function soumettreReponseFormulaire(slug: string, formData: FormDat
       if (createur?.email) {
         const corps = champs
           .filter((c) => valeurs[c.id])
-          .map((c) => `${c.libelle} : ${valeurs[c.id]}`)
+          .map((c) => `${c.libelle} : ${texteValeur(c, valeurs[c.id])}`)
           .join("\n");
         // Ne bloque jamais la soumission : un échec d'envoi (ex. Resend non
         // configurée, voir CLAUDE.md) reste silencieux pour le visiteur, qui
@@ -324,6 +447,12 @@ export async function soumettreReponseFormulaire(slug: string, formData: FormDat
       }
     }
   });
+  } catch (erreur) {
+    // Réponse non enregistrée : les fichiers déjà déposés sur R2 seraient
+    // orphelins et inaccessibles, on les efface avant de relancer l'erreur.
+    for (const cle of clesTeleversees) await effacerObjetStockage(cle).catch(() => undefined);
+    throw erreur;
+  }
 
   return {};
 }
