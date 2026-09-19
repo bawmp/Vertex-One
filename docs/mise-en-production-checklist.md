@@ -9,7 +9,7 @@ Discuté avec l'utilisateur : l'entreprise (Vertex Technology) a déjà un domai
 - [x] **Domaine** — `vertexone.cm` acheté. En attente d'activation par le registre (délai normal pour un `.cm`, en cours).
 - [x] **Hébergement de l'application** — déployé sur Vercel (compte personnel, pas de Team — carte non acceptée pour créer une Team, contournable plus tard), connecté au dépôt GitHub `bawmp/Vertex-One`, branche `main`. URL actuelle : `https://vertex-one-bawmp.vercel.app`. Base de données de production créée (projet Neon séparé, base `vertexone-prod`, même compute que le développement — voir note ci-dessous), rôles restreints `app_vertexone_prod`/`plateforme_lecture_prod` créés et vérifiés (`NOBYPASSRLS` confirmé, insertion refusée sans `app.entreprise_id`), 95 migrations appliquées. Inscription réelle testée en production : compte ADMIN créé et fonctionnel.
 - [x] **Hébergement du worker** — déployé sur Railway, commande de démarrage personnalisée `npm run worker`, connecté au même dépôt/branche. Logs confirmés (worker actif).
-- [ ] **Domaine à connecter** — dès que `vertexone.cm` devient actif : l'ajouter dans Vercel (Settings → Domains), mettre à jour les enregistrements DNS chez le registrar, puis remettre `BETTER_AUTH_URL` sur `https://vertexone.cm` (actuellement réglée temporairement sur l'URL `.vercel.app`) — **à la fois sur Vercel et sur Railway**, les deux en dépendent (Better-Auth pour les cookies de session, le worker pour construire les liens dans les emails de rappel d'abonnement).
+- [x] **Domaine connecté (2026-09-19)** — `vertexone.cm` (domaine principal, sans redirection) et `www.vertexone.cm` (redirection 308 vers le domaine principal) sur Vercel. Le registrar (CleanDev Agency) bloquait l'édition DNS sans hébergement acheté chez lui : contourné en changeant les nameservers vers Cloudflare (DNS gratuit) — enregistrements `A`/`CNAME` vers Vercel en "DNS uniquement" (nuage gris). `BETTER_AUTH_URL="https://vertexone.cm"` sur Vercel et Railway.
 
 **Note sur la base de production** : `vertexone-prod` est une base séparée du développement (`neondb`) mais dans le **même projet Neon**, donc le même compute — un test de charge en dev pourrait ralentir la production. Acceptable tant qu'il n'y a pas de vrais clients ; à séparer en projet Neon distinct si ça devient un problème réel.
 
@@ -30,18 +30,15 @@ Discuté avec l'utilisateur : l'entreprise (Vertex Technology) a déjà un domai
 
 Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détecte automatiquement leur présence. Le bucket n'a pas besoin d'être public : le téléchargement passe par des URL signées temporaires.
 
-## 2. Email transactionnel — Resend (domaine à vérifier)
+## 2. Email transactionnel — Resend
 
-**Statut : clé API présente, domaine non vérifié.** Resend refuse tout envoi vers une adresse autre que celle du propriétaire du compte tant qu'aucun domaine n'est vérifié — un vrai client ne recevrait aucun email (devis, facture, invitation, notification).
+**Statut (2026-09-19) : domaine `vertexone.cm` vérifié, expéditeur `notifications@vertexone.cm` en code, envoi réel confirmé vers deux adresses (dont une non propriétaire du compte).**
 
-- [ ] Sur [resend.com/domains](https://resend.com/domains), ajouter le domaine (ex. `vertexone.cm`)
-- [ ] Créer les enregistrements DNS affichés par Resend (SPF, DKIM, DMARC) chez le registrar/hébergeur DNS
-- [ ] Attendre la vérification (quelques minutes à quelques heures selon le TTL DNS)
-- [ ] **Changement de code requis ensuite** (pas seulement une variable d'env) — dans [src/lib/email/client.ts](../src/lib/email/client.ts) :
-  ```ts
-  const EXPEDITEUR_PAR_DEFAUT = "Vertex One <onboarding@resend.dev>";
-  ```
-  à remplacer par une adresse sur le domaine vérifié, ex. `"Vertex One <notifications@vertexone.cm>"`.
+- [x] Domaine ajouté sur [resend.com/domains](https://resend.com/domains) (région eu-west-1) — enregistrements DKIM, SPF/CNAME créés dans Cloudflare DNS (nuage gris)
+- [x] Domaine vérifié
+- [x] `EXPEDITEUR_PAR_DEFAUT` changé dans [src/lib/email/client.ts](../src/lib/email/client.ts)
+- [ ] Enregistrement DMARC (`_dmarc`, `v=DMARC1; p=none; rua=mailto:...`) affiché comme optionnel par Resend — à ajouter dans Cloudflare pour renforcer la délivrabilité
+- [ ] Vérifier que le déploiement Vercel de production contient bien ce changement (push sur `main`)
 
 ## 3. Paiement Mobile Money — CinetPay
 
