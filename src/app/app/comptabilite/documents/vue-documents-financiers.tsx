@@ -221,7 +221,7 @@ function FormulaireMetadonnees({ documentId, document: doc }: { documentId: stri
           action(null, formData);
         })
       }
-      className="grid max-w-xl grid-cols-3 items-end gap-2"
+      className="grid max-w-xl grid-cols-1 items-end gap-2 sm:grid-cols-3"
     >
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground" htmlFor={`fournisseur-${documentId}`}>

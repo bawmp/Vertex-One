@@ -13,6 +13,7 @@ import { calculerEtatAbonnement } from "@/lib/abonnement/etat";
 import { BanniereAbonnement } from "./banniere-abonnement";
 import { NavLink, NavGroup } from "./nav-link";
 import { MenuUtilisateur } from "./menu-utilisateur";
+import { CadreSidebar } from "./cadre-sidebar";
 
 type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 // module optionnel — un lien de sous-menu peut appartenir à un module
@@ -386,8 +387,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
 
   return (
     <LangueProvider dictionnaire={t}>
-    <div className="flex min-h-screen bg-background" style={styleMarque}>
-      <nav className="sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-4">
+    <div className="flex min-h-screen flex-col bg-background md:flex-row" style={styleMarque}>
+      <CadreSidebar>
         <div className="mb-1 flex items-center justify-between px-2">
           <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} sombre />
         </div>
@@ -434,8 +435,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         </div>
 
         <MenuUtilisateur nom={ligne?.nomComplet ?? utilisateurConnecte.role} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />
-      </nav>
-      <main className="min-w-0 flex-1 overflow-x-hidden p-8">
+      </CadreSidebar>
+      <main className="min-w-0 flex-1 overflow-x-hidden p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-4">
           {evenement && ligne ? (
             <BanniereAbonnement evenement={evenement} essaiFinLe={ligne.essaiFinLe} abonnementEcheanceLe={ligne.abonnementEcheanceLe} />

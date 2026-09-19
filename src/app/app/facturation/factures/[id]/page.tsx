@@ -77,6 +77,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
       ) : null}
 
       <Card className="p-0">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
@@ -97,6 +98,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
             ))}
           </tbody>
         </table>
+        </div>
         <CardContent className="flex flex-col items-end gap-1 border-t bg-muted/20 py-3 text-sm">
           <p className="text-muted-foreground">
             HT : <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantHT)}</span>
