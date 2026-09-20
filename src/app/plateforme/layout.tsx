@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ShieldCheck, LayoutDashboard, Building2, ArrowLeft } from "lucide-react";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { estStaffPlateforme } from "@/lib/plateforme/acces";
+import { LogoEntreprise } from "@/components/logo-entreprise";
 
 /**
  * Console interne plateforme (2026-09-14) — première zone du produit à voir
@@ -17,14 +18,17 @@ export default async function LayoutPlateforme({ children }: { children: React.R
   if (!(await estStaffPlateforme())) redirect("/app");
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
-      <header className="sticky top-0 z-10 border-b border-stone-800 bg-stone-950 text-stone-100">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b-2 border-b-marque-orange bg-sidebar text-sidebar-foreground">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2.5 text-sm font-semibold tracking-wide">
-            <ShieldCheck className="size-4 text-emerald-400" aria-hidden />
-            VERTEX ONE <span className="font-normal text-stone-400">— Console interne</span>
+          <div className="flex items-center gap-4">
+            <LogoEntreprise taille="bandeau" className="h-14" />
+            <span className="flex items-center gap-2 text-sm font-semibold tracking-wide">
+              <ShieldCheck className="size-4 text-marque-orange" aria-hidden />
+              Console interne
+            </span>
           </div>
-          <nav className="flex items-center gap-5 text-sm text-stone-300">
+          <nav className="flex items-center gap-5 text-sm text-sidebar-foreground/85">
             <Link href="/plateforme" className="flex items-center gap-1.5 hover:text-white">
               <LayoutDashboard className="size-3.5" aria-hidden />
               Tableau de bord
@@ -33,7 +37,7 @@ export default async function LayoutPlateforme({ children }: { children: React.R
               <Building2 className="size-3.5" aria-hidden />
               Entreprises
             </Link>
-            <Link href="/app" className="flex items-center gap-1.5 text-stone-500 hover:text-stone-200">
+            <Link href="/app" className="flex items-center gap-1.5 text-sidebar-foreground/60 hover:text-white">
               <ArrowLeft className="size-3.5" aria-hidden />
               Retour à l&apos;application
             </Link>

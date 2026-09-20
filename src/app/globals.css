@@ -41,6 +41,29 @@
   --color-card: var(--card);
   --color-brand-gold-foreground: var(--brand-gold-foreground);
   --color-brand-gold: var(--brand-gold);
+  --color-marque-bleu-50: var(--marque-bleu-50);
+  --color-marque-bleu-100: var(--marque-bleu-100);
+  --color-marque-bleu-200: var(--marque-bleu-200);
+  --color-marque-bleu-300: var(--marque-bleu-300);
+  --color-marque-bleu-400: var(--marque-bleu-400);
+  --color-marque-bleu-500: var(--marque-bleu-500);
+  --color-marque-bleu-600: var(--marque-bleu-600);
+  --color-marque-bleu-700: var(--marque-bleu-700);
+  --color-marque-bleu-800: var(--marque-bleu-800);
+  --color-marque-bleu-900: var(--marque-bleu-900);
+  --color-marque-bleu-950: var(--marque-bleu-950);
+  --color-marque-orange-50: var(--marque-orange-50);
+  --color-marque-orange-100: var(--marque-orange-100);
+  --color-marque-orange-200: var(--marque-orange-200);
+  --color-marque-orange-300: var(--marque-orange-300);
+  --color-marque-orange-400: var(--marque-orange-400);
+  --color-marque-orange-500: var(--marque-orange-500);
+  --color-marque-orange-600: var(--marque-orange-600);
+  --color-marque-orange-700: var(--marque-orange-700);
+  --color-marque-orange-800: var(--marque-orange-800);
+  --color-marque-orange-900: var(--marque-orange-900);
+  --color-marque-bleu: var(--marque-bleu);
+  --color-marque-orange: var(--marque-orange);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -51,95 +74,123 @@
 }
 
 /*
- * Palette de marque Vertex One — pas de charte graphique officielle chez
- * Vertex Technology à ce jour (voir conversation), palette proposée en
- * attendant : émeraude profond (croissance, confiance financière, écho
- * discret à "Vertex"/ascension) en couleur principale, doré chaud en accent
- * ponctuel (Mobile Money, mises en avant "Pro"). Neutres chauds (stone)
- * plutôt que gris froid, pour rester moins clinique. Valeurs tirées de la
- * palette Tailwind v4 (node_modules/tailwindcss/theme.css) plutôt
- * qu'inventées à la main.
+ * Charte graphique officielle Vertex One (logo fourni le 2026-09-20,
+ * public/marque/logo.png) : bleu marine #233C7E et orange #ED7623, mesurés sur
+ * les pixels du logo. Toutes les nuances dérivent de ces deux valeurs par
+ * mélange (color-mix) : changer --marque-bleu / --marque-orange suffit à
+ * réajuster l'ensemble du produit. Le vert reste réservé aux statuts de
+ * succès (payé, terminé...) — jamais à l'identité de marque.
  */
 :root {
-  --background: var(--color-stone-50);
-  --foreground: var(--color-stone-900);
+  --marque-bleu: #233c7e;
+  --marque-orange: #ed7623;
+
+  --marque-bleu-50: color-mix(in oklab, var(--marque-bleu) 5%, white);
+  --marque-bleu-100: color-mix(in oklab, var(--marque-bleu) 10%, white);
+  --marque-bleu-200: color-mix(in oklab, var(--marque-bleu) 20%, white);
+  --marque-bleu-300: color-mix(in oklab, var(--marque-bleu) 38%, white);
+  --marque-bleu-400: color-mix(in oklab, var(--marque-bleu) 58%, white);
+  --marque-bleu-500: color-mix(in oklab, var(--marque-bleu) 80%, white);
+  --marque-bleu-600: var(--marque-bleu);
+  --marque-bleu-700: color-mix(in oklab, var(--marque-bleu) 82%, black);
+  --marque-bleu-800: color-mix(in oklab, var(--marque-bleu) 62%, black);
+  --marque-bleu-900: color-mix(in oklab, var(--marque-bleu) 42%, black);
+  --marque-bleu-950: color-mix(in oklab, var(--marque-bleu) 25%, black);
+
+  --marque-orange-50: color-mix(in oklab, var(--marque-orange) 8%, white);
+  --marque-orange-100: color-mix(in oklab, var(--marque-orange) 16%, white);
+  --marque-orange-200: color-mix(in oklab, var(--marque-orange) 30%, white);
+  --marque-orange-300: color-mix(in oklab, var(--marque-orange) 50%, white);
+  --marque-orange-400: color-mix(in oklab, var(--marque-orange) 75%, white);
+  --marque-orange-500: var(--marque-orange);
+  --marque-orange-600: color-mix(in oklab, var(--marque-orange) 88%, black);
+  --marque-orange-700: color-mix(in oklab, var(--marque-orange) 72%, black);
+  --marque-orange-800: color-mix(in oklab, var(--marque-orange) 55%, black);
+  --marque-orange-900: color-mix(in oklab, var(--marque-orange) 40%, black);
+}
+
+/* Thème clair — aussi appliqué sous .espace-clair (espace candidats, voir plus bas), qui doit rester clair en mode sombre. */
+:root,
+.espace-clair {
+  --background: color-mix(in oklab, var(--marque-bleu) 2.5%, white);
+  --foreground: color-mix(in oklab, var(--marque-bleu) 32%, black);
   --card: oklch(1 0 0);
-  --card-foreground: var(--color-stone-900);
+  --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
-  --popover-foreground: var(--color-stone-900);
-  --primary: var(--color-emerald-700);
+  --popover-foreground: var(--foreground);
+  --primary: var(--marque-bleu);
   --primary-foreground: oklch(1 0 0);
-  --secondary: var(--color-stone-100);
-  --secondary-foreground: var(--color-stone-900);
-  --muted: var(--color-stone-100);
-  --muted-foreground: var(--color-stone-500);
-  --accent: var(--color-emerald-50);
-  --accent-foreground: var(--color-emerald-800);
+  --secondary: var(--marque-bleu-50);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--marque-bleu-50);
+  --muted-foreground: color-mix(in oklab, var(--marque-bleu) 32%, oklch(0.55 0 0));
+  --accent: var(--marque-bleu-100);
+  --accent-foreground: var(--marque-bleu-800);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: var(--color-stone-200);
-  --input: var(--color-stone-200);
-  --ring: var(--color-emerald-600);
-  --brand-gold: var(--color-amber-500);
-  --brand-gold-foreground: var(--color-amber-950);
-  --chart-1: var(--color-emerald-600);
-  --chart-2: var(--color-amber-500);
-  --chart-3: var(--color-emerald-800);
-  --chart-4: var(--color-stone-400);
-  --chart-5: var(--color-stone-600);
+  --border: color-mix(in oklab, var(--marque-bleu) 14%, white);
+  --input: color-mix(in oklab, var(--marque-bleu) 16%, white);
+  --ring: var(--marque-bleu-400);
+  /* Le nom historique --brand-gold désigne désormais l'orange de la charte. */
+  --brand-gold: var(--marque-orange);
+  --brand-gold-foreground: color-mix(in oklab, var(--marque-orange) 22%, black);
+  --chart-1: var(--marque-bleu);
+  --chart-2: var(--marque-orange);
+  --chart-3: var(--marque-bleu-400);
+  --chart-4: var(--marque-orange-300);
+  --chart-5: var(--marque-bleu-800);
   --radius: 0.75rem;
   /*
-   * Barre latérale volontairement sombre en permanence (pas liée au
-   * bascule .dark) — décision du 2026-09-06, à la demande explicite de
-   * reproduire le visuel de Zoho CRM (barre de navigation sombre + zone de
-   * contenu claire) sur l'ensemble de Vertex One, pas seulement le CRM.
-   * L'accent émeraude de la marque est conservé (--sidebar-primary,
-   * --sidebar-ring) plutôt qu'adopté le bleu/teal de Zoho, pour que
-   * Vertex One garde sa propre identité à l'intérieur de cette disposition.
+   * Barre latérale volontairement sombre en permanence (pas liée au bascule
+   * .dark) — reproduit la disposition de Zoho CRM (navigation sombre, contenu
+   * clair) demandée le 2026-09-06 ; teinte désormais dérivée du bleu marine
+   * du logo, l'orange de la charte servant d'accent (élément actif, focus).
+   * Le logo officiel y est posé sur un panneau blanc (voir logo-entreprise.tsx)
+   * : son texte bleu marine resterait illisible sur ce fond sombre.
    */
-  --sidebar: var(--color-slate-900);
-  --sidebar-foreground: var(--color-slate-200);
-  --sidebar-primary: var(--color-emerald-500);
-  --sidebar-primary-foreground: var(--color-slate-950);
-  --sidebar-accent: var(--color-slate-800);
+  --sidebar: color-mix(in oklab, var(--marque-bleu) 52%, black);
+  --sidebar-foreground: color-mix(in oklab, var(--marque-bleu) 14%, white);
+  --sidebar-primary: var(--marque-orange);
+  --sidebar-primary-foreground: color-mix(in oklab, var(--marque-orange) 22%, black);
+  --sidebar-accent: color-mix(in oklab, var(--marque-bleu) 78%, black);
   --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: var(--color-slate-700);
-  --sidebar-ring: var(--color-emerald-500);
+  --sidebar-border: color-mix(in oklab, var(--marque-bleu) 62%, black);
+  --sidebar-ring: var(--marque-orange);
 }
 
 .dark {
-  --background: var(--color-stone-950);
-  --foreground: var(--color-stone-100);
-  --card: var(--color-stone-900);
-  --card-foreground: var(--color-stone-100);
-  --popover: var(--color-stone-900);
-  --popover-foreground: var(--color-stone-100);
-  --primary: var(--color-emerald-500);
-  --primary-foreground: var(--color-stone-950);
-  --secondary: var(--color-stone-800);
-  --secondary-foreground: var(--color-stone-100);
-  --muted: var(--color-stone-800);
-  --muted-foreground: var(--color-stone-400);
-  --accent: var(--color-emerald-950);
-  --accent-foreground: var(--color-emerald-200);
+  --background: color-mix(in oklab, var(--marque-bleu) 16%, black);
+  --foreground: color-mix(in oklab, var(--marque-bleu) 8%, white);
+  --card: color-mix(in oklab, var(--marque-bleu) 24%, black);
+  --card-foreground: var(--foreground);
+  --popover: color-mix(in oklab, var(--marque-bleu) 24%, black);
+  --popover-foreground: var(--foreground);
+  --primary: var(--marque-bleu-400);
+  --primary-foreground: var(--marque-bleu-950);
+  --secondary: color-mix(in oklab, var(--marque-bleu) 34%, black);
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in oklab, var(--marque-bleu) 34%, black);
+  --muted-foreground: color-mix(in oklab, var(--marque-bleu) 35%, white);
+  --accent: color-mix(in oklab, var(--marque-bleu) 42%, black);
+  --accent-foreground: var(--marque-bleu-100);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: var(--color-emerald-500);
-  --brand-gold: var(--color-amber-400);
-  --brand-gold-foreground: var(--color-amber-950);
-  --chart-1: var(--color-emerald-400);
-  --chart-2: var(--color-amber-400);
-  --chart-3: var(--color-emerald-600);
-  --chart-4: var(--color-stone-500);
-  --chart-5: var(--color-stone-300);
-  --sidebar: var(--color-stone-900);
-  --sidebar-foreground: var(--color-stone-100);
-  --sidebar-primary: var(--color-emerald-500);
-  --sidebar-primary-foreground: var(--color-stone-950);
-  --sidebar-accent: var(--color-emerald-950);
-  --sidebar-accent-foreground: var(--color-emerald-200);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: var(--color-emerald-500);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: var(--marque-orange);
+  --brand-gold: var(--marque-orange-400);
+  --brand-gold-foreground: var(--marque-orange-900);
+  --chart-1: var(--marque-bleu-400);
+  --chart-2: var(--marque-orange-400);
+  --chart-3: var(--marque-bleu-300);
+  --chart-4: var(--marque-orange-300);
+  --chart-5: var(--marque-bleu-200);
+  --sidebar: color-mix(in oklab, var(--marque-bleu) 30%, black);
+  --sidebar-foreground: color-mix(in oklab, var(--marque-bleu) 10%, white);
+  --sidebar-primary: var(--marque-orange);
+  --sidebar-primary-foreground: color-mix(in oklab, var(--marque-orange) 22%, black);
+  --sidebar-accent: color-mix(in oklab, var(--marque-bleu) 55%, black);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: var(--marque-orange);
 }
 
 @layer base {
@@ -178,30 +229,13 @@
 }
 /*
  * Espace candidats (/carrieres) — thème clair forcé : la page doit rester vive
- * et joyeuse même quand le téléphone du visiteur est en mode sombre. Redéclare
- * les jetons clairs de :root sous `.espace-clair` (un descendant de `.dark`
- * l'emporte sur `.dark`). La couleur de marque de l'entreprise est posée en
- * style en ligne (--primary) sur un élément descendant et reste prioritaire.
+ * et joyeuse même quand le téléphone du visiteur est en mode sombre. Les
+ * jetons clairs sont ceux de :root (sélecteur partagé plus haut) ; un
+ * descendant de .dark les redéclare et l'emporte. La couleur de marque de
+ * l'entreprise (--primary, style en ligne) reste prioritaire.
  */
 .espace-clair {
   color-scheme: light;
-  --background: var(--color-stone-50);
-  --foreground: var(--color-stone-900);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--color-stone-900);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--color-stone-900);
-  --primary: var(--color-emerald-600);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: var(--color-stone-100);
-  --secondary-foreground: var(--color-stone-900);
-  --muted: var(--color-stone-100);
-  --muted-foreground: var(--color-stone-500);
-  --accent: var(--color-emerald-50);
-  --accent-foreground: var(--color-emerald-800);
-  --border: var(--color-stone-200);
-  --input: var(--color-stone-200);
-  --ring: var(--color-emerald-500);
 }
 
 /* Entrée en fondu + montée, échelonnée via --delai. Sans JavaScript. */
@@ -270,4 +304,130 @@
   }
   .carrieres-coche { animation: none; stroke-dashoffset: 0; }
   .carrieres-confetti { opacity: 0; }
+}
+
+/*
+ * Écran de démarrage (src/components/ecran-demarrage.tsx) — le logo se compose
+ * en 4 temps : traits bleus et orange qui glissent l'un vers l'autre, nom
+ * révélé de gauche à droite, slogan, puis reflet qui traverse le logo pendant
+ * qu'une barre de progression se remplit. Tout est en CSS : l'écran s'efface
+ * tout seul (animation « demarrage-sortie », visibility: hidden en fin de
+ * course) même si JavaScript tarde. Durée totale ~2,3 s.
+ */
+.demarrage {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  overflow: hidden;
+  background: #fff;
+  color-scheme: light;
+  animation: demarrage-sortie 0.5s ease-in 1.8s both;
+}
+@keyframes demarrage-sortie {
+  to { opacity: 0; visibility: hidden; transform: scale(1.04); }
+}
+
+.demarrage-halo {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0;
+  animation: demarrage-halo 1.2s ease-out 0.05s both;
+}
+.demarrage-halo-bleu { width: 26rem; height: 26rem; left: -6rem; top: -6rem; background: color-mix(in oklab, var(--marque-bleu) 28%, transparent); }
+.demarrage-halo-orange { width: 24rem; height: 24rem; right: -6rem; bottom: -6rem; background: color-mix(in oklab, var(--marque-orange) 30%, transparent); animation-delay: 0.25s; }
+@keyframes demarrage-halo {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.demarrage-logo {
+  position: relative;
+  width: min(72vw, 22rem);
+  aspect-ratio: 638 / 370;
+}
+.demarrage-couche {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  animation-fill-mode: both;
+}
+.demarrage-bleu { animation: demarrage-bleu 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.05s both; }
+.demarrage-orange { animation: demarrage-orange 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both; }
+.demarrage-nom { animation: demarrage-nom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.65s both; }
+.demarrage-slogan { animation: demarrage-slogan 0.5s ease-out 1s both; }
+@keyframes demarrage-bleu {
+  from { opacity: 0; transform: translate(-18%, -10%) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes demarrage-orange {
+  from { opacity: 0; transform: translate(18%, 10%) scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes demarrage-nom {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateY(8px); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; }
+}
+@keyframes demarrage-slogan {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Reflet : un dégradé clair qui traverse le logo, limité aux pixels du logo par un masque. */
+.demarrage-brillance {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.85) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  -webkit-mask-image: url(/marque/logo.png);
+  mask-image: url(/marque/logo.png);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  animation: demarrage-brillance 0.9s ease-in-out 1.05s both;
+}
+@keyframes demarrage-brillance {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+
+.demarrage-barre {
+  position: relative;
+  width: min(48vw, 9rem);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--marque-bleu-100);
+  opacity: 0;
+  animation: demarrage-apparition 0.3s ease-out 0.3s both;
+}
+.demarrage-barre span {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--marque-bleu), var(--marque-orange));
+  animation: demarrage-remplissage 1.5s cubic-bezier(0.45, 0.05, 0.25, 1) 0.3s both;
+}
+@keyframes demarrage-apparition { from { opacity: 0; } to { opacity: 1; } }
+@keyframes demarrage-remplissage { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .demarrage { animation: demarrage-sortie 0.4s ease-out 0.7s both; }
+  .demarrage-halo,
+  .demarrage-bleu,
+  .demarrage-orange,
+  .demarrage-nom,
+  .demarrage-slogan { animation: none; opacity: 1; clip-path: none; transform: none; }
+  .demarrage-brillance { animation: none; display: none; }
+  .demarrage-barre { animation: none; opacity: 1; }
+  .demarrage-barre span { animation: none; }
 }

@@ -73,6 +73,12 @@ Le pied de la sidebar (`src/app/app/menu-utilisateur.tsx`) affiche le nom comple
 
 TypeScript de bout en bout, Next.js 16 (App Router, Turbopack), Drizzle ORM + PostgreSQL (Neon, driver `neon-serverless`), Better-Auth, Tailwind CSS + shadcn/ui, Cloudflare R2, graphile-worker, React-PDF, CinetPay (Mobile Money), API Cloud WhatsApp Business (Meta, direct), Resend/Postmark (email transactionnel), Migadu (boîte mail hébergée par entreprise cliente).
 
+## Charte graphique et logo — à respecter dans toute nouvelle interface
+
+Charte officielle (logo fourni le 2026-09-20) : **bleu marine `#233C7E` et orange `#ED7623`**, définis une seule fois dans `src/app/globals.css` (`--marque-bleu`, `--marque-orange`) ; toutes les nuances en dérivent. Pour une couleur de marque, utiliser les jetons (`bg-primary`, `text-primary`, `bg-brand-gold`) ou les utilitaires `bg-marque-bleu-100`, `text-marque-orange-600`… — **jamais** `emerald-*`/`teal-*`, ni de hexadécimal en dur (seule exception : les PDF, où react-pdf ne lit pas les variables CSS). Le vert (`emerald-*`) reste réservé aux **statuts de succès** (payé, copié, terminé).
+
+Le logo ne s'affiche **jamais** en dur : via `<LogoEntreprise taille="panneau|bandeau|hero" />` (`src/components/logo-entreprise.tsx`) — logo officiel Vertex One par défaut, puis celui de l'entreprise avec exactement les mêmes propriétés (panneau blanc, logo entier, jamais rogné) — ou `<Wordmark />` pour le logo nu sur fond clair. Ne jamais recolorer ni déformer le logo officiel (`public/marque/`). Sur fond sombre ou coloré, toujours le panneau blanc : le texte bleu marine n'y serait pas lisible.
+
 ## Next.js 16 — ce projet n'est pas la version que tu connais par défaut
 
 Ce projet utilise Next.js 16, dont plusieurs conventions cassent avec les versions antérieures. Avant d'écrire du code touchant au routage ou au cache, vérifier `node_modules/next/dist/docs/`. Points déjà rencontrés :

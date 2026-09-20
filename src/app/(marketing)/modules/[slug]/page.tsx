@@ -27,17 +27,17 @@ export default async function PageModule({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 text-white">
         <div
           aria-hidden
-          className="animate-flotter-lentement pointer-events-none absolute -top-16 right-1/4 size-64 rounded-full bg-amber-400/25 blur-3xl"
+          className="animate-flotter-lentement pointer-events-none absolute -top-16 right-1/4 size-64 rounded-full bg-marque-orange/30 blur-3xl"
         />
         <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 py-16 text-center">
           <span className={`flex size-16 items-center justify-center rounded-2xl ${moduleMarketing.classeFond} shadow-lg`}>
             <moduleMarketing.icone className="size-8" aria-hidden />
           </span>
           <h1 className="text-4xl font-semibold tracking-tight">{moduleMarketing.nom}</h1>
-          <p className="max-w-xl text-lg text-emerald-50/90">{moduleMarketing.resume}</p>
+          <p className="max-w-xl text-lg text-marque-bleu-50/90">{moduleMarketing.resume}</p>
         </div>
       </section>
 

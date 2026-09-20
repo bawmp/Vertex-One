@@ -72,7 +72,7 @@ export function FormulaireCandidature({ slug, posteId, titrePoste, nomEntreprise
               style={{ "--dx": `${c.dx}px`, "--dy": `${c.dy}px`, "--rot": `${c.rot}deg`, "--delai": `${300 + i * 40}ms` } as React.CSSProperties}
             />
           ))}
-          <span className="carrieres-pop flex size-24 items-center justify-center rounded-full bg-gradient-to-br from-primary to-emerald-400 text-white shadow-lg shadow-primary/30">
+          <span className="carrieres-pop flex size-24 items-center justify-center rounded-full bg-gradient-to-br from-primary to-marque-orange text-white shadow-lg shadow-primary/30">
             <svg viewBox="0 0 24 24" className="size-12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path className="carrieres-coche" d="M5 12.5l4.5 4.5L19 7.5" />
             </svg>

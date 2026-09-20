@@ -26,14 +26,14 @@ export default async function PageAtterrissagePublique({ params }: { params: Pro
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center gap-8 bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 p-4 py-16 text-emerald-50">
+    <div className="flex min-h-screen flex-col items-center gap-8 bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4 py-16 text-marque-bleu-50">
       <div className="flex w-full max-w-xl flex-col items-center gap-6 text-center">
         {page.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- contenu externe saisi par l'utilisateur, pas un asset du projet
           <img src={page.imageUrl} alt="" className="max-h-64 w-full rounded-lg object-cover" />
         ) : null}
         <h1 className="text-3xl font-semibold tracking-tight">{page.titre}</h1>
-        <p className="whitespace-pre-line text-emerald-100/90">{page.texte}</p>
+        <p className="whitespace-pre-line text-marque-bleu-100/90">{page.texte}</p>
       </div>
 
       <div className="w-full max-w-sm rounded-lg bg-background p-6 text-foreground shadow-lg">

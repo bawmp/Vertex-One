@@ -14,8 +14,8 @@ const LIENS_PIED = [
  * Habillage du site vitrine (2026-09-14) — distinct de la sidebar tenant
  * (/app) et de l'en-tête sombre de la Console interne (/plateforme), pensé
  * pour un visiteur qui ne connaît pas encore le produit. Reprend le dégradé
- * emerald déjà utilisé par les autres pages publiques (/carrieres,
- * /reserver, /p/[slug], src/app/(auth)/layout.tsx) pour la cohérence de
+ * bleu marine de la charte, utilisé par les autres pages publiques
+ * (/reserver, /p/[slug], src/app/(auth)/layout.tsx) pour la cohérence de
  * marque, sans dupliquer leur code (usage ponctuel, pas partagé).
  */
 export default function LayoutMarketing({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,7 @@ export default function LayoutMarketing({ children }: { children: React.ReactNod
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-2">
-            <Wordmark />
+            <Wordmark slogan className="h-24" />
             <p className="max-w-xs text-sm text-muted-foreground">
               La suite de gestion pensée pour les entreprises de services au Cameroun.
             </p>

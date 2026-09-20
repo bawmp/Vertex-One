@@ -1,10 +1,19 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 
-// Couleurs alignées sur la palette de marque (globals.css) — valeurs
-// hexadécimales directes, react-pdf ne comprend pas les variables CSS/oklch.
-const EMERALD_700 = "#047857";
-const EMERALD_50 = "#ecfdf5";
+// Couleurs en hexadécimal direct : react-pdf ne comprend pas les variables
+// CSS/oklch. L'accent est celui de l'entreprise (couleur de marque choisie
+// dans ses paramètres) ; à défaut, le bleu marine de la charte Vertex One.
+const ACCENT_PAR_DEFAUT = "#233c7e";
+
+/** Mélange une couleur avec du blanc (part = proportion de la couleur d'origine conservée). */
+function teinteClaire(hex: string, part = 0.09): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "#eef1f8";
+  const n = parseInt(m[1], 16);
+  const canal = (decalage: number) => Math.round(255 - (255 - ((n >> decalage) & 255)) * part);
+  return "#" + [16, 8, 0].map((d) => canal(d).toString(16).padStart(2, "0")).join("");
+}
 const STONE_500 = "#78716c";
 const STONE_200 = "#e7e5e4";
 
@@ -13,7 +22,7 @@ const styles = StyleSheet.create({
   entete: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   logo: { width: 40, height: 40, objectFit: "contain" },
-  nomEntreprise: { fontSize: 16, fontWeight: 700, color: EMERALD_700 },
+  nomEntreprise: { fontSize: 16, fontWeight: 700 },
   typeDocument: { fontSize: 20, fontWeight: 700, textAlign: "right" },
   numero: { fontSize: 11, color: STONE_500, textAlign: "right", marginTop: 4 },
   blocInfos: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24, gap: 24 },
@@ -23,7 +32,6 @@ const styles = StyleSheet.create({
   tableau: { borderTop: `1px solid ${STONE_200}`, marginTop: 8 },
   ligneTableauEntete: {
     flexDirection: "row",
-    backgroundColor: EMERALD_50,
     paddingVertical: 6,
     paddingHorizontal: 4,
     fontWeight: 700,
@@ -71,6 +79,7 @@ export type DocumentCommercialProps = {
     ville: string | null;
     assujettiTVA: boolean;
     logoUrl?: string | null;
+    couleurMarque?: string | null;
   };
   client: {
     nom: string;
@@ -115,7 +124,7 @@ export function DocumentCommercialPDF({
             {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt */}
             {entreprise.logoUrl ? <Image src={entreprise.logoUrl} style={styles.logo} /> : null}
             <View>
-              <Text style={styles.nomEntreprise}>{entreprise.nom}</Text>
+              <Text style={[styles.nomEntreprise, { color: entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT }]}>{entreprise.nom}</Text>
               {entreprise.adresse ? <Text style={styles.ligneTexte}>{entreprise.adresse}</Text> : null}
               {entreprise.ville ? <Text style={styles.ligneTexte}>{entreprise.ville}</Text> : null}
               {entreprise.niu ? <Text style={styles.ligneTexte}>NIU : {entreprise.niu}</Text> : null}
@@ -146,7 +155,7 @@ export function DocumentCommercialPDF({
         </View>
 
         <View style={styles.tableau}>
-          <View style={styles.ligneTableauEntete}>
+          <View style={[styles.ligneTableauEntete, { backgroundColor: teinteClaire(entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT) }]}>
             <Text style={styles.colDesignation}>Désignation</Text>
             <Text style={styles.colQuantite}>Qté</Text>
             <Text style={styles.colPrixUnitaire}>Prix unit.</Text>

@@ -32,11 +32,11 @@ export default async function PageReservationPublique({ params }: { params: Prom
   const styleMarque = parametres.couleurMarque ? ({ "--primary": parametres.couleurMarque } as React.CSSProperties) : undefined;
 
   return (
-    <div className="flex min-h-screen flex-col items-center gap-8 bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 p-4 py-16 text-emerald-50" style={styleMarque}>
+    <div className="flex min-h-screen flex-col items-center gap-8 bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4 py-16 text-marque-bleu-50" style={styleMarque}>
       <div className="flex w-full max-w-xl flex-col items-center gap-3 text-center">
-        {parametres.logoCleStockage ? <LogoEntreprise entrepriseId={parametres.entrepriseId} logoCleStockage={parametres.logoCleStockage} sombre className="max-h-12" /> : null}
+        {parametres.logoCleStockage ? <LogoEntreprise taille="hero" entrepriseId={parametres.entrepriseId} logoCleStockage={parametres.logoCleStockage} /> : null}
         <h1 className="text-3xl font-semibold tracking-tight">{parametres.titre}</h1>
-        {parametres.texte ? <p className="whitespace-pre-line text-emerald-100/90">{parametres.texte}</p> : null}
+        {parametres.texte ? <p className="whitespace-pre-line text-marque-bleu-100/90">{parametres.texte}</p> : null}
       </div>
 
       <div className="w-full max-w-xl rounded-lg bg-background p-6 text-foreground shadow-lg">

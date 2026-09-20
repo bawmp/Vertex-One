@@ -46,10 +46,10 @@ export default async function LayoutPortail({ children }: { children: React.Reac
   return (
     <LangueProvider dictionnaire={traduire(utilisateurConnecte.langue)}>
       <div className="flex min-h-screen flex-col bg-background" style={styleMarque}>
-        <header className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
-          <div className="flex items-center gap-3">
-            <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />
-            <span className="text-sm text-muted-foreground">{ligne?.entrepriseNom}</span>
+        <header className="flex items-center justify-between gap-4 border-b-2 border-b-marque-bleu-100 px-6 py-4">
+          <div className="flex flex-col items-start gap-1.5">
+            <LogoEntreprise taille="bandeau" entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />
+            <span className="px-1 text-sm font-medium text-muted-foreground">{ligne?.entrepriseNom}</span>
           </div>
           <div className="w-64">
             <MenuUtilisateur nom={ligne?.nomComplet ?? "Client"} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />

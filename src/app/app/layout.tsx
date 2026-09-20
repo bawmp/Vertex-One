@@ -389,12 +389,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     <LangueProvider dictionnaire={t}>
     <div className="flex min-h-screen flex-col bg-background md:flex-row" style={styleMarque}>
       <CadreSidebar>
-        <div className="mb-1 flex items-center justify-between px-2">
-          <LogoEntreprise entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} sombre />
-        </div>
-        <div className="mb-5 flex items-center px-2">
-          <p className="truncate text-sm text-sidebar-foreground/60">{ligne?.entrepriseNom}</p>
-        </div>
+        <LogoEntreprise taille="panneau" entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />
+        <p className="mb-4 mt-1.5 truncate px-1 text-center text-sm font-medium text-sidebar-foreground/80">{ligne?.entrepriseNom}</p>
 
         <p className="mb-1 px-2.5 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/40">
           {utilisateurConnecte.role}

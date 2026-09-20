@@ -92,7 +92,7 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
           type="button"
           onClick={() => setOuvertPour(null)}
           aria-label="Fermer le menu"
-          className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 md:hidden"
+          className="absolute right-6 top-6 z-10 flex size-8 items-center justify-center rounded-lg bg-white text-stone-500 shadow-sm ring-1 ring-black/10 hover:text-stone-800 md:hidden"
         >
           <X className="size-5" aria-hidden />
         </button>
@@ -103,8 +103,11 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
           aria-label={replie ? "Déployer la barre latérale" : "Réduire la barre latérale"}
           title={replie ? "Déployer la barre latérale" : "Réduire la barre latérale"}
           className={cn(
-            "hidden size-9 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground md:flex",
-            replie ? "" : "absolute right-3 top-3"
+            "hidden items-center justify-center rounded-lg md:flex",
+            // Déployée : petite pastille blanche dans le coin du panneau du logo. Réduite : bouton seul sur la bande sombre.
+            replie
+              ? "size-9 text-sidebar-foreground/80 hover:bg-sidebar-accent"
+              : "absolute right-6 top-6 z-10 size-8 bg-white text-stone-500 shadow-sm ring-1 ring-black/10 hover:text-stone-800"
           )}
         >
           {replie ? <PanelLeftOpen className="size-5" aria-hidden /> : <PanelLeftClose className="size-5" aria-hidden />}

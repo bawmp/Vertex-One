@@ -42,7 +42,7 @@ export default async function PageCarrieresPubliques({ params }: { params: Promi
           </span>
 
           <h1
-            className="carrieres-monter carrieres-degrade max-w-3xl bg-gradient-to-r from-primary via-amber-500 to-rose-500 bg-clip-text pb-1 text-4xl font-extrabold tracking-tight text-transparent sm:text-6xl"
+            className="carrieres-monter carrieres-degrade max-w-3xl bg-gradient-to-r from-primary via-marque-orange to-marque-orange-400 bg-clip-text pb-1 text-4xl font-extrabold tracking-tight text-transparent sm:text-6xl"
             style={delai(200)}
           >
             {parametres.titre}
@@ -68,7 +68,7 @@ export default async function PageCarrieresPubliques({ params }: { params: Promi
 
           {postes.length > 0 ? (
             <ul className="carrieres-monter flex flex-wrap items-center justify-center gap-2 text-sm" style={delai(560)}>
-              <li className="rounded-full bg-amber-100 px-3.5 py-1.5 font-medium text-amber-800">
+              <li className="rounded-full bg-marque-orange-100 px-3.5 py-1.5 font-medium text-marque-orange-800">
                 {postes.length} offre{postes.length > 1 ? "s" : ""} ouverte{postes.length > 1 ? "s" : ""}
               </li>
               {nombreLieux > 0 ? (

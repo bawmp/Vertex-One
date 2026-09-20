@@ -35,14 +35,14 @@ export default function PageAccueil() {
   return (
     <>
       {/* Héros */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 text-white">
         <div
           aria-hidden
-          className="animate-flotter-lentement pointer-events-none absolute -top-24 -left-24 size-80 rounded-full bg-amber-400/30 blur-3xl"
+          className="animate-flotter-lentement pointer-events-none absolute -top-24 -left-24 size-80 rounded-full bg-marque-orange/35 blur-3xl"
         />
         <div
           aria-hidden
-          className="animate-flotter-lentement-inverse pointer-events-none absolute -right-24 top-1/3 size-96 rounded-full bg-emerald-300/20 blur-3xl"
+          className="animate-flotter-lentement-inverse pointer-events-none absolute -right-24 top-1/3 size-96 rounded-full bg-marque-bleu-300/25 blur-3xl"
         />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
           <Badge variant="brand" className="animate-pulse bg-white/10 text-white ring-white/20">
@@ -51,14 +51,14 @@ export default function PageAccueil() {
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
             La suite de gestion tout-en-un pour les entreprises de services au Cameroun
           </h1>
-          <p className="max-w-2xl text-lg text-emerald-50/90">
+          <p className="max-w-2xl text-lg text-marque-bleu-50/90">
             One CRM, One Invoicing, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
             international, pensée Mobile Money-first et WhatsApp-first, en français, sans les coûts d&apos;implémentation.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="bg-white text-emerald-800 transition-transform hover:-translate-y-0.5 hover:bg-emerald-50"
+              className="bg-marque-orange font-semibold text-marque-bleu-950 transition-transform hover:-translate-y-0.5 hover:bg-marque-orange-400"
               render={<Link href="/inscription" />}
               nativeButton={false}
             >
@@ -222,19 +222,19 @@ export default function PageAccueil() {
       </section>
 
       {/* CTA final */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-600 to-emerald-800 py-20 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 py-20 text-white">
         <div
           aria-hidden
-          className="animate-flotter-lentement pointer-events-none absolute -bottom-20 left-1/4 size-72 rounded-full bg-amber-400/25 blur-3xl"
+          className="animate-flotter-lentement pointer-events-none absolute -bottom-20 left-1/4 size-72 rounded-full bg-marque-orange/30 blur-3xl"
         />
         <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6 px-6 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">Prêt à essayer Vertex One ?</h2>
-          <p className="text-emerald-50/90">
+          <p className="text-marque-bleu-50/90">
             {DUREE_ESSAI_JOURS} jours d&apos;essai gratuit, tous les modules inclus. Aucune carte bancaire requise.
           </p>
           <Button
             size="lg"
-            className="bg-white text-emerald-800 transition-transform hover:-translate-y-0.5 hover:bg-emerald-50"
+            className="bg-marque-orange font-semibold text-marque-bleu-950 transition-transform hover:-translate-y-0.5 hover:bg-marque-orange-400"
             render={<Link href="/inscription" />}
             nativeButton={false}
           >

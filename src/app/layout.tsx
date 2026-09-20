@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { EcranDemarrage } from "@/components/ecran-demarrage";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             au point de contact (src/app/app/menu-utilisateur.tsx,
             src/app/app/mon-compte/page.tsx), jamais ici. */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <EcranDemarrage />
           {children}
         </ThemeProvider>
       </body>

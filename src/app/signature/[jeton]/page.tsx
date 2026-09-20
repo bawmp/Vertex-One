@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { signataire, demandeSignature, document } from "@/db/schema";
 import { FormulaireSignature } from "./formulaire-signature";
-import { Wordmark } from "@/components/wordmark";
+import { LogoEntreprise } from "@/components/logo-entreprise";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Route publique, accessible sans session — comme /invitation/[jeton] (Palier
@@ -23,20 +23,20 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
     .where(eq(signataire.jetonAcces, jeton));
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 p-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-emerald-500/20 blur-3xl"
+        className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-marque-orange/25 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-16 bottom-0 size-72 rounded-full bg-amber-400/10 blur-3xl"
+        className="pointer-events-none absolute -left-16 bottom-0 size-72 rounded-full bg-marque-bleu-300/20 blur-3xl"
       />
 
-      <Wordmark sombre className="relative text-lg" />
+      <LogoEntreprise taille="hero" className="relative" />
 
       {!ligne ? (
-        <p className="relative text-emerald-100/80">Ce lien de signature est invalide.</p>
+        <p className="relative text-marque-bleu-100/90">Ce lien de signature est invalide.</p>
       ) : ligne.signataire.statut === "SIGNE" ? (
         <Card className="relative w-full max-w-sm animate-in fade-in zoom-in-95 duration-300">
           <CardHeader>
@@ -48,7 +48,7 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
           </CardHeader>
         </Card>
       ) : ligne.signataire.statut !== "EN_ATTENTE" ? (
-        <p className="relative text-emerald-100/80">Cette demande de signature n&apos;est plus active.</p>
+        <p className="relative text-marque-bleu-100/90">Cette demande de signature n&apos;est plus active.</p>
       ) : (
         <Card className="relative w-full max-w-sm animate-in fade-in zoom-in-95 duration-300">
           <CardHeader>

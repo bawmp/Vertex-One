@@ -11,7 +11,7 @@ export function FormulaireCouleur({ couleurMarque }: { couleurMarque: string | n
 
   return (
     <form action={action} className="flex items-center gap-3">
-      <input type="color" name="couleurMarque" defaultValue={couleurMarque ?? "#047857"} className="h-9 w-14 cursor-pointer rounded-md border border-input p-1" />
+      <input type="color" name="couleurMarque" defaultValue={couleurMarque ?? "#233c7e"} className="h-9 w-14 cursor-pointer rounded-md border border-input p-1" />
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? <Spinner className="size-3.5" /> : null}
         Appliquer
