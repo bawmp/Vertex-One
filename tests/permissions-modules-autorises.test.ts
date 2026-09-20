@@ -42,8 +42,8 @@ describe("accès par module (utilisateur.modulesAutorises)", () => {
 
   it("une liste vide ferme tout module pour un Manager", () => {
     const manager = { role: "MANAGER" as const, modulesAutorises: [] as Module[] };
-    for (const module of Object.keys(MATRICE_PERMISSIONS.MANAGER) as Module[]) {
-      expect(peut(manager, module, "VOIR")).toBe(false);
+    for (const nomModule of Object.keys(MATRICE_PERMISSIONS.MANAGER) as Module[]) {
+      expect(peut(manager, nomModule, "VOIR")).toBe(false);
     }
   });
 
