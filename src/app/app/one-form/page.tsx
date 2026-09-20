@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { Lock, ClipboardList, ArrowRight } from "lucide-react";
+import { Lock, ClipboardList } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, formulaire } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonActiverOneForm } from "./bouton-activer-one-form";
 import { FormulaireNouveauFormulaire } from "./formulaire-nouveau-formulaire";
+import { ActionsFormulaire } from "./actions-formulaire";
 
 export default async function PageOneForm() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -35,6 +36,8 @@ export default async function PageOneForm() {
   });
 
   const peutGerer = peut(utilisateurConnecte, "ONE_FORM", "CREER");
+  const peutModifier = peut(utilisateurConnecte, "ONE_FORM", "MODIFIER");
+  const peutSupprimer = peut(utilisateurConnecte, "ONE_FORM", "SUPPRIMER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -59,16 +62,16 @@ export default async function PageOneForm() {
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
               {donnees.formulaires.map((f) => (
-                <Link key={f.id} href={`/app/one-form/${f.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/50">
-                  <div>
-                    <p className="font-medium">{f.titre}</p>
+                <div key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <Link href={`/app/one-form/${f.id}`} className="min-w-0 flex-1 hover:underline">
+                    <p className="truncate font-medium">{f.titre}</p>
                     <p className="text-xs text-muted-foreground">Créé le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(f.creeLe)}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={f.publie ? "success" : "neutral"}>{f.publie ? "Publié" : "Brouillon"}</Badge>
-                    <ArrowRight className="size-3.5 text-muted-foreground" aria-hidden />
+                    <ActionsFormulaire formulaireId={f.id} publie={f.publie} peutModifier={peutModifier} peutSupprimer={peutSupprimer} />
                   </div>
-                </Link>
+                </div>
               ))}
               {donnees.formulaires.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun formulaire pour le moment.</p> : null}
             </div>

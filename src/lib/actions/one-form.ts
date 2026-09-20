@@ -25,6 +25,7 @@ import {
   TAILLE_MAX_TOTAL_LIBELLE,
   TAILLE_MAX_TOTAL_OCTETS,
 } from "@/lib/one-form/fichiers";
+import { trouverModele } from "@/lib/one-form/modeles";
 
 export type EtatOneForm = { erreur?: string; succes?: string } | null;
 
@@ -71,6 +72,49 @@ export async function creerFormulaire(_etat: EtatOneForm, formData: FormData): P
       .values({ entrepriseId: utilisateurConnecte!.entrepriseId, titre: analyse.data.titre, slug, creeParId: utilisateurConnecte!.utilisateurId })
       .returning({ id: formulaire.id })
   );
+
+  revalidatePath("/app/one-form");
+  redirect(`/app/one-form/${nouveau.id}`);
+}
+
+/**
+ * Crée un formulaire (en brouillon) à partir d'un modèle prêt à l'emploi. Le contenu
+ * du modèle est relu côté serveur par son identifiant, jamais reçu du client.
+ */
+export async function creerFormulaireDepuisModele(_etat: EtatOneForm, formData: FormData): Promise<EtatOneForm> {
+  const { utilisateurConnecte, erreur } = await garde("CREER");
+  if (erreur) return { erreur };
+
+  const modele = trouverModele(String(formData.get("modeleId") ?? ""));
+  if (!modele) return { erreur: "Modèle introuvable." };
+
+  const slug = generateRandomString(10, "a-z", "A-Z", "0-9");
+  const nouveau = await avecEntreprise(utilisateurConnecte!.entrepriseId, async (tx) => {
+    const [cree] = await tx
+      .insert(formulaire)
+      .values({
+        entrepriseId: utilisateurConnecte!.entrepriseId,
+        titre: modele.titre,
+        description: modele.description,
+        messageConfirmation: modele.messageConfirmation,
+        creerLeadALaReponse: modele.creerLeadALaReponse,
+        slug,
+        creeParId: utilisateurConnecte!.utilisateurId,
+      })
+      .returning({ id: formulaire.id });
+    await tx.insert(champFormulaire).values(
+      modele.champs.map((champ, ordre) => ({
+        entrepriseId: utilisateurConnecte!.entrepriseId,
+        formulaireId: cree.id,
+        type: champ.type,
+        libelle: champ.libelle,
+        obligatoire: champ.obligatoire ?? false,
+        options: champ.options,
+        ordre,
+      }))
+    );
+    return cree;
+  });
 
   revalidatePath("/app/one-form");
   redirect(`/app/one-form/${nouveau.id}`);
@@ -227,6 +271,66 @@ export async function ajouterChamp(_etat: EtatOneForm, formData: FormData): Prom
       ordre: prochainOrdre,
     });
   });
+
+  revalidatePath(`/app/one-form/${formulaireId}`);
+  return null;
+}
+
+const schemaModificationChamp = z.object({
+  champId: z.string(),
+  formulaireId: z.string(),
+  libelle: z.string().trim().min(1, "Le libellé est requis."),
+  obligatoire: z.coerce.boolean(),
+  options: z.string().trim().optional(),
+});
+
+/**
+ * Modifie le libellé, le caractère obligatoire et les choix d'un champ. Le type ne
+ * change jamais (les réponses déjà reçues en dépendent) : il est relu en base, pas
+ * pris dans la requête. Les réponses déjà enregistrées ne sont pas modifiées.
+ */
+export async function modifierChamp(_etat: EtatOneForm, formData: FormData): Promise<EtatOneForm> {
+  const { utilisateurConnecte, erreur } = await garde("MODIFIER");
+  if (erreur) return { erreur };
+
+  const analyse = schemaModificationChamp.safeParse({
+    champId: formData.get("champId"),
+    formulaireId: formData.get("formulaireId"),
+    libelle: formData.get("libelle"),
+    obligatoire: formData.get("obligatoire") === "on",
+    options: formData.get("options") || undefined,
+  });
+  if (!analyse.success) return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+  const { champId, formulaireId, libelle, obligatoire, options } = analyse.data;
+
+  const resultat = await avecEntreprise(utilisateurConnecte!.entrepriseId, async (tx) => {
+    const [champ] = await tx
+      .select({ type: champFormulaire.type })
+      .from(champFormulaire)
+      .where(and(eq(champFormulaire.id, champId), eq(champFormulaire.formulaireId, formulaireId), eq(champFormulaire.entrepriseId, utilisateurConnecte!.entrepriseId)));
+    if (!champ) return { erreur: "Champ introuvable." };
+
+    let optionsListe: string[] | null = null;
+    if (champ.type === "FICHIER") {
+      const categories = categoriesValides(formData.getAll("categories"));
+      if (categories.length === 0) return { erreur: "Choisissez au moins un type de fichier accepté." };
+      optionsListe = categories;
+    } else if (champ.type === "CHOIX_UNIQUE" || champ.type === "CHOIX_MULTIPLE" || champ.type === "LISTE_DEROULANTE") {
+      optionsListe = (options ?? "")
+        .split("\n")
+        .map((o) => o.trim())
+        .filter(Boolean);
+      if (optionsListe.length === 0) return { erreur: "Ajoutez au moins une option." };
+    }
+
+    await tx
+      .update(champFormulaire)
+      .set({ libelle, obligatoire, options: optionsListe })
+      .where(and(eq(champFormulaire.id, champId), eq(champFormulaire.formulaireId, formulaireId), eq(champFormulaire.entrepriseId, utilisateurConnecte!.entrepriseId)));
+    return null;
+  });
+
+  if (resultat?.erreur) return resultat;
 
   revalidatePath(`/app/one-form/${formulaireId}`);
   return null;
