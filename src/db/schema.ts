@@ -94,6 +94,9 @@ export const entreprise = pgTable("entreprise", {
   // entreprises, aucun partage de données (voir le commentaire sur `groupe`).
   groupeId: text("groupe_id").references(() => groupe.id),
   planAbonnement: text("plan_abonnement").notNull().default("starter"), // starter | pro | business — non lu par la gestion d'accès depuis l'abonnement plat (2026-09-14), conservé sans être supprimé
+  // Posé quand un message direct attend d'être notifié par email (2026-09-20) — évite au worker de balayer toutes
+  // les entreprises : il ne traite que celles dont ce champ est renseigné et assez ancien.
+  messagesANotifierDepuis: timestamp("messages_a_notifier_depuis"),
   statutAbonnement: text("statut_abonnement").notNull().default("essai"), // essai | actif | suspendu — désormais piloté par les dates ci-dessous (échange du 2026-09-14), voir src/lib/abonnement/etat.ts
   // Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — remplace les
   // paliers/add-ons : essaiFinLe fixe la fin de l'essai gratuit de 14 jours ;
@@ -243,6 +246,9 @@ export const utilisateur = pgTable(
     // null = tous ceux de son rôle. Ne fait que restreindre la matrice du rôle,
     // jamais l'élargir — voir peut() dans src/lib/permissions.ts.
     modulesAutorises: json("modules_autorises").$type<string[]>(),
+    // Présence en ligne (2026-09-20) : dernière fois où son navigateur a interrogé la messagerie. « En ligne » = moins
+    // de 2 minutes. Jamais exposé via Better-Auth.
+    derniereActiviteLe: timestamp("derniere_activite_le"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
   },
@@ -1746,7 +1752,7 @@ export const modeleEmail = pgTable(
 // chat externe, ex. Stream Chat — voir src/lib/chat/client.ts) : cette
 // table ne conserve que la correspondance entre un Projet et le canal créé
 // chez ce prestataire.
-export const typeCanal = pgEnum("type_canal", ["PROJET", "EQUIPE", "LIBRE"]);
+export const typeCanal = pgEnum("type_canal", ["PROJET", "EQUIPE", "LIBRE", "DIRECT", "PRIVE"]);
 export const categorieDocument = pgEnum("categorie_document", [
   "GENERAL",
   "PIECE_IDENTITE",
@@ -1770,11 +1776,174 @@ export const canal = pgTable(
     // entreprises. Unique : un canal externe ne correspond jamais qu'à une
     // seule ligne ici.
     idFournisseurChat: text("id_fournisseur_chat").notNull().unique(),
+    // Créateur d'un groupe privé (2026-09-20) : seul lui ajoute ou retire des membres. Null pour les autres canaux.
+    creeParId: text("cree_par_id").references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
     index("canal_entreprise_idx").on(table.entrepriseId),
     index("canal_projet_idx").on(table.projetId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// One Chat intégré (2026-09-20) : les messages vivent dans notre base, cloisonnés par
+// entreprise comme toute donnée métier (RLS standard, aucune lecture anonyme). Un message
+// supprimé est conservé mais vidé de son contenu à l'affichage (supprimeLe) : la
+// conversation garde son fil.
+export const messageCanal = pgTable(
+  "message_canal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    canalId: text("canal_id")
+      .notNull()
+      .references(() => canal.id),
+    auteurId: text("auteur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    contenu: text("contenu").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    // Bougé à chaque changement (suppression) : la mise à jour incrémentale de la
+    // conversation lit tout ce qui a changé depuis son dernier passage.
+    misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+    supprimeLe: timestamp("supprime_le"),
+    // Pièce jointe (une par message) : image, PDF ou Word/Excel, type vérifié sur les octets. Stockée dans
+    // R2 sous l'entrepriseId, jamais servie sans repasser par le contrôle d'accès au canal.
+    pieceJointeCle: text("piece_jointe_cle"),
+    pieceJointeNom: text("piece_jointe_nom"),
+    pieceJointeType: text("piece_jointe_type"),
+    pieceJointeTaille: integer("piece_jointe_taille"),
+    // Fil de discussion : identifiant du message auquel celui-ci répond (un seul niveau — une réponse ne reçoit pas
+    // de réponse). Les réponses n'apparaissent pas dans la chronologie du canal, seulement dans le fil.
+    parentId: text("parent_id").references((): AnyPgColumn => messageCanal.id),
+    // Posé quand la notification par email d'un message direct a été traitée (envoyée ou inutile) : un message
+    // n'est jamais notifié deux fois.
+    notifieLe: timestamp("notifie_le"),
+  },
+  (table) => [
+    index("message_canal_entreprise_idx").on(table.entrepriseId),
+    index("message_canal_canal_cree_idx").on(table.canalId, table.creeLe),
+    index("message_canal_canal_maj_idx").on(table.canalId, table.misAJourLe),
+    index("message_canal_parent_idx").on(table.parentId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Réaction (emoji) d'un utilisateur à un message : une seule fois par emoji et par personne.
+export const reactionMessage = pgTable(
+  "reaction_message",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messageCanal.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    emoji: text("emoji").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("reaction_message_entreprise_idx").on(table.entrepriseId),
+    index("reaction_message_message_idx").on(table.messageId),
+    uniqueIndex("reaction_message_unique").on(table.messageId, table.utilisateurId, table.emoji),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Personne mentionnée (@Nom) dans un message : sert à la prévenir par email si elle n'a pas lu le canal à temps.
+export const mentionMessage = pgTable(
+  "mention_message",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messageCanal.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    notifieLe: timestamp("notifie_le"),
+  },
+  (table) => [
+    index("mention_message_entreprise_idx").on(table.entrepriseId),
+    index("mention_message_utilisateur_idx").on(table.utilisateurId),
+    uniqueIndex("mention_message_unique").on(table.messageId, table.utilisateurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Membres d'un canal PRIVÉ (message direct : seuls ces utilisateurs le voient. Les canaux PROJET, EQUIPE et
+// LIBRE n'utilisent pas cette table (leur visibilité vient du projet ou de l'entreprise entière).
+export const membreCanal = pgTable(
+  "membre_canal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    canalId: text("canal_id")
+      .notNull()
+      .references(() => canal.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+  },
+  (table) => [
+    index("membre_canal_entreprise_idx").on(table.entrepriseId),
+    index("membre_canal_utilisateur_idx").on(table.utilisateurId),
+    uniqueIndex("membre_canal_canal_utilisateur_unique").on(table.canalId, table.utilisateurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Dernier passage d'un utilisateur dans un canal — sert à compter les messages non lus.
+export const lectureCanal = pgTable(
+  "lecture_canal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    canalId: text("canal_id")
+      .notNull()
+      .references(() => canal.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    derniereLectureLe: timestamp("derniere_lecture_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("lecture_canal_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("lecture_canal_canal_utilisateur_unique").on(table.canalId, table.utilisateurId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

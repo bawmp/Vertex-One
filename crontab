@@ -25,3 +25,7 @@
 # grâce de 48h) de chaque entreprise, envoie le rappel adapté et suspend
 # l'accès si la grâce est dépassée (échange du 2026-09-14).
 0 8 * * * verifier-abonnements
+
+# Toutes les 3 minutes : emails de notification des messages directs restés non lus (One Chat, 2026-09-20).
+# Ne traite que les entreprises marquées à l'envoi d'un message direct — jamais un balayage complet.
+*/3 * * * * verifier-messages-a-notifier

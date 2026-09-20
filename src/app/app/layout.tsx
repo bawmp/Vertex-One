@@ -13,6 +13,7 @@ import { calculerEtatAbonnement } from "@/lib/abonnement/etat";
 import { BanniereAbonnement } from "./banniere-abonnement";
 import { NavLink, NavGroup } from "./nav-link";
 import { BarreSuperieure } from "./barre-superieure";
+import { BadgeMessagerie } from "./messagerie/badge-messagerie";
 import { MenuCompte } from "./menu-compte";
 import { MenuParametres } from "./menu-parametres";
 import { CadreSidebar } from "./cadre-sidebar";
@@ -393,6 +394,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       <NavLink key={item.href} href={item.href}>
         <item.Icone className="size-4 shrink-0" aria-hidden />
         {traduireNav(item.libelle, t)}
+        {item.module === "MESSAGERIE" ? <BadgeMessagerie /> : null}
       </NavLink>
     );
 

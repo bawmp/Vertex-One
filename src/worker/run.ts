@@ -38,6 +38,8 @@ async function main() {
   const { default: facturerRecurrenteEntreprise } = await import("./tasks/facturer-recurrente-entreprise");
   const { default: verifierAbonnements } = await import("./tasks/verifier-abonnements");
   const { default: traiterAbonnementEntreprise } = await import("./tasks/traiter-abonnement-entreprise");
+  const { default: verifierMessagesANotifier } = await import("./tasks/verifier-messages-a-notifier");
+  const { default: notifierMessagesEntreprise } = await import("./tasks/notifier-messages-entreprise");
 
   const runner = await run({
     connectionString: process.env.DATABASE_URL_WORKER,
@@ -54,6 +56,8 @@ async function main() {
       "facturer-recurrente-entreprise": facturerRecurrenteEntreprise,
       "verifier-abonnements": verifierAbonnements,
       "traiter-abonnement-entreprise": traiterAbonnementEntreprise,
+      "verifier-messages-a-notifier": verifierMessagesANotifier,
+      "notifier-messages-entreprise": notifierMessagesEntreprise,
     },
   });
 
