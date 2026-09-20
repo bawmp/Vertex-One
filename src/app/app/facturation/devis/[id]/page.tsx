@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { STATUT_DEVIS } from "@/lib/libelles";
 import { accepterDevis } from "@/lib/actions/devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
+import { EncartLienClient } from "@/components/encart-lien-client";
+import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 
 export default async function PageDetailDevis({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,11 +32,22 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
     const [p] = d.contactId ? await tx.select().from(contact).where(eq(contact.id, d.contactId)) : [null];
     const [compte] = d.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, d.compteId)) : [null];
 
-    return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null };
+    // Lien à partager au client dès que le devis n'est plus un brouillon.
+    const jetonClient = d.statut === "BROUILLON" ? null : await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { devisId: id });
+
+    return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null, jetonClient };
   });
 
   if (!donnees) notFound();
-  const { leDevis, lignes, leProspect, leCompte, laFacture } = donnees;
+  const { leDevis, lignes, leProspect, leCompte, laFacture, jetonClient } = donnees;
+
+  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
+  const resumeReponse =
+    leDevis.statut === "ACCEPTE"
+      ? { ton: "succes" as const, texte: leDevis.reponseLe ? `Accepté par le client${quand(leDevis.reponseLe)}.` : "Marqué comme accepté par un collaborateur." }
+      : leDevis.statut === "REFUSE"
+        ? { ton: "alerte" as const, texte: `Refusé par le client${quand(leDevis.reponseLe)}.${leDevis.motifRefus ? ` Motif : « ${leDevis.motifRefus} »` : " Aucun motif indiqué."}` }
+        : null;
 
   const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
   const info = STATUT_DEVIS[leDevis.statut];
@@ -62,6 +75,8 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           Télécharger le PDF
         </Button>
       </div>
+
+      {jetonClient ? <EncartLienClient url={urlPubliqueDevis(jetonClient)} resume={resumeReponse} /> : null}
 
       <Card className="p-0">
         <div className="overflow-x-auto">

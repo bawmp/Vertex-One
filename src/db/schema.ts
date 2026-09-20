@@ -835,6 +835,11 @@ export const devis = pgTable(
       .references(() => utilisateur.id),
     statut: statutDevis("statut").notNull().default("BROUILLON"),
     dateValidite: timestamp("date_validite").notNull(),
+    // Réponse du client depuis son lien public (2026-09-20) : quand, pourquoi
+    // (refus) et depuis quelle adresse IP — preuve, jamais transmise par le client.
+    reponseLe: timestamp("reponse_le"),
+    motifRefus: text("motif_refus"),
+    reponseIP: text("reponse_ip"),
     montantHT: integer("montant_ht").notNull(),
     montantTVA: integer("montant_tva").notNull(),
     montantTTC: integer("montant_ttc").notNull(),
@@ -917,6 +922,12 @@ export const facture = pgTable(
     montantTTC: integer("montant_ttc").notNull(),
     dateEmission: timestamp("date_emission").notNull().defaultNow(),
     dateEcheance: timestamp("date_echeance").notNull(),
+    // Réponse du client depuis son lien public (2026-09-20) : "ACCEPTEE" ou
+    // "CONTESTEE". Indépendante du statut de règlement (EMISE/PAYEE/...) : une
+    // facture n'est jamais supprimée, seulement contestée ou annulée par avoir.
+    reponseClient: text("reponse_client"),
+    reponseClientLe: timestamp("reponse_client_le"),
+    motifContestation: text("motif_contestation"),
   },
   (table) => [
     uniqueIndex("facture_entreprise_numero_unique").on(table.entrepriseId, table.numero),
@@ -1933,6 +1944,9 @@ export const signataire = pgTable(
     consentementExplicite: boolean("consentement_explicite").notNull().default(false),
     jetonAcces: text("jeton_acces").notNull().unique(),
     referenceCertificatANTIC: text("reference_certificat_antic"), // uniquement si type CERTIFIEE
+    // Refus explicite du signataire (2026-09-20) — quand et pourquoi.
+    refuseLe: timestamp("refuse_le"),
+    motifRefus: text("motif_refus"),
   },
   (table) => [
     index("signataire_entreprise_idx").on(table.entrepriseId),
@@ -4009,6 +4023,49 @@ export const notePersonnelle = pgTable(
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
       withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Lien public d'un devis ou d'une facture envoyé au client (2026-09-20) : le
+// client le consulte, l'accepte ou le refuse, puis règle — sans compte. Table à
+// part plutôt qu'une lecture anonyme sur devis/facture elles-mêmes : la lecture
+// anonyme ne révèle ici qu'un jeton -> (entreprise, document), jamais un
+// montant ; les données du document sont ensuite lues via avecEntreprise().
+// Même patron que `invitation` : lecture permissive seulement quand
+// app.entreprise_id n'est pas positionné, écriture toujours stricte.
+export const lienClientDocument = pgTable(
+  "lien_client_document",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    devisId: text("devis_id").references(() => devis.id),
+    factureId: text("facture_id").references(() => facture.id),
+    jeton: text("jeton").notNull().unique(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("lien_client_document_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("lien_client_document_devis_unique").on(table.devisId),
+    uniqueIndex("lien_client_document_facture_unique").on(table.factureId),
+    pgPolicy("lecture_par_jeton_ou_entreprise", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
+    }),
+    pgPolicy("ecriture_entreprise", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("modification_entreprise", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("suppression_entreprise", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
     }),
   ]
 ).enableRLS();

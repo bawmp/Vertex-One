@@ -45,6 +45,16 @@ L'Administrateur choisit, pour chaque Manager/Employé (à l'invitation ou ensui
 
 **Toujours appeler `peut(utilisateurConnecte, ...)` / `portee(utilisateurConnecte, ...)` avec l'utilisateur connecté entier, jamais `utilisateurConnecte.role`** : passer seulement le rôle ignore silencieusement la restriction choisie par l'Administrateur, sans erreur ni avertissement. Même règle pour `itemMenuVisible()`/`libellesMenuVisibles()`. Un nouveau module doit aussi être ajouté à `LIBELLES_MODULES` (`src/lib/modules-libelles.ts`) pour apparaître dans le sélecteur.
 
+## Pages publiques envoyées au client — devis, factures, signatures (2026-09-20)
+
+Le client répond sans compte, depuis un lien à jeton : `/devis/[jeton]` (accepter/refuser), `/facture/[jeton]` (accepter/contester, puis payer maintenant ou plus tard), `/signature/[jeton]` (signer/refuser). Le jeton (32 caractères aléatoires) est l'unique autorisation.
+
+- **Ne jamais ouvrir en lecture anonyme une table métier stricte** (`devis`, `facture`, `demande_signature`, `document`…). Un jeton se résout par une table dédiée à carve-out (`lien_client_document`, `signataire`) qui ne renvoie qu'un identifiant d'entreprise et de document ; toutes les données sont ensuite lues via `avecEntreprise(entrepriseId)` avec l'entrepriseId de CETTE ligne, jamais une valeur du navigateur. **Ne jamais faire de `db.select()` avec jointure entre une table à carve-out et une table stricte** : la jointure renvoie zéro ligne sans erreur (bug réel trouvé : la page `/signature/[jeton]` affichait « lien invalide » à tous les clients).
+- Toute réponse du client enregistre sa date et son adresse IP côté serveur (`headers()`), et un motif éventuel ; le texte saisi par un client est échappé (`echapper()`) avant d'entrer dans un email.
+- **Les emails d'alerte partent APRÈS la réponse (`after()` de `next/server`)** : le rendu du certificat PDF et les envois Resend ont pris jusqu'à 60 s, le client ne doit jamais les attendre.
+- Quand le dernier signataire signe : le contrat et son certificat horodaté sont fusionnés en un PDF signé (`pdf-lib`), **rangé directement dans le dossier du client**, et envoyé à l'Administrateur, à l'auteur de la demande et au signataire (`src/lib/signature/finalisation.ts`). Si l'original n'est pas un PDF, l'original et le certificat sont envoyés séparés.
+- **CinetPay exige un numéro au format international** (`+237…`) : les contacts sont saisis au format local (« 690 11 12 22 »), d'où `telephoneInternational()` (`src/lib/cinetpay/utilitaires.ts`). Sans elle, le paiement échouait avec « must be in international format » pour la plupart des clients.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.

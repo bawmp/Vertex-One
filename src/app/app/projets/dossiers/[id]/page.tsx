@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { Phone, Mail, Archive, ArchiveRestore, ShieldCheck } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { dossier, projet, contact, entreprise, commentaire, utilisateur, document, contrat } from "@/db/schema";
+import { dossier, projet, contact, entreprise, commentaire, utilisateur, document, contrat, demandeSignature, signataire } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -51,6 +51,16 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       tx.select().from(contrat).where(eq(contrat.dossierId, id)).orderBy(desc(contrat.creeLe)),
     ]);
 
+    // Statut de signature de chaque contrat déjà envoyé au client (et date de signature).
+    const idsDemandes = contrats.map((c) => c.demandeSignatureId).filter((x): x is string => Boolean(x));
+    const demandes = idsDemandes.length ? await tx.select({ id: demandeSignature.id, statut: demandeSignature.statut }).from(demandeSignature).where(inArray(demandeSignature.id, idsDemandes)) : [];
+    const signataires = idsDemandes.length ? await tx.select({ demandeSignatureId: signataire.demandeSignatureId, signeLe: signataire.signeLe }).from(signataire).where(inArray(signataire.demandeSignatureId, idsDemandes)) : [];
+    const contratsAvecSignature = contrats.map((c) => {
+      const demande = demandes.find((d) => d.id === c.demandeSignatureId);
+      const signeLe = signataires.filter((s) => s.demandeSignatureId === c.demandeSignatureId && s.signeLe).map((s) => s.signeLe as Date).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+      return { ...c, signature: demande ? { demandeId: demande.id, statut: demande.statut, signeLe } : null };
+    });
+
     const idsAuteurs = [...new Set(commentaires.map((c) => c.auteurId))];
     const auteurs = idsAuteurs.length > 0 ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(inArray(utilisateur.id, idsAuteurs)) : [];
 
@@ -67,7 +77,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       projets,
       commentaires,
       documents: documentsVisibles,
-      contrats,
+      contrats: contratsAvecSignature,
       auteursParId: Object.fromEntries(auteurs.map((a) => [a.id, a.nomComplet])),
     };
   });
@@ -193,7 +203,13 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
             <h2 className="text-sm font-medium text-muted-foreground">Contrats</h2>
             {peut(utilisateurConnecte, "CONTRATS", "CREER") ? <FormulaireNouveauContrat dossierId={leDossier.id} /> : null}
           </div>
-          <ListeContrats contrats={contrats} peutModifier={peut(utilisateurConnecte, "CONTRATS", "MODIFIER")} />
+          <ListeContrats
+            contrats={contrats}
+            peutModifier={peut(utilisateurConnecte, "CONTRATS", "MODIFIER")}
+            peutEnvoyer={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
+            documents={documents.map((d) => ({ id: d.id, nom: d.nom }))}
+            client={leContact ? { nom: leContact.nom, telephone: leContact.telephone, email: leContact.email } : null}
+          />
         </div>
       ) : null}
 

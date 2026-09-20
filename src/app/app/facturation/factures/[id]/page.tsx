@@ -14,6 +14,8 @@ import { STATUT_FACTURE } from "@/lib/libelles";
 import { marquerFacturePayee, annulerFacture } from "@/lib/actions/facture";
 import { FormulaireEnvoiFacture } from "./formulaire-envoi-facture";
 import { BoutonPaiementEnLigne } from "./bouton-paiement-en-ligne";
+import { EncartLienClient } from "@/components/encart-lien-client";
+import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 
 export default async function PageDetailFacture({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,11 +35,21 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
     const [p] = f.contactId ? await tx.select().from(contact).where(eq(contact.id, f.contactId)) : [null];
     const [compte] = f.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, f.compteId)) : [null];
 
-    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null };
+    const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { factureId: id });
+
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient } = donnees;
+
+  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
+  const resumeReponse =
+    laFacture.reponseClient === "ACCEPTEE"
+      ? { ton: "succes" as const, texte: `Acceptée par le client${quand(laFacture.reponseClientLe)}.` }
+      : laFacture.reponseClient === "CONTESTEE"
+        ? { ton: "alerte" as const, texte: `Contestée par le client${quand(laFacture.reponseClientLe)}. Motif : « ${laFacture.motifContestation ?? "non précisé"} »` }
+        : null;
 
   const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
   const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
@@ -75,6 +87,8 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           peutPersonnaliserModele={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")}
         />
       ) : null}
+
+      <EncartLienClient url={urlPubliqueFacture(jetonClient)} resume={resumeReponse} />
 
       <Card className="p-0">
         <div className="overflow-x-auto">

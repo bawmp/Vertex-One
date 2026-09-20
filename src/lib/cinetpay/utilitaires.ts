@@ -19,3 +19,21 @@ export function moyenPaiementDepuisOperateur(operateur: string | undefined): "or
   if (!operateur) return "mtn_momo";
   return /orange|^om$/i.test(operateur) ? "orange_money" : "mtn_momo";
 }
+
+/**
+ * CinetPay exige un numéro au format international (+XXXXXXXXXXXX) et rejette le
+ * format local avec lequel les contacts sont saisis au Cameroun (« 690 11 12 22 »).
+ * Ajoute l'indicatif +237 à un numéro camerounais local (9 chiffres commençant par 6 ou
+ * 2), convertit « 00237… » et « 237… » en « +237… », et laisse tout autre numéro
+ * déjà international inchangé. Renvoie une chaîne vide pour un numéro inexploitable :
+ * l'appelant n'envoie alors aucun numéro (le champ est facultatif chez CinetPay).
+ */
+export function telephoneInternational(brut: string | null | undefined): string {
+  const nettoye = (brut ?? "").replace(/[\s.\-()]/g, "");
+  if (!nettoye) return "";
+  if (nettoye.startsWith("+")) return /^\+\d{8,15}$/.test(nettoye) ? nettoye : "";
+  if (nettoye.startsWith("00")) return /^\d{10,17}$/.test(nettoye) ? `+${nettoye.slice(2)}` : "";
+  if (/^237[26]\d{8}$/.test(nettoye)) return `+${nettoye}`;
+  if (/^[26]\d{8}$/.test(nettoye)) return `+237${nettoye}`;
+  return "";
+}

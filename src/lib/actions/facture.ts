@@ -4,17 +4,17 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, facture, paiement, avoirFacture, contact, tentativePaiementFacture } from "@/db/schema";
+import { facture, paiement, avoirFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { recupererFacturePourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { initierPaiement } from "@/lib/cinetpay/client";
+import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
+import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -120,37 +120,11 @@ export async function genererLienPaiement(factureId: string): Promise<{ url?: st
   if (!utilisateurConnecte) redirect("/connexion");
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-
-    if (!disponible(monEntreprise, "PAIEMENTS_EN_LIGNE")) {
-      return { erreur: "Le paiement en ligne est disponible à partir du forfait Pro." };
-    }
-
-    const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
-    if (!laFacture || laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE") {
-      return { erreur: "Cette facture n'est plus en attente de règlement." };
-    }
-
-    const [leContact] = laFacture.contactId ? await tx.select().from(contact).where(eq(contact.id, laFacture.contactId)) : [null];
-
-    const [tentative] = await tx
-      .insert(tentativePaiementFacture)
-      .values({ entrepriseId: utilisateurConnecte.entrepriseId, factureId, montant: laFacture.montantTTC })
-      .returning({ id: tentativePaiementFacture.id });
-
-    const resultat = await initierPaiement({
-      transactionId: tentative.id,
-      montant: laFacture.montantTTC,
-      description: `Facture ${laFacture.numero}`,
-      notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify`,
+    return creerLienPaiementFacture(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      factureId,
       returnUrl: `${urlBase()}/app/facturation/factures/${factureId}`,
-      clientNom: leContact?.nom ?? "Client",
-      clientTelephone: leContact?.telephone ?? "",
-      clientEmail: leContact?.email ?? null,
     });
-
-    if (resultat.erreur) return { erreur: resultat.erreur };
-    return { url: resultat.url };
   });
 }
 
@@ -177,6 +151,8 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
     if (!donnees.client?.email) {
       return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
     }
+
+    const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { factureId });
 
     const [modele, buffer] = await Promise.all([
       recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_FACTURE"),
@@ -205,7 +181,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: interpoler(modele.objet, variables),
-      html: corpsVersHtml(interpoler(modele.corps, variables)),
+      html: corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueFacture(jetonClient)}">Consulter, accepter et régler cette facture en ligne</a></p>`,
       attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
     });
 

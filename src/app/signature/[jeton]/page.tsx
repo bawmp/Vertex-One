@@ -1,9 +1,10 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/db/client";
+import { db, avecEntreprise } from "@/db/client";
 import { signataire, demandeSignature, document } from "@/db/schema";
 import { FormulaireSignature } from "./formulaire-signature";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 
 // Route publique, accessible sans session — comme /invitation/[jeton] (Palier
 // 0) : la connexion utilise le client `db` direct, pas avecEntreprise(), et
@@ -12,15 +13,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default async function PageSignature({ params }: { params: Promise<{ jeton: string }> }) {
   const { jeton } = await params;
 
-  const [ligne] = await db
-    .select({
-      signataire,
-      nomDocument: document.nom,
-    })
-    .from(signataire)
-    .innerJoin(demandeSignature, eq(signataire.demandeSignatureId, demandeSignature.id))
-    .innerJoin(document, eq(demandeSignature.documentId, document.id))
-    .where(eq(signataire.jetonAcces, jeton));
+  // Le signataire se retrouve par son jeton (lecture anonyme autorisée par la RLS de `signataire`).
+  // Le document, lui, vit dans des tables strictement cloisonnées (demande_signature, document) :
+  // il se lit avec l'entrepriseId de la ligne du signataire, jamais dans une jointure anonyme.
+  const [leSignataire] = /^[A-Za-z0-9]{20,64}$/.test(jeton) ? await db.select().from(signataire).where(eq(signataire.jetonAcces, jeton)) : [];
+  const nomDocument = leSignataire
+    ? await avecEntreprise(leSignataire.entrepriseId, async (tx) => {
+        const [r] = await tx
+          .select({ nom: document.nom })
+          .from(demandeSignature)
+          .innerJoin(document, eq(demandeSignature.documentId, document.id))
+          .where(eq(demandeSignature.id, leSignataire.demandeSignatureId));
+        return r?.nom ?? null;
+      })
+    : null;
+  const ligne = leSignataire && nomDocument ? { signataire: leSignataire, nomDocument } : null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4">
@@ -43,10 +50,13 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
             <CardTitle>Document déjà signé</CardTitle>
             <CardDescription>
               Vous avez signé « {ligne.nomDocument} »
-              {ligne.signataire.signeLe ? ` le ${ligne.signataire.signeLe.toLocaleDateString("fr-FR")}` : ""}.
+              {ligne.signataire.signeLe ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Douala" }).format(ligne.signataire.signeLe)} (heure de Yaoundé)` : ""}.
+              {" "}Une copie signée vous est envoyée par email.
             </CardDescription>
           </CardHeader>
         </Card>
+      ) : ligne.signataire.statut === "REFUSE" ? (
+        <p className="relative text-marque-bleu-100/90">Vous avez refusé de signer ce document. Merci de votre réponse.</p>
       ) : ligne.signataire.statut !== "EN_ATTENTE" ? (
         <p className="relative text-marque-bleu-100/90">Cette demande de signature n&apos;est plus active.</p>
       ) : (
@@ -57,7 +67,10 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
               « {ligne.nomDocument} » — {ligne.signataire.nom}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
+            <a href={`/signature/${jeton}/document`} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" }) + " w-fit"}>
+              Lire le document avant de signer
+            </a>
             <FormulaireSignature jeton={jeton} emailConnu={Boolean(ligne.signataire.email)} />
           </CardContent>
         </Card>

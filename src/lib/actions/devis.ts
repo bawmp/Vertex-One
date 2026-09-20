@@ -5,19 +5,18 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis, facture, ligneFacture, contact } from "@/db/schema";
+import { entreprise, devis, ligneDevis } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
-import { genererNumeroDevis, genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { genererNumeroDevis } from "@/lib/facturation/numerotation";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { recupererDevisPourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
-import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
-import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
-import { decrementerStockVente } from "@/lib/produits/stock";
+import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
+import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 
 const schemaLigne = z.object({
   produitId: z.string().trim().optional(),
@@ -131,89 +130,7 @@ export async function accepterDevis(devisId: string) {
   if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const idFactureCreee = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
-    if (!leDevis || leDevis.statut === "ACCEPTE") return null;
-
-    const [lignesDuDevis, [monEntreprise]] = await Promise.all([
-      tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
-      tx.select({ secteurProfil: entreprise.secteurProfil }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
-    ]);
-    if (!leDevis.contactId) return null; // intégrité référentielle violée — ne devrait jamais arriver
-
-    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDevis.contactId));
-
-    await tx.update(devis).set({ statut: "ACCEPTE" }).where(eq(devis.id, devisId));
-
-    const numero = await genererNumeroFacture(tx, utilisateurConnecte.entrepriseId);
-    const dateEcheance = new Date();
-    dateEcheance.setDate(dateEcheance.getDate() + 30);
-
-    const [nouvelleFacture] = await tx
-      .insert(facture)
-      .values({
-        entrepriseId: utilisateurConnecte.entrepriseId,
-        numero,
-        dealId: leDevis.dealId,
-        contactId: leDevis.contactId,
-        compteId: leDevis.compteId,
-        assigneAId: leDevis.assigneAId,
-        devisOrigineId: leDevis.id,
-        montantHT: leDevis.montantHT,
-        montantTVA: leDevis.montantTVA,
-        montantTTC: leDevis.montantTTC,
-        dateEcheance,
-      })
-      .returning({ id: facture.id });
-
-    await tx.insert(ligneFacture).values(
-      lignesDuDevis.map((l) => ({
-        entrepriseId: utilisateurConnecte.entrepriseId,
-        factureId: nouvelleFacture.id,
-        produitId: l.produitId,
-        designation: l.designation,
-        quantite: l.quantite,
-        prixUnitaire: l.prixUnitaire,
-        tauxTVA: l.tauxTVA,
-      }))
-    );
-
-    // Catalogue Produits/Tarifs (échange du 2026-09-07) — une vente facturée
-    // diminue le stock des BIEN suivis, jamais au stade Devis (simple
-    // intention, pas encore une transaction réalisée), voir schema.ts.
-    await decrementerStockVente(tx, lignesDuDevis);
-
-    // Palier 4, section 4 : la comptabilité se construit toute seule à
-    // mesure que l'entreprise facture — jamais un écran de saisie séparé à
-    // ouvrir pour ses ventes courantes. Génération non conditionnée au
-    // forfait (comme le pont Dossier/Projet ci-dessous) : seule la
-    // consultation des écritures est verrouillée au forfait Business.
-    await genererEcrituresFactureEmise(tx, {
-      id: nouvelleFacture.id,
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      numero,
-      dateEmission: new Date(),
-      montantHT: leDevis.montantHT,
-      montantTVA: leDevis.montantTVA,
-      montantTTC: leDevis.montantTTC,
-    });
-
-    // Palier 2, section 3 : ouverture (ou réutilisation) du Dossier client
-    // et création d'un nouveau Projet, dans la même transaction que la
-    // facture — un échec de l'un annule l'autre, jamais de facture sans son
-    // Projet de suivi ni l'inverse.
-    await creerProjetDepuisDevisAccepte(tx, {
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      contactId: leDevis.contactId,
-      contactNom: leContact?.nom ?? "Client",
-      secteurProfil: monEntreprise?.secteurProfil ?? "generique",
-      devisId: leDevis.id,
-      numeroDevis: leDevis.numero,
-      // Celui qui a créé le devis (donc gagné le client), pas forcément
-      // celui qui clique sur "Marquer accepté" — voir docs/palier-2-*, section 3.
-      responsableId: leDevis.creeParId,
-    });
-
-    return nouvelleFacture.id;
+    return accepterDevisEtCreerFacture(tx, utilisateurConnecte.entrepriseId, devisId);
   });
 
   revalidatePath(`/app/facturation/devis/${devisId}`);
@@ -248,6 +165,8 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
       return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
     }
 
+    const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { devisId });
+
     const [modele, buffer] = await Promise.all([
       recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_DEVIS"),
       rendreDocumentCommercialPDF({
@@ -275,7 +194,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: interpoler(modele.objet, variables),
-      html: corpsVersHtml(interpoler(modele.corps, variables)),
+      html: corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
     });
 

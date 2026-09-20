@@ -1,6 +1,6 @@
 import "server-only";
 import { CinetPayClient, ApiError } from "cinetpay-js";
-import { moyenPaiementDepuisOperateur } from "./utilitaires";
+import { moyenPaiementDepuisOperateur, telephoneInternational } from "./utilitaires";
 
 export { moyenPaiementDepuisOperateur };
 
@@ -79,7 +79,7 @@ export async function initierPaiement(params: InitierPaiementParams): Promise<Re
         clientEmail: params.clientEmail ?? "client@vertexone.cm",
         clientFirstName: prenom,
         clientLastName: nomFamille,
-        clientPhoneNumber: params.clientTelephone || undefined,
+        clientPhoneNumber: telephoneInternational(params.clientTelephone) || undefined,
         successUrl: params.returnUrl.slice(0, 120),
         failedUrl: params.returnUrl.slice(0, 120),
         notifyUrl: params.notifyUrl.slice(0, 120),

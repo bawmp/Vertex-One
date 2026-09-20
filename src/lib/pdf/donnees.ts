@@ -82,3 +82,37 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
 
   return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
 }
+
+/**
+ * Variantes pour le lien public envoyé au client (2026-09-20) : aucun utilisateur
+ * connecté, donc aucun contrôle de portée — l'autorisation est le jeton secret,
+ * vérifié par l'appelant, et l'entrepriseId provient de la ligne du lien, jamais
+ * du navigateur. À appeler dans avecEntreprise(entrepriseId, ...).
+ */
+export async function recupererDevisPourClient(tx: TransactionDrizzle, entrepriseId: string, devisId: string) {
+  const [d] = await tx.select().from(devis).where(eq(devis.id, devisId));
+  if (!d) return null;
+  const client = await construireClientPourPDF(tx, d.contactId, d.compteId);
+  if (!client) return null;
+
+  const [lignes, [monEntreprise]] = await Promise.all([
+    tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, devisId)),
+    tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
+  ]);
+
+  return { devis: d, lignes, client, entreprise: await avecLogo(monEntreprise) };
+}
+
+export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepriseId: string, factureId: string) {
+  const [f] = await tx.select().from(facture).where(eq(facture.id, factureId));
+  if (!f) return null;
+  const client = await construireClientPourPDF(tx, f.contactId, f.compteId);
+  if (!client) return null;
+
+  const [lignes, [monEntreprise]] = await Promise.all([
+    tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
+    tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
+  ]);
+
+  return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
+}
