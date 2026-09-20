@@ -50,6 +50,8 @@ export default async function PageRecrutement() {
         nom: candidature.nom,
         telephone: candidature.telephone,
         email: candidature.email,
+        message: candidature.message,
+        invitationId: candidature.invitationId,
         statut: candidature.statut,
         assigneAId: candidature.assigneAId,
         posteTitre: posteOuvert.titre,
@@ -129,7 +131,16 @@ export default async function PageRecrutement() {
                     CV
                   </a>
                 </div>
-                <ControlesCandidature candidatureId={c.id} statut={c.statut} peutReassigner={utilisateurConnecte.role === "ADMIN"} agents={donnees.agents} agentActuelId={c.assigneAId} />
+                <ControlesCandidature
+                  candidatureId={c.id}
+                  statut={c.statut}
+                  peutReassigner={utilisateurConnecte.role === "ADMIN"}
+                  agents={donnees.agents}
+                  agentActuelId={c.assigneAId}
+                  peutModifier={peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")}
+                  peutSupprimer={peut(utilisateurConnecte.role, "RECRUTEMENT", "SUPPRIMER") && !c.invitationId}
+                  coordonnees={{ nom: c.nom, telephone: c.telephone, email: c.email, message: c.message }}
+                />
                 {(c.statut === "OFFRE" || c.statut === "EMBAUCHE") && utilisateurConnecte.role === "ADMIN" ? (
                   <FormulaireConversion candidatureId={c.id} statut={c.statut} />
                 ) : null}

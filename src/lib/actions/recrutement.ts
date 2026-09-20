@@ -1,13 +1,15 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { entreprise, parametreRecrutement, posteOuvert, candidature } from "@/db/schema";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
 import { disponibleAddon } from "@/lib/plans";
+import { peut } from "@/lib/permissions";
+import { effacerObjetStockage } from "@/lib/documents/stockage";
 import { idsVisibles } from "@/lib/portee";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
 import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
@@ -124,13 +126,83 @@ export async function creerPosteOuvert(_etat: EtatRecrutementConfig, formData: F
 }
 
 export async function desactiverPosteOuvert(posteId: string) {
+  await changerActifPoste(posteId, false);
+}
+
+export async function reactiverPosteOuvert(posteId: string) {
+  await changerActifPoste(posteId, true);
+}
+
+async function changerActifPoste(posteId: string, actif: boolean) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(posteOuvert).set({ actif: false }).where(eq(posteOuvert.id, posteId)));
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.update(posteOuvert).set({ actif }).where(and(eq(posteOuvert.id, posteId), eq(posteOuvert.entrepriseId, utilisateurConnecte.entrepriseId)))
+  );
 
   revalidatePath(`${CHEMIN}/postes`);
+}
+
+/** Modifie une offre déjà publiée : la page publique la reflète aussitôt (elle relit la base à chaque visite). */
+export async function modifierPosteOuvert(_etat: EtatRecrutementConfig, formData: FormData): Promise<EtatRecrutementConfig> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN") {
+    return { erreur: "Seul l'Administrateur peut modifier un poste." };
+  }
+
+  const posteId = formData.get("posteId");
+  if (typeof posteId !== "string" || !posteId) return { erreur: "Poste introuvable." };
+
+  const analyse = schemaPoste.safeParse({ titre: formData.get("titre"), description: formData.get("description") || "", lieu: formData.get("lieu") || "", typeContrat: formData.get("typeContrat") || "" });
+  if (!analyse.success) {
+    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+  const { titre, description, lieu, typeContrat } = analyse.data;
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const modifies = await tx
+      .update(posteOuvert)
+      .set({ titre, description: description || null, lieu: lieu || null, typeContrat: typeContrat || null })
+      .where(and(eq(posteOuvert.id, posteId), eq(posteOuvert.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .returning({ id: posteOuvert.id });
+    return modifies.length === 0 ? { erreur: "Poste introuvable." } : null;
+  });
+
+  if (resultat?.erreur) return resultat;
+
+  revalidatePath(`${CHEMIN}/postes`);
+  return null;
+}
+
+/**
+ * Suppression réelle, seulement si aucune candidature n'y est rattachée : les
+ * candidatures (et leurs CV) sont des données de candidats qu'on ne fait pas
+ * disparaître en silence en supprimant l'offre. Dans ce cas, il faut désactiver.
+ */
+export async function supprimerPosteOuvert(posteId: string): Promise<{ erreur?: string } | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN") return { erreur: "Seul l'Administrateur peut supprimer un poste." };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [{ total }] = await tx
+      .select({ total: count() })
+      .from(candidature)
+      .where(and(eq(candidature.posteId, posteId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (total > 0) {
+      return { erreur: `Ce poste a ${total} candidature${total > 1 ? "s" : ""} : il ne peut pas être supprimé. Désactivez-le pour le retirer de la page publique.` };
+    }
+    await tx.delete(posteOuvert).where(and(eq(posteOuvert.id, posteId), eq(posteOuvert.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return null;
+  });
+
+  if (resultat?.erreur) return resultat;
+
+  revalidatePath(`${CHEMIN}/postes`);
+  return null;
 }
 
 const STATUTS_VALIDES = ["RECUE", "EN_EXAMEN", "ENTRETIEN", "OFFRE", "EMBAUCHE", "REJETEE"] as const;
@@ -152,6 +224,7 @@ export async function changerStatutCandidature(candidatureId: string, statut: (t
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!STATUTS_VALIDES.includes(statut)) return;
+  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return;
@@ -169,6 +242,90 @@ export async function assignerCandidature(candidatureId: string, assigneAId: str
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(candidature).set({ assigneAId }).where(eq(candidature.id, candidatureId)));
 
   revalidatePath(CHEMIN);
+}
+
+const schemaModificationCandidature = z.object({
+  candidatureId: z.string().min(1),
+  nom: z.string().trim().min(2, "Le nom est trop court."),
+  telephone: z.string().trim().min(6, "Numéro de téléphone invalide."),
+  email: z.email("Adresse email invalide.").optional().or(z.literal("")),
+  message: z.string().trim().optional(),
+});
+
+/** Corrige les coordonnées ou le message d'une candidature déjà reçue. Le CV et le poste visé ne changent pas. */
+export async function modifierCandidature(_etat: EtatRecrutementConfig, formData: FormData): Promise<EtatRecrutementConfig> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")) {
+    return { erreur: "Vous n'avez pas le droit de modifier une candidature." };
+  }
+
+  const analyse = schemaModificationCandidature.safeParse({
+    candidatureId: formData.get("candidatureId"),
+    nom: formData.get("nom"),
+    telephone: formData.get("telephone"),
+    email: formData.get("email") || "",
+    message: formData.get("message") || "",
+  });
+  if (!analyse.success) {
+    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+  const { candidatureId, nom, telephone, email, message } = analyse.data;
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return { erreur: "Candidature introuvable." };
+    const modifiees = await tx
+      .update(candidature)
+      .set({ nom, telephone, email: email || null, message: message || null })
+      .where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .returning({ id: candidature.id });
+    return modifiees.length === 0 ? { erreur: "Candidature introuvable." } : null;
+  });
+
+  if (resultat?.erreur) return resultat;
+
+  revalidatePath(CHEMIN);
+  return null;
+}
+
+/**
+ * Suppression réelle (candidature + CV stocké), sur demande légitime du candidat
+ * ou pour un doublon. Refusée si la candidature a déjà été convertie en employé :
+ * la trace de l'embauche doit rester.
+ */
+export async function supprimerCandidature(candidatureId: string): Promise<{ erreur?: string } | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "SUPPRIMER")) {
+    return { erreur: "Seul l'Administrateur peut supprimer une candidature." };
+  }
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return { erreur: "Candidature introuvable." };
+    const [ligne] = await tx
+      .select({ invitationId: candidature.invitationId, cvCleStockage: candidature.cvCleStockage })
+      .from(candidature)
+      .where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!ligne) return { erreur: "Candidature introuvable." };
+    if (ligne.invitationId) return { erreur: "Cette candidature a été convertie en employé : elle ne peut pas être supprimée." };
+
+    await tx.delete(candidature).where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return { cle: ligne.cvCleStockage };
+  });
+
+  if ("erreur" in resultat && resultat.erreur) return { erreur: resultat.erreur };
+
+  // Après la suppression en base : un échec de nettoyage R2 laisse au pire un fichier orphelin, jamais une candidature sans CV.
+  if ("cle" in resultat && resultat.cle) {
+    try {
+      await effacerObjetStockage(resultat.cle);
+    } catch {
+      // Fichier orphelin toléré.
+    }
+  }
+
+  revalidatePath(CHEMIN);
+  return null;
 }
 
 const schemaConversion = z.object({

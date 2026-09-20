@@ -6,10 +6,8 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, posteOuvert } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponibleAddon } from "@/lib/plans";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauPoste } from "./formulaire-nouveau-poste";
-import { BoutonDesactiverPoste } from "./bouton-desactiver-poste";
+import { CartePoste } from "./carte-poste";
 
 export default async function PagePostesOuverts() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -56,17 +54,7 @@ export default async function PagePostesOuverts() {
 
       <div className="flex flex-col gap-3">
         {donnees.postes.map((p) => (
-          <Card key={p.id} className={p.actif ? undefined : "opacity-60"}>
-            <CardContent className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{p.titre}</p>
-                {p.lieu ? <Badge variant="neutral">{p.lieu}</Badge> : null}
-                {p.typeContrat ? <Badge variant="brand">{p.typeContrat}</Badge> : null}
-                {!p.actif ? <Badge variant="warning">Désactivé</Badge> : null}
-              </div>
-              {p.actif ? <BoutonDesactiverPoste posteId={p.id} /> : null}
-            </CardContent>
-          </Card>
+          <CartePoste key={p.id} poste={{ id: p.id, titre: p.titre, description: p.description, lieu: p.lieu, typeContrat: p.typeContrat, actif: p.actif }} />
         ))}
         {donnees.postes.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucun poste pour le moment.</p> : null}
       </div>
