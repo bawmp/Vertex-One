@@ -23,7 +23,7 @@ export type EtatModeleEmail = { erreur?: string; enregistre?: boolean } | null;
 export async function enregistrerModeleEmail(_etat: EtatModeleEmail, formData: FormData): Promise<EtatModeleEmail> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) return { erreur: "Session expirée." };
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier les modèles d'email." };
   }
 

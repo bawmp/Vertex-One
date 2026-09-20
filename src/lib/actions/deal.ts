@@ -22,7 +22,7 @@ export type EtatDeal = { erreur?: string } | null;
 export async function creerDeal(_etat: EtatDeal, formData: FormData): Promise<EtatDeal> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un deal." };
   }
 
@@ -78,7 +78,7 @@ export async function creerDeal(_etat: EtatDeal, formData: FormData): Promise<Et
 export async function changerStatutDeal(dealId: string, statut: (typeof statutDeal.enumValues)[number]) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     changerStatutDealEtHistoriser(tx, { entrepriseId: utilisateurConnecte.entrepriseId, dealId, nouveauStatut: statut, modifieParId: utilisateurConnecte.utilisateurId })

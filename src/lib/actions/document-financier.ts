@@ -23,7 +23,7 @@ export type EtatDocumentFinancier = { erreur?: string } | null;
 export async function televerserDocumentFinancier(_etat: EtatDocumentFinancier, formData: FormData): Promise<EtatDocumentFinancier> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "CREER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter un document." };
   }
 
@@ -63,7 +63,7 @@ const schemaClasseur = z.object({ nom: z.string().trim().min(1, "Le nom du class
 export async function creerClasseurDocumentFinancier(_etat: EtatDocumentFinancier, formData: FormData): Promise<EtatDocumentFinancier> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "CREER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un classeur." };
   }
 
@@ -88,7 +88,7 @@ export async function creerClasseurDocumentFinancier(_etat: EtatDocumentFinancie
 export async function deplacerDocumentFinancier(documentId: string, classeurId: string | null) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(documentFinancier).set({ classeurId }).where(eq(documentFinancier.id, documentId))
@@ -105,7 +105,7 @@ export async function deplacerDocumentFinancier(documentId: string, classeurId: 
 export async function attacherDocumentFinancier(documentId: string, cible: { factureId?: string; paiementId?: string }) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -135,7 +135,7 @@ export async function modifierMetadonneesDocumentFinancier(
 ): Promise<EtatDocumentFinancier> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier ce document." };
   }
 
@@ -171,7 +171,7 @@ export async function modifierMetadonneesDocumentFinancier(
 export async function supprimerDocumentFinancier(documentId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "SUPPRIMER")) return;
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "SUPPRIMER")) return;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDocument] = await tx.select().from(documentFinancier).where(eq(documentFinancier.id, documentId));

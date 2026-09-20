@@ -19,7 +19,7 @@ export default async function PageMonCompte() {
   if (!utilisateurConnecte) redirect("/connexion");
 
   const t = traduire(utilisateurConnecte.langue);
-  const libellesVisibles = libellesMenuVisibles(utilisateurConnecte.role);
+  const libellesVisibles = libellesMenuVisibles(utilisateurConnecte);
   const ordreInitial = ordonnerParPreference(libellesVisibles, utilisateurConnecte.ordreModules);
 
   return (

@@ -48,7 +48,7 @@ export type EtatTacheCrm = { erreur?: string } | null;
 export async function creerTacheCrm(_etat: EtatTacheCrm, formData: FormData): Promise<EtatTacheCrm> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une tâche." };
   }
 
@@ -86,7 +86,7 @@ export async function creerTacheCrm(_etat: EtatTacheCrm, formData: FormData): Pr
 export async function changerStatutTacheCrm(tacheId: string, statut: (typeof statutTacheCrm.enumValues)[number]) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -109,7 +109,7 @@ export type EtatReunionCrm = { erreur?: string } | null;
 export async function creerReunionCrm(_etat: EtatReunionCrm, formData: FormData): Promise<EtatReunionCrm> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une réunion." };
   }
 

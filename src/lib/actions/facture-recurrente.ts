@@ -36,7 +36,7 @@ export type EtatFactureRecurrente = { erreur?: string } | null;
 export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formData: FormData): Promise<EtatFactureRecurrente> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une facture récurrente." };
   }
 
@@ -122,7 +122,7 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
 export async function mettreEnPauseFactureRecurrente(factureRecurrenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -146,7 +146,7 @@ export async function mettreEnPauseFactureRecurrente(factureRecurrenteId: string
 export async function reactiverFactureRecurrente(factureRecurrenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -161,7 +161,7 @@ export async function reactiverFactureRecurrente(factureRecurrenteId: string) {
 export async function arreterFactureRecurrente(factureRecurrenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx

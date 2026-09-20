@@ -25,7 +25,7 @@ export type EtatFactureAcompte = { erreur?: string } | null;
 export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: FormData): Promise<EtatFactureAcompte> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une facture d'acompte." };
   }
 
@@ -83,7 +83,7 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
 export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompte, formData: FormData): Promise<EtatFactureAcompte> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'encaisser une facture d'acompte." };
   }
 
@@ -137,7 +137,7 @@ export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompt
 export async function appliquerAcompteSurFacture(factureAcompteId: string, factureId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [acompte] = await tx.select().from(factureAcompte).where(and(eq(factureAcompte.id, factureAcompteId), eq(factureAcompte.statut, "PAYEE")));
@@ -182,7 +182,7 @@ export async function appliquerAcompteSurFacture(factureAcompteId: string, factu
 export async function annulerFactureAcompte(factureAcompteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx

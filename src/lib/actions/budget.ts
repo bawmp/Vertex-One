@@ -32,7 +32,7 @@ export type EtatBudget = { erreur?: string } | null;
 export async function creerBudget(_etat: EtatBudget, formData: FormData): Promise<EtatBudget> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "CREER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un budget." };
   }
 

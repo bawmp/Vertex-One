@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,14 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import { creerInvitation } from "@/lib/actions/invitation";
+import { modulesRestreignables } from "@/lib/modules-libelles";
+import { SelecteurModules } from "./selecteur-modules";
 
 export function FormulaireInvitation({ collegues }: { collegues: PersonneSelectionnable[] }) {
   const [etat, action, enCours] = useActionState(creerInvitation, null);
+  const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT">("EMPLOYE");
+  // Par défaut : tous les modules du rôle ; l'Administrateur décoche ce qu'il veut retirer.
+  const [modules, setModules] = useState<string[]>(modulesRestreignables("EMPLOYE"));
 
   return (
     <Card>
@@ -28,12 +33,30 @@ export function FormulaireInvitation({ collegues }: { collegues: PersonneSelecti
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="roleProposee">Rôle</Label>
-            <Select id="roleProposee" name="roleProposee" required defaultValue="EMPLOYE">
+            <Select
+              id="roleProposee"
+              name="roleProposee"
+              required
+              defaultValue="EMPLOYE"
+              onChange={(e) => {
+                const suivant = e.target.value as "MANAGER" | "EMPLOYE" | "CLIENT";
+                setRole(suivant);
+                if (suivant !== "CLIENT") setModules(modulesRestreignables(suivant));
+              }}
+            >
               <option value="MANAGER">Manager</option>
               <option value="EMPLOYE">Employé</option>
               <option value="CLIENT">Client</option>
             </Select>
           </div>
+
+          {role !== "CLIENT" ? (
+            <div className="flex flex-col gap-2">
+              <Label>Modules accessibles</Label>
+              <input type="hidden" name="restreindreModules" value="1" />
+              <SelecteurModules role={role} valeurs={modules} onChange={setModules} name="modules" />
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="postePropose">Poste</Label>

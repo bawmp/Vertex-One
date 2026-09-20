@@ -28,7 +28,7 @@ export default async function PageRecrutement() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "VOIR")) {
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -137,8 +137,8 @@ export default async function PageRecrutement() {
                   peutReassigner={utilisateurConnecte.role === "ADMIN"}
                   agents={donnees.agents}
                   agentActuelId={c.assigneAId}
-                  peutModifier={peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")}
-                  peutSupprimer={peut(utilisateurConnecte.role, "RECRUTEMENT", "SUPPRIMER") && !c.invitationId}
+                  peutModifier={peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")}
+                  peutSupprimer={peut(utilisateurConnecte, "RECRUTEMENT", "SUPPRIMER") && !c.invitationId}
                   coordonnees={{ nom: c.nom, telephone: c.telephone, email: c.email, message: c.message }}
                 />
                 {(c.statut === "OFFRE" || c.statut === "EMBAUCHE") && utilisateurConnecte.role === "ADMIN" ? (

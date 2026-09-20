@@ -24,7 +24,7 @@ export default async function PageAbonnement() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "VOIR")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -42,7 +42,7 @@ export default async function PageAbonnement() {
     );
   }
 
-  const peutPayer = peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER");
+  const peutPayer = peut(utilisateurConnecte, "PARAMETRES", "MODIFIER");
   const dateReference = statut.statutAbonnement === "essai" ? statut.essaiFinLe : statut.abonnementEcheanceLe;
   const libelleStatut = LIBELLE_STATUT[statut.statutAbonnement] ?? { texte: statut.statutAbonnement, variant: "brand" as const };
 

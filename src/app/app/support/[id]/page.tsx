@@ -23,7 +23,7 @@ export default async function PageTicketSupport({ params }: { params: Promise<{ 
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "SUPPORT", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "SUPPORT", "VOIR")) notFound();
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leTicket] = await tx

@@ -29,7 +29,7 @@ export default async function PageLeads() {
             {leads.length} lead{leads.length > 1 ? "s" : ""} visible{leads.length > 1 ? "s" : ""}.
           </p>
         </div>
-        {peut(utilisateurConnecte.role, "CRM", "CREER") ? (
+        {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/leads/nouveau" />} nativeButton={false}>
             <UserPlus data-icon="inline-start" aria-hidden />
             Nouveau lead
@@ -37,7 +37,7 @@ export default async function PageLeads() {
         ) : null}
       </div>
 
-      <LeadsVues leads={leads.map((l) => ({ ...l, convertiLe: Boolean(l.convertiLe) }))} peutModifier={peut(utilisateurConnecte.role, "CRM", "MODIFIER")} />
+      <LeadsVues leads={leads.map((l) => ({ ...l, convertiLe: Boolean(l.convertiLe) }))} peutModifier={peut(utilisateurConnecte, "CRM", "MODIFIER")} />
     </div>
   );
 }

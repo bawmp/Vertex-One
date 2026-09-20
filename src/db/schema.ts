@@ -239,6 +239,10 @@ export const utilisateur = pgTable(
     // Ordre personnel des modules de la sidebar (Tranche 3) — null = ordre
     // par défaut (celui codé dans MODULES_MENU), jamais rien de plus.
     ordreModules: json("ordre_modules").$type<string[]>(),
+    // Modules auxquels l'Administrateur donne accès à ce collaborateur (2026-09-20).
+    // null = tous ceux de son rôle. Ne fait que restreindre la matrice du rôle,
+    // jamais l'élargir — voir peut() dans src/lib/permissions.ts.
+    modulesAutorises: json("modules_autorises").$type<string[]>(),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
   },
@@ -321,6 +325,9 @@ export const invitation = pgTable(
     // Pas de .references() : mirror volontaire de utilisateur.managerId,
     // qui n'en a pas non plus (auto-référence jamais contrainte en dur).
     managerPropose: text("manager_propose"),
+    // Modules choisis par l'Administrateur à l'invitation — copiés vers
+    // utilisateur.modulesAutorises à l'activation. null = tous ceux du rôle.
+    modulesPropose: json("modules_propose").$type<string[]>(),
     // Assistance client (échange du 2026-09-13) — renseigné seulement quand
     // roleProposee = "CLIENT" et qu'on invite un Contact CRM précis au
     // portail (jamais pour un collaborateur interne). Référence tardive

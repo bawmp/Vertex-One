@@ -27,7 +27,7 @@ export type EtatLead = { erreur?: string } | null;
 export async function creerLead(_etat: EtatLead, formData: FormData): Promise<EtatLead> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un lead." };
   }
 
@@ -57,7 +57,7 @@ export async function creerLead(_etat: EtatLead, formData: FormData): Promise<Et
 export async function changerStatutLead(leadId: string, statut: (typeof statutLead.enumValues)[number]) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(lead).set({ statut }).where(eq(lead.id, leadId)));
 
@@ -68,7 +68,7 @@ export async function changerStatutLead(leadId: string, statut: (typeof statutLe
 export async function modifierNotesLead(leadId: string, notes: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(lead).set({ notes: notes || null }).where(eq(lead.id, leadId)));
 
@@ -84,7 +84,7 @@ export async function modifierNotesLead(leadId: string, notes: string) {
 export async function convertirLeadAction(leadId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     convertirLead(tx, { entrepriseId: utilisateurConnecte.entrepriseId, leadId, modifieParId: utilisateurConnecte.utilisateurId })

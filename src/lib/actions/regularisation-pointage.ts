@@ -29,7 +29,7 @@ export type EtatRegularisation = { erreur?: string } | null;
 export async function creerRegularisation(_etat: EtatRegularisation, formData: FormData): Promise<EtatRegularisation> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de demander une régularisation." };
   }
 
@@ -94,7 +94,7 @@ export async function creerRegularisation(_etat: EtatRegularisation, formData: F
 export async function traiterRegularisation(regularisationId: string, decision: "approuver" | "refuser") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [demande] = await tx.select().from(regularisationPointage).where(eq(regularisationPointage.id, regularisationId));
@@ -103,7 +103,7 @@ export async function traiterRegularisation(regularisationId: string, decision: 
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
     if (!leDossier) return;
 
-    if (portee(utilisateurConnecte.role, "RH") !== "TOUT") {
+    if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId)) return;
     }

@@ -11,7 +11,7 @@ import { FormulaireBonCommande } from "./formulaire-bon-commande";
 export default async function PageNouveauBonCommande() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) redirect("/app/achats");
+  if (!peut(utilisateurConnecte, "ACHATS", "CREER")) redirect("/app/achats");
 
   const { fournisseurs, comptesCharge, produits } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [fournisseurs, comptesCharge, produits] = await Promise.all([

@@ -21,7 +21,7 @@ export type EtatTache = { erreur?: string } | null;
 export async function creerTache(_etat: EtatTache, formData: FormData): Promise<EtatTache> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter une tâche." };
   }
 
@@ -61,7 +61,7 @@ export async function creerTache(_etat: EtatTache, formData: FormData): Promise<
 export async function changerStatutTache(tacheId: string, statut: (typeof statutTache.enumValues)[number]) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   const [laTache] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -88,7 +88,7 @@ export type EtatAssignation = { erreur?: string } | null;
 export async function reassignerTache(tacheId: string, assigneAId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   const [laTache] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(tache).set({ assigneAId }).where(eq(tache.id, tacheId)).returning({ projetId: tache.projetId })

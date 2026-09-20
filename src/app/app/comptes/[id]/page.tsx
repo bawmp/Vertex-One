@@ -12,7 +12,7 @@ export default async function PageFicheCompte({ params }: { params: Promise<{ id
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "VOIR")) redirect("/app");
+  if (!peut(utilisateurConnecte, "CRM", "VOIR")) redirect("/app");
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [ligne] = await tx.select().from(compteClient).where(eq(compteClient.id, id));

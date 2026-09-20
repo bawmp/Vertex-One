@@ -25,7 +25,7 @@ function urlBase(): string {
 export async function genererLienPaiementAbonnement(): Promise<{ url?: string; erreur?: string }> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Seul un administrateur peut régler l'abonnement." };
   }
 
@@ -69,7 +69,7 @@ export type StatutAbonnementAffichage = {
 export async function recupererStatutAbonnement(): Promise<StatutAbonnementAffichage | null> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "VOIR")) return null;
+  if (!peut(utilisateurConnecte, "PARAMETRES", "VOIR")) return null;
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx

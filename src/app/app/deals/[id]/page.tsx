@@ -89,8 +89,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
     historique,
   } = donnees;
   const info = STATUT_DEAL[fiche.statut];
-  const peutModifier = peut(utilisateurConnecte.role, "CRM", "MODIFIER");
-  const peutCreerDevis = peut(utilisateurConnecte.role, "FACTURATION", "CREER");
+  const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
+  const peutCreerDevis = peut(utilisateurConnecte, "FACTURATION", "CREER");
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

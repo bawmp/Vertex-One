@@ -17,7 +17,7 @@ import { LigneTacheCrm } from "./ligne-tache-crm";
 export default async function PageAccueilCrm() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "VOIR")) redirect("/app");
+  if (!peut(utilisateurConnecte, "CRM", "VOIR")) redirect("/app");
 
   const moi = utilisateurConnecte.utilisateurId;
 

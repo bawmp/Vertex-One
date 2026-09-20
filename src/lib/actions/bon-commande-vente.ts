@@ -36,7 +36,7 @@ export type EtatBonCommandeVente = { erreur?: string } | null;
 export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formData: FormData): Promise<EtatBonCommandeVente> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un bon de commande." };
   }
 
@@ -120,7 +120,7 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
 export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leBCV] = await tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.id, bonCommandeVenteId));
@@ -189,7 +189,7 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
 export async function annulerBonCommandeVente(bonCommandeVenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leBCV] = await tx

@@ -33,7 +33,7 @@ export type EtatFactureFournisseur = { erreur?: string } | null;
 export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, formData: FormData): Promise<EtatFactureFournisseur> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) {
+  if (!peut(utilisateurConnecte, "ACHATS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une facture fournisseur." };
   }
 
@@ -118,7 +118,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
 export async function marquerFactureFournisseurPayee(factureFournisseurId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "ACHATS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laFacture] = await tx.select().from(factureFournisseur).where(eq(factureFournisseur.id, factureFournisseurId));
@@ -161,7 +161,7 @@ export async function marquerFactureFournisseurPayee(factureFournisseurId: strin
 export async function annulerFactureFournisseur(factureFournisseurId: string, motif: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "ACHATS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laFacture] = await tx.select().from(factureFournisseur).where(eq(factureFournisseur.id, factureFournisseurId));

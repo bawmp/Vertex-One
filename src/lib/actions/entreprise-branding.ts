@@ -21,7 +21,7 @@ export type EtatBranding = { erreur?: string } | null;
 export async function televerserLogo(_etat: EtatBranding, formData: FormData): Promise<EtatBranding> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise." };
   }
 
@@ -59,7 +59,7 @@ export async function televerserLogo(_etat: EtatBranding, formData: FormData): P
 export async function definirCouleurMarque(_etat: EtatBranding, formData: FormData): Promise<EtatBranding> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise." };
   }
 

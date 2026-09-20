@@ -11,7 +11,7 @@ import { FormulaireFactureFournisseur } from "./formulaire-facture-fournisseur";
 export default async function PageNouvelleFactureFournisseur() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) redirect("/app/achats");
+  if (!peut(utilisateurConnecte, "ACHATS", "CREER")) redirect("/app/achats");
 
   const { fournisseurs, comptesCharge, produits } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [fournisseurs, comptesCharge, produits] = await Promise.all([

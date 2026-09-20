@@ -24,7 +24,7 @@ export type EtatContrat = { erreur?: string } | null;
 export async function creerContrat(_etat: EtatContrat, formData: FormData): Promise<EtatContrat> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CONTRATS", "CREER")) {
+  if (!peut(utilisateurConnecte, "CONTRATS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer de contrat." };
   }
 
@@ -73,7 +73,7 @@ export async function creerContrat(_etat: EtatContrat, formData: FormData): Prom
 export async function resilierContrat(contratId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CONTRATS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CONTRATS", "MODIFIER")) return;
 
   const [leContrat] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(contrat).set({ statut: "RESILIE" }).where(eq(contrat.id, contratId)).returning({ dossierId: contrat.dossierId })

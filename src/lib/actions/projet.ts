@@ -22,7 +22,7 @@ export type EtatProjet = { erreur?: string } | null;
 export async function creerProjet(_etat: EtatProjet, formData: FormData): Promise<EtatProjet> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "CREER")) {
+  if (!peut(utilisateurConnecte, "PROJETS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un projet." };
   }
 
@@ -71,7 +71,7 @@ export async function creerProjet(_etat: EtatProjet, formData: FormData): Promis
 export async function changerStatutProjet(projetId: string, statut: (typeof statutProjet.enumValues)[number]) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(projet).set({ statut }).where(eq(projet.id, projetId))
@@ -87,7 +87,7 @@ export type EtatCommentaireProjet = { erreur?: string } | null;
 export async function ajouterCommentaireProjet(_etat: EtatCommentaireProjet, formData: FormData): Promise<EtatCommentaireProjet> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de commenter ce projet." };
   }
 

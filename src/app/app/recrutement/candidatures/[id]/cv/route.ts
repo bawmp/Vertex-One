@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "VOIR")) return new NextResponse("Introuvable", { status: 404 });
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "VOIR")) return new NextResponse("Introuvable", { status: 404 });
 
   const cleStockage = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const ids = await idsVisibles(tx, utilisateurConnecte, "RECRUTEMENT");

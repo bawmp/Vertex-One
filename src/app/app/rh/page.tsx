@@ -25,7 +25,7 @@ export default async function PageRH() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) {
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -38,7 +38,7 @@ export default async function PageRH() {
   // pas de tableau de bord d'équipe à afficher. Résolu dans une transaction
   // séparée, avant le tableau de bord Manager/Admin, pour ne jamais mélanger
   // les deux formes de résultat possibles dans un seul type de retour.
-  if (portee(utilisateurConnecte.role, "RH") === "PROPRE") {
+  if (portee(utilisateurConnecte, "RH") === "PROPRE") {
     const monDossierId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
       const [monEntreprise] = await tx
         .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })

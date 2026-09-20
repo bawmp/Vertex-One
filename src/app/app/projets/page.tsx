@@ -23,7 +23,7 @@ export default async function PageProjets() {
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
-    if (!disponible(e, "DOSSIERS") || !peut(utilisateurConnecte.role, "DOSSIERS", "VOIR")) {
+    if (!disponible(e, "DOSSIERS") || !peut(utilisateurConnecte, "DOSSIERS", "VOIR")) {
       return { monEntreprise: e, dossiers: null, contactsParId: {} };
     }
 

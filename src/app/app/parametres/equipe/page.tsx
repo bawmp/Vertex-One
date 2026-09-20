@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { eq, desc, ne } from "drizzle-orm";
+import { and, eq, desc, ne, inArray } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { invitation, utilisateur, service } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -8,12 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { GestionServices } from "./gestion-services";
+import { MembresEquipe } from "./membres-equipe";
 
 export default async function PageEquipe() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "CREER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) {
     return (
       <p className="text-muted-foreground">
         Vous n&apos;avez pas le droit d&apos;inviter de nouveaux collaborateurs.
@@ -21,7 +22,7 @@ export default async function PageEquipe() {
     );
   }
 
-  const [invitations, collegues, services] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+  const [invitations, collegues, services, membres] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     Promise.all([
       tx
         .select()
@@ -34,17 +35,25 @@ export default async function PageEquipe() {
       // rôle système à 4 niveaux).
       tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.role, "CLIENT")),
       tx.select({ id: service.id, nom: service.nom }).from(service),
+      // Manager/Employé actifs de l'entreprise — filtre entrepriseId explicite (utilisateur reste en RLS permissive).
+      tx
+        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises })
+        .from(utilisateur)
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE"]), eq(utilisateur.statut, "ACTIF")))
+        .orderBy(utilisateur.nomComplet),
     ])
   );
 
   return (
-    <div className="flex max-w-xl flex-col gap-8">
+    <div className="flex max-w-2xl flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Équipe</h1>
         <p className="text-muted-foreground">Inviter un nouveau collaborateur (Manager ou Employé).</p>
       </div>
 
       <FormulaireInvitation collegues={collegues} />
+
+      <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE" }))} />
 
       <GestionServices services={services} />
 

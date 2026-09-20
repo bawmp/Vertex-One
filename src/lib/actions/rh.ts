@@ -31,7 +31,7 @@ export type EtatDemandeConge = { erreur?: string } | null;
 export async function creerDemandeConge(_etat: EtatDemandeConge, formData: FormData): Promise<EtatDemandeConge> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de demander un congé." };
   }
 
@@ -82,7 +82,7 @@ export async function creerDemandeConge(_etat: EtatDemandeConge, formData: FormD
 export async function traiterDemandeConge(demandeId: string, decision: "approuver" | "refuser") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [demande] = await tx.select().from(demandeConge).where(eq(demandeConge.id, demandeId));
@@ -111,7 +111,7 @@ export async function traiterDemandeConge(demandeId: string, decision: "approuve
 export async function pointerArriveeAction() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) return;
+  if (!peut(utilisateurConnecte, "RH", "CREER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
@@ -125,7 +125,7 @@ export async function pointerArriveeAction() {
 export async function pointerDepartAction() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) return;
+  if (!peut(utilisateurConnecte, "RH", "CREER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
@@ -235,7 +235,7 @@ export type EtatEvaluation = { erreur?: string } | null;
 export async function creerEvaluation(_etat: EtatEvaluation, formData: FormData): Promise<EtatEvaluation> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter une évaluation." };
   }
 
@@ -253,7 +253,7 @@ export async function creerEvaluation(_etat: EtatEvaluation, formData: FormData)
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
     if (!leDossier) return { erreur: "Dossier RH introuvable." };
 
-    if (portee(utilisateurConnecte.role, "RH") !== "TOUT") {
+    if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId)) {
         return { erreur: "Ce dossier n'est pas dans votre équipe." };

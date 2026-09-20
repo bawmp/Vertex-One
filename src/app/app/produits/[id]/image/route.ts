@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "VOIR")) return new NextResponse("Introuvable", { status: 404 });
+  if (!peut(utilisateurConnecte, "PRODUITS", "VOIR")) return new NextResponse("Introuvable", { status: 404 });
 
   const [leProduit] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.select({ imageCleStockage: produit.imageCleStockage }).from(produit).where(eq(produit.id, id))

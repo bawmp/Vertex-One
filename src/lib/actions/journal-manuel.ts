@@ -36,7 +36,7 @@ export type EtatJournalManuel = { erreur?: string } | null;
 export async function creerJournalManuel(_etat: EtatJournalManuel, formData: FormData): Promise<EtatJournalManuel> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "CREER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un journal manuel." };
   }
 

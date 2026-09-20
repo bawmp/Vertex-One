@@ -21,7 +21,7 @@ export default async function PageAchats() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ACHATS", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ACHATS", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -137,7 +137,7 @@ export default async function PageAchats() {
           <ShoppingCart className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">Achats</h1>
         </div>
-        {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+        {peut(utilisateurConnecte, "ACHATS", "CREER") ? (
           <Button size="sm" variant="outline" render={<Link href="/app/achats/fournisseurs/nouveau" />} nativeButton={false}>
             <UserPlus data-icon="inline-start" aria-hidden />
             Nouveau fournisseur
@@ -153,7 +153,7 @@ export default async function PageAchats() {
       <div id="bons-de-commande" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Bons de commande</h2>
-          {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+          {peut(utilisateurConnecte, "ACHATS", "CREER") ? (
             <Button size="sm" variant="outline" render={<Link href="/app/achats/bons-commande/nouveau" />} nativeButton={false}>
               <ClipboardList data-icon="inline-start" aria-hidden />
               Nouveau bon de commande
@@ -175,7 +175,7 @@ export default async function PageAchats() {
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="tabular-nums font-medium">{formaterFCFA(bc.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? bc.statut}</Badge>
-                    {bc.statut === "BROUILLON" && peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+                    {bc.statut === "BROUILLON" && peut(utilisateurConnecte, "ACHATS", "CREER") ? (
                       <ConvertirBonCommande bonCommandeAchatId={bc.id} />
                     ) : null}
                   </div>
@@ -192,7 +192,7 @@ export default async function PageAchats() {
       <div id="factures-fournisseurs" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Factures fournisseur</h2>
-          {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+          {peut(utilisateurConnecte, "ACHATS", "CREER") ? (
             <Button size="sm" variant="outline" render={<Link href="/app/achats/factures/nouveau" />} nativeButton={false}>
               <FileText data-icon="inline-start" aria-hidden />
               Nouvelle facture fournisseur
@@ -217,7 +217,7 @@ export default async function PageAchats() {
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="tabular-nums font-medium">{formaterFCFA(f.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? f.statut}</Badge>
-                    {f.statut === "EN_ATTENTE" && peut(utilisateurConnecte.role, "ACHATS", "MODIFIER") ? (
+                    {f.statut === "EN_ATTENTE" && peut(utilisateurConnecte, "ACHATS", "MODIFIER") ? (
                       <>
                         <BoutonMarquerPayee factureFournisseurId={f.id} />
                         <BoutonAnnulerFacture factureFournisseurId={f.id} />
@@ -237,7 +237,7 @@ export default async function PageAchats() {
       <div id="depenses" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Dépenses</h2>
-          {peut(utilisateurConnecte.role, "ACHATS", "CREER") ? (
+          {peut(utilisateurConnecte, "ACHATS", "CREER") ? (
             <FormulaireNouvelleDepense comptesCharge={donnees.comptesCharge} fournisseurs={donnees.fournisseurs} deals={donnees.deals} />
           ) : null}
         </div>

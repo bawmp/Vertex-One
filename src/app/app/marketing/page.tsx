@@ -16,7 +16,7 @@ export default async function PageMarketing() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "MARKETING", "VOIR")) {
+  if (!peut(utilisateurConnecte, "MARKETING", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -38,8 +38,8 @@ export default async function PageMarketing() {
     return { actif: true as const, campagnes, pages };
   });
 
-  const peutCreer = peut(utilisateurConnecte.role, "MARKETING", "CREER");
-  const peutModifier = peut(utilisateurConnecte.role, "MARKETING", "MODIFIER");
+  const peutCreer = peut(utilisateurConnecte, "MARKETING", "CREER");
+  const peutModifier = peut(utilisateurConnecte, "MARKETING", "MODIFIER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

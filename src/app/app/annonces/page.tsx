@@ -50,8 +50,8 @@ export default async function PageAnnonces() {
   }
 
   const { annonces, auteursParId } = donnees;
-  const peutCreer = peut(utilisateurConnecte.role, "ANNONCES", "CREER");
-  const peutGerer = peut(utilisateurConnecte.role, "ANNONCES", "MODIFIER");
+  const peutCreer = peut(utilisateurConnecte, "ANNONCES", "CREER");
+  const peutGerer = peut(utilisateurConnecte, "ANNONCES", "MODIFIER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

@@ -22,7 +22,7 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) notFound();
 
   const estAdmin = utilisateurConnecte.role === "ADMIN";
 

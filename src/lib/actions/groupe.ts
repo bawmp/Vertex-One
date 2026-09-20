@@ -22,7 +22,7 @@ export type EtatGroupe = ResultatGroupe;
 export async function creerGroupe(_etat: EtatGroupe, formData: FormData): Promise<EtatGroupe> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Seul l'Administrateur peut créer un groupe." };
   }
 
@@ -45,7 +45,7 @@ export async function creerGroupe(_etat: EtatGroupe, formData: FormData): Promis
 export async function genererInvitationGroupe(): Promise<EtatGroupe> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Seul l'Administrateur peut générer un code de rattachement." };
   }
 
@@ -57,7 +57,7 @@ export async function genererInvitationGroupe(): Promise<EtatGroupe> {
 export async function rattacherFilialeAuGroupe(_etat: EtatGroupe, formData: FormData): Promise<EtatGroupe> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Seul l'Administrateur peut rattacher cette entreprise à un groupe." };
   }
 
@@ -74,7 +74,7 @@ export async function rattacherFilialeAuGroupe(_etat: EtatGroupe, formData: Form
 export async function quitterGroupe(): Promise<void> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) return;
 
   await quitterGroupePour(utilisateurConnecte.entrepriseId);
   revalidatePath(CHEMIN);

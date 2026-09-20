@@ -93,7 +93,7 @@ export default async function PageDocuments() {
   }
 
   const { documents, dossiersParId, projetsParId } = donnees;
-  const peutCreer = peut(utilisateurConnecte.role, "DOCUMENTS", "CREER");
+  const peutCreer = peut(utilisateurConnecte, "DOCUMENTS", "CREER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

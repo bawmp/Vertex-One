@@ -85,8 +85,8 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
 
   const vocab = libelleProjet(monEntreprise.secteurProfil);
   const info = STATUT_PROJET[leProjet.statut];
-  const peutModifier = peut(utilisateurConnecte.role, "PROJETS", "MODIFIER");
-  const peutFacturer = peut(utilisateurConnecte.role, "FACTURATION", "CREER");
+  const peutModifier = peut(utilisateurConnecte, "PROJETS", "MODIFIER");
+  const peutFacturer = peut(utilisateurConnecte, "FACTURATION", "CREER");
   const aDesHeuresAFacturer = entreesTemps.some((e) => e.facturable && !e.factureId);
 
   return (
@@ -207,10 +207,10 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
         <h2 className="text-sm font-medium text-muted-foreground">Documents</h2>
         <ListeDocuments
           documents={documents}
-          peutSupprimer={peut(utilisateurConnecte.role, "DOCUMENTS", "SUPPRIMER")}
-          peutDemanderSignature={peut(utilisateurConnecte.role, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
+          peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+          peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
         />
-        {peut(utilisateurConnecte.role, "DOCUMENTS", "CREER") ? (
+        {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? (
           <FormulaireDocument projetId={leProjet.id} consentementManquant={!leDossier?.consentementDonneesLe} />
         ) : null}
       </div>

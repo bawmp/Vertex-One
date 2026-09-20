@@ -61,7 +61,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
   if (!donnees) notFound();
   const { fiche, compte, interactions, dossierExistant, deals, dossiersDisponibles, secteurProfil } = donnees;
   const vocabDossier = libelleDossier(secteurProfil);
-  const peutModifier = peut(utilisateurConnecte.role, "CRM", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
   const modifierNotesAction = modifierNotesContact.bind(null, fiche.id);
 
   return (
@@ -93,7 +93,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {peut(utilisateurConnecte.role, "CRM", "CREER") ? (
+          {peut(utilisateurConnecte, "CRM", "CREER") ? (
             <Button size="sm" render={<Link href={`/app/deals/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
               <Briefcase data-icon="inline-start" aria-hidden />
               Nouveau deal
@@ -107,13 +107,13 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
               </Button>
             </form>
           ) : null}
-          {dossiersDisponibles && peut(utilisateurConnecte.role, "DOSSIERS", "VOIR") ? (
+          {dossiersDisponibles && peut(utilisateurConnecte, "DOSSIERS", "VOIR") ? (
             dossierExistant ? (
               <Button variant="outline" size="sm" render={<Link href={`/app/projets/dossiers/${dossierExistant.id}`} />} nativeButton={false}>
                 <FolderOpen data-icon="inline-start" aria-hidden />
                 Voir le {vocabDossier.singulier.toLowerCase()}
               </Button>
-            ) : peut(utilisateurConnecte.role, "DOSSIERS", "CREER") ? (
+            ) : peut(utilisateurConnecte, "DOSSIERS", "CREER") ? (
               <form action={creerDossier.bind(null, fiche.id)}>
                 <Button type="submit" variant="outline" size="sm">
                   <FolderOpen data-icon="inline-start" aria-hidden />
@@ -135,7 +135,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         </div>
       ) : null}
 
-      {peut(utilisateurConnecte.role, "FACTURATION", "CREER") ? (
+      {peut(utilisateurConnecte, "FACTURATION", "CREER") ? (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/devis/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <FileText data-icon="inline-start" aria-hidden />

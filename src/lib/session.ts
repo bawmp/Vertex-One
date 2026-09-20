@@ -1,7 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import type { RoleSysteme } from "@/lib/permissions";
+import type { Module, RoleSysteme } from "@/lib/permissions";
 
 export type Langue = "fr" | "en";
 export type Theme = "clair" | "sombre" | "systeme";
@@ -19,6 +19,8 @@ export type UtilisateurConnecte = {
   langue?: Langue;
   theme?: Theme;
   ordreModules?: string[] | null;
+  // Restriction posée par l'Administrateur (null = tous les modules du rôle) — lue par peut()/portee().
+  modulesAutorises?: Module[] | null;
 };
 
 /**
@@ -38,6 +40,7 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
     langue: Langue;
     theme: Theme;
     ordreModules: string[] | null;
+    modulesAutorises: Module[] | null;
   };
 
   // utilisateur.statut est déjà exposé sur la session (additionalFields,
@@ -55,5 +58,6 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
     langue: user.langue ?? "fr",
     theme: user.theme ?? "systeme",
     ordreModules: user.ordreModules ?? null,
+    modulesAutorises: user.modulesAutorises ?? null,
   };
 }

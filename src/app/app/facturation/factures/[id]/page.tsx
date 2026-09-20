@@ -39,7 +39,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
   if (!donnees) notFound();
   const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir } = donnees;
 
-  const peutModifier = peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
   const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
   const estReglee = laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE";
   const info = STATUT_FACTURE[laFacture.statut];
@@ -72,7 +72,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
       {peutModifier ? (
         <FormulaireEnvoiFacture
           factureId={laFacture.id}
-          peutPersonnaliserModele={peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")}
+          peutPersonnaliserModele={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")}
         />
       ) : null}
 

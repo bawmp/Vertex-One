@@ -20,7 +20,7 @@ const LIBELLE_STATUT: Record<string, { libelle: string; variante: "success" | "w
 export default async function PageSondages() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) {
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />

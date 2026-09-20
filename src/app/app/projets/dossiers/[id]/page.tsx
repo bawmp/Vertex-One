@@ -78,7 +78,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
   const vocabDossier = libelleDossier(monEntreprise.secteurProfil);
   const vocabProjet = libelleProjet(monEntreprise.secteurProfil);
   const infoStatut = STATUT_DOSSIER[leDossier.statut];
-  const peutModifier = peut(utilisateurConnecte.role, "DOSSIERS", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "DOSSIERS", "MODIFIER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -127,7 +127,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">{vocabProjet.pluriel}</h2>
-          {peut(utilisateurConnecte.role, "PROJETS", "CREER") ? (
+          {peut(utilisateurConnecte, "PROJETS", "CREER") ? (
             <FormulaireNouveauProjet dossierId={leDossier.id} vocab={vocabProjet} />
           ) : null}
         </div>
@@ -179,10 +179,10 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
         </div>
         <ListeDocuments
           documents={documents}
-          peutSupprimer={peut(utilisateurConnecte.role, "DOCUMENTS", "SUPPRIMER")}
-          peutDemanderSignature={peut(utilisateurConnecte.role, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
+          peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+          peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
         />
-        {peut(utilisateurConnecte.role, "DOCUMENTS", "CREER") ? (
+        {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? (
           <FormulaireDocument dossierId={leDossier.id} consentementManquant={!leDossier.consentementDonneesLe} />
         ) : null}
       </div>
@@ -191,9 +191,9 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-muted-foreground">Contrats</h2>
-            {peut(utilisateurConnecte.role, "CONTRATS", "CREER") ? <FormulaireNouveauContrat dossierId={leDossier.id} /> : null}
+            {peut(utilisateurConnecte, "CONTRATS", "CREER") ? <FormulaireNouveauContrat dossierId={leDossier.id} /> : null}
           </div>
-          <ListeContrats contrats={contrats} peutModifier={peut(utilisateurConnecte.role, "CONTRATS", "MODIFIER")} />
+          <ListeContrats contrats={contrats} peutModifier={peut(utilisateurConnecte, "CONTRATS", "MODIFIER")} />
         </div>
       ) : null}
 

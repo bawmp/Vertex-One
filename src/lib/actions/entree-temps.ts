@@ -33,7 +33,7 @@ export type EtatEntreeTemps = { erreur?: string } | null;
 export async function creerEntreeTemps(_etat: EtatEntreeTemps, formData: FormData): Promise<EtatEntreeTemps> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'enregistrer des heures." };
   }
 
@@ -78,7 +78,7 @@ export async function creerEntreeTemps(_etat: EtatEntreeTemps, formData: FormDat
 export async function supprimerEntreeTemps(entreeTempsId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   const [entree] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
@@ -103,7 +103,7 @@ export async function supprimerEntreeTemps(entreeTempsId: string) {
 export async function genererFactureDepuisHeures(projetId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leProjet] = await tx.select().from(projet).where(eq(projet.id, projetId));

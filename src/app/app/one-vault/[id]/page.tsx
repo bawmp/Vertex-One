@@ -11,7 +11,7 @@ export default async function PageDetailOneVault({ params }: { params: Promise<{
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -23,8 +23,8 @@ export default async function PageDetailOneVault({ params }: { params: Promise<{
   const secret = await recupererSecretPourEdition(id);
   if (!secret) notFound();
 
-  const peutModifier = peut(utilisateurConnecte.role, "ONE_VAULT", "MODIFIER");
-  const peutSupprimer = peut(utilisateurConnecte.role, "ONE_VAULT", "SUPPRIMER");
+  const peutModifier = peut(utilisateurConnecte, "ONE_VAULT", "MODIFIER");
+  const peutSupprimer = peut(utilisateurConnecte, "ONE_VAULT", "SUPPRIMER");
 
   return (
     <div className="flex max-w-xl flex-col gap-6">

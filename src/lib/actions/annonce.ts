@@ -24,7 +24,7 @@ export type EtatAnnonce = { erreur?: string } | null;
 export async function creerAnnonce(_etat: EtatAnnonce, formData: FormData): Promise<EtatAnnonce> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ANNONCES", "CREER")) {
+  if (!peut(utilisateurConnecte, "ANNONCES", "CREER")) {
     return { erreur: "Seuls les Managers et l'Administrateur peuvent publier une annonce." };
   }
 
@@ -49,7 +49,7 @@ export async function creerAnnonce(_etat: EtatAnnonce, formData: FormData): Prom
 export async function epinglerAnnonce(annonceId: string, epinglee: boolean) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ANNONCES", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "ANNONCES", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(annonce).set({ epinglee }).where(eq(annonce.id, annonceId))
@@ -61,7 +61,7 @@ export async function epinglerAnnonce(annonceId: string, epinglee: boolean) {
 export async function supprimerAnnonce(annonceId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ANNONCES", "SUPPRIMER")) return;
+  if (!peut(utilisateurConnecte, "ANNONCES", "SUPPRIMER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(annonce).where(eq(annonce.id, annonceId)));
 

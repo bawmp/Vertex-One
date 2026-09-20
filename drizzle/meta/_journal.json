@@ -687,6 +687,13 @@
       "when": 1789858525686,
       "tag": "0097_recrutement_avantages_contrat",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1789895104862,
+      "tag": "0098_acces_modules_par_utilisateur",
+      "breakpoints": true
     }
   ]
 }

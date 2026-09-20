@@ -15,7 +15,7 @@ export type EtatOneVault = { erreur?: string; succes?: boolean } | null;
 async function garde(action: "CREER" | "MODIFIER" | "SUPPRIMER") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", action)) {
+  if (!peut(utilisateurConnecte, "ONE_VAULT", action)) {
     return { utilisateurConnecte: null, erreur: "Vous n'avez pas les droits nécessaires." } as const;
   }
   return { utilisateurConnecte, erreur: null } as const;
@@ -45,7 +45,7 @@ async function secretVisiblePour(tx: TransactionDrizzle, utilisateurConnecte: Ut
 export async function recupererSecrets() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return [];
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) return [];
 
   const filtre = filtreVisibilite(utilisateurConnecte);
   return avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
@@ -69,7 +69,7 @@ export async function recupererSecrets() {
 export async function recupererCorbeille() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return [];
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) return [];
 
   const filtre = filtreVisibilite(utilisateurConnecte);
   return avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
@@ -261,7 +261,7 @@ export type ResultatRevelation = { ok: true; motDePasse: string; notes: string }
 export async function revelerSecret(secretId: string): Promise<ResultatRevelation> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return { ok: false, erreur: "Vous n'avez pas les droits nécessaires." };
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) return { ok: false, erreur: "Vous n'avez pas les droits nécessaires." };
 
   if (!vaultConfigure()) return { ok: false, erreur: "Le chiffrement de One Vault n'est pas configuré côté serveur." };
 
@@ -282,7 +282,7 @@ export async function revelerSecret(secretId: string): Promise<ResultatRevelatio
 export async function recupererSecretPourEdition(secretId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "MODIFIER")) return null;
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "MODIFIER")) return null;
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [secret] = await tx.select().from(secretVault).where(eq(secretVault.id, secretId));
@@ -312,7 +312,7 @@ export type LigneJournal = {
 export async function recupererJournal(): Promise<LigneJournal[]> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) return [];
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) return [];
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const lignes = await tx

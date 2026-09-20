@@ -199,10 +199,36 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
   },
 };
 
-export function peut(role: RoleSysteme, module: Module, action: Action): boolean {
-  return MATRICE_PERMISSIONS[role][module].actions.includes(action);
+/**
+ * Ce que peut()/portee() acceptent : un rôle seul (comportement historique, la
+ * matrice ci-dessus) ou l'utilisateur connecté, qui porte en plus la liste de
+ * modules choisie par l'Administrateur (utilisateur.modulesAutorises).
+ * null/absent = aucune restriction supplémentaire.
+ */
+export type SujetPermission = RoleSysteme | { role: RoleSysteme; modulesAutorises?: Module[] | null };
+
+/**
+ * La liste par utilisateur ne fait que RESTREINDRE : un module absent de la liste
+ * est fermé, un module présent garde exactement les droits du rôle — jamais plus.
+ * L'Administrateur n'est jamais restreint.
+ */
+function moduleFerme(sujet: SujetPermission, module: Module): boolean {
+  if (typeof sujet === "string") return false;
+  if (sujet.role === "ADMIN" || !sujet.modulesAutorises) return false;
+  return !sujet.modulesAutorises.includes(module);
 }
 
-export function portee(role: RoleSysteme, module: Module): Portee {
-  return MATRICE_PERMISSIONS[role][module].portee;
+function roleDe(sujet: SujetPermission): RoleSysteme {
+  return typeof sujet === "string" ? sujet : sujet.role;
+}
+
+export function peut(sujet: SujetPermission, module: Module, action: Action): boolean {
+  if (moduleFerme(sujet, module)) return false;
+  return MATRICE_PERMISSIONS[roleDe(sujet)][module].actions.includes(action);
+}
+
+export function portee(sujet: SujetPermission, module: Module): Portee {
+  // Module fermé : la portée la plus étroite, par sécurité (peut() refuse déjà toute action).
+  if (moduleFerme(sujet, module)) return "PROPRE";
+  return MATRICE_PERMISSIONS[roleDe(sujet)][module].portee;
 }

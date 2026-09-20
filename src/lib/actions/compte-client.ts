@@ -18,7 +18,7 @@ export type EtatCompteClient = { erreur?: string } | null;
 export async function creerCompteClient(_etat: EtatCompteClient, formData: FormData): Promise<EtatCompteClient> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un compte." };
   }
 

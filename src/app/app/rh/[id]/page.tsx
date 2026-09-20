@@ -35,7 +35,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) notFound();
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
@@ -184,8 +184,8 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
-  const peutTraiterConges = !estProprietaire && peut(utilisateurConnecte.role, "RH", "MODIFIER");
-  const peutEvaluer = !estProprietaire && peut(utilisateurConnecte.role, "RH", "MODIFIER");
+  const peutTraiterConges = !estProprietaire && peut(utilisateurConnecte, "RH", "MODIFIER");
+  const peutEvaluer = !estProprietaire && peut(utilisateurConnecte, "RH", "MODIFIER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

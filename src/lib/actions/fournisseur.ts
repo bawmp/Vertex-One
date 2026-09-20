@@ -22,7 +22,7 @@ export type EtatFournisseur = { erreur?: string } | null;
 export async function creerFournisseur(_etat: EtatFournisseur, formData: FormData): Promise<EtatFournisseur> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) {
+  if (!peut(utilisateurConnecte, "ACHATS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un fournisseur." };
   }
 

@@ -18,7 +18,7 @@ export default async function PageDetailOneForm({ params }: { params: Promise<{ 
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ONE_FORM", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ONE_FORM", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -58,8 +58,8 @@ export default async function PageDetailOneForm({ params }: { params: Promise<{ 
   if (!donnees) notFound();
   const { leFormulaire, champs, reponses, valeursParReponse, fichiersParReponse } = donnees;
 
-  const peutModifier = peut(utilisateurConnecte.role, "ONE_FORM", "MODIFIER");
-  const peutSupprimer = peut(utilisateurConnecte.role, "ONE_FORM", "SUPPRIMER");
+  const peutModifier = peut(utilisateurConnecte, "ONE_FORM", "MODIFIER");
+  const peutSupprimer = peut(utilisateurConnecte, "ONE_FORM", "SUPPRIMER");
 
   const urlPublique = `${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/formulaire/${leFormulaire.slug}`;
 

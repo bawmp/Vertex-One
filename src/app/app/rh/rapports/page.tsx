@@ -17,7 +17,7 @@ const LIBELLE_STATUT_TICKET: Record<string, string> = { OUVERT: "Ouvert", EN_COU
 export default async function PageRapportsRH() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) {
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -39,7 +39,7 @@ export default async function PageRapportsRH() {
     const personnel = monDossier ? await rapportPersonnel(tx, monDossier.id) : null;
 
     let equipe: Awaited<ReturnType<typeof rapportEquipe>> = [];
-    if (portee(utilisateurConnecte.role, "RH") !== "PROPRE") {
+    if (portee(utilisateurConnecte, "RH") !== "PROPRE") {
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       const tousLesDossiers = await tx.select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.entrepriseId, utilisateurConnecte.entrepriseId));
       // ids === "TOUT" (Admin) : tous les dossiers de l'entreprise. Pour un

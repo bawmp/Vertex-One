@@ -32,7 +32,7 @@ export default async function PageContacts() {
             {contacts.length} contact{contacts.length > 1 ? "s" : ""} visible{contacts.length > 1 ? "s" : ""}.
           </p>
         </div>
-        {peut(utilisateurConnecte.role, "CRM", "CREER") ? (
+        {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/contacts/nouveau" />} nativeButton={false}>
             <UserPlus data-icon="inline-start" aria-hidden />
             Nouveau contact

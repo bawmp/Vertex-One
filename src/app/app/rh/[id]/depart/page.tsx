@@ -17,7 +17,7 @@ export default async function PageDepartRH({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "RH", "VOIR")) notFound();
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [ligne] = await tx
@@ -60,8 +60,8 @@ export default async function PageDepartRH({ params }: { params: Promise<{ id: s
   if (!donnees) notFound();
   const { ligne, estProprietaire, demandes, demandeActive, aUneDemandeEnCours, clearances, collegues } = donnees;
 
-  const peutTraiter = !estProprietaire && peut(utilisateurConnecte.role, "RH", "MODIFIER");
-  const peutGererClearances = peut(utilisateurConnecte.role, "RH", "MODIFIER");
+  const peutTraiter = !estProprietaire && peut(utilisateurConnecte, "RH", "MODIFIER");
+  const peutGererClearances = peut(utilisateurConnecte, "RH", "MODIFIER");
   const toutesLesClearancesCompletes = clearances.every((c) => c.complete);
 
   return (

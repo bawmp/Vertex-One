@@ -28,7 +28,7 @@ export async function enregistrerInfosLegales(
 ): Promise<EtatInfosLegales> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier les informations de l'entreprise." };
   }
 

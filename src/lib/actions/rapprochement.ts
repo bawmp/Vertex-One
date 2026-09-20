@@ -15,7 +15,7 @@ export type EtatImportReleve = { erreur?: string; suggestions?: SuggestionRappro
 export async function importerReleveBancaire(_etat: EtatImportReleve, formData: FormData): Promise<EtatImportReleve> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "VOIR")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) {
     return { erreur: "Vous n'avez pas le droit d'accéder au rapprochement bancaire." };
   }
 
@@ -44,7 +44,7 @@ export async function importerReleveBancaire(_etat: EtatImportReleve, formData: 
 export async function confirmerRapprochementPaiement(paiementId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => confirmerRapprochement(tx, paiementId));
 

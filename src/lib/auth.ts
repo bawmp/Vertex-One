@@ -55,6 +55,10 @@ export const auth = betterAuth({
       // uniquement via definirOrdreModules() (src/lib/actions/preferences.ts),
       // jamais directement par l'utilisateur via updateUser().
       ordreModules: { type: "string[]", required: false },
+      // Modules autorisés par l'Administrateur — input:false : un utilisateur ne doit
+      // jamais pouvoir se donner des accès via updateUser(). Modifié uniquement par
+      // definirModulesUtilisateur() (src/lib/actions/acces-modules.ts).
+      modulesAutorises: { type: "string[]", required: false, input: false },
     },
   },
   // Doit rester le dernier plugin : permet aux Server Actions de poser les

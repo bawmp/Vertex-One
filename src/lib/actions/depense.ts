@@ -33,7 +33,7 @@ export type EtatDepense = { erreur?: string } | null;
 export async function creerDepense(_etat: EtatDepense, formData: FormData): Promise<EtatDepense> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ACHATS", "CREER")) {
+  if (!peut(utilisateurConnecte, "ACHATS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit d'enregistrer une dépense." };
   }
 

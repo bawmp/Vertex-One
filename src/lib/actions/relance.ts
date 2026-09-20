@@ -18,7 +18,7 @@ export type EtatRelances = { resultats: ResultatRelance[] } | { erreur: string }
 export async function declencherRelances(): Promise<EtatRelances> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return { erreur: "Réservé à l'Administrateur." };
   }
 

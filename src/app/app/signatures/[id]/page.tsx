@@ -22,7 +22,7 @@ export default async function PageCertificatSignature({ params }: { params: Prom
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "SIGNATURE", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "SIGNATURE", "VOIR")) notFound();
 
   const certificat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx

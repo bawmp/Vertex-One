@@ -30,7 +30,7 @@ export type EtatProduit = { erreur?: string } | null;
 export async function creerProduit(_etat: EtatProduit, formData: FormData): Promise<EtatProduit> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "CREER")) {
+  if (!peut(utilisateurConnecte, "PRODUITS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un produit." };
   }
 
@@ -78,7 +78,7 @@ export type EtatImageProduit = { erreur?: string } | null;
 export async function televerserImageProduit(produitId: string, _etat: EtatImageProduit, formData: FormData): Promise<EtatImageProduit> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier ce produit." };
   }
 
@@ -116,7 +116,7 @@ export async function televerserImageProduit(produitId: string, _etat: EtatImage
 export async function supprimerProduit(produitId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "SUPPRIMER")) return;
+  if (!peut(utilisateurConnecte, "PRODUITS", "SUPPRIMER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(produit).where(eq(produit.id, produitId)));
 

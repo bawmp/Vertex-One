@@ -12,7 +12,7 @@ export default async function PageRapprochementBancaire() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "VOIR")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />

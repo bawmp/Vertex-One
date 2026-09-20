@@ -55,9 +55,9 @@ export async function recupererTableauDeBordFaco(tx: TransactionDrizzle, utilisa
   ]);
 
   const debutAnnee = new Date(new Date().getFullYear(), 0, 1);
-  const peutVoirAchats = peut(utilisateurConnecte.role, "ACHATS", "VOIR");
-  const peutVoirCompta = peut(utilisateurConnecte.role, "COMPTABILITE", "VOIR") && disponible(monEntreprise, "COMPTABILITE_COMPLETE");
-  const peutVoirProjets = peut(utilisateurConnecte.role, "PROJETS", "VOIR") && disponible(monEntreprise, "PROJETS");
+  const peutVoirAchats = peut(utilisateurConnecte, "ACHATS", "VOIR");
+  const peutVoirCompta = peut(utilisateurConnecte, "COMPTABILITE", "VOIR") && disponible(monEntreprise, "COMPTABILITE_COMPLETE");
+  const peutVoirProjets = peut(utilisateurConnecte, "PROJETS", "VOIR") && disponible(monEntreprise, "PROJETS");
 
   type LigneFactureFournisseur = { montantTTC: number; statut: string; dateEcheance: Date; assigneAId: string };
   type LigneDepense = { compteComptableId: string; montantTTC: number; assigneAId: string };

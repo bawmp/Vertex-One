@@ -119,7 +119,7 @@ export async function supprimerSondage(sondageId: string) {
 export async function repondreSondage(sondageId: string, _etat: EtatSondage, formData: FormData): Promise<EtatSondage> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de répondre à un sondage." };
   }
 

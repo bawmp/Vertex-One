@@ -51,7 +51,7 @@ async function effacerFichiersDesValeurs(valeurs: string[]): Promise<void> {
 async function garde(action: "CREER" | "MODIFIER" | "SUPPRIMER") {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "ONE_FORM", action)) {
+  if (!peut(utilisateurConnecte, "ONE_FORM", action)) {
     return { utilisateurConnecte: null, erreur: "Vous n'avez pas les droits nécessaires." } as const;
   }
   return { utilisateurConnecte, erreur: null } as const;

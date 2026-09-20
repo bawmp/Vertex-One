@@ -16,7 +16,7 @@ export default async function PageOneForm() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ONE_FORM", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ONE_FORM", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -34,7 +34,7 @@ export default async function PageOneForm() {
     return { actif: true as const, formulaires };
   });
 
-  const peutGerer = peut(utilisateurConnecte.role, "ONE_FORM", "CREER");
+  const peutGerer = peut(utilisateurConnecte, "ONE_FORM", "CREER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

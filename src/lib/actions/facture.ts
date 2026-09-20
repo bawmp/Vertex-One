@@ -28,7 +28,7 @@ function urlBase(): string {
 export async function marquerFacturePayee(factureId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
@@ -80,7 +80,7 @@ export async function marquerFacturePayee(factureId: string) {
 export async function annulerFacture(factureId: string, motif: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
@@ -167,7 +167,7 @@ export type EtatEnvoiFacture = { erreur?: string; envoye?: boolean } | null;
 export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture, _formData: FormData): Promise<EtatEnvoiFacture> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'envoyer cette facture." };
   }
 

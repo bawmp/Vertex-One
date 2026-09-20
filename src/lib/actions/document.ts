@@ -23,7 +23,7 @@ export type EtatDocument = { erreur?: string } | null;
 export async function ajouterDocument(_etat: EtatDocument, formData: FormData): Promise<EtatDocument> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOCUMENTS", "CREER")) {
+  if (!peut(utilisateurConnecte, "DOCUMENTS", "CREER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter un document." };
   }
 
@@ -142,7 +142,7 @@ export async function journaliserAccesDocument(documentId: string, action: "cons
 export async function effacerDocument(documentId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOCUMENTS", "SUPPRIMER")) return;
+  if (!peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")) return;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
@@ -182,7 +182,7 @@ export async function effacerDocument(documentId: string) {
 export async function enregistrerConsentement(dossierId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOSSIERS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "DOSSIERS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(dossier).set({ consentementDonneesLe: new Date() }).where(eq(dossier.id, dossierId))

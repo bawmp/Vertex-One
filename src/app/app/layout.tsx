@@ -4,7 +4,7 @@ import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText,
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { peut, type Module, type RoleSysteme } from "@/lib/permissions";
+import { peut, type Module, type SujetPermission } from "@/lib/permissions";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { traduire } from "@/lib/i18n/traduire";
 import { LangueProvider } from "@/lib/i18n/contexte";
@@ -281,17 +281,17 @@ const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }
 // est toujours visible à un utilisateur connecté. Exporté pour réutilisation
 // sur /app/mon-compte (réordonnancement personnel, Tranche 3) — même liste
 // que celle affichée dans la sidebar, jamais recalculée différemment.
-export function itemMenuVisible(role: RoleSysteme, item: ItemMenu): boolean {
+export function itemMenuVisible(sujet: SujetPermission, item: ItemMenu): boolean {
   if (!item.groupes) {
-    if (item.reserveAdmin && role !== "ADMIN") return false;
-    return !item.module || peut(role, item.module, "VOIR");
+    if (item.reserveAdmin && (typeof sujet === "string" ? sujet : sujet.role) !== "ADMIN") return false;
+    return !item.module || peut(sujet, item.module, "VOIR");
   }
-  if (item.module) return peut(role, item.module, "VOIR");
-  return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(role, lien.module, "VOIR")));
+  if (item.module) return peut(sujet, item.module, "VOIR");
+  return item.groupes.some((groupe) => groupe.liens.some((lien) => lien.module && peut(sujet, lien.module, "VOIR")));
 }
 
-export function libellesMenuVisibles(role: RoleSysteme): string[] {
-  return MODULES_MENU.filter((item) => itemMenuVisible(role, item)).map((item) => item.libelle);
+export function libellesMenuVisibles(sujet: SujetPermission): string[] {
+  return MODULES_MENU.filter((item) => itemMenuVisible(sujet, item)).map((item) => item.libelle);
 }
 
 // Deuxième vérification de session, indépendante de proxy.ts (défense en
@@ -301,7 +301,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const menuVisible = MODULES_MENU.filter((item) => itemMenuVisible(utilisateurConnecte.role, item));
+  const menuVisible = MODULES_MENU.filter((item) => itemMenuVisible(utilisateurConnecte, item));
 
   // Réorganisation personnelle de la sidebar (Tranche 3, 2026-09-13) — la clé
   // stable est item.libelle (français, toujours présent, déjà utilisé comme
@@ -376,7 +376,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           .map((groupe) => ({
             categorie: groupe.categorie ? traduireCategorie(groupe.categorie, t) : groupe.categorie,
             liens: groupe.liens
-              .filter((lien) => (!lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
+              .filter((lien) => (!lien.module || peut(utilisateurConnecte, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
               .map((lien) => ({
                 href: lien.href,
                 libelle: lien.libelle,
@@ -396,7 +396,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       </NavLink>
     );
 
-  const liensParametres = peut(utilisateurConnecte.role, "PARAMETRES", "VOIR")
+  const liensParametres = peut(utilisateurConnecte, "PARAMETRES", "VOIR")
     ? LIENS_PARAMETRES.map((lien) => ({ href: lien.href, libelle: lien.libelle, icone: <lien.Icone className="size-4" aria-hidden /> }))
     : [];
 

@@ -20,7 +20,7 @@ export type EtatVerrouillage = { erreur?: string } | null;
 export async function definirDateVerrouillage(_etat: EtatVerrouillage, formData: FormData): Promise<EtatVerrouillage> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier le verrouillage de transactions." };
   }
 

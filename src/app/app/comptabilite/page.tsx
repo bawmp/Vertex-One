@@ -20,7 +20,7 @@ export default async function PageComptabilite() {
   // Réservé à l'Administrateur (docs/palier-4-*, section 5) — MANAGER/EMPLOYE
   // ont actions: [] sur COMPTABILITE dans la matrice, peut() renvoie donc
   // false pour eux ici.
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "VOIR")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -69,7 +69,7 @@ export default async function PageComptabilite() {
   }
 
   const { compteDeResultat, bilan, dernieresEcritures, dateVerrouillageComptable } = donnees;
-  const peutModifier = peut(utilisateurConnecte.role, "COMPTABILITE", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER");
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

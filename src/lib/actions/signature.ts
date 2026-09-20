@@ -38,7 +38,7 @@ export type EtatDemandeSignature = { erreur?: string; succes?: string } | null;
 export async function creerDemandeSignature(_etat: EtatDemandeSignature, formData: FormData): Promise<EtatDemandeSignature> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "SIGNATURE", "CREER")) {
+  if (!peut(utilisateurConnecte, "SIGNATURE", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de demander une signature." };
   }
 

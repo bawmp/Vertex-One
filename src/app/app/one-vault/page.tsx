@@ -18,7 +18,7 @@ export default async function PageOneVault() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -33,7 +33,7 @@ export default async function PageOneVault() {
   });
 
   const secrets = actif ? await recupererSecrets() : [];
-  const peutGerer = peut(utilisateurConnecte.role, "ONE_VAULT", "CREER");
+  const peutGerer = peut(utilisateurConnecte, "ONE_VAULT", "CREER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

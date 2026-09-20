@@ -31,7 +31,7 @@ const schemaDemande = z.object({
 export async function creerDemandeDepart(_etat: EtatDepart, formData: FormData): Promise<EtatDepart> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de faire une demande de départ." };
   }
 
@@ -84,7 +84,7 @@ export async function creerDemandeDepart(_etat: EtatDepart, formData: FormData):
 export async function traiterDemandeDepart(demandeId: string, decision: "approuver" | "refuser", dateDepartConfirmee?: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) return;
 
   let dossierRHId: string | null = null;
 
@@ -95,7 +95,7 @@ export async function traiterDemandeDepart(demandeId: string, decision: "approuv
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
     if (!leDossier) return;
 
-    if (portee(utilisateurConnecte.role, "RH") !== "TOUT") {
+    if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId)) return;
     }
@@ -134,7 +134,7 @@ const schemaClearance = z.object({
 export async function ajouterClearance(_etat: EtatDepart, formData: FormData): Promise<EtatDepart> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter une clôture." };
   }
 
@@ -153,7 +153,7 @@ export async function ajouterClearance(_etat: EtatDepart, formData: FormData): P
     if (!demande) return { erreur: "Demande de départ introuvable." };
     if (demande.statut !== "APPROUVEE") return { erreur: "La demande doit être approuvée avant d'ajouter une clôture." };
 
-    if (portee(utilisateurConnecte.role, "RH") !== "TOUT") {
+    if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (!leDossier || (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId))) return { erreur: "Ce dossier n'est pas dans votre équipe." };
@@ -201,7 +201,7 @@ export async function validerClearance(clearanceId: string) {
 export async function supprimerClearance(clearanceId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "RH", "MODIFIER")) return;
 
   let dossierRHId: string | null = null;
 
@@ -209,7 +209,7 @@ export async function supprimerClearance(clearanceId: string) {
     const [laClearance] = await tx.select().from(clearanceDepart).where(eq(clearanceDepart.id, clearanceId));
     if (!laClearance) return;
 
-    if (portee(utilisateurConnecte.role, "RH") !== "TOUT") {
+    if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const [demande] = await tx.select({ dossierRHId: demandeDepart.dossierRHId }).from(demandeDepart).where(eq(demandeDepart.id, laClearance.demandeDepartId));
       if (!demande) return;
       const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));

@@ -19,7 +19,7 @@ export async function GET(_requete: Request, { params }: { params: Promise<{ val
 
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) return new NextResponse("Non connecté", { status: 401 });
-  if (!peut(utilisateurConnecte.role, "ONE_FORM", "VOIR")) return new NextResponse("Accès refusé", { status: 403 });
+  if (!peut(utilisateurConnecte, "ONE_FORM", "VOIR")) return new NextResponse("Accès refusé", { status: 403 });
 
   const ligne = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [resultat] = await tx

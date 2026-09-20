@@ -27,7 +27,7 @@ export type EtatPageAtterrissage = { erreur?: string } | null;
 export async function creerPageAtterrissage(_etat: EtatPageAtterrissage, formData: FormData): Promise<EtatPageAtterrissage> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "MARKETING", "CREER")) {
+  if (!peut(utilisateurConnecte, "MARKETING", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une page d'atterrissage." };
   }
 
@@ -67,7 +67,7 @@ export async function creerPageAtterrissage(_etat: EtatPageAtterrissage, formDat
 export async function publierPageAtterrissage(id: string, publiee: boolean) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "MARKETING", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "MARKETING", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(pageAtterrissage).set({ publiee }).where(eq(pageAtterrissage.id, id)));
 

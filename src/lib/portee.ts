@@ -14,7 +14,7 @@ export async function idsVisibles(
   utilisateurConnecte: UtilisateurConnecte,
   module: Module
 ): Promise<"TOUT" | string[]> {
-  const scope = portee(utilisateurConnecte.role, module);
+  const scope = portee(utilisateurConnecte, module);
 
   if (scope === "TOUT") return "TOUT";
   if (scope === "PROPRE") return [utilisateurConnecte.utilisateurId];

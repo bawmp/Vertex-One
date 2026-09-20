@@ -112,8 +112,8 @@ export default async function PageFacturation() {
       };
     });
 
-  const peutCreer = peut(utilisateurConnecte.role, "FACTURATION", "CREER");
-  const peutModifier = peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER");
+  const peutCreer = peut(utilisateurConnecte, "FACTURATION", "CREER");
+  const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
 
   // Une Facture d'acompte PAYEE ne peut s'appliquer que sur une Facture EMISE
   // du même client (memeClientVente(), plus dealId — voir schema.ts et
@@ -127,7 +127,7 @@ export default async function PageFacturation() {
     <div className="flex flex-col gap-8">
       <TableauDeBord donnees={tableauDeBord} facturesClientVisibles={facturesVisibles} langue={utilisateurConnecte.langue} />
 
-      {peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
+      {peut(utilisateurConnecte, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 
       <div id="devis">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">

@@ -41,7 +41,7 @@ export default async function PageDeals() {
             {deals.length} deal{deals.length > 1 ? "s" : ""} visible{deals.length > 1 ? "s" : ""}.
           </p>
         </div>
-        {peut(utilisateurConnecte.role, "CRM", "CREER") ? (
+        {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/deals/nouveau" />} nativeButton={false}>
             <Briefcase data-icon="inline-start" aria-hidden />
             Nouveau deal
@@ -49,7 +49,7 @@ export default async function PageDeals() {
         ) : null}
       </div>
 
-      <DealsVues deals={deals} peutModifier={peut(utilisateurConnecte.role, "CRM", "MODIFIER")} />
+      <DealsVues deals={deals} peutModifier={peut(utilisateurConnecte, "CRM", "MODIFIER")} />
     </div>
   );
 }

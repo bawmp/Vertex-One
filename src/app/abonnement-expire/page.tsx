@@ -27,7 +27,7 @@ export default async function PageAbonnementExpire() {
   // ne jamais laisser un tenant à jour bloqué sur cette page par erreur.
   if (monEntreprise?.statutAbonnement !== "suspendu") redirect("/app");
 
-  const estAdmin = peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER");
+  const estAdmin = peut(utilisateurConnecte, "PARAMETRES", "MODIFIER");
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

@@ -22,7 +22,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "VOIR")) {
+  if (!peut(utilisateurConnecte, "PRODUITS", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -50,7 +50,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
 
   if (!donnees) notFound();
   const { leProduit, createur, compteVente, transactions } = donnees;
-  const peutModifier = peut(utilisateurConnecte.role, "PRODUITS", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

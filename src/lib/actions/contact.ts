@@ -29,7 +29,7 @@ export type EtatContact = { erreur?: string } | null;
 export async function creerContact(_etat: EtatContact, formData: FormData): Promise<EtatContact> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "CREER")) {
+  if (!peut(utilisateurConnecte, "CRM", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un contact." };
   }
 
@@ -77,7 +77,7 @@ export type EtatInteraction = { erreur?: string } | null;
 export async function ajouterInteraction(_etat: EtatInteraction, formData: FormData): Promise<EtatInteraction> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'ajouter une interaction." };
   }
 
@@ -106,7 +106,7 @@ export async function ajouterInteraction(_etat: EtatInteraction, formData: FormD
 export async function genererEtEnregistrerLienVisio(contactId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   const lien = genererLienVisio(utilisateurConnecte.entrepriseId, contactId);
 
@@ -120,7 +120,7 @@ export async function genererEtEnregistrerLienVisio(contactId: string) {
 export async function modifierNotesContact(contactId: string, notes: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(contact).set({ notes: notes || null }).where(eq(contact.id, contactId)));
 

@@ -15,7 +15,7 @@ export default async function PageParametres() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "VOIR")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />

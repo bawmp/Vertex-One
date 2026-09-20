@@ -11,7 +11,7 @@ export default async function PageCorbeilleOneVault() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "ONE_VAULT", "VOIR")) {
+  if (!peut(utilisateurConnecte, "ONE_VAULT", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -21,7 +21,7 @@ export default async function PageCorbeilleOneVault() {
   }
 
   const secrets = await recupererCorbeille();
-  const peutGerer = peut(utilisateurConnecte.role, "ONE_VAULT", "SUPPRIMER");
+  const peutGerer = peut(utilisateurConnecte, "ONE_VAULT", "SUPPRIMER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

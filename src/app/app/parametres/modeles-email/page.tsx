@@ -9,7 +9,7 @@ export default async function PageModelesEmail() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
     return <p className="text-muted-foreground">Seul un Administrateur peut modifier ces modèles.</p>;
   }
 

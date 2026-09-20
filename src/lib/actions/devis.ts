@@ -41,7 +41,7 @@ export type EtatDevis = { erreur?: string } | null;
 export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<EtatDevis> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un devis." };
   }
 
@@ -128,7 +128,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
 export async function accepterDevis(devisId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   const idFactureCreee = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
@@ -237,7 +237,7 @@ export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;
 export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _formData: FormData): Promise<EtatEnvoiDevis> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'envoyer ce devis." };
   }
 

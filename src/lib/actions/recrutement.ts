@@ -224,7 +224,7 @@ export async function changerStatutCandidature(candidatureId: string, statut: (t
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!STATUTS_VALIDES.includes(statut)) return;
-  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return;
@@ -256,7 +256,7 @@ const schemaModificationCandidature = z.object({
 export async function modifierCandidature(_etat: EtatRecrutementConfig, formData: FormData): Promise<EtatRecrutementConfig> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de modifier une candidature." };
   }
 
@@ -296,7 +296,7 @@ export async function modifierCandidature(_etat: EtatRecrutementConfig, formData
 export async function supprimerCandidature(candidatureId: string): Promise<{ erreur?: string } | null> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RECRUTEMENT", "SUPPRIMER")) {
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "SUPPRIMER")) {
     return { erreur: "Seul l'Administrateur peut supprimer une candidature." };
   }
 

@@ -18,7 +18,7 @@ export default async function PageBudgets() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "COMPTABILITE", "VOIR")) {
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -52,7 +52,7 @@ export default async function PageBudgets() {
   }
 
   const { budgets, comptes } = donnees;
-  const peutCreer = peut(utilisateurConnecte.role, "COMPTABILITE", "CREER");
+  const peutCreer = peut(utilisateurConnecte, "COMPTABILITE", "CREER");
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

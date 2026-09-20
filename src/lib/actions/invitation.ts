@@ -11,6 +11,7 @@ import { invitation, utilisateur, compte, dossierRH, contact } from "@/db/schema
 import { auth } from "@/lib/auth";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-libelles";
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 
@@ -29,6 +30,8 @@ const schemaInvitation = z.object({
   // Manager (2026-09-15) — copié vers utilisateur.managerId à l'activation,
   // pour que la portée "EQUIPE" (src/lib/portee.ts) ait quelque chose à lire.
   managerPropose: z.string().optional(),
+  // Modules cochés par l'Administrateur (un champ par module) ; absent = tous ceux du rôle.
+  modulesPropose: z.array(z.string()).optional(),
 });
 
 export type EtatInvitation = { erreur?: string; succes?: string } | null;
@@ -42,7 +45,7 @@ export type EtatInvitation = { erreur?: string; succes?: string } | null;
 export async function creerInvitation(_etat: EtatInvitation, formData: FormData): Promise<EtatInvitation> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PARAMETRES", "CREER")) {
+  if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) {
     return { erreur: "Vous n'avez pas le droit d'inviter de nouveaux collaborateurs." };
   }
 
@@ -54,13 +57,21 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     dateEmbauchePropose: formData.get("dateEmbauchePropose") || undefined,
     contactId: formData.get("contactId") || undefined,
     managerPropose: formData.get("managerPropose") || undefined,
+    modulesPropose: formData.get("restreindreModules") === "1" ? formData.getAll("modules").map(String) : undefined,
   });
 
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
-  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId, managerPropose } = analyse.data;
+  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId, managerPropose, modulesPropose } = analyse.data;
+
+  // Seuls MANAGER/EMPLOYE sont concernés ; une sélection complète revient à "aucune restriction".
+  let modulesAEnregistrer: string[] | undefined;
+  if (modulesPropose && roleProposee !== "CLIENT") {
+    const retenus = filtrerModulesAutorises(roleProposee, modulesPropose);
+    if (retenus.length < modulesRestreignables(roleProposee).length) modulesAEnregistrer = retenus;
+  }
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
 
@@ -87,6 +98,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       dateEmbauchePropose: dateEmbauchePropose ? new Date(dateEmbauchePropose) : undefined,
       contactId,
       managerPropose,
+      modulesPropose: modulesAEnregistrer,
       jeton,
       expireLe: new Date(Date.now() + DUREE_EXPIRATION_MS),
     });
@@ -151,6 +163,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         role: invitationValide.roleProposee,
         statut: "ACTIF",
         managerId: invitationValide.managerPropose,
+        modulesAutorises: invitationValide.modulesPropose,
       })
       .returning({ id: utilisateur.id });
 

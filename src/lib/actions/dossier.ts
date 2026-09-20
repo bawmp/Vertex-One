@@ -19,7 +19,7 @@ import { disponible } from "@/lib/plans";
 export async function creerDossier(contactId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOSSIERS", "CREER")) return;
+  if (!peut(utilisateurConnecte, "DOSSIERS", "CREER")) return;
 
   const idDossier = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
@@ -61,7 +61,7 @@ export type EtatCommentaire = { erreur?: string } | null;
 export async function ajouterCommentaireDossier(_etat: EtatCommentaire, formData: FormData): Promise<EtatCommentaire> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOSSIERS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "DOSSIERS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de commenter ce dossier." };
   }
 
@@ -90,7 +90,7 @@ export async function ajouterCommentaireDossier(_etat: EtatCommentaire, formData
 export async function archiverDossier(dossierId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOSSIERS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "DOSSIERS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(dossier).set({ statut: "ARCHIVE" }).where(eq(dossier.id, dossierId))
@@ -103,7 +103,7 @@ export async function archiverDossier(dossierId: string) {
 export async function reactiverDossier(dossierId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "DOSSIERS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "DOSSIERS", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.update(dossier).set({ statut: "ACTIF" }).where(eq(dossier.id, dossierId))

@@ -30,7 +30,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
 
   if (!fiche) notFound();
   const info = STATUT_LEAD[fiche.statut];
-  const peutModifier = peut(utilisateurConnecte.role, "CRM", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
   const modifierNotesAction = modifierNotesLead.bind(null, fiche.id);
 
   return (

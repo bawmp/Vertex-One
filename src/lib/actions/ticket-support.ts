@@ -83,7 +83,7 @@ const schemaMessage = z.object({ contenu: z.string().trim().min(1, "Le message n
 export async function ajouterMessageTicketSupport(ticketId: string, _etat: EtatTicketSupport, formData: FormData): Promise<EtatTicketSupport> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "SUPPORT", "VOIR")) {
+  if (!peut(utilisateurConnecte, "SUPPORT", "VOIR")) {
     return { erreur: "Vous n'avez pas accès à ce ticket." };
   }
 

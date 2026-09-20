@@ -39,6 +39,12 @@ Le domaine `vertexone.cm` est vérifié sur Resend (DKIM/SPF/CNAME créés dans 
 
 Un envoi réel (devis/facture) cumule requête Neon + rendu PDF (CPU) + appel réseau Resend : plus lent qu'une Server Action ordinaire. Dans `tests-e2e/palier-1-crm-facturation.spec.ts`, l'assertion qui suit un clic sur "Envoyer..." utilise un timeout local de 30s (au lieu des 15s globaux de `playwright.config.ts`) — passe en solo sous 15s mais dépasse 15s quand Playwright fait tourner plusieurs tests en parallèle (contention CPU/Neon), constaté réellement, pas anticipé.
 
+## Accès aux modules choisi par l'Administrateur (2026-09-20)
+
+L'Administrateur choisit, pour chaque Manager/Employé (à l'invitation ou ensuite dans Paramètres → Équipe), les modules auxquels la personne a accès : colonne `utilisateur.modulesAutorises` (null = tous ceux du rôle), copiée depuis `invitation.modulesPropose` à l'activation. La liste ne fait que **restreindre** la matrice du rôle, jamais l'élargir (voir `peut()`/`portee()` dans `src/lib/permissions.ts`, et `src/lib/modules-libelles.ts`).
+
+**Toujours appeler `peut(utilisateurConnecte, ...)` / `portee(utilisateurConnecte, ...)` avec l'utilisateur connecté entier, jamais `utilisateurConnecte.role`** : passer seulement le rôle ignore silencieusement la restriction choisie par l'Administrateur, sans erreur ni avertissement. Même règle pour `itemMenuVisible()`/`libellesMenuVisibles()`. Un nouveau module doit aussi être ajouté à `LIBELLES_MODULES` (`src/lib/modules-libelles.ts`) pour apparaître dans le sélecteur.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.

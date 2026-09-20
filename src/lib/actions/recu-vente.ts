@@ -37,7 +37,7 @@ export type EtatRecuVente = { erreur?: string } | null;
 export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): Promise<EtatRecuVente> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "CREER")) {
+  if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer un reçu de vente." };
   }
 
@@ -142,7 +142,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
 export async function annulerRecuVente(recuVenteId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx

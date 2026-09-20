@@ -26,7 +26,7 @@ export type EtatCampagne = { erreur?: string } | null;
 export async function creerCampagne(_etat: EtatCampagne, formData: FormData): Promise<EtatCampagne> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "MARKETING", "CREER")) {
+  if (!peut(utilisateurConnecte, "MARKETING", "CREER")) {
     return { erreur: "Vous n'avez pas le droit de créer une campagne." };
   }
 
@@ -74,7 +74,7 @@ export type EtatEnvoiCampagne = { erreur?: string; succes?: string } | null;
 export async function envoyerCampagne(campagneId: string): Promise<EtatEnvoiCampagne> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "MARKETING", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "MARKETING", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit d'envoyer cette campagne." };
   }
 

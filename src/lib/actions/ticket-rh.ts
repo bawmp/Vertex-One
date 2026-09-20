@@ -65,7 +65,7 @@ const schemaTicket = z.object({
 export async function creerTicketRH(_etat: EtatTicketRH, formData: FormData): Promise<EtatTicketRH> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER")) {
     return { erreur: "Vous n'avez pas le droit d'ouvrir un ticket." };
   }
 

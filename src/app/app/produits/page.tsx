@@ -16,7 +16,7 @@ export default async function PageProduits() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  if (!peut(utilisateurConnecte.role, "PRODUITS", "VOIR")) {
+  if (!peut(utilisateurConnecte, "PRODUITS", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -34,7 +34,7 @@ export default async function PageProduits() {
           <Package className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">Produits</h1>
         </div>
-        {peut(utilisateurConnecte.role, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
+        {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
       </div>
 
       <Card className="p-0">
@@ -68,7 +68,7 @@ export default async function PageProduits() {
                   <p>Vente : {formaterFCFA(p.prixVente)}</p>
                   <p>Achat : {formaterFCFA(p.prixAchat)}</p>
                 </div>
-                {peut(utilisateurConnecte.role, "PRODUITS", "SUPPRIMER") ? <BoutonSupprimerProduit produitId={p.id} /> : null}
+                {peut(utilisateurConnecte, "PRODUITS", "SUPPRIMER") ? <BoutonSupprimerProduit produitId={p.id} /> : null}
               </div>
             </div>
           ))}

@@ -26,7 +26,7 @@ export type EtatMinuteur = { erreur?: string } | null;
 export async function demarrerMinuteur(_etat: EtatMinuteur, formData: FormData): Promise<EtatMinuteur> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) {
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
     return { erreur: "Vous n'avez pas le droit de démarrer un minuteur." };
   }
 
@@ -72,7 +72,7 @@ export async function demarrerMinuteur(_etat: EtatMinuteur, formData: FormData):
 export async function arreterMinuteur() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   const projetId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [actif] = await tx.select().from(minuteurActif).where(eq(minuteurActif.utilisateurId, utilisateurConnecte.utilisateurId));
@@ -108,7 +108,7 @@ export async function arreterMinuteur() {
 export async function annulerMinuteur() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "PROJETS", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) return;
 
   const projetId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [supprime] = await tx

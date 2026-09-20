@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 export default async function PageComptes() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte.role, "CRM", "VOIR")) redirect("/app");
+  if (!peut(utilisateurConnecte, "CRM", "VOIR")) redirect("/app");
 
   const comptes = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.select().from(compteClient).where(eq(compteClient.entrepriseId, utilisateurConnecte.entrepriseId))
@@ -27,7 +27,7 @@ export default async function PageComptes() {
             {comptes.length} compte{comptes.length > 1 ? "s" : ""}.
           </p>
         </div>
-        {peut(utilisateurConnecte.role, "CRM", "CREER") ? (
+        {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/comptes/nouveau" />} nativeButton={false}>
             <Building2 data-icon="inline-start" aria-hidden />
             Nouveau compte

@@ -36,7 +36,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
   if (!donnees) notFound();
   const { leDevis, lignes, leProspect, leCompte, laFacture } = donnees;
 
-  const peutModifier = peut(utilisateurConnecte.role, "FACTURATION", "MODIFIER");
+  const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
   const info = STATUT_DEVIS[leDevis.statut];
 
   return (
@@ -110,7 +110,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           {leDevis.statut === "BROUILLON" ? (
             <FormulaireEnvoiDevis
               devisId={leDevis.id}
-              peutPersonnaliserModele={peut(utilisateurConnecte.role, "PARAMETRES", "MODIFIER")}
+              peutPersonnaliserModele={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")}
             />
           ) : null}
           {leDevis.statut === "ENVOYE" ? (
