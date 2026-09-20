@@ -15,7 +15,7 @@ import type { Dictionnaire } from "./dictionnaire";
 // (Zoho CRM, Zoho Books, Zoho People, Zoho Sign...) — échange du 2026-09-17.
 // Les clés ci-dessous DOIVENT correspondre exactement aux `libelle` utilisés
 // dans MODULES_MENU (src/app/app/layout.tsx), pas aux anciens noms français.
-const CLES_NAV_PAR_LIBELLE: Record<string, Exclude<keyof Dictionnaire["nav"], "categories">> = {
+const CLES_NAV_PAR_LIBELLE: Record<string, Exclude<keyof Dictionnaire["nav"], "categories" | "groupes">> = {
   "One CRM": "crm",
   "One Books": "faco",
   "One Projects": "projets",
@@ -75,4 +75,46 @@ export function ordonnerParPreference(libelles: string[], ordre: string[] | null
     if (iB === -1) return -1;
     return iA - iB;
   });
+}
+
+/**
+ * Rubriques de la barre latérale (2026-09-20) : les modules sont regroupés pour
+ * faciliter la prise en main — un nouvel utilisateur repère d'abord ce dont il a
+ * besoin (clients, finances, équipe, communication) avant de choisir un module.
+ * La clé d'un module est son libellé français, comme pour l'ordre personnel
+ * (voir CLES_NAV_PAR_LIBELLE). Un module absent de cette table tombe dans la
+ * dernière rubrique plutôt que de disparaître du menu.
+ */
+export type CleGroupeMenu = keyof Dictionnaire["nav"]["groupes"];
+
+export const GROUPES_MENU: CleGroupeMenu[] = ["clients", "finances", "equipe", "communication"];
+
+const GROUPE_PAR_LIBELLE: Record<string, CleGroupeMenu> = {
+  "One CRM": "clients",
+  "One Marketing": "clients",
+  "One Bookings": "clients",
+  "One Desk": "clients",
+  "One Books": "finances",
+  "One Docs": "finances",
+  "One Sign": "finances",
+  "One People": "equipe",
+  "One Recruit": "equipe",
+  "One Projects": "equipe",
+  "One Chat": "communication",
+  "One Announcements": "communication",
+  "One Form": "communication",
+  "One Vault": "communication",
+};
+
+export function groupeDuModule(libelle: string): CleGroupeMenu {
+  return GROUPE_PAR_LIBELLE[libelle] ?? "communication";
+}
+
+/** Répartit des éléments par rubrique, dans l'ordre des rubriques, en gardant leur ordre relatif (donc l'ordre personnel) ; les rubriques vides sont omises. */
+export function regrouperParRubrique<T>(elements: T[], libelleDe: (element: T) => string): { cle: CleGroupeMenu; elements: T[] }[] {
+  return GROUPES_MENU.map((cle) => ({ cle, elements: elements.filter((e) => groupeDuModule(libelleDe(e)) === cle) })).filter((g) => g.elements.length > 0);
+}
+
+export function traduireGroupe(cle: CleGroupeMenu, t: Dictionnaire): string {
+  return t.nav.groupes[cle];
 }

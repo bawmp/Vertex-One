@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, Settings, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, UserCog, Lock, KeyRound } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, KeyRound } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -8,11 +8,13 @@ import { peut, type Module, type RoleSysteme } from "@/lib/permissions";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { traduire } from "@/lib/i18n/traduire";
 import { LangueProvider } from "@/lib/i18n/contexte";
-import { traduireNav, traduireCategorie } from "@/lib/i18n/nav";
+import { traduireNav, traduireCategorie, traduireGroupe, regrouperParRubrique } from "@/lib/i18n/nav";
 import { calculerEtatAbonnement } from "@/lib/abonnement/etat";
 import { BanniereAbonnement } from "./banniere-abonnement";
 import { NavLink, NavGroup } from "./nav-link";
-import { MenuUtilisateur } from "./menu-utilisateur";
+import { BarreSuperieure } from "./barre-superieure";
+import { MenuCompte } from "./menu-compte";
+import { MenuParametres } from "./menu-parametres";
 import { CadreSidebar } from "./cadre-sidebar";
 
 type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -259,41 +261,19 @@ const MODULES_MENU: ItemMenu[] = [
   // One Vault (addon à la carte) — item racine plat, même raisonnement que
   // One Form/Réservations/Recrutement/Assistance client.
   { module: "ONE_VAULT", libelle: "One Vault", href: "/app/one-vault", Icone: KeyRound },
-  // Réorganisé en groupe (retour utilisateur, 2026-09-13 : "je vois aussi
-  // l'onglet paramètres dans Zoho, mais chez vertexone ce n'est pas
-  // configuré") — le lien plat pointait vers /app/parametres, qui n'avait
-  // aucune page.tsx propre (seulement 3 sous-pages isolées) : un clic
-  // menait droit au 404 générique de Next.js. hrefAccueil pointe maintenant
-  // vers un vrai tableau de bord (identité de l'entreprise, add-ons
-  // réellement activables) plutôt qu'une redirection creuse.
-  {
-    module: "PARAMETRES",
-    libelle: "Paramètres",
-    hrefAccueil: "/app/parametres",
-    Icone: Settings,
-    groupes: [
-      {
-  liens: [
-          { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
-          { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
-          { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
-          { libelle: "Abonnement", href: "/app/parametres/abonnement", Icone: CreditCard },
-        ],
-      },
-    ],
-  },
-  // Tranche 2 (2026-09-13) — accessible à tout utilisateur connecté, pas
-  // seulement l'Admin (contrairement à Paramètres) : aucun `module` de
-  // permission, seulement recupererUtilisateurConnecte(). Filtré à part dans
-  // itemVisible ci-dessous (jamais gouverné par peut(), qui exige un module).
-  { libelle: "Mon compte", href: "/app/mon-compte", Icone: UserCog },
-  // Espace personnel Admin (Tranche 4, 2026-09-14) — reserveAdmin plutôt
-  // qu'un module de permission dédié : un espace privé de l'Admin (tâches,
-  // documents, tableau de bord sensible, bloc-notes) n'a pas d'équivalent
-  // dans la matrice peut()/portee().
-  { libelle: "Espace personnel", href: "/app/mon-espace", Icone: Lock, reserveAdmin: true },
 ];
 
+// Paramètres (2026-09-20) : sorti de la barre latérale, il vit désormais dans le
+// menu de la barre supérieure (menu-parametres.tsx) — mêmes liens, toujours
+// filtrés côté serveur par peut() ; chaque page garde sa propre vérification.
+// "Mon compte" et "Espace personnel" (réservé à l'Administrateur, gardé par la
+// page elle-même) sont dans le menu du compte (menu-compte.tsx).
+const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }[] = [
+  { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
+  { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
+  { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
+  { libelle: "Abonnement", href: "/app/parametres/abonnement", Icone: CreditCard },
+];
 
 // Un item plat, ou groupé avec un module unifiant (CRM), reste gouverné par
 // ce seul module. Un item groupé sans module unique (FACO) n'est visible que
@@ -385,6 +365,41 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     ? ({ "--primary": ligne.couleurMarque, "--sidebar-primary": ligne.couleurMarque, "--sidebar-ring": ligne.couleurMarque, "--ring": ligne.couleurMarque } as React.CSSProperties)
     : undefined;
 
+  const rendreItem = (item: ItemMenu) =>
+    item.groupes ? (
+      <NavGroup
+        key={item.libelle}
+        libelle={traduireNav(item.libelle, t)}
+        icone={<item.Icone className="size-4 shrink-0" aria-hidden />}
+        hrefAccueil={item.hrefAccueil}
+        groupes={item.groupes
+          .map((groupe) => ({
+            categorie: groupe.categorie ? traduireCategorie(groupe.categorie, t) : groupe.categorie,
+            liens: groupe.liens
+              .filter((lien) => (!lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
+              .map((lien) => ({
+                href: lien.href,
+                libelle: lien.libelle,
+                icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
+              })),
+          }))
+          // Un lien réservé à l'Administrateur (Shifts/Politiques de congé) peut
+          // être le seul de sa catégorie — sans ce filtre, un Manager/Employé
+          // verrait un en-tête de catégorie ("Présence", "Congés") sans aucun
+          // lien dessous.
+          .filter((groupe) => groupe.liens.length > 0)}
+      />
+    ) : (
+      <NavLink key={item.href} href={item.href}>
+        <item.Icone className="size-4 shrink-0" aria-hidden />
+        {traduireNav(item.libelle, t)}
+      </NavLink>
+    );
+
+  const liensParametres = peut(utilisateurConnecte.role, "PARAMETRES", "VOIR")
+    ? LIENS_PARAMETRES.map((lien) => ({ href: lien.href, libelle: lien.libelle, icone: <lien.Icone className="size-4" aria-hidden /> }))
+    : [];
+
   return (
     <LangueProvider dictionnaire={t}>
     <div className="flex min-h-screen flex-col bg-background md:flex-row" style={styleMarque}>
@@ -396,50 +411,36 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           {utilisateurConnecte.role}
         </p>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-          {menuOrdonne.map((item) =>
-            item.groupes ? (
-              <NavGroup
-                key={item.libelle}
-                libelle={traduireNav(item.libelle, t)}
-                icone={<item.Icone className="size-4 shrink-0" aria-hidden />}
-                hrefAccueil={item.hrefAccueil}
-                groupes={item.groupes
-                  .map((groupe) => ({
-                    categorie: groupe.categorie ? traduireCategorie(groupe.categorie, t) : groupe.categorie,
-                    liens: groupe.liens
-                      .filter((lien) => (!lien.module || peut(utilisateurConnecte.role, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
-                      .map((lien) => ({
-                        href: lien.href,
-                        libelle: lien.libelle,
-                        icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
-                      })),
-                  }))
-                  // Un lien réservé à l'Administrateur (Shifts/Politiques de
-                  // congé) peut être le seul de sa catégorie — sans ce filtre,
-                  // un Manager/Employé verrait un en-tête de catégorie
-                  // ("Présence", "Congés") sans aucun lien dessous.
-                  .filter((groupe) => groupe.liens.length > 0)}
-              />
-            ) : (
-              <NavLink key={item.href} href={item.href}>
-                <item.Icone className="size-4 shrink-0" aria-hidden />
-                {traduireNav(item.libelle, t)}
-              </NavLink>
-            )
-          )}
+        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2">
+          {regrouperParRubrique(menuOrdonne, (item) => item.libelle).map(({ cle, elements }) => (
+            <div key={cle} className="flex flex-col gap-0.5">
+              <p className="mb-0.5 mt-4 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/45 first:mt-1">{traduireGroupe(cle, t)}</p>
+              {elements.map(rendreItem)}
+            </div>
+          ))}
         </div>
-
-        <MenuUtilisateur nom={ligne?.nomComplet ?? utilisateurConnecte.role} email={ligne?.email ?? ""} langue={utilisateurConnecte.langue} />
       </CadreSidebar>
-      <main className="min-w-0 flex-1 overflow-x-hidden p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4">
-          {evenement && ligne ? (
-            <BanniereAbonnement evenement={evenement} essaiFinLe={ligne.essaiFinLe} abonnementEcheanceLe={ligne.abonnementEcheanceLe} />
-          ) : null}
-          {children}
-        </div>
-      </main>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <BarreSuperieure nomEntreprise={ligne?.entrepriseNom}>
+          {liensParametres.length > 0 ? <MenuParametres liens={liensParametres} /> : null}
+          <MenuCompte
+            nom={ligne?.nomComplet ?? utilisateurConnecte.role}
+            email={ligne?.email ?? ""}
+            role={utilisateurConnecte.role}
+            langue={utilisateurConnecte.langue}
+            afficherEspacePersonnel={utilisateurConnecte.role === "ADMIN"}
+          />
+        </BarreSuperieure>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4">
+            {evenement && ligne ? (
+              <BanniereAbonnement evenement={evenement} essaiFinLe={ligne.essaiFinLe} abonnementEcheanceLe={ligne.abonnementEcheanceLe} />
+            ) : null}
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
     </LangueProvider>
   );

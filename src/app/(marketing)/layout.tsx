@@ -26,7 +26,7 @@ export default function LayoutMarketing({ children }: { children: React.ReactNod
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-2">
-            <Wordmark slogan className="h-24" />
+            <Wordmark slogan className="h-16" />
             <p className="max-w-xs text-sm text-muted-foreground">
               La suite de gestion pensée pour les entreprises de services au Cameroun.
             </p>

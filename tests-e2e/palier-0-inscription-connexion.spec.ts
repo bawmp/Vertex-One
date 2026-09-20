@@ -43,9 +43,16 @@ test("inscription crée l'entreprise, connecte l'Administrateur, et affiche le m
   // ADMIN a VOIR sur tous les modules (matrice, src/lib/permissions.ts) —
   // les cinq entrées du menu doivent être visibles. Noms "One <mot anglais>"
   // à l'image de Zoho (Zoho CRM, Zoho Books...) — voir échange du 2026-09-17.
-  for (const libelle of ["One CRM", "One Books", "One Projects", "One Docs", "Paramètres"]) {
+  for (const libelle of ["One CRM", "One Books", "One Projects", "One Docs"]) {
     await expect(page.getByRole("link", { name: libelle })).toBeVisible();
   }
+
+  // Paramètres et compte ont quitté la barre latérale (2026-09-20) : ils sont
+  // dans la barre supérieure, sous forme de menus déroulants.
+  await expect(page.getByRole("banner").getByRole("button", { name: /paramètres/i })).toBeVisible();
+  await page.getByRole("banner").getByRole("button", { name: /compte/i }).click();
+  await expect(page.getByRole("menuitem", { name: "Mon compte" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: /déconnecter/i })).toBeVisible();
 });
 
 test("connexion avec les identifiants créés ramène au tableau de bord", async ({ page }) => {

@@ -31,6 +31,13 @@ export const fr = {
     parametres: "Paramètres",
     monCompte: "Mon compte",
     monEspace: "Espace personnel",
+    // Rubriques de la barre latérale (regroupement des modules, 2026-09-20).
+    groupes: {
+      clients: "Clients & ventes",
+      finances: "Finances & documents",
+      equipe: "Équipe & projets",
+      communication: "Communication & outils",
+    },
     categories: {
       articles: "Articles",
       ventes: "Ventes",
@@ -58,6 +65,9 @@ export const fr = {
   },
   menuUtilisateur: {
     deconnexion: "Se déconnecter",
+    tousLesParametres: "Tous les paramètres",
+    ouvrirMenuCompte: "Menu du compte",
+    ouvrirMenuParametres: "Paramètres",
   },
   monCompte: {
     titre: "Mon compte",
@@ -104,6 +114,12 @@ export const en: Profond<Dictionnaire> = {
     parametres: "Settings",
     monCompte: "My account",
     monEspace: "Personal space",
+    groupes: {
+      clients: "Customers & sales",
+      finances: "Finance & documents",
+      equipe: "Team & projects",
+      communication: "Communication & tools",
+    },
     categories: {
       articles: "Items",
       ventes: "Sales",
@@ -131,6 +147,9 @@ export const en: Profond<Dictionnaire> = {
   },
   menuUtilisateur: {
     deconnexion: "Sign out",
+    tousLesParametres: "All settings",
+    ouvrirMenuCompte: "Account menu",
+    ouvrirMenuParametres: "Settings",
   },
   monCompte: {
     titre: "My account",
