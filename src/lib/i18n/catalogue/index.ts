@@ -13,6 +13,8 @@ import { IMPORT_DONNEES } from "./import-donnees";
 import { STATUTS } from "./statuts";
 import { MENU } from "./menu";
 import { MESSAGES } from "./messages";
+import { VITRINE } from "./vitrine";
+import { VITRINE_MODULES } from "./vitrine-modules";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -26,4 +28,6 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...STATUTS,
   ...MENU,
   ...MESSAGES,
+  ...VITRINE,
+  ...VITRINE_MODULES,
 };

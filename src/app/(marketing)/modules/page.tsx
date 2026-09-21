@@ -5,21 +5,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { Reveal } from "../reveal";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
-export const metadata: Metadata = {
-  title: "Modules — Vertex One",
-  description: "Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: `${t("Modules")} — Vertex One`,
+    description: t("Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus."),
+  };
+}
 
-export default function PageModules() {
+export default async function PageModules() {
+  const t = await getT();
   return (
     <div className="mx-auto max-w-6xl px-6 py-20">
       <Reveal>
         <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-4xl font-semibold tracking-tight">Tous les modules, un seul abonnement</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">{t("Tous les modules, un seul abonnement")}</h1>
           <p className="mt-4 text-muted-foreground">
-            Aucun module n&apos;est verrouillé derrière un forfait supérieur — contrairement à beaucoup de suites de
-            gestion internationales, qui vendent chaque application séparément.
+            {t("Aucun module n'est verrouillé derrière un forfait supérieur — contrairement à beaucoup de suites de gestion internationales, qui vendent chaque application séparément.")}
           </p>
         </div>
       </Reveal>
@@ -32,10 +37,10 @@ export default function PageModules() {
                   <span className={`flex size-11 items-center justify-center rounded-xl ${module.classeFond} text-white`}>
                     <module.icone className="size-5.5" aria-hidden />
                   </span>
-                  <h2 className="font-semibold">{module.nom}</h2>
-                  <p className="text-sm text-muted-foreground">{module.resume}</p>
+                  <h2 className="font-semibold">{t(module.nom)}</h2>
+                  <p className="text-sm text-muted-foreground">{t(module.resume)}</p>
                   <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    En savoir plus
+                    {t("En savoir plus")}
                     <ArrowRight className="size-3.5" aria-hidden />
                   </span>
                 </CardContent>
@@ -46,7 +51,7 @@ export default function PageModules() {
       </div>
       <div className="mt-14 text-center">
         <Button size="lg" render={<Link href="/inscription" />} nativeButton={false}>
-          Essayer gratuitement
+          {t("Essayer gratuitement")}
         </Button>
       </div>
     </div>

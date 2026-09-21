@@ -5,6 +5,7 @@ import { Sparkles, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { useT } from "@/lib/i18n/contexte";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -24,6 +25,7 @@ const MESSAGE_ACCUEIL: Message = {
  * réutilisée telle quelle dans l'application plus tard.
  */
 export function KyriaChat() {
+  const t = useT();
   const [ouvert, setOuvert] = useState(false);
   const [messages, setMessages] = useState<Message[]>([MESSAGE_ACCUEIL]);
   const [saisie, setSaisie] = useState("");
@@ -68,9 +70,9 @@ export function KyriaChat() {
           <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4.5" aria-hidden />
-              <span className="font-semibold">Kyria</span>
+              <span className="font-semibold">{t("Kyria")}</span>
             </div>
-            <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/15" aria-label="Fermer" onClick={() => setOuvert(false)}>
+            <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/15" aria-label={t("Fermer")} onClick={() => setOuvert(false)}>
               <X aria-hidden />
             </Button>
           </div>
@@ -91,7 +93,7 @@ export function KyriaChat() {
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 rounded-2xl bg-muted px-3.5 py-2 text-sm text-muted-foreground">
                   <Spinner />
-                  Kyria réfléchit…
+                  {t("Kyria réfléchit…")}
                 </div>
               </div>
             ) : null}
@@ -108,11 +110,11 @@ export function KyriaChat() {
                   envoyer();
                 }
               }}
-              placeholder="Posez votre question…"
+              placeholder={t("Posez votre question…")}
               rows={1}
               className="max-h-24 min-h-9 resize-none"
             />
-            <Button size="icon" disabled={enCours || !saisie.trim()} onClick={envoyer} aria-label="Envoyer">
+            <Button size="icon" disabled={enCours || !saisie.trim()} onClick={envoyer} aria-label={t("Envoyer")}>
               <Send aria-hidden />
             </Button>
           </div>
@@ -122,7 +124,7 @@ export function KyriaChat() {
       <Button
         size="icon-lg"
         className={`rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg transition-transform hover:-translate-y-0.5 hover:from-violet-400 hover:to-indigo-400 ${ouvert ? "" : "animate-pulse"}`}
-        aria-label={ouvert ? "Fermer Kyria" : "Discuter avec Kyria"}
+        aria-label={ouvert ? t("Fermer Kyria") : t("Discuter avec Kyria")}
         onClick={() => setOuvert((v) => !v)}
       >
         {ouvert ? <X aria-hidden /> : <Sparkles aria-hidden />}

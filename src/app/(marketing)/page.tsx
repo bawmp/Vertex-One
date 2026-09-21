@@ -14,15 +14,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS } from "@/lib/marketing/contenu";
+import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "./reveal";
 import { CompteurAnime } from "./compteur-anime";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const ATOUTS = [
-  { icone: Smartphone, titre: "Mobile Money natif", classeFond: "bg-blue-500", description: "Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients." },
-  { icone: MessageCircle, titre: "WhatsApp bientôt", classeFond: "bg-emerald-500", description: "Signatures, relances et notifications partent par email dès maintenant ; l'envoi par WhatsApp, le canal que vos clients utilisent tous les jours, arrive dans une prochaine mise à jour." },
-  { icone: Landmark, titre: "Conforme au Cameroun", classeFond: "bg-amber-500", description: "SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup." },
-  { icone: HandCoins, titre: "Sans coût d'implémentation", classeFond: "bg-rose-500", description: "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique." },
+  { icone: Smartphone, titre: m("Mobile Money natif"), classeFond: "bg-blue-500", description: m("Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients.") },
+  { icone: MessageCircle, titre: m("WhatsApp bientôt"), classeFond: "bg-emerald-500", description: m("Signatures, relances et notifications partent par email dès maintenant ; l'envoi par WhatsApp, le canal que vos clients utilisent tous les jours, arrive dans une prochaine mise à jour.") },
+  { icone: Landmark, titre: m("Conforme au Cameroun"), classeFond: "bg-amber-500", description: m("SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup.") },
+  { icone: HandCoins, titre: m("Sans coût d'implémentation"), classeFond: "bg-rose-500", description: m("Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique.") },
 ];
 
 /**
@@ -31,7 +33,8 @@ const ATOUTS = [
  * l'application, qui a son propre point d'entrée) : pas de redirection vers
  * /app ici, décision explicite de l'utilisateur le 2026-09-14.
  */
-export default function PageAccueil() {
+export default async function PageAccueil() {
+  const t = await getT();
   return (
     <>
       {/* Héros */}
@@ -46,14 +49,13 @@ export default function PageAccueil() {
         />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
           <Badge variant="brand" className="animate-pulse bg-white/10 text-white ring-white/20">
-            Essai gratuit {DUREE_ESSAI_JOURS} jours — sans carte bancaire
+            {t("Essai gratuit {jours} jours — sans carte bancaire", { jours: DUREE_ESSAI_JOURS })}
           </Badge>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            La suite de gestion tout-en-un pour les entreprises de services au Cameroun
+            {t("La suite de gestion tout-en-un pour les entreprises de services au Cameroun")}
           </h1>
           <p className="max-w-2xl text-lg text-marque-bleu-50/90">
-            One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
-            international, pensée Mobile Money-first, en français, sans les coûts d&apos;implémentation.
+            {t("One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.")}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
@@ -62,7 +64,7 @@ export default function PageAccueil() {
               render={<Link href="/inscription" />}
               nativeButton={false}
             >
-              Essayer gratuitement
+              {t("Essayer gratuitement")}
               <ArrowRight data-icon="inline-end" aria-hidden />
             </Button>
             <Button
@@ -72,7 +74,7 @@ export default function PageAccueil() {
               render={<Link href="/tarifs" />}
               nativeButton={false}
             >
-              Voir les tarifs
+              {t("Voir les tarifs")}
             </Button>
           </div>
         </div>
@@ -83,8 +85,7 @@ export default function PageAccueil() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-6 py-6 text-center sm:flex-row sm:justify-center sm:gap-3">
           <Check className="size-5 shrink-0 text-primary" aria-hidden />
           <p className="text-sm font-medium text-foreground sm:text-base">
-            Un seul prix, <CompteurAnime valeur={PRIX_ABONNEMENT_MENSUEL_FCFA} /> FCFA/mois — tous les modules inclus, aucun
-            mur de forfait, invitez toute votre équipe sans coût supplémentaire.
+            {t("Un seul prix,")} <CompteurAnime valeur={PRIX_ABONNEMENT_MENSUEL_FCFA} /> {t("FCFA/mois — tous les modules inclus, aucun mur de forfait, invitez toute votre équipe sans coût supplémentaire.")}
           </p>
         </div>
       </section>
@@ -93,10 +94,9 @@ export default function PageAccueil() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight">Un module pour chaque partie de votre activité</h2>
+            <h2 className="text-3xl font-semibold tracking-tight">{t("Un module pour chaque partie de votre activité")}</h2>
             <p className="mt-3 text-muted-foreground">
-              Tous inclus dans le même abonnement, dès le premier jour — aucun n&apos;est verrouillé derrière un forfait
-              supérieur.
+              {t("Tous inclus dans le même abonnement, dès le premier jour — aucun n'est verrouillé derrière un forfait supérieur.")}
             </p>
           </div>
         </Reveal>
@@ -109,8 +109,8 @@ export default function PageAccueil() {
                     <span className={`flex size-11 items-center justify-center rounded-xl ${module.classeFond} text-white`}>
                       <module.icone className="size-5.5" aria-hidden />
                     </span>
-                    <h3 className="font-semibold">{module.nom}</h3>
-                    <p className="text-sm text-muted-foreground">{module.resume}</p>
+                    <h3 className="font-semibold">{t(module.nom)}</h3>
+                    <p className="text-sm text-muted-foreground">{t(module.resume)}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -119,7 +119,7 @@ export default function PageAccueil() {
         </div>
         <div className="mt-8 text-center">
           <Button variant="outline" render={<Link href="/modules" />} nativeButton={false}>
-            Voir tous les modules en détail
+            {t("Voir tous les modules en détail")}
             <ArrowRight data-icon="inline-end" aria-hidden />
           </Button>
         </div>
@@ -131,10 +131,9 @@ export default function PageAccueil() {
           <span className="flex size-14 items-center justify-center rounded-2xl bg-white/15">
             <Sparkles className="size-7" aria-hidden />
           </span>
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Une question ? Demandez à Kyria</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Une question ? Demandez à Kyria")}</h2>
           <p className="max-w-xl text-violet-50/90">
-            Notre assistante IA répond en direct à vos questions sur Vertex One — tarifs, modules, essai gratuit —
-            directement depuis la bulle en bas à droite de votre écran, à tout moment.
+            {t("Notre assistante IA répond en direct à vos questions sur Vertex One — tarifs, modules, essai gratuit — directement depuis la bulle en bas à droite de votre écran, à tout moment.")}
           </p>
         </Reveal>
       </section>
@@ -144,7 +143,7 @@ export default function PageAccueil() {
         <div className="mx-auto max-w-6xl px-6">
           <Reveal>
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight">Pensé pour le Cameroun, pas adapté après coup</h2>
+              <h2 className="text-3xl font-semibold tracking-tight">{t("Pensé pour le Cameroun, pas adapté après coup")}</h2>
             </div>
           </Reveal>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -153,8 +152,8 @@ export default function PageAccueil() {
                 <span className={`flex size-11 items-center justify-center rounded-xl ${atout.classeFond} text-white`}>
                   <atout.icone className="size-5.5" aria-hidden />
                 </span>
-                <h3 className="font-semibold">{atout.titre}</h3>
-                <p className="text-sm text-muted-foreground">{atout.description}</p>
+                <h3 className="font-semibold">{t(atout.titre)}</h3>
+                <p className="text-sm text-muted-foreground">{t(atout.description)}</p>
               </Reveal>
             ))}
           </div>
@@ -165,9 +164,9 @@ export default function PageAccueil() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight">Comment on se compare</h2>
+            <h2 className="text-3xl font-semibold tracking-tight">{t("Comment on se compare")}</h2>
             <p className="mt-3 text-muted-foreground">
-              Face aux solutions généralistes qui offrent le même type de service, sur des critères vérifiables.
+              {t("Face aux solutions généralistes qui offrent le même type de service, sur des critères vérifiables.")}
             </p>
           </div>
         </Reveal>
@@ -175,17 +174,17 @@ export default function PageAccueil() {
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="py-3 pr-4 font-medium text-muted-foreground">Critère</th>
+                <th className="py-3 pr-4 font-medium text-muted-foreground">{t("Critère")}</th>
                 <th className="py-3 px-4 font-semibold text-primary">Vertex One</th>
-                <th className="py-3 px-4 font-medium text-muted-foreground">{COMPARATIF.libelleConcurrent}</th>
+                <th className="py-3 px-4 font-medium text-muted-foreground">{t(COMPARATIF.libelleConcurrent)}</th>
               </tr>
             </thead>
             <tbody>
               {COMPARATIF.criteres.map((ligne) => (
                 <tr key={ligne.critere} className="border-b border-border align-top">
-                  <td className="py-3 pr-4 font-medium">{ligne.critere}</td>
-                  <td className="py-3 px-4 bg-primary/5">{ligne.vertexOne}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{ligne.generaliste}</td>
+                  <td className="py-3 pr-4 font-medium">{t(ligne.critere)}</td>
+                  <td className="py-3 px-4 bg-primary/5">{t(ligne.vertexOne)}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{t(ligne.generaliste)}</td>
                 </tr>
               ))}
             </tbody>
@@ -197,11 +196,9 @@ export default function PageAccueil() {
       <section className="bg-muted/30 py-20">
         <Reveal className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
           <Rocket className="size-8 text-primary" aria-hidden />
-          <h2 className="text-2xl font-semibold tracking-tight">En cours de lancement au Cameroun</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">{t("En cours de lancement au Cameroun")}</h2>
           <p className="text-muted-foreground">
-            Vertex One est un produit jeune — nous préférons vous le dire plutôt que d&apos;inventer des témoignages. Le
-            code est réel, testé, et prêt à gérer votre activité dès aujourd&apos;hui. Essayez-le gratuitement pendant{" "}
-            {DUREE_ESSAI_JOURS} jours et faites-vous votre propre avis.
+            {t("Vertex One est un produit jeune — nous préférons vous le dire plutôt que d'inventer des témoignages. Le code est réel, testé, et prêt à gérer votre activité dès aujourd'hui. Essayez-le gratuitement pendant {jours} jours et faites-vous votre propre avis.", { jours: DUREE_ESSAI_JOURS })}
           </p>
         </Reveal>
       </section>
@@ -209,12 +206,12 @@ export default function PageAccueil() {
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-6 py-20">
         <Reveal>
-          <h2 className="text-center text-3xl font-semibold tracking-tight">Questions fréquentes</h2>
+          <h2 className="text-center text-3xl font-semibold tracking-tight">{t("Questions fréquentes")}</h2>
           <Accordion className="mt-10">
             {FAQ_ACCUEIL.map((item) => (
               <AccordionItem key={item.question} value={item.question}>
-                <AccordionTrigger>{item.question}</AccordionTrigger>
-                <AccordionContent>{item.reponse}</AccordionContent>
+                <AccordionTrigger>{t(item.question)}</AccordionTrigger>
+                <AccordionContent>{t(item.reponse, valeursSite(t.locale))}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -228,9 +225,9 @@ export default function PageAccueil() {
           className="animate-flotter-lentement pointer-events-none absolute -bottom-20 left-1/4 size-72 rounded-full bg-marque-orange/30 blur-3xl"
         />
         <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6 px-6 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight">Prêt à essayer Vertex One ?</h2>
+          <h2 className="text-3xl font-semibold tracking-tight">{t("Prêt à essayer Vertex One ?")}</h2>
           <p className="text-marque-bleu-50/90">
-            {DUREE_ESSAI_JOURS} jours d&apos;essai gratuit, tous les modules inclus. Aucune carte bancaire requise.
+            {t("{jours} jours d'essai gratuit, tous les modules inclus. Aucune carte bancaire requise.", { jours: DUREE_ESSAI_JOURS })}
           </p>
           <Button
             size="lg"
@@ -238,7 +235,7 @@ export default function PageAccueil() {
             render={<Link href="/inscription" />}
             nativeButton={false}
           >
-            Créer mon entreprise
+            {t("Créer mon entreprise")}
             <ArrowRight data-icon="inline-end" aria-hidden />
           </Button>
         </div>

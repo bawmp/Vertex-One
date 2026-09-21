@@ -5,12 +5,15 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
+import { SelecteurLangue } from "@/components/selecteur-langue";
+import { useT } from "@/lib/i18n/contexte";
+import { m } from "@/lib/i18n/catalogue";
 
 const LIENS_NAV = [
-  { href: "/modules", libelle: "Modules" },
-  { href: "/tarifs", libelle: "Tarifs" },
-  { href: "/a-propos", libelle: "À propos" },
-  { href: "/contact", libelle: "Contact" },
+  { href: "/modules", libelle: m("Modules") },
+  { href: "/tarifs", libelle: m("Tarifs") },
+  { href: "/a-propos", libelle: m("À propos") },
+  { href: "/contact", libelle: m("Contact") },
 ];
 
 /**
@@ -20,6 +23,7 @@ const LIENS_NAV = [
  * n'apporterait rien ici pour une poignée de liens.
  */
 export function EnTeteMarketing() {
+  const t = useT();
   const [ouvert, setOuvert] = useState(false);
 
   return (
@@ -32,17 +36,18 @@ export function EnTeteMarketing() {
         <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
           {LIENS_NAV.map((lien) => (
             <Link key={lien.href} href={lien.href} className="hover:text-foreground">
-              {lien.libelle}
+              {t(lien.libelle)}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <SelecteurLangue />
           <Button variant="ghost" render={<Link href="/connexion" />} nativeButton={false}>
-            Se connecter
+            {t("Se connecter")}
           </Button>
           <Button render={<Link href="/inscription" />} nativeButton={false}>
-            Essai gratuit
+            {t("Essai gratuit")}
           </Button>
         </div>
 
@@ -50,7 +55,7 @@ export function EnTeteMarketing() {
           variant="ghost"
           size="icon"
           className="md:hidden"
-          aria-label={ouvert ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-label={ouvert ? t("Fermer le menu") : t("Ouvrir le menu")}
           onClick={() => setOuvert((v) => !v)}
         >
           {ouvert ? <X aria-hidden /> : <Menu aria-hidden />}
@@ -66,15 +71,16 @@ export function EnTeteMarketing() {
               className="rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={() => setOuvert(false)}
             >
-              {lien.libelle}
+              {t(lien.libelle)}
             </Link>
           ))}
           <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
+            <SelecteurLangue className="self-start" />
             <Button variant="outline" render={<Link href="/connexion" />} nativeButton={false}>
-              Se connecter
+              {t("Se connecter")}
             </Button>
             <Button render={<Link href="/inscription" />} nativeButton={false}>
-              Essai gratuit
+              {t("Essai gratuit")}
             </Button>
           </div>
         </nav>
