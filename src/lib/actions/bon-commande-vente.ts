@@ -13,6 +13,8 @@ import { genererNumeroBonCommandeVente, genererNumeroFacture } from "@/lib/factu
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/facturation";
 
@@ -34,15 +36,16 @@ export type EtatBonCommandeVente = { erreur?: string } | null;
  * sans NIU renseigné (docs/palier-1-*, section 2).
  */
 export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formData: FormData): Promise<EtatBonCommandeVente> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un bon de commande." };
+    return { erreur: t("Vous n'avez pas le droit de créer un bon de commande.") };
   }
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
-  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
+  if (!dealId && !contactId) return { erreur: t("Formulaire invalide.") };
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
     produitId: formData.getAll("produitId")[i] || undefined,
@@ -51,9 +54,9 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
     prixUnitaire: formData.getAll("prixUnitaire")[i],
     tauxTVA: formData.getAll("tauxTVA")[i],
   }));
-  const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
+  const analyseLignes = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
   if (!analyseLignes.success) {
-    return { erreur: analyseLignes.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyseLignes.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
@@ -104,7 +107,7 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
   });
 
   if (!nouveauBCV) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
+    return { erreur: t("Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable.") };
   }
 
   revalidatePath(CHEMIN);

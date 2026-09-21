@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { notePersonnelle } from "@/db/schema";
 import { date } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 import { erreur, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
 
 const LONGUEUR_MAX_NOTE = 20_000;
@@ -17,7 +18,7 @@ export async function importerNotes(ctx: ContexteImport, lignes: LigneImport[]):
   for (const { numero, v } of lignes) {
     const corps = (v.contenu ?? "").trim();
     if (!corps) {
-      erreur(rapport, numero, "Note vide.");
+      erreur(rapport, numero, m("Note vide."));
       continue;
     }
     const titre = (v.titre ?? "").trim();
@@ -33,7 +34,7 @@ export async function importerNotes(ctx: ContexteImport, lignes: LigneImport[]):
   }
 
   if (contenu.length > LONGUEUR_MAX_NOTE * 5) {
-    erreur(rapport, 0, "Le bloc-notes deviendrait trop long. Importez ces notes en plusieurs fois.");
+    erreur(rapport, 0, m("Le bloc-notes deviendrait trop long. Importez ces notes en plusieurs fois."));
     return rapport;
   }
   if (rapport.crees > 0) {

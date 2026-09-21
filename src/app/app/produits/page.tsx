@@ -11,8 +11,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauProduit } from "./formulaire-nouveau-produit";
 import { BoutonSupprimerProduit } from "./bouton-supprimer-produit";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageProduits() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -20,7 +22,7 @@ export default async function PageProduits() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas accès au catalogue Produits.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès au catalogue Produits.")}</p>
       </div>
     );
   }
@@ -32,7 +34,7 @@ export default async function PageProduits() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Package className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Produits</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Produits")}</h1>
         </div>
         {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
       </div>
@@ -53,8 +55,8 @@ export default async function PageProduits() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium">{p.nom}</p>
-                    <Badge variant="neutral">{p.type === "BIEN" ? "Bien" : "Service"}</Badge>
-                    {p.suiviStock ? <Badge variant="info">Stock : {p.stockActuel}</Badge> : null}
+                    <Badge variant="neutral">{p.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
+                    {p.suiviStock ? <Badge variant="info">{t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
                   </div>
                   {/* Description potentiellement longue (ex. décomposition d'un
                       montant en plusieurs frais) — jamais tronquée à une seule
@@ -65,14 +67,14 @@ export default async function PageProduits() {
               </Link>
               <div className="flex shrink-0 items-center gap-3">
                 <div className="text-right text-xs text-muted-foreground">
-                  <p>Vente : {formaterFCFA(p.prixVente)}</p>
-                  <p>Achat : {formaterFCFA(p.prixAchat)}</p>
+                  <p>{t("Vente : {prix}", { prix: formaterFCFA(p.prixVente) })}</p>
+                  <p>{t("Achat : {prix}", { prix: formaterFCFA(p.prixAchat) })}</p>
                 </div>
                 {peut(utilisateurConnecte, "PRODUITS", "SUPPRIMER") ? <BoutonSupprimerProduit produitId={p.id} /> : null}
               </div>
             </div>
           ))}
-          {produits.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucun produit pour le moment.</p> : null}
+          {produits.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun produit pour le moment.")}</p> : null}
         </div>
       </Card>
     </div>

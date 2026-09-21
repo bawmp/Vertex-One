@@ -1,5 +1,6 @@
 "use client";
 
+import { memoriserLangue } from "@/lib/i18n/cookie-langue";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -46,6 +47,7 @@ export function useActionsCompte(langueInitiale?: Langue) {
   async function basculerLangue() {
     const nouvelle: Langue = langue === "fr" ? "en" : "fr";
     setLangue(nouvelle);
+    memoriserLangue(nouvelle); // la même langue sur les pages sans compte (connexion, site)
     await authClient.updateUser({ langue: nouvelle });
     router.refresh();
   }

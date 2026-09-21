@@ -48,7 +48,7 @@ export function LogoEntreprise({
     <span className={cn("flex items-center justify-center bg-white shadow-sm ring-1 ring-black/5", CLASSES_TAILLE[taille], className)}>
       <ImageLogo
         src={logoPersonnalise ? `/logo/${entrepriseId}` : officiel}
-        alt={logoPersonnalise ? (nomEntreprise ?? "Logo de l'entreprise") : "Vertex One"}
+        alt={logoPersonnalise ? (nomEntreprise ?? "Logo") : "Vertex One"}
         initiale={nomEntreprise?.trim().charAt(0).toUpperCase() || "V"}
       />
     </span>

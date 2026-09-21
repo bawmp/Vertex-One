@@ -29,6 +29,7 @@ import { GestionGroupe } from "./gestion-groupe";
 import { PanneauPersonnes, type DmParCollegue } from "./panneau-personnes";
 import { RechercheMessages } from "./recherche-messages";
 import { ActiverNotifications } from "./activer-notifications";
+import { getT } from "@/lib/i18n/langue";
 
 const Pastille = ({ nombre }: { nombre: number }) =>
   nombre > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white">{nombre > 99 ? "99+" : nombre}</span> : null;
@@ -40,6 +41,7 @@ const Pastille = ({ nombre }: { nombre: number }) =>
  * (voir conversation.tsx).
  */
 export default async function PageMessagerie({ searchParams }: { searchParams: Promise<{ canal?: string; dm?: string; message?: string }> }) {
+  const t = await getT();
   const { canal: canalDemande, dm, message: messageDemande } = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -121,7 +123,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La messagerie n&apos;est pas disponible pour votre compte ou votre forfait.</p>
+        <p className="text-muted-foreground">{t("La messagerie n'est pas disponible pour votre compte ou votre forfait.")}</p>
       </div>
     );
   }
@@ -152,7 +154,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2.5">
         <MessageSquare className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">One Chat</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("One Chat")}</h1>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
@@ -160,23 +162,23 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
           <RechercheMessages nomsCanaux={nomsCanaux} />
 
           <div className="flex flex-col gap-1">
-            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Canaux</p>
-            <nav aria-label="Canaux" className="flex flex-col gap-0.5">
+            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Canaux")}</p>
+            <nav aria-label={t("Canaux")} className="flex flex-col gap-0.5">
               {canaux.map((c) => lienCanal(c, c.type === "PROJET" ? FolderKanban : c.type === "EQUIPE" ? Users : Hash))}
             </nav>
             {peutEcrire ? <FormulaireNouveauCanal /> : null}
           </div>
 
           <div className="flex flex-col gap-1">
-            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Groupes privés</p>
-            <nav aria-label="Groupes privés" className="flex flex-col gap-0.5">
+            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Groupes privés")}</p>
+            <nav aria-label={t("Groupes privés")} className="flex flex-col gap-0.5">
               {groupes.map((c) => lienCanal(c, Lock))}
             </nav>
             {peutEcrire ? <FormulaireNouveauGroupe collegues={collegues.map((c) => ({ id: c.id, nom: c.nom }))} /> : null}
           </div>
 
           <div className="flex flex-col gap-1">
-            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Messages directs</p>
+            <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Messages directs")}</p>
             <PanneauPersonnes collegues={collegues} dmParCollegue={dmParCollegue} canalActifId={choisi?.id ?? null} />
           </div>
 
@@ -191,19 +193,19 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
                   {choisi.type === "DIRECT" ? (
                     <>
                       <span className={`size-2.5 rounded-full ${interlocuteurChoisi?.enLigne ? "bg-emerald-500" : "bg-muted-foreground/30"}`} aria-hidden />
-                      <span className="font-medium text-foreground">{interlocuteurChoisi?.nom ?? "Conversation directe"}</span>
-                      <span>· {interlocuteurChoisi?.enLigne ? "en ligne" : "hors ligne"}</span>
+                      <span className="font-medium text-foreground">{interlocuteurChoisi?.nom ?? t("Conversation directe")}</span>
+                      <span>· {interlocuteurChoisi?.enLigne ? t("en ligne") : t("hors ligne")}</span>
                     </>
                   ) : choisi.type === "PRIVE" ? (
                     <>
                       <Lock className="size-3.5" aria-hidden />
                       <span className="font-medium text-foreground">{choisi.nom}</span>
-                      <span>· groupe privé</span>
+                      <span>{t("· groupe privé")}</span>
                     </>
                   ) : (
                     <>
                       <span className="font-medium text-foreground">{choisi.nom}</span>
-                      {choisi.projetId && projetsParId[choisi.projetId] ? <span>· projet {projetsParId[choisi.projetId]}</span> : null}
+                      {choisi.projetId && projetsParId[choisi.projetId] ? <span>{t("· projet {nom}", { nom: projetsParId[choisi.projetId] })}</span> : null}
                     </>
                   )}
                 </p>
@@ -231,7 +233,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
               />
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun canal pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucun canal pour le moment.")}</p>
           )}
         </section>
       </div>

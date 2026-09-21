@@ -10,6 +10,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/facturation";
 
@@ -34,10 +36,11 @@ export type EtatFactureRecurrente = { erreur?: string } | null;
  * évite un modèle créé "en attente d'un NIU qui n'arrivera peut-être jamais".
  */
 export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formData: FormData): Promise<EtatFactureRecurrente> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer une facture récurrente." };
+    return { erreur: t("Vous n'avez pas le droit de créer une facture récurrente.") };
   }
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
@@ -46,9 +49,9 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
   const frequence = String(formData.get("frequence") ?? "");
   const dateDebut = String(formData.get("dateDebut") ?? "");
   const dateFin = String(formData.get("dateFin") ?? "").trim();
-  if ((!dealId && !contactId) || !libelle) return { erreur: "Formulaire invalide." };
-  if (!["MENSUEL", "TRIMESTRIEL", "ANNUEL"].includes(frequence)) return { erreur: "Fréquence invalide." };
-  if (!dateDebut) return { erreur: "La date de première génération est requise." };
+  if ((!dealId && !contactId) || !libelle) return { erreur: t("Formulaire invalide.") };
+  if (!["MENSUEL", "TRIMESTRIEL", "ANNUEL"].includes(frequence)) return { erreur: t("Fréquence invalide.") };
+  if (!dateDebut) return { erreur: t("La date de première génération est requise.") };
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
     produitId: formData.getAll("produitId")[i] || undefined,
@@ -57,9 +60,9 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
     prixUnitaire: formData.getAll("prixUnitaire")[i],
     tauxTVA: formData.getAll("tauxTVA")[i],
   }));
-  const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
+  const analyseLignes = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
   if (!analyseLignes.success) {
-    return { erreur: analyseLignes.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyseLignes.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
@@ -112,7 +115,7 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
   });
 
   if (!nouveauProfil) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
+    return { erreur: t("Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable.") };
   }
 
   revalidatePath(CHEMIN);

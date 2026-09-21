@@ -7,9 +7,11 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaInfosLegales = z.object({
-  niu: z.string().trim().min(1, "Le NIU est obligatoire pour émettre un devis conforme."),
+  niu: z.string().trim().min(1, m("Le NIU est obligatoire pour émettre un devis conforme.")),
   rccm: z.string().trim().optional(),
   adresse: z.string().trim().optional(),
   ville: z.string().trim().optional(),
@@ -26,10 +28,11 @@ export async function enregistrerInfosLegales(
   _etat: EtatInfosLegales,
   formData: FormData
 ): Promise<EtatInfosLegales> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier les informations de l'entreprise." };
+    return { erreur: t("Vous n'avez pas le droit de modifier les informations de l'entreprise.") };
   }
 
   const analyse = schemaInfosLegales.safeParse({
@@ -41,7 +44,7 @@ export async function enregistrerInfosLegales(
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { niu, rccm, adresse, ville, assujettiTVA } = analyse.data;

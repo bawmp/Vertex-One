@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerBonCommandeVente } from "@/lib/actions/bon-commande-vente";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
+import { useT } from "@/lib/i18n/contexte";
 
 type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
@@ -24,6 +25,7 @@ export function FormulaireBonCommandeVente({
   contactId?: string;
   produits: { id: string; nom: string; prixVente: number }[];
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerBonCommandeVente, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
@@ -63,9 +65,9 @@ export function FormulaireBonCommandeVente({
               >
                 <input type="hidden" name="produitId" value={ligne.produitId} />
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Produit</Label> : null}
+                  {index === 0 ? <Label>{t("Produit")}</Label> : null}
                   <Select value={ligne.produitId} onChange={(e) => choisirProduit(index, e.target.value)}>
-                    <option value="">Texte libre</option>
+                    <option value="">{t("Texte libre")}</option>
                     {produits.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nom}
@@ -74,7 +76,7 @@ export function FormulaireBonCommandeVente({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Désignation</Label> : null}
+                  {index === 0 ? <Label>{t("Désignation")}</Label> : null}
                   <Input
                     name="designation"
                     required
@@ -83,7 +85,7 @@ export function FormulaireBonCommandeVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Qté</Label> : null}
+                  {index === 0 ? <Label>{t("Qté")}</Label> : null}
                   <Input
                     name="quantite"
                     type="number"
@@ -95,7 +97,7 @@ export function FormulaireBonCommandeVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Prix unit. (FCFA)</Label> : null}
+                  {index === 0 ? <Label>{t("Prix unit. (FCFA)")}</Label> : null}
                   <Input
                     name="prixUnitaire"
                     type="number"
@@ -106,7 +108,7 @@ export function FormulaireBonCommandeVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>TVA %</Label> : null}
+                  {index === 0 ? <Label>{t("TVA %")}</Label> : null}
                   <Input
                     name="tauxTVA"
                     type="number"
@@ -123,7 +125,7 @@ export function FormulaireBonCommandeVente({
                   size="icon-sm"
                   disabled={lignes.length === 1}
                   onClick={() => setLignes((precedent) => precedent.filter((_, i) => i !== index))}
-                  aria-label="Retirer la ligne"
+                  aria-label={t("Retirer la ligne")}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <X className="size-4" aria-hidden />
@@ -139,13 +141,13 @@ export function FormulaireBonCommandeVente({
               onClick={() => setLignes((p) => [...p, { ...LIGNE_VIDE }])}
             >
               <Plus data-icon="inline-start" aria-hidden />
-              Ajouter une ligne
+              {t("Ajouter une ligne")}
             </Button>
           </div>
 
           <div className="rounded-lg bg-muted/40 p-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Montant HT</span>
+              <span className="text-muted-foreground">{t("Montant HT")}</span>
               <span className="tabular-nums">{formaterFCFA(montants.montantHT)}</span>
             </div>
             <div className="flex justify-between">
@@ -153,7 +155,7 @@ export function FormulaireBonCommandeVente({
               <span className="tabular-nums">{formaterFCFA(montants.montantTVA)}</span>
             </div>
             <div className="mt-2 flex justify-between border-t pt-2 text-base font-medium">
-              <span>Total TTC</span>
+              <span>{t("Total TTC")}</span>
               <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
             </div>
           </div>
@@ -162,7 +164,7 @@ export function FormulaireBonCommandeVente({
 
           <Button type="submit" disabled={enCours} className="self-start">
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer le bon de commande"}
+            {enCours ? t("Création…") : t("Créer le bon de commande")}
           </Button>
         </form>
       </CardContent>

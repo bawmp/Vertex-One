@@ -911,6 +911,18 @@ Testé : `tests/import-lecture.test.ts` (lecture CSV/xlsx, valeurs, alias — 16
 - Ancien format Excel `.xls` (l'utilisateur doit l'enregistrer en `.xlsx` ou CSV).
 - Import de **PDF** de factures (extraction de texte) : hors périmètre.
 
+## 53. Internationalisation FR/EN — première étape construite le 2026-09-21
+
+Demande explicite : « continuer avec l'internationalisation ». Décisions avec l'utilisateur : commencer par les **écrans d'usage quotidien**, et traduire **aussi le site vitrine** (cookie + langue du navigateur, sélecteur de langue). Voir CLAUDE.md, section « Internationalisation », pour l'architecture (catalogue « texte français → anglais », `getT()`/`useT()`, `m()`, garde-fou `tests/i18n-catalogue.test.ts`, outil `scripts/i18n-codemod.cjs`).
+
+**Construit** : infrastructure ; menus, connexion/inscription avec sélecteur FR/EN ; accueil, CRM, One Books ventes, produits, projets, One Chat, annonces, documents, paramètres, import de données ; statuts, vocabulaire par secteur, dates ; messages d'erreur des actions de ces modules (≈ 1 000 textes). Vérifié en navigateur : 22 pages parcourues en anglais sans mot français résiduel (contrôle automatique + captures), les trois E2E permanents restent verts en français.
+
+**Reste à faire** (dans l'ordre conseillé) :
+1. **Site vitrine** (`src/app/(marketing)/` + `src/lib/marketing/*` : modules, FAQ, tarifs, à propos, contact) : ~250 textes, structure de données à marquer `m()` ; l'assistant Kyria répond déjà dans la langue de la question. Les pages sont dynamiques dès qu'elles lisent la langue ; pas d'URL préfixée `/en` (choix délibéré, comme pour l'application) — à revoir si le référencement en anglais devient un objectif.
+2. **Autres modules** : RH (~43 fichiers), comptabilité, achats, recrutement, réservations, support, marketing, One Form, One Vault, signatures, espace personnel.
+3. **Ce que voit le client** : pages publiques (devis, facture, signature, réservation, carrières, formulaires), emails et PDF — la langue devra venir du client ou de l'entreprise, pas d'un compte (le client n'en a pas).
+4. Format des montants (`formaterFCFA` : « 15 000 FCFA » → « 15,000 FCFA »), formats de date dans les PDF.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

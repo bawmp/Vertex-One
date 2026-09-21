@@ -5,8 +5,10 @@ import { BellRing, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { declencherRelances } from "@/lib/actions/relance";
+import { useT } from "@/lib/i18n/contexte";
 
 export function DeclencheurRelances() {
+  const t = useT();
   const [etat, formAction, enCours] = useActionState(async () => declencherRelances(), null);
 
   return (
@@ -14,10 +16,10 @@ export function DeclencheurRelances() {
       <form action={formAction} className="flex items-center gap-3">
         <Button type="submit" variant="outline" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : <BellRing data-icon="inline-start" aria-hidden />}
-          {enCours ? "Vérification…" : "Vérifier les factures en retard maintenant"}
+          {enCours ? t("Vérification…") : t("Vérifier les factures en retard maintenant")}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Déclenchement manuel — la vérification quotidienne automatique n&apos;est pas encore branchée.
+          {t("Déclenchement manuel — la vérification quotidienne automatique n'est pas encore branchée.")}
         </p>
       </form>
 
@@ -26,7 +28,7 @@ export function DeclencheurRelances() {
       {etat && "resultats" in etat ? (
         <ul className="mt-3 flex flex-col gap-1.5 text-sm">
           {etat.resultats.length === 0 ? (
-            <li className="text-muted-foreground">Aucune facture nouvellement en retard.</li>
+            <li className="text-muted-foreground">{t("Aucune facture nouvellement en retard.")}</li>
           ) : (
             etat.resultats.map((r, i) => (
               <li
@@ -38,7 +40,7 @@ export function DeclencheurRelances() {
                 ) : (
                   <XCircle className="size-3.5 shrink-0" aria-hidden />
                 )}
-                {r.numero} — relance {r.canal} : {r.envoye ? "envoyée" : `non envoyée (${r.erreur})`}
+                {r.envoye ? t("{numero} — relance {canal} : envoyée", { numero: r.numero, canal: r.canal }) : t("{numero} — relance {canal} : non envoyée ({erreur})", { numero: r.numero, canal: r.canal, erreur: r.erreur ?? "" })}
               </li>
             ))
           )}

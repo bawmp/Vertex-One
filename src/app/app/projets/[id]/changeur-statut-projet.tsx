@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/contexte";
 import { Button } from "@/components/ui/button";
 import { changerStatutProjet } from "@/lib/actions/projet";
 import { STATUT_PROJET } from "@/lib/libelles";
@@ -7,6 +8,7 @@ import { STATUT_PROJET } from "@/lib/libelles";
 const STATUTS = ["A_FAIRE", "EN_COURS", "EN_REVISION", "TERMINE", "ANNULE"] as const;
 
 export function ChangeurStatutProjet({ projetId, statutActuel }: { projetId: string; statutActuel: string }) {
+  const t = useT();
   return (
     <div className="inline-flex w-fit flex-wrap gap-1 rounded-lg border bg-muted/40 p-1">
       {STATUTS.map((valeur) => {
@@ -19,7 +21,7 @@ export function ChangeurStatutProjet({ projetId, statutActuel }: { projetId: str
               size="sm"
               className={actif ? "shadow-sm" : "text-muted-foreground"}
             >
-              {STATUT_PROJET[valeur].libelle}
+              {t(STATUT_PROJET[valeur].libelle)}
             </Button>
           </form>
         );

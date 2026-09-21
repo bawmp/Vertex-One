@@ -5,6 +5,7 @@ import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { genererLienPaiement } from "@/lib/actions/facture";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Redirige le navigateur vers l'URL de paiement CinetPay retournée par
@@ -13,6 +14,7 @@ import { genererLienPaiement } from "@/lib/actions/facture";
  * du numéro, code de confirmation).
  */
 export function BoutonPaiementEnLigne({ factureId }: { factureId: string }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -32,7 +34,7 @@ export function BoutonPaiementEnLigne({ factureId }: { factureId: string }) {
     <div className="flex flex-col gap-1.5">
       <Button type="button" variant="outline" onClick={generer} disabled={enCours}>
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
-        Envoyer un lien de paiement Mobile Money
+        {t("Envoyer un lien de paiement Mobile Money")}
       </Button>
       {erreur ? <p className="text-xs text-destructive">{erreur}</p> : null}
     </div>

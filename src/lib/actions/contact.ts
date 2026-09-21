@@ -9,12 +9,14 @@ import { contact, interaction } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererLienVisio } from "@/lib/marketing/visio";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaContact = z.object({
-  nom: z.string().trim().min(2, "Le nom est trop court."),
+  nom: z.string().trim().min(2, m("Le nom est trop court.")),
   compteId: z.string().trim().optional(),
   fonction: z.string().trim().optional(),
-  telephone: z.string().trim().min(6, "Numéro de téléphone invalide."),
+  telephone: z.string().trim().min(6, m("Numéro de téléphone invalide.")),
   email: z.email().optional().or(z.literal("")),
   notes: z.string().trim().optional(),
 });
@@ -27,10 +29,11 @@ export type EtatContact = { erreur?: string } | null;
  * créés directement, pas uniquement par conversion).
  */
 export async function creerContact(_etat: EtatContact, formData: FormData): Promise<EtatContact> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un contact." };
+    return { erreur: t("Vous n'avez pas le droit de créer un contact.") };
   }
 
   const analyse = schemaContact.safeParse({
@@ -42,7 +45,7 @@ export async function creerContact(_etat: EtatContact, formData: FormData): Prom
     notes: formData.get("notes") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { nom, compteId, fonction, telephone, email, notes } = analyse.data;
 
@@ -69,16 +72,17 @@ export async function creerContact(_etat: EtatContact, formData: FormData): Prom
 const schemaInteraction = z.object({
   contactId: z.string(),
   type: z.enum(["appel", "whatsapp", "email", "rendez-vous", "note"]),
-  contenu: z.string().trim().min(1, "Le contenu ne peut pas être vide."),
+  contenu: z.string().trim().min(1, m("Le contenu ne peut pas être vide.")),
 });
 
 export type EtatInteraction = { erreur?: string } | null;
 
 export async function ajouterInteraction(_etat: EtatInteraction, formData: FormData): Promise<EtatInteraction> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter une interaction." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter une interaction.") };
   }
 
   const analyse = schemaInteraction.safeParse({
@@ -87,7 +91,7 @@ export async function ajouterInteraction(_etat: EtatInteraction, formData: FormD
     contenu: formData.get("contenu"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { contactId, type, contenu } = analyse.data;
 

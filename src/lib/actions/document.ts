@@ -11,6 +11,7 @@ import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { televerserDocument as televerserVersR2, effacerObjetStockage } from "@/lib/documents/stockage";
 import { peutVoirDocumentSensible } from "@/lib/documents/acces";
+import { getT } from "@/lib/i18n/langue";
 
 const schemaDocument = z.object({
   dossierId: z.string().nullable(),
@@ -21,10 +22,11 @@ const schemaDocument = z.object({
 export type EtatDocument = { erreur?: string } | null;
 
 export async function ajouterDocument(_etat: EtatDocument, formData: FormData): Promise<EtatDocument> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "DOCUMENTS", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter un document." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter un document.") };
   }
 
   const analyse = schemaDocument.safeParse({
@@ -33,7 +35,7 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
     categorie: formData.get("categorie") || "GENERAL",
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierId, projetId } = analyse.data;
   // Document autonome (échange du 2026-09-08, comparaison avec le module
@@ -45,7 +47,7 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez un fichier." };
+    return { erreur: t("Sélectionnez un fichier.") };
   }
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
@@ -57,7 +59,7 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
   });
 
   if (!televerse) {
-    return { erreur: erreur ?? "Échec du téléversement." };
+    return { erreur: erreur ?? t("Échec du téléversement.") };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>

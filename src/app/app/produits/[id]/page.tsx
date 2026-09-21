@@ -12,12 +12,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { FormulaireImageProduit } from "./formulaire-image-produit";
+import { getT } from "@/lib/i18n/langue";
 
 // Fiche détail Produit (échange du 2026-09-08, comparaison avec la fiche
 // article Zoho Books) — page complète, cohérente avec toutes les autres
 // fiches détail de ce produit (Deals, Contacts, Projets, Factures...),
 // jamais une fenêtre modale (aucune de ce produit n'en est une).
 export default async function PageDetailProduit({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -26,7 +28,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas accès au catalogue Produits.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès au catalogue Produits.")}</p>
       </div>
     );
   }
@@ -56,7 +58,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/produits" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-4">
@@ -71,7 +73,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">{leProduit.nom}</h1>
-            <Badge variant="neutral">{leProduit.type === "BIEN" ? "Bien" : "Service"}</Badge>
+            <Badge variant="neutral">{leProduit.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
           </div>
           {leProduit.description ? <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{leProduit.description}</p> : null}
         </div>
@@ -79,26 +81,26 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
 
       <Tabs defaultValue="apercu">
         <TabsList>
-          <TabsTrigger value="apercu">Vue d&apos;ensemble</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="historique">Historique</TabsTrigger>
+          <TabsTrigger value="apercu">{t("Vue d'ensemble")}</TabsTrigger>
+          <TabsTrigger value="transactions">{t("Transactions")}</TabsTrigger>
+          <TabsTrigger value="historique">{t("Historique")}</TabsTrigger>
         </TabsList>
 
         <TabsPanel value="apercu" className="flex flex-col gap-4">
           <Card>
             <CardContent className="flex flex-col gap-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Type d&apos;élément</span>
-                <span>Articles en vente ({leProduit.type === "BIEN" ? "Bien" : "Service"})</span>
+                <span className="text-muted-foreground">{t("Type d'élément")}</span>
+                <span>{t("Articles en vente ({type})", { type: leProduit.type === "BIEN" ? t("Bien") : t("Service") })}</span>
               </div>
               {leProduit.type === "BIEN" && leProduit.suiviStock ? (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Stock actuel</span>
+                  <span className="text-muted-foreground">{t("Stock actuel")}</span>
                   <span>{leProduit.stockActuel}</span>
                 </div>
               ) : null}
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Créé par</span>
+                <span className="text-muted-foreground">{t("Créé par")}</span>
                 <span className="flex items-center gap-1.5">
                   <User className="size-3.5 text-muted-foreground" aria-hidden />
                   {createur?.nomComplet ?? "—"}
@@ -109,17 +111,17 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
 
           <Card>
             <CardContent className="flex flex-col gap-3 text-sm">
-              <h2 className="text-sm font-medium text-muted-foreground">Informations sur les ventes</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">{t("Informations sur les ventes")}</h2>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Prix de vente</span>
+                <span className="text-muted-foreground">{t("Prix de vente")}</span>
                 <span className="font-medium tabular-nums">{formaterFCFA(leProduit.prixVente)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Compte de vente</span>
+                <span className="text-muted-foreground">{t("Compte de vente")}</span>
                 <span>{compteVente ? `${compteVente.numero} — ${compteVente.libelle}` : "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Prix d&apos;achat</span>
+                <span className="text-muted-foreground">{t("Prix d'achat")}</span>
                 <span className="tabular-nums">{formaterFCFA(leProduit.prixAchat)}</span>
               </div>
             </CardContent>
@@ -128,7 +130,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
           {peutModifier ? (
             <Card>
               <CardContent className="flex flex-col gap-2">
-                <h2 className="text-sm font-medium text-muted-foreground">Image</h2>
+                <h2 className="text-sm font-medium text-muted-foreground">{t("Image")}</h2>
                 <FormulaireImageProduit produitId={leProduit.id} />
               </CardContent>
             </Card>
@@ -139,23 +141,23 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
           {transactions.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
-                {transactions.map((t) => (
-                  <Link key={t.id} href={t.lien} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
+                {transactions.map((tx) => (
+                  <Link key={tx.id} href={tx.lien} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
                     <div className="min-w-0">
                       <p className="truncate font-medium">
-                        {t.type} — {t.numero}
+                        {tx.type} — {tx.numero}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(t.date)} · {t.statut}
+                        {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(tx.date)} · {tx.statut}
                       </p>
                     </div>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">{formaterFCFA(t.montantLigne)}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{formaterFCFA(tx.montantLigne)}</span>
                   </Link>
                 ))}
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Ce produit n&apos;apparaît encore sur aucun document.</p>
+            <p className="text-sm text-muted-foreground">{t("Ce produit n'apparaît encore sur aucun document.")}</p>
           )}
         </TabsPanel>
 
@@ -164,7 +166,7 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
             <div className="flex items-center gap-3 px-4 py-3 text-sm">
               <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <span>
-                Créé le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(leProduit.creeLe)} par {createur?.nomComplet ?? "—"}
+                {t("Créé le {date} par {nom}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(leProduit.creeLe), nom: createur?.nomComplet ?? "—" })}
               </span>
             </div>
           </Card>

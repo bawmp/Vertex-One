@@ -2,6 +2,7 @@
 
 import { LIBELLES_MODULES, modulesRestreignables } from "@/lib/modules-libelles";
 import type { RoleSysteme } from "@/lib/permissions";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Cases à cocher des modules qu'un collaborateur peut utiliser. Contrôlé par le
@@ -9,6 +10,7 @@ import type { RoleSysteme } from "@/lib/permissions";
  * la validation réelle est toujours refaite côté serveur.
  */
 export function SelecteurModules({ role, valeurs, onChange, name }: { role: RoleSysteme; valeurs: string[]; onChange: (valeurs: string[]) => void; name?: string }) {
+  const t = useT();
   const modules = modulesRestreignables(role);
   const tousCoches = modules.every((m) => valeurs.includes(m));
 
@@ -16,10 +18,10 @@ export function SelecteurModules({ role, valeurs, onChange, name }: { role: Role
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          {valeurs.length} module{valeurs.length > 1 ? "s" : ""} sur {modules.length}
+          {valeurs.length > 1 ? t("{n} modules sur {total}", { n: valeurs.length, total: modules.length }) : t("{n} module sur {total}", { n: valeurs.length, total: modules.length })}
         </p>
         <button type="button" className="text-xs text-primary hover:underline" onClick={() => onChange(tousCoches ? [] : [...modules])}>
-          {tousCoches ? "Tout décocher" : "Tout cocher"}
+          {tousCoches ? t("Tout décocher") : t("Tout cocher")}
         </button>
       </div>
       <div className="grid gap-1.5 sm:grid-cols-2">

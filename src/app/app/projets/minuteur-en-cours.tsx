@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { arreterMinuteur, annulerMinuteur } from "@/lib/actions/minuteur";
+import { useT } from "@/lib/i18n/contexte";
+
 
 function formaterEcoule(millisecondes: number) {
   const secondesTotales = Math.max(0, Math.floor(millisecondes / 1000));
@@ -27,6 +29,7 @@ export function MinuteurEnCours({
   projetId: string;
   afficherLienProjet?: boolean;
 }) {
+  const t = useT();
   const debut = new Date(demarreLe).getTime();
   const [ecoule, setEcoule] = useState(() => Date.now() - debut);
   const [enCours, startTransition] = useTransition();
@@ -54,12 +57,12 @@ export function MinuteurEnCours({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button type="button" variant="ghost" size="icon-sm" disabled={enCours} onClick={() => startTransition(() => annulerMinuteur())} aria-label="Annuler le minuteur">
+        <Button type="button" variant="ghost" size="icon-sm" disabled={enCours} onClick={() => startTransition(() => annulerMinuteur())} aria-label={t("Annuler le minuteur")}>
           {enCours ? <Spinner className="size-3.5" /> : <X className="size-4" aria-hidden />}
         </Button>
         <Button type="button" size="sm" disabled={enCours} onClick={() => startTransition(() => arreterMinuteur())}>
           {enCours ? <Spinner /> : <Square data-icon="inline-start" aria-hidden />}
-          Arrêter
+          {t("Arrêter")}
         </Button>
       </div>
     </Card>

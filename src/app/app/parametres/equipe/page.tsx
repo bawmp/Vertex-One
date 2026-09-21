@@ -9,15 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { GestionServices } from "./gestion-services";
 import { MembresEquipe } from "./membres-equipe";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageEquipe() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) {
     return (
       <p className="text-muted-foreground">
-        Vous n&apos;avez pas le droit d&apos;inviter de nouveaux collaborateurs.
+        {t("Vous n'avez pas le droit d'inviter de nouveaux collaborateurs.")}
       </p>
     );
   }
@@ -47,8 +49,8 @@ export default async function PageEquipe() {
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Équipe</h1>
-        <p className="text-muted-foreground">Inviter un nouveau collaborateur (Manager ou Employé).</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Équipe")}</h1>
+        <p className="text-muted-foreground">{t("Inviter un nouveau collaborateur (Manager ou Employé).")}</p>
       </div>
 
       <FormulaireInvitation collegues={collegues} />
@@ -58,7 +60,7 @@ export default async function PageEquipe() {
       <GestionServices services={services} />
 
       <div>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Invitations</h2>
+        <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Invitations")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {invitations.map((inv) => {
@@ -79,17 +81,17 @@ export default async function PageEquipe() {
                     </p>
                   </div>
                   {estUtilisee ? (
-                    <Badge variant="success">Compte activé</Badge>
+                    <Badge variant="success">{t("Compte activé")}</Badge>
                   ) : estExpiree ? (
-                    <Badge variant="danger">Expirée</Badge>
+                    <Badge variant="danger">{t("Expirée")}</Badge>
                   ) : (
-                    <Badge variant="info">En attente</Badge>
+                    <Badge variant="info">{t("En attente")}</Badge>
                   )}
                 </div>
               );
             })}
             {invitations.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune invitation pour le moment.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune invitation pour le moment.")}</p>
             ) : null}
           </div>
         </Card>

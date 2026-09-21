@@ -9,6 +9,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
 import { schemaCouleur } from "@/lib/branding";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatBranding = { erreur?: string } | null;
 
@@ -19,18 +20,19 @@ export type EtatBranding = { erreur?: string } | null;
  * (src/lib/actions/produit.ts) — jamais de presigned URL côté client.
  */
 export async function televerserLogo(_etat: EtatBranding, formData: FormData): Promise<EtatBranding> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise." };
+    return { erreur: t("Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise.") };
   }
 
   const fichier = formData.get("logo");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez une image." };
+    return { erreur: t("Sélectionnez une image.") };
   }
   if (!fichier.type.startsWith("image/")) {
-    return { erreur: "Le logo doit être une image (PNG, JPG, SVG...)." };
+    return { erreur: t("Le logo doit être une image (PNG, JPG, SVG...).") };
   }
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
@@ -41,7 +43,7 @@ export async function televerserLogo(_etat: EtatBranding, formData: FormData): P
     contenu,
   });
   if (!televerse) {
-    return { erreur: erreur ?? "Échec du téléversement." };
+    return { erreur: erreur ?? t("Échec du téléversement.") };
   }
 
   const ancienneCle = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -57,15 +59,16 @@ export async function televerserLogo(_etat: EtatBranding, formData: FormData): P
 }
 
 export async function definirCouleurMarque(_etat: EtatBranding, formData: FormData): Promise<EtatBranding> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise." };
+    return { erreur: t("Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise.") };
   }
 
   const analyse = schemaCouleur.safeParse({ couleurMarque: formData.get("couleurMarque") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Couleur invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Couleur invalide.") };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>

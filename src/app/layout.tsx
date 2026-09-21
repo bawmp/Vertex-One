@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { EcranDemarrage } from "@/components/ecran-demarrage";
+import { LangueProvider } from "@/lib/i18n/contexte";
+import { langueCourante } from "@/lib/i18n/langue";
+import { traduire } from "@/lib/i18n/traduire";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,10 +22,13 @@ export const metadata: Metadata = {
   description: "La suite de gestion pour les entreprises de services au Cameroun.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Langue de la personne (préférence du compte, sinon cookie/navigateur) : posée ici pour tout le site, y compris les
+  // composants client des pages publiques (connexion, site vitrine).
+  const langue = await langueCourante();
   return (
     <html
-      lang="fr"
+      lang={langue}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
@@ -35,8 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             au point de contact (src/app/app/menu-utilisateur.tsx,
             src/app/app/mon-compte/page.tsx), jamais ici. */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <EcranDemarrage />
-          {children}
+          <LangueProvider dictionnaire={traduire(langue)} langue={langue}>
+            <EcranDemarrage />
+            {children}
+          </LangueProvider>
         </ThemeProvider>
       </body>
     </html>

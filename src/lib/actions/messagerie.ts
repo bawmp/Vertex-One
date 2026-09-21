@@ -14,6 +14,7 @@ import { CATEGORIES_FICHIER, nomAffichable, nomFichierSain, validerFichier } fro
 import { candidatsMentions, canalAccessible, marquerCanalLu, messagerieDisponible, reactionsDe, LONGUEUR_MAX_MESSAGE, type MessageAffiche, type ReactionAffichee } from "@/lib/messagerie/acces";
 import { emojiValide, extraireMentions } from "@/lib/messagerie/mentions";
 import { signalerMessagesANotifier } from "@/lib/messagerie/notifications";
+import { getT } from "@/lib/i18n/langue";
 
 /**
  * Envoie un message (texte et/ou une pièce jointe) dans un canal, ou une réponse dans le fil d'un message. L'auteur
@@ -23,9 +24,10 @@ import { signalerMessagesANotifier } from "@/lib/messagerie/notifications";
  * serveur, et seules les personnes qui peuvent réellement voir le canal sont mentionnées.
  */
 export async function envoyerMessage(formData: FormData): Promise<{ message?: MessageAffiche; erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: "Vous n'avez pas le droit d'écrire dans la messagerie." };
+  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: t("Vous n'avez pas le droit d'écrire dans la messagerie.") };
 
   const canalId = String(formData.get("canalId") ?? "");
   const parentId = String(formData.get("parentId") ?? "") || null;
@@ -33,7 +35,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
   const fichier = formData.get("fichier");
   const aUnFichier = fichier instanceof File && fichier.size > 0;
 
-  if (!contenu && !aUnFichier) return { erreur: "Le message est vide." };
+  if (!contenu && !aUnFichier) return { erreur: t("Le message est vide.") };
   if (contenu.length > LONGUEUR_MAX_MESSAGE) return { erreur: `Le message est trop long (${LONGUEUR_MAX_MESSAGE} caractères au maximum).` };
 
   // Validation du fichier AVANT tout accès à la base ou au stockage.
@@ -47,7 +49,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const leCanal = await canalAccessible(tx, utilisateurConnecte, canalId);
-    if (!leCanal) return { erreur: "Ce canal est introuvable." };
+    if (!leCanal) return { erreur: t("Ce canal est introuvable.") };
 
     // Réponse de fil : le message d'origine doit être dans CE canal, ne pas être lui-même une réponse (un seul niveau)
     // ni avoir été supprimé.
@@ -56,7 +58,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
         .select({ canalId: messageCanal.canalId, parentId: messageCanal.parentId, supprimeLe: messageCanal.supprimeLe })
         .from(messageCanal)
         .where(and(eq(messageCanal.id, parentId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
-      if (!parent || parent.canalId !== canalId || parent.parentId || parent.supprimeLe) return { erreur: "Ce message n'accepte pas de réponse." };
+      if (!parent || parent.canalId !== canalId || parent.parentId || parent.supprimeLe) return { erreur: t("Ce message n'accepte pas de réponse.") };
     }
 
     let cle: string | null = null;
@@ -68,7 +70,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
         contenu: piece.octets,
         dossier: `messagerie/${canalId}`,
       });
-      if (!televersement.televerse) return { erreur: "Le stockage des fichiers n'est pas disponible pour le moment." };
+      if (!televersement.televerse) return { erreur: t("Le stockage des fichiers n'est pas disponible pour le moment.") };
       cle = televersement.cleStockage;
     }
 
@@ -147,18 +149,19 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
  * à jour du message.
  */
 export async function basculerReaction(messageId: string, emoji: string): Promise<{ reactions?: ReactionAffichee[]; erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: "Vous n'avez pas le droit de réagir dans la messagerie." };
-  if (!emojiValide(emoji)) return { erreur: "Cette réaction n'est pas proposée." };
+  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: t("Vous n'avez pas le droit de réagir dans la messagerie.") };
+  if (!emojiValide(emoji)) return { erreur: t("Cette réaction n'est pas proposée.") };
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leMessage] = await tx
       .select({ canalId: messageCanal.canalId, supprimeLe: messageCanal.supprimeLe })
       .from(messageCanal)
       .where(and(eq(messageCanal.id, messageId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
-    if (!leMessage || leMessage.supprimeLe) return { erreur: "Message introuvable." };
-    if (!(await canalAccessible(tx, utilisateurConnecte, leMessage.canalId))) return { erreur: "Message introuvable." };
+    if (!leMessage || leMessage.supprimeLe) return { erreur: t("Message introuvable.") };
+    if (!(await canalAccessible(tx, utilisateurConnecte, leMessage.canalId))) return { erreur: t("Message introuvable.") };
 
     const supprimees = await tx
       .delete(reactionMessage)
@@ -178,6 +181,7 @@ export async function basculerReaction(messageId: string, emoji: string): Promis
  * aussi (base et stockage) ; la ligne reste pour garder le fil de la conversation.
  */
 export async function supprimerMessage(messageId: string): Promise<{ erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -186,9 +190,9 @@ export async function supprimerMessage(messageId: string): Promise<{ erreur?: st
       .select({ canalId: messageCanal.canalId, auteurId: messageCanal.auteurId, parentId: messageCanal.parentId, pieceCle: messageCanal.pieceJointeCle })
       .from(messageCanal)
       .where(and(eq(messageCanal.id, messageId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
-    if (!leMessage) return { erreur: "Message introuvable." };
-    if (!(await canalAccessible(tx, utilisateurConnecte, leMessage.canalId))) return { erreur: "Message introuvable." };
-    if (leMessage.auteurId !== utilisateurConnecte.utilisateurId && utilisateurConnecte.role !== "ADMIN") return { erreur: "Vous ne pouvez supprimer que vos propres messages." };
+    if (!leMessage) return { erreur: t("Message introuvable.") };
+    if (!(await canalAccessible(tx, utilisateurConnecte, leMessage.canalId))) return { erreur: t("Message introuvable.") };
+    if (leMessage.auteurId !== utilisateurConnecte.utilisateurId && utilisateurConnecte.role !== "ADMIN") return { erreur: t("Vous ne pouvez supprimer que vos propres messages.") };
 
     // Horloge de la base (now()), la même que celle des créations : la mise à jour incrémentale de la
     // conversation compare des horodatages, deux horloges différentes feraient manquer des changements.
@@ -217,16 +221,17 @@ export type EtatNouveauCanal = { erreur?: string } | null;
 
 /** Crée un canal libre, visible de toute l'entreprise. */
 export async function creerCanalLibre(_etat: EtatNouveauCanal, formData: FormData): Promise<EtatNouveauCanal> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: "Vous n'avez pas le droit de créer un canal." };
+  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: t("Vous n'avez pas le droit de créer un canal.") };
 
   const nom = String(formData.get("nom") ?? "").trim().replace(/\s+/g, " ");
-  if (nom.length < 2) return { erreur: "Le nom du canal est trop court." };
-  if (nom.length > 60) return { erreur: "Le nom du canal est trop long (60 caractères au maximum)." };
+  if (nom.length < 2) return { erreur: t("Le nom du canal est trop court.") };
+  if (nom.length > 60) return { erreur: t("Le nom du canal est trop long (60 caractères au maximum).") };
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await messagerieDisponible(tx, utilisateurConnecte))) return { erreur: "La messagerie n'est pas disponible pour votre entreprise." };
+    if (!(await messagerieDisponible(tx, utilisateurConnecte))) return { erreur: t("La messagerie n'est pas disponible pour votre entreprise.") };
     const [cree] = await tx
       .insert(canal)
       .values({ entrepriseId: utilisateurConnecte.entrepriseId, nom, type: "LIBRE", idFournisseurChat: idExterneCanal(utilisateurConnecte.entrepriseId, generateRandomString(16, "a-z", "0-9")) })
@@ -256,20 +261,21 @@ export type EtatGroupe = { erreur?: string } | null;
  * l'Administrateur. Le créateur en est le gestionnaire : lui seul ajoute ou retire des membres.
  */
 export async function creerGroupePrive(_etat: EtatGroupe, formData: FormData): Promise<EtatGroupe> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: "Vous n'avez pas le droit de créer un groupe." };
+  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: t("Vous n'avez pas le droit de créer un groupe.") };
 
   const nom = String(formData.get("nom") ?? "").trim().replace(/\s+/g, " ");
-  if (nom.length < 2) return { erreur: "Le nom du groupe est trop court." };
-  if (nom.length > 60) return { erreur: "Le nom du groupe est trop long (60 caractères au maximum)." };
+  if (nom.length < 2) return { erreur: t("Le nom du groupe est trop court.") };
+  if (nom.length > 60) return { erreur: t("Le nom du groupe est trop long (60 caractères au maximum).") };
   const demandes = [...new Set(formData.getAll("membres").map(String))].filter((id) => id !== utilisateurConnecte.utilisateurId).slice(0, 50);
-  if (demandes.length === 0) return { erreur: "Choisissez au moins un collègue à inviter dans le groupe." };
+  if (demandes.length === 0) return { erreur: t("Choisissez au moins un collègue à inviter dans le groupe.") };
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await messagerieDisponible(tx, utilisateurConnecte))) return { erreur: "La messagerie n'est pas disponible pour votre entreprise." };
+    if (!(await messagerieDisponible(tx, utilisateurConnecte))) return { erreur: t("La messagerie n'est pas disponible pour votre entreprise.") };
     const membres = await collèguesValides(tx, utilisateurConnecte.entrepriseId, demandes);
-    if (membres.length === 0) return { erreur: "Aucun des collègues choisis n'est valide." };
+    if (membres.length === 0) return { erreur: t("Aucun des collègues choisis n'est valide.") };
 
     const [cree] = await tx
       .insert(canal)
@@ -299,14 +305,15 @@ async function groupeGere(tx: Parameters<Parameters<typeof avecEntreprise>[1]>[0
 
 /** Ajoute un collègue à un groupe privé — réservé au créateur du groupe. */
 export async function ajouterMembreGroupe(canalId: string, utilisateurId: string): Promise<{ erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: "Vous n'avez pas le droit de gérer un groupe." };
+  if (!peut(utilisateurConnecte, "MESSAGERIE", "CREER")) return { erreur: t("Vous n'avez pas le droit de gérer un groupe.") };
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await groupeGere(tx, utilisateurConnecte, canalId))) return { erreur: "Seul le créateur du groupe peut y ajouter des membres." };
+    if (!(await groupeGere(tx, utilisateurConnecte, canalId))) return { erreur: t("Seul le créateur du groupe peut y ajouter des membres.") };
     const [valide] = await collèguesValides(tx, utilisateurConnecte.entrepriseId, [utilisateurId]);
-    if (!valide) return { erreur: "Ce collègue est introuvable." };
+    if (!valide) return { erreur: t("Ce collègue est introuvable.") };
     await tx.insert(membreCanal).values({ entrepriseId: utilisateurConnecte.entrepriseId, canalId, utilisateurId: valide }).onConflictDoNothing();
     return {};
   });
@@ -319,16 +326,17 @@ export async function ajouterMembreGroupe(canalId: string, utilisateurId: string
  * (quitter le groupe). Le créateur ne peut pas quitter son propre groupe. Les messages déjà écrits restent.
  */
 export async function retirerMembreGroupe(canalId: string, utilisateurId: string): Promise<{ erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const leCanal = await canalAccessible(tx, utilisateurConnecte, canalId);
-    if (!leCanal || leCanal.type !== "PRIVE") return { erreur: "Groupe introuvable." };
+    if (!leCanal || leCanal.type !== "PRIVE") return { erreur: t("Groupe introuvable.") };
     const estCreateur = leCanal.creeParId === utilisateurConnecte.utilisateurId;
     const seQuitte = utilisateurId === utilisateurConnecte.utilisateurId;
-    if (!estCreateur && !seQuitte) return { erreur: "Seul le créateur du groupe peut retirer un autre membre." };
-    if (utilisateurId === leCanal.creeParId) return { erreur: "Le créateur ne peut pas quitter son propre groupe." };
+    if (!estCreateur && !seQuitte) return { erreur: t("Seul le créateur du groupe peut retirer un autre membre.") };
+    if (utilisateurId === leCanal.creeParId) return { erreur: t("Le créateur ne peut pas quitter son propre groupe.") };
     await tx.delete(membreCanal).where(and(eq(membreCanal.canalId, canalId), eq(membreCanal.utilisateurId, utilisateurId), eq(membreCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
     return {};
   });

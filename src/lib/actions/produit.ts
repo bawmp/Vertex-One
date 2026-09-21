@@ -9,10 +9,12 @@ import { produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaProduit = z.object({
   type: z.enum(["BIEN", "SERVICE"]),
-  nom: z.string().trim().min(2, "Le nom est trop court."),
+  nom: z.string().trim().min(2, m("Le nom est trop court.")),
   description: z.string().trim().optional(),
   prixVente: z.coerce.number().int().nonnegative(),
   prixAchat: z.coerce.number().int().nonnegative(),
@@ -28,10 +30,11 @@ export type EtatProduit = { erreur?: string } | null;
  * stock), imposé ici plutôt que laissé à la seule discipline du formulaire.
  */
 export async function creerProduit(_etat: EtatProduit, formData: FormData): Promise<EtatProduit> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PRODUITS", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un produit." };
+    return { erreur: t("Vous n'avez pas le droit de créer un produit.") };
   }
 
   const analyse = schemaProduit.safeParse({
@@ -44,7 +47,7 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
     stockInitial: formData.get("stockInitial") || 0,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { type, nom, description, prixVente, prixAchat, suiviStock, stockInitial } = analyse.data;
   const suiviStockReel = type === "BIEN" && suiviStock;
@@ -76,15 +79,16 @@ export type EtatImageProduit = { erreur?: string } | null;
  * effacé après le succès du nouveau televersement, jamais laissé orphelin.
  */
 export async function televerserImageProduit(produitId: string, _etat: EtatImageProduit, formData: FormData): Promise<EtatImageProduit> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier ce produit." };
+    return { erreur: t("Vous n'avez pas le droit de modifier ce produit.") };
   }
 
   const fichier = formData.get("image");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez une image." };
+    return { erreur: t("Sélectionnez une image.") };
   }
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
@@ -95,7 +99,7 @@ export async function televerserImageProduit(produitId: string, _etat: EtatImage
     contenu,
   });
   if (!televerse) {
-    return { erreur: erreur ?? "Échec du téléversement." };
+    return { erreur: erreur ?? t("Échec du téléversement.") };
   }
 
   const ancienneCle = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {

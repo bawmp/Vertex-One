@@ -25,8 +25,10 @@ import { BoutonConvertirBCV } from "./bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "./boutons-facture-recurrente";
 import { BoutonAnnulerRecuVente } from "./bouton-annuler-recu-vente";
 import { GestionFactureAcompte } from "./gestion-facture-acompte";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageFicheDeal({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -98,9 +100,9 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{fiche.titre}</h1>
-            <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? fiche.statut}</Badge>
+            <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? fiche.statut)}</Badge>
           </div>
-          <p className="mt-1 text-lg font-medium text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(fiche.montant)} FCFA</p>
+          <p className="mt-1 text-lg font-medium text-muted-foreground">{new Intl.NumberFormat(t.locale).format(fiche.montant)} FCFA</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             {leContact ? (
               <Link href={`/app/contacts/${leContact.id}`} className="flex items-center gap-1.5 hover:underline">
@@ -121,7 +123,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
           <div className="flex flex-wrap gap-2">
             <Button size="sm" render={<Link href={`/app/facturation/devis/nouveau?dealId=${fiche.id}`} />} nativeButton={false}>
               <FileText data-icon="inline-start" aria-hidden />
-              Créer un devis
+              {t("Créer un devis")}
             </Button>
             <Button
               size="sm"
@@ -130,7 +132,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               nativeButton={false}
             >
               <ClipboardList data-icon="inline-start" aria-hidden />
-              Créer un bon de commande
+              {t("Créer un bon de commande")}
             </Button>
             <Button
               size="sm"
@@ -139,7 +141,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               nativeButton={false}
             >
               <Repeat data-icon="inline-start" aria-hidden />
-              Créer une facture récurrente
+              {t("Créer une facture récurrente")}
             </Button>
             <Button
               size="sm"
@@ -148,7 +150,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               nativeButton={false}
             >
               <Receipt data-icon="inline-start" aria-hidden />
-              Créer un reçu de vente
+              {t("Créer un reçu de vente")}
             </Button>
             <Button
               size="sm"
@@ -157,7 +159,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               nativeButton={false}
             >
               <Wallet data-icon="inline-start" aria-hidden />
-              Créer une facture d&apos;acompte
+              {t("Créer une facture d'acompte")}
             </Button>
           </div>
         ) : null}
@@ -167,7 +169,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Bons de commande</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Bons de commande")}</h2>
           {bonsCommandeListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -177,8 +179,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                     <div key={bc.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                       <span className="font-medium">{bc.numero}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(bc.montantTTC)} FCFA</span>
-                        <Badge variant={infoBC?.variante ?? "neutral"}>{infoBC?.libelle ?? bc.statut}</Badge>
+                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(bc.montantTTC)} FCFA</span>
+                        <Badge variant={infoBC?.variante ?? "neutral"}>{t(infoBC?.libelle ?? bc.statut)}</Badge>
                         {bc.statut === "BROUILLON" && peutCreerDevis ? <BoutonConvertirBCV bonCommandeVenteId={bc.id} /> : null}
                       </div>
                     </div>
@@ -187,10 +189,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun bon de commande pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucun bon de commande pour le moment.")}</p>
           )}
 
-          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Factures récurrentes</h2>
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">{t("Factures récurrentes")}</h2>
           {facturesRecurrentesListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -201,11 +203,11 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                     <div key={fr.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                       <span className="min-w-0 truncate">
                         <span className="font-medium">{fr.libelle}</span>
-                        <span className="text-muted-foreground"> — {infoFrequence?.libelle ?? fr.frequence}</span>
+                        <span className="text-muted-foreground"> — {t(infoFrequence?.libelle ?? fr.frequence)}</span>
                       </span>
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(fr.montantTTC)} FCFA</span>
-                        <Badge variant={infoStatut?.variante ?? "neutral"}>{infoStatut?.libelle ?? fr.statut}</Badge>
+                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(fr.montantTTC)} FCFA</span>
+                        <Badge variant={infoStatut?.variante ?? "neutral"}>{t(infoStatut?.libelle ?? fr.statut)}</Badge>
                         {peutCreerDevis && fr.statut !== "TERMINE" ? (
                           <BoutonsFactureRecurrente factureRecurrenteId={fr.id} statut={fr.statut} />
                         ) : null}
@@ -216,10 +218,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucune facture récurrente pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucune facture récurrente pour le moment.")}</p>
           )}
 
-          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Factures d&apos;acompte</h2>
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">{t("Factures d'acompte")}</h2>
           {facturesAcompteListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -233,10 +235,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                         <span className="font-medium">{fa.numero}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
-                            {new Intl.NumberFormat("fr-FR").format(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)} FCFA
+                            {new Intl.NumberFormat(t.locale).format(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)} FCFA
                             {fa.statut !== "EMISE" ? " restant" : ""}
                           </span>
-                          <Badge variant={infoAcompte?.variante ?? "neutral"}>{infoAcompte?.libelle ?? fa.statut}</Badge>
+                          <Badge variant={infoAcompte?.variante ?? "neutral"}>{t(infoAcompte?.libelle ?? fa.statut)}</Badge>
                         </div>
                       </div>
                       {peutCreerDevis && (fa.statut === "EMISE" || fa.statut === "PAYEE") ? (
@@ -257,10 +259,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucune facture d&apos;acompte pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucune facture d'acompte pour le moment.")}</p>
           )}
 
-          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Reçus de vente</h2>
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">{t("Reçus de vente")}</h2>
           {recusVenteListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -270,8 +272,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                     <div key={rv.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                       <span className="font-medium">{rv.numero}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(rv.montantTTC)} FCFA</span>
-                        <Badge variant={infoRecu?.variante ?? "neutral"}>{infoRecu?.libelle ?? rv.statut}</Badge>
+                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(rv.montantTTC)} FCFA</span>
+                        <Badge variant={infoRecu?.variante ?? "neutral"}>{t(infoRecu?.libelle ?? rv.statut)}</Badge>
                         {rv.statut === "EMISE" && peutCreerDevis ? <BoutonAnnulerRecuVente recuVenteId={rv.id} /> : null}
                       </div>
                     </div>
@@ -280,10 +282,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun reçu de vente pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucun reçu de vente pour le moment.")}</p>
           )}
 
-          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Devis</h2>
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">{t("Devis")}</h2>
           {devisListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -293,8 +295,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                     <Link key={d.id} href={`/app/facturation/devis/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
                       <span className="font-medium">{d.numero}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(d.montantTTC)} FCFA</span>
-                        <Badge variant={infoDevis?.variante ?? "neutral"}>{infoDevis?.libelle ?? d.statut}</Badge>
+                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(d.montantTTC)} FCFA</span>
+                        <Badge variant={infoDevis?.variante ?? "neutral"}>{t(infoDevis?.libelle ?? d.statut)}</Badge>
                       </div>
                     </Link>
                   );
@@ -302,10 +304,10 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun devis pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucun devis pour le moment.")}</p>
           )}
 
-          <h2 className="mt-3 text-sm font-medium text-muted-foreground">Factures</h2>
+          <h2 className="mt-3 text-sm font-medium text-muted-foreground">{t("Factures")}</h2>
           {facturesListe.length > 0 ? (
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -315,8 +317,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                     <Link key={f.id} href={`/app/facturation/factures/${f.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
                       <span className="font-medium">{f.numero}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(f.montantTTC)} FCFA</span>
-                        <Badge variant={infoFacture?.variante ?? "neutral"}>{infoFacture?.libelle ?? f.statut}</Badge>
+                        <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(f.montantTTC)} FCFA</span>
+                        <Badge variant={infoFacture?.variante ?? "neutral"}>{t(infoFacture?.libelle ?? f.statut)}</Badge>
                       </div>
                     </Link>
                   );
@@ -324,12 +326,12 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </div>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucune facture pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucune facture pour le moment.")}</p>
           )}
         </div>
 
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
           {historique.length > 0 ? (
             <Card className="lg:sticky lg:top-6">
               <CardContent className="flex flex-col divide-y divide-border p-0">
@@ -343,20 +345,20 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-muted-foreground">
-                          {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(h.modifieLe)}
+                          {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(h.modifieLe)}
                         </p>
                         <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm">
                           {infoAncien ? (
                             <>
-                              <Badge variant={infoAncien.variante}>{infoAncien.libelle}</Badge>
+                              <Badge variant={infoAncien.variante}>{t(infoAncien.libelle)}</Badge>
                               <span className="text-muted-foreground">→</span>
                             </>
                           ) : (
-                            <span className="text-muted-foreground">Créé —</span>
+                            <span className="text-muted-foreground">{t("Créé —")}</span>
                           )}
-                          <Badge variant={infoNouveau?.variante ?? "neutral"}>{infoNouveau?.libelle ?? h.nouveauStatut}</Badge>
+                          <Badge variant={infoNouveau?.variante ?? "neutral"}>{t(infoNouveau?.libelle ?? h.nouveauStatut)}</Badge>
                         </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">par {h.auteur}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{t("par {auteur}", { auteur: h.auteur })}</p>
                       </div>
                     </div>
                   );
@@ -364,7 +366,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               </CardContent>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucune activité pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucune activité pour le moment.")}</p>
           )}
         </div>
       </div>

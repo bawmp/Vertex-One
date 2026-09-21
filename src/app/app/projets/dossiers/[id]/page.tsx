@@ -23,8 +23,10 @@ import { FormulaireCommentaire } from "../../formulaire-commentaire";
 import { ListeCommentaires } from "../../liste-commentaires";
 import { FormulaireDocument } from "../../formulaire-document";
 import { ListeDocuments } from "../../liste-documents";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDetailDossier({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -96,7 +98,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{leDossier.titre}</h1>
-            <Badge variant={infoStatut?.variante ?? "neutral"}>{infoStatut?.libelle ?? leDossier.statut}</Badge>
+            <Badge variant={infoStatut?.variante ?? "neutral"}>{t(infoStatut?.libelle ?? leDossier.statut)}</Badge>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             {leContact ? (
@@ -120,14 +122,14 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
             <form action={archiverDossier.bind(null, leDossier.id)}>
               <Button type="submit" variant="outline" size="sm">
                 <Archive data-icon="inline-start" aria-hidden />
-                Archiver
+                {t("Archiver")}
               </Button>
             </form>
           ) : (
             <form action={reactiverDossier.bind(null, leDossier.id)}>
               <Button type="submit" variant="outline" size="sm">
                 <ArchiveRestore data-icon="inline-start" aria-hidden />
-                Réactiver
+                {t("Réactiver")}
               </Button>
             </form>
           )
@@ -136,7 +138,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">{vocabProjet.pluriel}</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t(vocabProjet.pluriel)}</h2>
           {peut(utilisateurConnecte, "PROJETS", "CREER") ? (
             <FormulaireNouveauProjet dossierId={leDossier.id} vocab={vocabProjet} />
           ) : null}
@@ -151,11 +153,11 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
                   <CardContent className="flex flex-col gap-1.5">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-medium">{p.titre}</p>
-                      <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? p.statut}</Badge>
+                      <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     </div>
                     {p.dateEcheance ? (
                       <p className="text-sm text-muted-foreground">
-                        Échéance : {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(p.dateEcheance)}
+                        {t("Échéance : {date}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(p.dateEcheance) })}
                       </p>
                     ) : null}
                   </CardContent>
@@ -165,7 +167,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
           })}
           {projets.length === 0 ? (
             <p className="col-span-full text-sm text-muted-foreground">
-              Aucun {vocabProjet.singulier.toLowerCase()} pour le moment dans ce {vocabDossier.singulier.toLowerCase()}.
+              {t("Aucun {objet} pour le moment dans ce {parent}.", { objet: t(vocabProjet.singulier).toLowerCase(), parent: t(vocabDossier.singulier).toLowerCase() })}
             </p>
           ) : null}
         </div>
@@ -173,16 +175,16 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Documents</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Documents")}</h2>
           {leDossier.consentementDonneesLe ? (
             <Badge variant="success">
               <ShieldCheck className="size-3" aria-hidden />
-              Consentement recueilli
+              {t("Consentement recueilli")}
             </Badge>
           ) : peutModifier ? (
             <form action={enregistrerConsentement.bind(null, leDossier.id)}>
               <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground">
-                Enregistrer le consentement du client
+                {t("Enregistrer le consentement du client")}
               </Button>
             </form>
           ) : null}
@@ -200,7 +202,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       {disponible(monEntreprise, "CONTRATS") ? (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-muted-foreground">Contrats</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">{t("Contrats")}</h2>
             {peut(utilisateurConnecte, "CONTRATS", "CREER") ? <FormulaireNouveauContrat dossierId={leDossier.id} /> : null}
           </div>
           <ListeContrats
@@ -214,7 +216,7 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Historique de la relation</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Historique de la relation")}</h2>
         <ListeCommentaires commentaires={commentaires} auteursParId={auteursParId} />
         {peutModifier ? (
           <FormulaireCommentaire action={ajouterCommentaireDossier} champCache="dossierId" idCache={leDossier.id} />

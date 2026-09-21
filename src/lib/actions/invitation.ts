@@ -14,6 +14,8 @@ import { peut } from "@/lib/permissions";
 import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-libelles";
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
 
@@ -43,10 +45,11 @@ export type EtatInvitation = { erreur?: string; succes?: string } | null;
  * quand la personne a réellement été embauchée.
  */
 export async function creerInvitation(_etat: EtatInvitation, formData: FormData): Promise<EtatInvitation> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit d'inviter de nouveaux collaborateurs." };
+    return { erreur: t("Vous n'avez pas le droit d'inviter de nouveaux collaborateurs.") };
   }
 
   const analyse = schemaInvitation.safeParse({
@@ -61,7 +64,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId, managerPropose, modulesPropose } = analyse.data;
@@ -80,13 +83,13 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       // RLS-scopé : ne trouve rien si ce Contact appartient à une autre
       // entreprise, jamais une confiance dans l'id reçu du formulaire.
       const [leContact] = await tx.select({ id: contact.id }).from(contact).where(eq(contact.id, contactId));
-      if (!leContact) return { erreur: "Contact introuvable." };
+      if (!leContact) return { erreur: t("Contact introuvable.") };
     }
 
     if (managerPropose) {
       // RLS-scopé, même logique que contactId ci-dessus.
       const [leManager] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(eq(utilisateur.id, managerPropose));
-      if (!leManager) return { erreur: "Manager introuvable." };
+      if (!leManager) return { erreur: t("Manager introuvable.") };
     }
 
     await tx.insert(invitation).values({
@@ -115,8 +118,8 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
 
 const schemaAcceptation = z.object({
   jeton: z.string(),
-  nomComplet: z.string().trim().min(2, "Le nom complet est trop court."),
-  motDePasse: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  nomComplet: z.string().trim().min(2, m("Le nom complet est trop court.")),
+  motDePasse: z.string().min(8, m("Le mot de passe doit contenir au moins 8 caractères.")),
 });
 
 export type EtatAcceptation = { erreur?: string } | null;
@@ -128,6 +131,7 @@ export type EtatAcceptation = { erreur?: string } | null;
  * le DossierRH dans le même mouvement pour tout rôle interne (section 8).
  */
 export async function accepterInvitation(_etat: EtatAcceptation, formData: FormData): Promise<EtatAcceptation> {
+  const t = await getT();
   const analyse = schemaAcceptation.safeParse({
     jeton: formData.get("jeton"),
     nomComplet: formData.get("nomComplet"),
@@ -135,7 +139,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { jeton, nomComplet, motDePasse } = analyse.data;
@@ -146,7 +150,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
     .where(and(eq(invitation.jeton, jeton), isNull(invitation.utiliseeLe), gt(invitation.expireLe, new Date())));
 
   if (!invitationValide) {
-    return { erreur: "Ce lien d'invitation est invalide ou a expiré." };
+    return { erreur: t("Ce lien d'invitation est invalide ou a expiré.") };
   }
 
   const motDePasseHash = await hashPassword(motDePasse);
@@ -202,7 +206,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
     // personne déjà titulaire d'un compte ailleurs ne peut pas en créer un
     // second avec la même adresse, Better-Auth authentifiant par email seul.
     if (contientContrainteEmailUnique(erreur)) {
-      return { erreur: "Cette adresse email est déjà associée à un autre compte Vertex One — contactez le support pour rattacher ce compte à votre entreprise." };
+      return { erreur: t("Cette adresse email est déjà associée à un autre compte Vertex One — contactez le support pour rattacher ce compte à votre entreprise.") };
     }
     throw erreur;
   }

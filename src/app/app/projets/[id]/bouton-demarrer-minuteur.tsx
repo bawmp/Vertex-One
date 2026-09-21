@@ -7,8 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { demarrerMinuteur } from "@/lib/actions/minuteur";
+import { useT } from "@/lib/i18n/contexte";
+
 
 export function BoutonDemarrerMinuteur({ projetId, taches }: { projetId: string; taches: { id: string; titre: string }[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(demarrerMinuteur, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -16,7 +19,7 @@ export function BoutonDemarrerMinuteur({ projetId, taches }: { projetId: string;
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Timer data-icon="inline-start" aria-hidden />
-        Démarrer le minuteur
+        {t("Démarrer le minuteur")}
       </Button>
     );
   }
@@ -26,10 +29,10 @@ export function BoutonDemarrerMinuteur({ projetId, taches }: { projetId: string;
       <input type="hidden" name="projetId" value={projetId} />
       <div className="flex flex-col gap-1">
         <Label htmlFor="tacheIdMinuteur" className="sr-only">
-          Tâche (optionnel)
+          {t("Tâche (optionnel)")}
         </Label>
         <Select id="tacheIdMinuteur" name="tacheId" defaultValue="" className="h-8 text-xs">
-          <option value="">Aucune tâche</option>
+          <option value="">{t("Aucune tâche")}</option>
           {taches.map((t) => (
             <option key={t.id} value={t.id}>
               {t.titre}
@@ -40,10 +43,10 @@ export function BoutonDemarrerMinuteur({ projetId, taches }: { projetId: string;
       {etat?.erreur ? <p className="text-xs text-destructive">{etat.erreur}</p> : null}
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? <Spinner /> : <Timer data-icon="inline-start" aria-hidden />}
-        Démarrer
+        {t("Démarrer")}
       </Button>
       <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-        Annuler
+        {t("Annuler")}
       </Button>
     </form>
   );

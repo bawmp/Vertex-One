@@ -6,6 +6,7 @@ import type { MessageAffiche } from "@/lib/messagerie/acces";
 import { decouperMentions, EMOJIS_REACTION } from "@/lib/messagerie/mentions";
 import { formaterTaille } from "@/lib/one-form/fichiers";
 import { heure, jour } from "./utilitaires-conversation";
+import { useT } from "@/lib/i18n/contexte";
 
 /** Pièce jointe d'un message : l'image s'affiche dans la conversation, les autres fichiers se téléchargent. */
 function PieceJointe({ message, mien }: { message: MessageAffiche; mien: boolean }) {
@@ -78,6 +79,7 @@ export function LigneMessage({
   surSupprimer: (messageId: string) => void;
   surOuvrirFil?: (messageId: string) => void;
 }) {
+  const t = useT();
   const [selecteurOuvert, setSelecteurOuvert] = useState(false);
   const m = message;
   const mien = m.auteurId === moiId;
@@ -89,22 +91,22 @@ export function LigneMessage({
     !m.supprime && (peutEcrire || peutSupprimer) ? (
       <div className="relative flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/message:opacity-100">
         {peutEcrire ? (
-          <button type="button" onClick={() => setSelecteurOuvert((v) => !v)} aria-label="Réagir" aria-expanded={selecteurOuvert} className="rounded p-0.5 hover:bg-muted">
+          <button type="button" onClick={() => setSelecteurOuvert((v) => !v)} aria-label={t("Réagir")} aria-expanded={selecteurOuvert} className="rounded p-0.5 hover:bg-muted">
             <SmilePlus className="size-4 text-muted-foreground" aria-hidden />
           </button>
         ) : null}
         {peutRepondre ? (
-          <button type="button" onClick={() => surOuvrirFil!(m.id)} aria-label="Répondre dans un fil" className="rounded p-0.5 hover:bg-muted">
+          <button type="button" onClick={() => surOuvrirFil!(m.id)} aria-label={t("Répondre dans un fil")} className="rounded p-0.5 hover:bg-muted">
             <MessageSquareReply className="size-4 text-muted-foreground" aria-hidden />
           </button>
         ) : null}
         {peutSupprimer ? (
-          <button type="button" onClick={() => surSupprimer(m.id)} aria-label={mien ? "Supprimer ce message" : "Supprimer ce message (modération)"} className="rounded p-0.5 hover:bg-muted">
+          <button type="button" onClick={() => surSupprimer(m.id)} aria-label={mien ? t("Supprimer ce message") : t("Supprimer ce message (modération)")} className="rounded p-0.5 hover:bg-muted">
             <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" aria-hidden />
           </button>
         ) : null}
         {selecteurOuvert ? (
-          <div role="menu" aria-label="Choisir une réaction" className={`absolute bottom-full z-10 mb-1 flex gap-0.5 rounded-full border border-border bg-popover px-1.5 py-1 shadow-md ${mien ? "right-0" : "left-0"}`}>
+          <div role="menu" aria-label={t("Choisir une réaction")} className={`absolute bottom-full z-10 mb-1 flex gap-0.5 rounded-full border border-border bg-popover px-1.5 py-1 shadow-md ${mien ? "right-0" : "left-0"}`}>
             {EMOJIS_REACTION.map((emoji) => (
               <button
                 key={emoji}
@@ -131,14 +133,14 @@ export function LigneMessage({
       <div className={`group/message flex flex-col rounded-lg ${mien ? "items-end" : "items-start"} ${memeAuteur ? "mt-0.5" : "mt-2"} ${surbrillance ? "bg-marque-orange/10 ring-2 ring-marque-orange/40" : ""}`}>
         {!memeAuteur ? (
           <p className="mb-0.5 px-1 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{mien ? "Vous" : m.auteurNom}</span> · {heure(m.creeLe)}
+            <span className="font-medium text-foreground">{mien ? t("Vous") : m.auteurNom}</span> · {heure(m.creeLe)}
           </p>
         ) : null}
         <div className={`flex max-w-[88%] items-center gap-1.5 ${mien ? "flex-row-reverse" : ""}`}>
           {barreOutils}
           <div className={`flex min-w-0 flex-col gap-1 ${mien ? "items-end" : "items-start"}`}>
             {m.supprime ? (
-              <p className="rounded-2xl border border-dashed border-border px-3 py-1.5 text-sm italic text-muted-foreground">Message supprimé</p>
+              <p className="rounded-2xl border border-dashed border-border px-3 py-1.5 text-sm italic text-muted-foreground">{t("Message supprimé")}</p>
             ) : (
               <>
                 <PieceJointe message={m} mien={mien} />
@@ -170,7 +172,7 @@ export function LigneMessage({
             {!dansUnFil && !m.supprime && m.nbReponses > 0 && surOuvrirFil ? (
               <button type="button" onClick={() => surOuvrirFil(m.id)} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                 <MessageSquareReply className="size-3.5" aria-hidden />
-                {m.nbReponses} réponse{m.nbReponses > 1 ? "s" : ""}
+                {m.nbReponses > 1 ? t("{n} réponses", { n: m.nbReponses }) : t("{n} réponse", { n: m.nbReponses })}
               </button>
             ) : null}
           </div>

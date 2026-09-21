@@ -15,8 +15,10 @@ import { accepterDevis } from "@/lib/actions/devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDetailDevis({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -41,7 +43,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
   if (!donnees) notFound();
   const { leDevis, lignes, leProspect, leCompte, laFacture, jetonClient } = donnees;
 
-  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
+  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
   const resumeReponse =
     leDevis.statut === "ACCEPTE"
       ? { ton: "succes" as const, texte: leDevis.reponseLe ? `Accepté par le client${quand(leDevis.reponseLe)}.` : "Marqué comme accepté par un collaborateur." }
@@ -58,7 +60,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{leDevis.numero}</h1>
-            <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? leDevis.statut}</Badge>
+            <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? leDevis.statut)}</Badge>
           </div>
           <p className="text-muted-foreground">
             {leProspect?.nom}
@@ -72,7 +74,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           nativeButton={false}
         >
           <Download data-icon="inline-start" aria-hidden />
-          Télécharger le PDF
+          {t("Télécharger le PDF")}
         </Button>
       </div>
 
@@ -83,9 +85,9 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Désignation</th>
-              <th className="px-4 py-2.5 text-right font-medium">Qté</th>
-              <th className="px-4 py-2.5 text-right font-medium">Prix unit.</th>
+              <th className="px-4 py-2.5 font-medium">{t("Désignation")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("Qté")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("Prix unit.")}</th>
               <th className="px-4 py-2.5 text-right font-medium">TVA</th>
             </tr>
           </thead>
@@ -103,12 +105,12 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         </div>
         <CardContent className="flex flex-col items-end gap-1 border-t bg-muted/20 py-3 text-sm">
           <p className="text-muted-foreground">
-            HT : <span className="tabular-nums text-foreground">{formaterFCFA(leDevis.montantHT)}</span>
+            {t("HT :")} <span className="tabular-nums text-foreground">{formaterFCFA(leDevis.montantHT)}</span>
           </p>
           <p className="text-muted-foreground">
-            TVA : <span className="tabular-nums text-foreground">{formaterFCFA(leDevis.montantTVA)}</span>
+            {t("TVA :")} <span className="tabular-nums text-foreground">{formaterFCFA(leDevis.montantTVA)}</span>
           </p>
-          <p className="text-lg font-medium">TTC : <span className="tabular-nums">{formaterFCFA(leDevis.montantTTC)}</span></p>
+          <p className="text-lg font-medium">{t("TTC :")} <span className="tabular-nums">{formaterFCFA(leDevis.montantTTC)}</span></p>
         </CardContent>
       </Card>
 
@@ -117,7 +119,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           href={`/app/facturation/factures/${laFacture.id}`}
           className="flex w-fit items-center gap-1.5 text-primary underline-offset-4 hover:underline"
         >
-          Voir la facture {laFacture.numero}
+          {t("Voir la facture {numero}", { numero: laFacture.numero })}
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       ) : peutModifier ? (
@@ -131,7 +133,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           {leDevis.statut === "ENVOYE" ? (
             <form action={accepterDevis.bind(null, leDevis.id)}>
               <Button type="submit">
-                Marquer accepté
+                {t("Marquer accepté")}
                 <ArrowRight data-icon="inline-end" aria-hidden />
               </Button>
             </form>

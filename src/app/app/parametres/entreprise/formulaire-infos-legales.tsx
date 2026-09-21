@@ -8,14 +8,16 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { enregistrerInfosLegales } from "@/lib/actions/entreprise-legal";
 import type { entreprise } from "@/db/schema";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireInfosLegales({ entreprise: monEntreprise }: { entreprise: typeof entreprise.$inferSelect }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(enregistrerInfosLegales, null);
 
   return (
     <form action={action} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="niu">NIU (Numéro d&apos;Identifiant Unique)</Label>
+        <Label htmlFor="niu">{t("NIU (Numéro d'Identifiant Unique)")}</Label>
         <Input id="niu" name="niu" required defaultValue={monEntreprise.niu ?? ""} />
       </div>
 
@@ -25,20 +27,20 @@ export function FormulaireInfosLegales({ entreprise: monEntreprise }: { entrepri
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="adresse">Adresse</Label>
+        <Label htmlFor="adresse">{t("Adresse")}</Label>
         <Input id="adresse" name="adresse" defaultValue={monEntreprise.adresse ?? ""} />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="ville">Ville</Label>
+        <Label htmlFor="ville">{t("Ville")}</Label>
         <Input id="ville" name="ville" defaultValue={monEntreprise.ville ?? ""} />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="assujettiTVA">Assujetti à la TVA (19,25%)</Label>
+        <Label htmlFor="assujettiTVA">{t("Assujetti à la TVA (19,25%)")}</Label>
         <Select id="assujettiTVA" name="assujettiTVA" defaultValue={monEntreprise.assujettiTVA ? "oui" : "non"}>
-          <option value="oui">Oui</option>
-          <option value="non">Non — régime simplifié / exonéré</option>
+          <option value="oui">{t("Oui")}</option>
+          <option value="non">{t("Non — régime simplifié / exonéré")}</option>
         </Select>
       </div>
 
@@ -46,7 +48,7 @@ export function FormulaireInfosLegales({ entreprise: monEntreprise }: { entrepri
 
       <Button type="submit" disabled={enCours}>
         {enCours ? <Spinner /> : null}
-        {enCours ? "Enregistrement…" : "Enregistrer"}
+        {enCours ? t("Enregistrement…") : t("Enregistrer")}
       </Button>
     </form>
   );

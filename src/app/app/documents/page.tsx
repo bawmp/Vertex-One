@@ -12,6 +12,7 @@ import { peutVoirDocumentSensible, estCategorieSensible } from "@/lib/documents/
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireDocument } from "../projets/formulaire-document";
+import { getT } from "@/lib/i18n/langue";
 
 const LIBELLE_CATEGORIE: Record<string, string> = {
   GENERAL: "Général",
@@ -21,6 +22,7 @@ const LIBELLE_CATEGORIE: Record<string, string> = {
 };
 
 export default async function PageDocuments() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -87,7 +89,7 @@ export default async function PageDocuments() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Les Documents sont disponibles à partir du forfait Pro.</p>
+        <p className="text-muted-foreground">{t("Les Documents sont disponibles à partir du forfait Pro.")}</p>
       </div>
     );
   }
@@ -99,12 +101,10 @@ export default async function PageDocuments() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <FileText className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">One Docs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("One Docs")}</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Les fichiers rattachés à un dossier ou un projet se déposent depuis leur propre fiche. Un fichier qui ne concerne
-        aucun des deux (un contrat vierge, un modèle...) se dépose directement ici — jamais catégorisable en pièce
-        sensible, faute de dossier auquel rattacher cette restriction.
+        {t("Les fichiers rattachés à un dossier ou un projet se déposent depuis leur propre fiche. Un fichier qui ne concerne aucun des deux (un contrat vierge, un modèle...) se dépose directement ici — jamais catégorisable en pièce sensible, faute de dossier auquel rattacher cette restriction.")}
       </p>
       {peutCreer ? <FormulaireDocument consentementManquant={false} autoriserSensible={false} /> : null}
 
@@ -145,7 +145,7 @@ export default async function PageDocuments() {
               </div>
             );
           })}
-          {documents.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun document pour le moment.</p> : null}
+          {documents.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun document pour le moment.")}</p> : null}
         </div>
       </Card>
     </div>

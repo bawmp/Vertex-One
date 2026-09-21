@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ajouterMembreGroupe, retirerMembreGroupe } from "@/lib/actions/messagerie";
 import type { MembreCanal } from "@/lib/messagerie/acces";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Membres d'un groupe privé. Le créateur ajoute et retire des membres ; chaque membre peut quitter le groupe (sauf
@@ -26,6 +27,7 @@ export function GestionGroupe({
   moiId: string;
   createurId: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const [enCours, startTransition] = useTransition();
@@ -47,7 +49,7 @@ export function GestionGroupe({
     <div className="flex flex-col gap-2">
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} className="w-fit">
         <Users data-icon="inline-start" aria-hidden />
-        {membres.length} membre{membres.length > 1 ? "s" : ""}
+        {membres.length > 1 ? t("{n} membres", { n: membres.length }) : t("{n} membre", { n: membres.length })}
       </Button>
 
       {ouvert ? (
@@ -57,8 +59,8 @@ export function GestionGroupe({
               <li key={m.id} className="flex items-center justify-between gap-2">
                 <span className="truncate">
                   {m.nom}
-                  {m.id === moiId ? " (vous)" : ""}
-                  {m.id === createurId ? <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">Créateur</span> : null}
+                  {m.id === moiId ? t(" (vous)") : ""}
+                  {m.id === createurId ? <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">{t("Créateur")}</span> : null}
                 </span>
                 {estCreateur && m.id !== createurId ? (
                   <button type="button" disabled={enCours} onClick={() => executer(() => retirerMembreGroupe(canalId, m.id))} aria-label={`Retirer ${m.nom} du groupe`} className="rounded p-0.5 hover:bg-muted">
@@ -71,8 +73,8 @@ export function GestionGroupe({
 
           {estCreateur && aAjouter.length > 0 ? (
             <div className="flex items-center gap-2">
-              <Select value={choix} onChange={(e) => setChoix(e.target.value)} aria-label="Ajouter un collègue au groupe" className="h-8 flex-1">
-                <option value="">Ajouter un collègue…</option>
+              <Select value={choix} onChange={(e) => setChoix(e.target.value)} aria-label={t("Ajouter un collègue au groupe")} className="h-8 flex-1">
+                <option value="">{t("Ajouter un collègue…")}</option>
                 {aAjouter.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nom}
@@ -81,7 +83,7 @@ export function GestionGroupe({
               </Select>
               <Button type="button" size="sm" disabled={!choix || enCours} onClick={() => executer(() => ajouterMembreGroupe(canalId, choix), () => setChoix(""))}>
                 <UserPlus data-icon="inline-start" aria-hidden />
-                Ajouter
+                {t("Ajouter")}
               </Button>
             </div>
           ) : null}
@@ -93,12 +95,12 @@ export function GestionGroupe({
               size="sm"
               disabled={enCours}
               onClick={() => {
-                if (window.confirm("Quitter ce groupe ? Vous ne verrez plus ses messages.")) executer(() => retirerMembreGroupe(canalId, moiId), () => router.push("/app/messagerie"));
+                if (window.confirm(t("Quitter ce groupe ? Vous ne verrez plus ses messages."))) executer(() => retirerMembreGroupe(canalId, moiId), () => router.push("/app/messagerie"));
               }}
               className="w-fit text-muted-foreground hover:text-destructive"
             >
               <LogOut data-icon="inline-start" aria-hidden />
-              Quitter le groupe
+              {t("Quitter le groupe")}
             </Button>
           ) : null}
           {erreur ? <p className="text-xs text-destructive">{erreur}</p> : null}

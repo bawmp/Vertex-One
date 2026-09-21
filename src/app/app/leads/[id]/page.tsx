@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { ChangeurStatutLead } from "./changeur-statut-lead";
 import { convertirLeadAction, modifierNotesLead } from "@/lib/actions/lead";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageFicheLead({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -39,7 +41,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{fiche.nom}</h1>
-            <Badge variant={fiche.convertiLe ? "success" : info?.variante ?? "neutral"}>{fiche.convertiLe ? "Converti" : info?.libelle ?? fiche.statut}</Badge>
+            <Badge variant={fiche.convertiLe ? "success" : info?.variante ?? "neutral"}>{fiche.convertiLe ? t("Converti") : t(info?.libelle ?? fiche.statut)}</Badge>
           </div>
           {fiche.societeCliente ? (
             <p className="flex items-center gap-1.5 text-muted-foreground">
@@ -65,12 +67,12 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
           <form action={convertirLeadAction.bind(null, fiche.id)}>
             <Button type="submit" size="sm">
               <ArrowRightCircle data-icon="inline-start" aria-hidden />
-              Convertir en Contact/Deal
+              {t("Convertir en Contact/Deal")}
             </Button>
           </form>
         ) : fiche.convertiLe && fiche.dealConvertiId ? (
           <Button size="sm" variant="outline" render={<Link href={`/app/deals/${fiche.dealConvertiId}`} />} nativeButton={false}>
-            Voir le Deal
+            {t("Voir le Deal")}
           </Button>
         ) : null}
       </div>
@@ -79,11 +81,11 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
 
       <Card>
         <CardContent>
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">Notes</h2>
+          <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Notes")}</h2>
           {peutModifier ? (
             <EditeurNotes notesInitiales={fiche.notes} onEnregistrer={modifierNotesAction} />
           ) : (
-            <p className="text-sm text-muted-foreground">{fiche.notes || "Aucune note."}</p>
+            <p className="text-sm text-muted-foreground">{fiche.notes || t("Aucune note.")}</p>
           )}
         </CardContent>
       </Card>

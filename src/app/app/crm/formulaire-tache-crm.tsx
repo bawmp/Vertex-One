@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerTacheCrm } from "@/lib/actions/activite-crm";
+import { useT } from "@/lib/i18n/contexte";
 
 type OptionRelation = { id: string; libelle: string };
 
@@ -20,6 +21,7 @@ export function FormulaireTacheCrm({
   contacts: OptionRelation[];
   deals: OptionRelation[];
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerTacheCrm, null);
   const [typeRelation, setTypeRelation] = useState<"aucun" | "lead" | "contact" | "deal">("aucun");
   const [ouvert, setOuvert] = useState(false);
@@ -43,7 +45,7 @@ export function FormulaireTacheCrm({
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Plus data-icon="inline-start" aria-hidden />
-        Nouvelle tâche
+        {t("Nouvelle tâche")}
       </Button>
     );
   }
@@ -51,38 +53,38 @@ export function FormulaireTacheCrm({
   return (
     <form action={action} className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="objet">Objet</Label>
-        <Input id="objet" name="objet" required minLength={2} placeholder="ex : Relance de paiement" />
+        <Label htmlFor="objet">{t("Objet")}</Label>
+        <Input id="objet" name="objet" required minLength={2} placeholder={t("ex : Relance de paiement")} />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="dateEcheance">Date d&apos;échéance</Label>
+          <Label htmlFor="dateEcheance">{t("Date d'échéance")}</Label>
           <Input id="dateEcheance" name="dateEcheance" type="date" />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="priorite">Priorité</Label>
+          <Label htmlFor="priorite">{t("Priorité")}</Label>
           <Select id="priorite" name="priorite" defaultValue="NORMALE">
-            <option value="BASSE">Basse</option>
-            <option value="NORMALE">Normale</option>
-            <option value="HAUTE">Haute</option>
+            <option value="BASSE">{t("Basse")}</option>
+            <option value="NORMALE">{t("Normale")}</option>
+            <option value="HAUTE">{t("Haute")}</option>
           </Select>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="relatifAType">Relatif à</Label>
+          <Label htmlFor="relatifAType">{t("Relatif à")}</Label>
           <Select
             id="relatifAType"
             name="relatifAType"
             value={typeRelation}
             onChange={(e) => setTypeRelation(e.target.value as typeof typeRelation)}
           >
-            <option value="aucun">Aucun</option>
-            <option value="lead">Un lead</option>
-            <option value="contact">Un contact</option>
-            <option value="deal">Un deal</option>
+            <option value="aucun">{t("Aucun")}</option>
+            <option value="lead">{t("Un lead")}</option>
+            <option value="contact">{t("Un contact")}</option>
+            <option value="deal">{t("Un deal")}</option>
           </Select>
         </div>
         {typeRelation !== "aucun" ? (
@@ -90,11 +92,11 @@ export function FormulaireTacheCrm({
             <Label htmlFor="relatifAId">&nbsp;</Label>
             <Select id="relatifAId" name="relatifAId" defaultValue="" required>
               <option value="" disabled>
-                Choisir…
+                {t("Choisir…")}
               </option>
               {optionsRelation.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.libelle}
+                  {t(option.libelle)}
                 </option>
               ))}
             </Select>
@@ -107,10 +109,10 @@ export function FormulaireTacheCrm({
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Création…" : "Ajouter la tâche"}
+          {enCours ? t("Création…") : t("Ajouter la tâche")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

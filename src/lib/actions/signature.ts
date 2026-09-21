@@ -17,6 +17,8 @@ import { calculerEmpreinteDocument } from "@/lib/signature/empreinte";
 import { genererCodeVerification, hacherCodeVerification, verifierCodeVerification } from "@/lib/signature/otp";
 import { envoyerEmail } from "@/lib/email/client";
 import { envoyerCopieSignee, notifierRefusSignature } from "@/lib/signature/finalisation";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -27,9 +29,9 @@ const schemaCreationDemande = z.object({
   // Renseigné quand la demande part d'un contrat (liste des contrats d'un dossier) : le contrat
   // garde alors la trace de sa demande de signature.
   contratId: z.string().optional(),
-  nom: z.string().trim().min(2, "Le nom du signataire est requis."),
-  telephone: z.string().trim().min(8, "Le numéro de téléphone est requis."),
-  email: z.email("Adresse email invalide.").optional().or(z.literal("")),
+  nom: z.string().trim().min(2, m("Le nom du signataire est requis.")),
+  telephone: z.string().trim().min(8, m("Le numéro de téléphone est requis.")),
+  email: z.email(m("Adresse email invalide.")).optional().or(z.literal("")),
 });
 
 export type EtatDemandeSignature = { erreur?: string; succes?: string } | null;
@@ -41,10 +43,11 @@ export type EtatDemandeSignature = { erreur?: string; succes?: string } | null;
  * de données n'empêche pas d'en ajouter davantage plus tard).
  */
 export async function creerDemandeSignature(_etat: EtatDemandeSignature, formData: FormData): Promise<EtatDemandeSignature> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "SIGNATURE", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de demander une signature." };
+    return { erreur: t("Vous n'avez pas le droit de demander une signature.") };
   }
 
   const analyse = schemaCreationDemande.safeParse({
@@ -55,7 +58,7 @@ export async function creerDemandeSignature(_etat: EtatDemandeSignature, formDat
     email: formData.get("email") || "",
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { documentId, contratId, nom, telephone, email } = analyse.data;
 
@@ -66,25 +69,25 @@ export async function creerDemandeSignature(_etat: EtatDemandeSignature, formDat
   const resultat: Resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")) {
-      return { erreur: "La signature électronique est disponible à partir du forfait Business." };
+      return { erreur: t("La signature électronique est disponible à partir du forfait Business.") };
     }
 
     const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
-    if (!leDocument) return { erreur: "Document introuvable." };
+    if (!leDocument) return { erreur: t("Document introuvable.") };
 
     if (contratId) {
       const [leContrat] = await tx.select({ demandeSignatureId: contrat.demandeSignatureId }).from(contrat).where(eq(contrat.id, contratId));
-      if (!leContrat) return { erreur: "Contrat introuvable." };
+      if (!leContrat) return { erreur: t("Contrat introuvable.") };
       if (leContrat.demandeSignatureId) {
         const [precedente] = await tx.select({ statut: demandeSignature.statut }).from(demandeSignature).where(eq(demandeSignature.id, leContrat.demandeSignatureId));
-        if (precedente?.statut === "EN_ATTENTE") return { erreur: "Ce contrat est déjà en attente de signature." };
-        if (precedente?.statut === "SIGNE") return { erreur: "Ce contrat est déjà signé." };
+        if (precedente?.statut === "EN_ATTENTE") return { erreur: t("Ce contrat est déjà en attente de signature.") };
+        if (precedente?.statut === "SIGNE") return { erreur: t("Ce contrat est déjà signé.") };
       }
     }
 
     const contenu = await lireObjetStockage(leDocument.cleStockage);
     if (!contenu) {
-      return { erreur: "Impossible de lire le contenu du document (stockage R2 non configuré ou fichier introuvable)." };
+      return { erreur: t("Impossible de lire le contenu du document (stockage R2 non configuré ou fichier introuvable).") };
     }
 
     const empreinteDocument = calculerEmpreinteDocument(contenu);
@@ -152,14 +155,15 @@ export type EtatCodeVerification = { erreur?: string; succes?: string } | null;
  * pour ce signataire tant que le canal WhatsApp/SMS n'est pas branché.
  */
 export async function envoyerCodeVerificationSignature(_etat: EtatCodeVerification, formData: FormData): Promise<EtatCodeVerification> {
+  const t = await getT();
   const jeton = String(formData.get("jeton") ?? "");
   const [leSignataire] = await db.select().from(signataire).where(eq(signataire.jetonAcces, jeton));
-  if (!leSignataire) return { erreur: "Lien de signature invalide." };
-  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: "Cette signature a déjà été traitée." };
+  if (!leSignataire) return { erreur: t("Lien de signature invalide.") };
+  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: t("Cette signature a déjà été traitée.") };
   if (!leSignataire.email) {
     return {
       erreur:
-        "Aucune adresse email enregistrée pour l'envoi du code — l'envoi par WhatsApp/SMS n'est pas encore disponible.",
+        t("Aucune adresse email enregistrée pour l'envoi du code — l'envoi par WhatsApp/SMS n'est pas encore disponible."),
     };
   }
 
@@ -179,14 +183,14 @@ export async function envoyerCodeVerificationSignature(_etat: EtatCodeVerificati
     html: `<p>Votre code de vérification est : <strong style="font-size:1.5em">${code}</strong></p><p>Il vous sera demandé sur la page de signature.</p>`,
   });
 
-  if (!envoye) return { erreur: erreur ?? "Échec de l'envoi du code." };
+  if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi du code.") };
   return { succes: "Code de vérification envoyé par email." };
 }
 
 const schemaConfirmation = z.object({
   jeton: z.string(),
-  code: z.string().trim().min(6, "Le code doit contenir 6 chiffres.").max(6, "Le code doit contenir 6 chiffres."),
-  consentement: z.string().refine((v) => v === "on", "Vous devez donner votre consentement explicite pour signer."),
+  code: z.string().trim().min(6, m("Le code doit contenir 6 chiffres.")).max(6, m("Le code doit contenir 6 chiffres.")),
+  consentement: z.string().refine((v) => v === "on", m("Vous devez donner votre consentement explicite pour signer.")),
 });
 
 export type EtatConfirmationSignature = { erreur?: string; succes?: boolean } | null;
@@ -198,25 +202,26 @@ export type EtatConfirmationSignature = { erreur?: string; succes?: boolean } | 
  * — jamais transmis par le client.
  */
 export async function confirmerSignature(_etat: EtatConfirmationSignature, formData: FormData): Promise<EtatConfirmationSignature> {
+  const t = await getT();
   const analyse = schemaConfirmation.safeParse({
     jeton: formData.get("jeton"),
     code: formData.get("code"),
     consentement: formData.get("consentement"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { jeton, code } = analyse.data;
 
   const [leSignataire] = await db.select().from(signataire).where(eq(signataire.jetonAcces, jeton));
-  if (!leSignataire) return { erreur: "Lien de signature invalide." };
-  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: "Cette signature a déjà été traitée." };
+  if (!leSignataire) return { erreur: t("Lien de signature invalide.") };
+  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: t("Cette signature a déjà été traitée.") };
   if (!leSignataire.codeVerificationEnvoye || !leSignataire.codeVerificationHash) {
-    return { erreur: "Demandez d'abord un code de vérification." };
+    return { erreur: t("Demandez d'abord un code de vérification.") };
   }
 
   const valide = await verifierCodeVerification(code, leSignataire.codeVerificationHash);
-  if (!valide) return { erreur: "Code de vérification incorrect." };
+  if (!valide) return { erreur: t("Code de vérification incorrect.") };
 
   const enTetes = await headers();
   const adresseIP = enTetes.get("x-forwarded-for")?.split(",")[0]?.trim() ?? enTetes.get("x-real-ip") ?? null;
@@ -282,13 +287,14 @@ export type EtatRefusSignature = { erreur?: string; succes?: boolean } | null;
  * vérification : refuser ne demande aucune preuve d'identité, le lien secret suffit.
  */
 export async function refuserSignature(_etat: EtatRefusSignature, formData: FormData): Promise<EtatRefusSignature> {
+  const t = await getT();
   const analyse = schemaRefus.safeParse({ jeton: formData.get("jeton"), motif: formData.get("motif") || undefined });
-  if (!analyse.success) return { erreur: "Formulaire invalide." };
+  if (!analyse.success) return { erreur: t("Formulaire invalide.") };
   const { jeton, motif } = analyse.data;
 
   const [leSignataire] = await db.select().from(signataire).where(eq(signataire.jetonAcces, jeton));
-  if (!leSignataire) return { erreur: "Lien de signature invalide." };
-  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: "Cette signature a déjà été traitée." };
+  if (!leSignataire) return { erreur: t("Lien de signature invalide.") };
+  if (leSignataire.statut !== "EN_ATTENTE") return { erreur: t("Cette signature a déjà été traitée.") };
 
   const refuseLe = new Date();
   await avecEntreprise(leSignataire.entrepriseId, async (tx) => {

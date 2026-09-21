@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/contexte";
 import { useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Select } from "@/components/ui/select";
@@ -24,6 +25,7 @@ export function LigneTache({
   echeance: Date | null;
   peutModifier: boolean;
 }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
   const termine = statut === "TERMINEE";
 
@@ -37,7 +39,7 @@ export function LigneTache({
         <p className={termine ? "truncate text-muted-foreground line-through" : "truncate"}>{titre}</p>
         <p className="text-xs text-muted-foreground">
           {assigneNom}
-          {echeance ? ` — échéance ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(echeance)}` : ""}
+          {echeance ? ` — échéance ${new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(echeance)}` : ""}
         </p>
       </div>
       {peutModifier ? (
@@ -57,7 +59,7 @@ export function LigneTache({
           >
             {Object.entries(STATUT_TACHE).map(([valeur, info]) => (
               <option key={valeur} value={valeur}>
-                {info.libelle}
+                {t(info.libelle)}
               </option>
             ))}
           </Select>

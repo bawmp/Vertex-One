@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { effacerDocument } from "@/lib/actions/document";
 import { FormulaireDemandeSignature } from "./formulaire-demande-signature";
+import { useT } from "@/lib/i18n/contexte";
 
 const LIBELLE_CATEGORIE: Record<string, string> = {
   GENERAL: "Général",
@@ -24,10 +25,11 @@ export function ListeDocuments({
   peutSupprimer: boolean;
   peutDemanderSignature?: boolean;
 }) {
+  const t = useT();
   const [documentEnSignature, setDocumentEnSignature] = useState<string | null>(null);
 
   if (documents.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucun document pour le moment.")}</p>;
   }
 
   const sensible = (categorie: string) => categorie === "PIECE_IDENTITE" || categorie === "DONNEES_SANTE";

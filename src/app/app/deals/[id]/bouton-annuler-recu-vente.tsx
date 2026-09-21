@@ -4,8 +4,10 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { annulerRecuVente } from "@/lib/actions/recu-vente";
+import { useT } from "@/lib/i18n/contexte";
 
 export function BoutonAnnulerRecuVente({ recuVenteId }: { recuVenteId: string }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
 
   return (
@@ -18,7 +20,7 @@ export function BoutonAnnulerRecuVente({ recuVenteId }: { recuVenteId: string })
       onClick={() => startTransition(() => annulerRecuVente(recuVenteId))}
     >
       {enCours ? <Spinner /> : null}
-      Annuler
+      {t("Annuler")}
     </Button>
   );
 }

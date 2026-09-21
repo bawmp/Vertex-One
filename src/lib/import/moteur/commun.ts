@@ -2,11 +2,15 @@ import { and, eq, ne } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { utilisateur } from "@/db/schema";
 import { normaliser } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 
 /** Une ligne du fichier une fois ses colonnes associées aux champs (`numero` = numéro de ligne dans le tableur, en-têtes = ligne 1). */
 export type LigneImport = { numero: number; v: Record<string, string> };
 
-export type Probleme = { ligne: number; message: string };
+export type Valeurs = Record<string, string | number>;
+
+/** `message` est un texte français à traduire à l'affichage avec `t(message, valeurs)` (les {paramètres} y sont remplacés). */
+export type Probleme = { ligne: number; message: string; valeurs?: Valeurs };
 
 export type Rapport = {
   crees: number;
@@ -45,13 +49,13 @@ export function nouveauRapport(): Rapport {
   return { crees: 0, ignores: 0, nbErreurs: 0, erreurs: [], avertissements: [], resume: [] };
 }
 
-export function erreur(rapport: Rapport, ligne: number, message: string) {
+export function erreur(rapport: Rapport, ligne: number, message: string, valeurs?: Valeurs) {
   rapport.nbErreurs++;
-  if (rapport.erreurs.length < MAX_ERREURS_RENVOYEES) rapport.erreurs.push({ ligne, message });
+  if (rapport.erreurs.length < MAX_ERREURS_RENVOYEES) rapport.erreurs.push({ ligne, message, valeurs });
 }
 
-export function avertir(rapport: Rapport, ligne: number, message: string) {
-  if (rapport.avertissements.length < MAX_ERREURS_RENVOYEES) rapport.avertissements.push({ ligne, message });
+export function avertir(rapport: Rapport, ligne: number, message: string, valeurs?: Valeurs) {
+  if (rapport.avertissements.length < MAX_ERREURS_RENVOYEES) rapport.avertissements.push({ ligne, message, valeurs });
 }
 
 export function compter(rapport: Rapport, libelle: string, nombre: number) {
@@ -94,8 +98,8 @@ export function resoudreResponsable(ctx: ContexteImport, email: string | undefin
 export function avertirResponsablesInconnus(ctx: ContexteImport, rapport: Rapport) {
   if (ctx.responsablesInconnus.size === 0) return;
   const liste = [...ctx.responsablesInconnus].slice(0, 10).join(", ");
-  const suite = ctx.responsablesInconnus.size > 10 ? `… (${ctx.responsablesInconnus.size} au total)` : "";
-  avertir(rapport, 0, `Responsables absents de votre équipe, remplacés par vous : ${liste}${suite}.`);
+  const suite = ctx.responsablesInconnus.size > 10 ? `… (${ctx.responsablesInconnus.size})` : "";
+  avertir(rapport, 0, m("Responsables absents de votre équipe, remplacés par vous : {liste}{suite}."), { liste, suite });
 }
 
 export const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

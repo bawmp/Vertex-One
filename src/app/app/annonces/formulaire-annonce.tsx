@@ -9,8 +9,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { creerAnnonce, type EtatAnnonce } from "@/lib/actions/annonce";
 import { NB_MAX_PIECES_ANNONCE } from "@/lib/annonces/pieces";
 import { attributAccept, CATEGORIES_FICHIER, formaterTaille, TAILLE_MAX_TOTAL_LIBELLE, TAILLE_MAX_TOTAL_OCTETS } from "@/lib/one-form/fichiers";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireAnnonce() {
+  const t = useT();
   const [cle, setCle] = useState(0);
   const [fichiers, setFichiers] = useState<File[]>([]);
   const [erreurLocale, setErreurLocale] = useState<string | null>(null);
@@ -51,11 +53,11 @@ export function FormulaireAnnonce() {
     <Card>
       <CardContent>
         <form key={cle} action={action} className="flex flex-col gap-3">
-          <Textarea name="contenu" placeholder="Écrire une annonce pour toute l'équipe…" rows={3} />
+          <Textarea name="contenu" placeholder={t("Écrire une annonce pour toute l'équipe…")} rows={3} />
 
-          <input ref={champ} type="file" name="fichiers" multiple accept={attributAccept(CATEGORIES_FICHIER)} onChange={choisir} className="hidden" aria-label="Joindre des fichiers" />
+          <input ref={champ} type="file" name="fichiers" multiple accept={attributAccept(CATEGORIES_FICHIER)} onChange={choisir} className="hidden" aria-label={t("Joindre des fichiers")} />
           {fichiers.length > 0 ? (
-            <ul className="flex flex-wrap gap-2" aria-label="Pièces jointes de l'annonce">
+            <ul className="flex flex-wrap gap-2" aria-label={t("Pièces jointes de l'annonce")}>
               {fichiers.map((f, i) => (
                 <li key={`${f.name}-${i}`} className="flex max-w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm">
                   <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -75,14 +77,14 @@ export function FormulaireAnnonce() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => champ.current?.click()} disabled={enCours || fichiers.length >= NB_MAX_PIECES_ANNONCE}>
               <Paperclip data-icon="inline-start" aria-hidden />
-              Joindre des fichiers
+              {t("Joindre des fichiers")}
             </Button>
             <Button type="submit" size="sm" disabled={enCours || Boolean(erreurLocale)}>
               {enCours ? <Spinner /> : <Megaphone data-icon="inline-start" aria-hidden />}
-              {enCours ? "Publication…" : "Publier"}
+              {enCours ? t("Publication…") : t("Publier")}
             </Button>
             <span className="text-xs text-muted-foreground">
-              Image, PDF, Word ou Excel — {NB_MAX_PIECES_ANNONCE} fichiers, {TAILLE_MAX_TOTAL_LIBELLE} au total
+              {t("Image, PDF, Word ou Excel — {n} fichiers, {taille} au total", { n: NB_MAX_PIECES_ANNONCE, taille: TAILLE_MAX_TOTAL_LIBELLE })}
             </span>
           </div>
         </form>

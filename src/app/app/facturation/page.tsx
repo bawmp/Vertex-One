@@ -27,8 +27,11 @@ import { BoutonConvertirBCV } from "../deals/[id]/bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "../deals/[id]/boutons-facture-recurrente";
 import { BoutonAnnulerRecuVente } from "../deals/[id]/bouton-annuler-recu-vente";
 import { GestionFactureAcompte } from "../deals/[id]/gestion-facture-acompte";
+import { getT } from "@/lib/i18n/langue";
+
 
 export default async function PageFacturation() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -132,7 +135,7 @@ export default async function PageFacturation() {
       <div id="devis">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <FileText className="size-4" aria-hidden />
-          Devis
+          {t("Devis")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -150,12 +153,12 @@ export default async function PageFacturation() {
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </span>
                 </Link>
               );
             })}
-            {devisVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun devis.</p> : null}
+            {devisVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun devis.")}</p> : null}
           </div>
         </Card>
       </div>
@@ -163,7 +166,7 @@ export default async function PageFacturation() {
       <div id="factures">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Receipt className="size-4" aria-hidden />
-          Factures
+          {t("Factures")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -181,13 +184,13 @@ export default async function PageFacturation() {
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? f.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? f.statut)}</Badge>
                   </span>
                 </Link>
               );
             })}
             {facturesVisibles.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune facture.")}</p>
             ) : null}
           </div>
         </Card>
@@ -196,7 +199,7 @@ export default async function PageFacturation() {
       <div id="commandes-client">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <ClipboardList className="size-4" aria-hidden />
-          Bons de commande
+          {t("Bons de commande")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -213,14 +216,14 @@ export default async function PageFacturation() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{formaterFCFA(bc.montantTTC)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? bc.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? bc.statut)}</Badge>
                     {bc.statut === "BROUILLON" && peutCreer ? <BoutonConvertirBCV bonCommandeVenteId={bc.id} /> : null}
                   </div>
                 </div>
               );
             })}
             {bonsCommandeVisibles.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun bon de commande.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun bon de commande.")}</p>
             ) : null}
           </div>
         </Card>
@@ -229,7 +232,7 @@ export default async function PageFacturation() {
       <div id="factures-periodiques">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Repeat className="size-4" aria-hidden />
-          Factures récurrentes
+          {t("Factures récurrentes")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -241,20 +244,20 @@ export default async function PageFacturation() {
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
                     <span className="min-w-0 truncate">
                       <span className="font-medium">{fr.libelle}</span>
-                      <span className="text-muted-foreground"> — {nomParClientId[fr.id]} · {infoFrequence?.libelle ?? fr.frequence}</span>
+                      <span className="text-muted-foreground"> — {nomParClientId[fr.id]} · {t(infoFrequence?.libelle ?? fr.frequence)}</span>
                     </span>
                     <DealLink dealId={fr.dealId} />
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{formaterFCFA(fr.montantTTC)}</span>
-                    <Badge variant={infoStatut?.variante ?? "neutral"}>{infoStatut?.libelle ?? fr.statut}</Badge>
+                    <Badge variant={infoStatut?.variante ?? "neutral"}>{t(infoStatut?.libelle ?? fr.statut)}</Badge>
                     {peutCreer && fr.statut !== "TERMINE" ? <BoutonsFactureRecurrente factureRecurrenteId={fr.id} statut={fr.statut} /> : null}
                   </div>
                 </div>
               );
             })}
             {facturesRecurrentesVisibles.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture récurrente.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune facture récurrente.")}</p>
             ) : null}
           </div>
         </Card>
@@ -263,7 +266,7 @@ export default async function PageFacturation() {
       <div id="tickets-de-vente">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Wallet className="size-4" aria-hidden />
-          Reçus de vente
+          {t("Reçus de vente")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -280,13 +283,13 @@ export default async function PageFacturation() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{formaterFCFA(rv.montantTTC)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? rv.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? rv.statut)}</Badge>
                     {rv.statut === "EMISE" && peutModifier ? <BoutonAnnulerRecuVente recuVenteId={rv.id} /> : null}
                   </div>
                 </div>
               );
             })}
-            {recusVenteVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun reçu de vente.</p> : null}
+            {recusVenteVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun reçu de vente.")}</p> : null}
           </div>
         </Card>
       </div>
@@ -294,7 +297,7 @@ export default async function PageFacturation() {
       <div>
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <PiggyBank className="size-4" aria-hidden />
-          Factures d&apos;acompte
+          {t("Factures d'acompte")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -315,7 +318,7 @@ export default async function PageFacturation() {
                         {formaterFCFA(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)}
                         {fa.statut !== "EMISE" ? " restant" : ""}
                       </span>
-                      <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? fa.statut}</Badge>
+                      <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? fa.statut)}</Badge>
                     </div>
                   </div>
                   {peutCreer && (fa.statut === "EMISE" || fa.statut === "PAYEE") ? (
@@ -330,7 +333,7 @@ export default async function PageFacturation() {
               );
             })}
             {facturesAcompteVisibles.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture d&apos;acompte.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune facture d'acompte.")}</p>
             ) : null}
           </div>
         </Card>
@@ -339,7 +342,7 @@ export default async function PageFacturation() {
       <div id="paiements-recus">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <CreditCard className="size-4" aria-hidden />
-          Paiements reçus
+          {t("Paiements reçus")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -354,13 +357,13 @@ export default async function PageFacturation() {
                   <span className="text-muted-foreground"> — {nomParClientId[p.factureId]}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-3">
-                  <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(p.datePaiement)}</span>
+                  <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(p.datePaiement)}</span>
                   <span className="tabular-nums text-muted-foreground">{formaterFCFA(p.montant)}</span>
                   <Badge variant="success">{p.moyenPaiement}</Badge>
                 </span>
               </Link>
             ))}
-            {paiementsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun paiement reçu.</p> : null}
+            {paiementsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun paiement reçu.")}</p> : null}
           </div>
         </Card>
       </div>
@@ -368,7 +371,7 @@ export default async function PageFacturation() {
       <div id="factures-avoir">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Undo2 className="size-4" aria-hidden />
-          Factures d&apos;avoir
+          {t("Factures d'avoir")}
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
@@ -382,10 +385,10 @@ export default async function PageFacturation() {
                   <span className="font-medium">{a.numeroFacture}</span>
                   <span className="text-muted-foreground"> — {nomParClientId[a.factureId]} · {a.motif}</span>
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(a.creeLe)}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(a.creeLe)}</span>
               </Link>
             ))}
-            {avoirsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune facture d&apos;avoir.</p> : null}
+            {avoirsVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune facture d'avoir.")}</p> : null}
           </div>
         </Card>
       </div>

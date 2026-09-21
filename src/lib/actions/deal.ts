@@ -9,21 +9,24 @@ import { deal, contact, statutDeal } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { enregistrerCreationDeal, changerStatutDealEtHistoriser } from "@/lib/crm/historique";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaDeal = z.object({
-  titre: z.string().trim().min(2, "Le titre est requis."),
+  titre: z.string().trim().min(2, m("Le titre est requis.")),
   montant: z.coerce.number().int().min(0).default(0),
-  contactId: z.string().trim().min(1, "Sélectionnez un contact."),
+  contactId: z.string().trim().min(1, m("Sélectionnez un contact.")),
   dateClotureEstimee: z.string().optional(),
 });
 
 export type EtatDeal = { erreur?: string } | null;
 
 export async function creerDeal(_etat: EtatDeal, formData: FormData): Promise<EtatDeal> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un deal." };
+    return { erreur: t("Vous n'avez pas le droit de créer un deal.") };
   }
 
   const analyse = schemaDeal.safeParse({
@@ -33,13 +36,13 @@ export async function creerDeal(_etat: EtatDeal, formData: FormData): Promise<Et
     dateClotureEstimee: formData.get("dateClotureEstimee") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { titre, montant, contactId, dateClotureEstimee } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leContact] = await tx.select({ compteId: contact.compteId }).from(contact).where(eq(contact.id, contactId));
-    if (!leContact) return { erreur: "Contact introuvable." };
+    if (!leContact) return { erreur: t("Contact introuvable.") };
 
     const [nouveauDeal] = await tx
       .insert(deal)

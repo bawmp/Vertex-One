@@ -12,8 +12,10 @@ import { libelleDossier } from "@/lib/vocabulaire";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { STATUT_DOSSIER } from "@/lib/libelles";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageProjets() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -48,7 +50,7 @@ export default async function PageProjets() {
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
         <p className="text-muted-foreground">
-          {vocab.pluriel} et Projets sont disponibles à partir du forfait Pro.
+          {t("{objet} et Projets sont disponibles à partir du forfait Pro.", { objet: t(vocab.pluriel) })}
         </p>
       </div>
     );
@@ -58,10 +60,9 @@ export default async function PageProjets() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{vocab.pluriel}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t(vocab.pluriel)}</h1>
           <p className="text-muted-foreground">
-            {dossiers.length} {vocab.singulier.toLowerCase()}
-            {dossiers.length > 1 ? "s" : ""}.
+            {dossiers.length} {t(dossiers.length > 1 ? vocab.pluriel : vocab.singulier).toLowerCase()}.
           </p>
         </div>
         <Link
@@ -69,7 +70,7 @@ export default async function PageProjets() {
           className="flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           <ListChecks className="size-4" aria-hidden />
-          Mes tâches
+          {t("Mes tâches")}
         </Link>
       </div>
 
@@ -87,7 +88,7 @@ export default async function PageProjets() {
                 <CardContent className="flex flex-col gap-1.5">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium">{d.titre}</p>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{contactsParId[d.contactId]?.telephone}</p>
                 </CardContent>
@@ -97,7 +98,7 @@ export default async function PageProjets() {
         })}
         {dossiers.length === 0 ? (
           <p className="col-span-full py-8 text-center text-muted-foreground">
-            Aucun {vocab.singulier.toLowerCase()} pour le moment — un devis accepté en ouvre un automatiquement.
+            {t("Aucun {objet} pour le moment — un devis accepté en ouvre un automatiquement.", { objet: t(vocab.singulier).toLowerCase() })}
           </p>
         ) : null}
       </div>

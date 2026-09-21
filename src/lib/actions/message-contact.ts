@@ -2,12 +2,14 @@
 
 import { z } from "zod";
 import { envoyerEmail } from "@/lib/email/client";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaMessageContact = z.object({
-  nom: z.string().trim().min(2, "Votre nom est trop court."),
-  email: z.email("Adresse email invalide."),
+  nom: z.string().trim().min(2, m("Votre nom est trop court.")),
+  email: z.email(m("Adresse email invalide.")),
   entreprise: z.string().trim().optional(),
-  message: z.string().trim().min(10, "Votre message est un peu court — donnez-nous un peu plus de détails."),
+  message: z.string().trim().min(10, m("Votre message est un peu court — donnez-nous un peu plus de détails.")),
 });
 
 export type EtatMessageContact = { erreur?: string; succes?: boolean } | null;
@@ -24,6 +26,7 @@ export type EtatMessageContact = { erreur?: string; succes?: boolean } | null;
  * Resend, sinon envoyerEmail() échoue proprement et logue l'erreur.
  */
 export async function envoyerMessageContact(_etat: EtatMessageContact, formData: FormData): Promise<EtatMessageContact> {
+  const t = await getT();
   const analyse = schemaMessageContact.safeParse({
     nom: formData.get("nom"),
     email: formData.get("email"),
@@ -32,7 +35,7 @@ export async function envoyerMessageContact(_etat: EtatMessageContact, formData:
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { nom, email, entreprise, message } = analyse.data;
@@ -40,7 +43,7 @@ export async function envoyerMessageContact(_etat: EtatMessageContact, formData:
 
   if (!destinataire) {
     console.warn("[contact] CONTACT_DESTINATAIRE non configurée — message non envoyé.");
-    return { erreur: "Le formulaire de contact n'est pas encore configuré — écrivez-nous directement par email en attendant." };
+    return { erreur: t("Le formulaire de contact n'est pas encore configuré — écrivez-nous directement par email en attendant.") };
   }
 
   const { envoye, erreur } = await envoyerEmail({
@@ -57,7 +60,7 @@ export async function envoyerMessageContact(_etat: EtatMessageContact, formData:
 
   if (!envoye) {
     console.error("[contact] échec d'envoi :", erreur);
-    return { erreur: "Votre message n'a pas pu être envoyé pour le moment — réessayez un peu plus tard." };
+    return { erreur: t("Votre message n'a pas pu être envoyé pour le moment — réessayez un peu plus tard.") };
   }
 
   return { succes: true };

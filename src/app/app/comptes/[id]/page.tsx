@@ -7,8 +7,10 @@ import { compteClient, contact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageFicheCompte({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -31,10 +33,10 @@ export default async function PageFicheCompte({ params }: { params: Promise<{ id
         <Building2 className="size-5" aria-hidden />
         <h1 className="text-2xl font-semibold tracking-tight">{fiche.nom}</h1>
       </div>
-      {fiche.niu ? <p className="text-sm text-muted-foreground">NIU : {fiche.niu}</p> : null}
+      {fiche.niu ? <p className="text-sm text-muted-foreground">{t("NIU : {niu}", { niu: fiche.niu })}</p> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Contacts</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Contacts")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {contacts.map((c) => (
@@ -49,7 +51,7 @@ export default async function PageFicheCompte({ params }: { params: Promise<{ id
                 </span>
               </Link>
             ))}
-            {contacts.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucun contact rattaché à ce compte.</p> : null}
+            {contacts.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun contact rattaché à ce compte.")}</p> : null}
           </div>
         </Card>
       </div>

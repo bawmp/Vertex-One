@@ -7,6 +7,7 @@ import { entreprise, tentativePaiementAbonnement, utilisateur } from "@/db/schem
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { initierPaiement } from "@/lib/cinetpay/client";
+import { getT } from "@/lib/i18n/langue";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
 
@@ -23,10 +24,11 @@ function urlBase(): string {
  * ceux des factures — deux flux distincts, pas un mécanisme générique.
  */
 export async function genererLienPaiementAbonnement(): Promise<{ url?: string; erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Seul un administrateur peut régler l'abonnement." };
+    return { erreur: t("Seul un administrateur peut régler l'abonnement.") };
   }
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -46,7 +48,7 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
     const resultat = await initierPaiement({
       transactionId: tentative.id,
       montant: PRIX_ABONNEMENT_MENSUEL,
-      description: "Abonnement Vertex One — mensuel",
+      description: t("Abonnement Vertex One — mensuel"),
       notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify-abonnement`,
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
       clientNom: monUtilisateur?.nomComplet ?? "Client",

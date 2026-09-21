@@ -7,6 +7,7 @@ import { STATUT_PROJET } from "@/lib/libelles";
 import type { TableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
 import { traduire, interpoler } from "@/lib/i18n/traduire";
 import type { Langue } from "@/lib/session";
+import { traducteur } from "@/lib/i18n/catalogue";
 
 export function TableauDeBord({
   donnees,
@@ -17,7 +18,8 @@ export function TableauDeBord({
   facturesClientVisibles: { statut: string; montantTTC: number }[];
   langue?: Langue;
 }) {
-  const t = traduire(langue);
+  const dico = traduire(langue);
+  const t = traducteur(langue);
   const impayeesClient = facturesClientVisibles.filter((f) => f.statut === "EMISE" || f.statut === "EN_RETARD" || f.statut === "PARTIELLEMENT_PAYEE");
   const enRetardClient = impayeesClient.filter((f) => f.statut === "EN_RETARD");
   const totalImpayeClient = impayeesClient.reduce((s, f) => s + f.montantTTC, 0);
@@ -32,7 +34,7 @@ export function TableauDeBord({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(t.pages.faco.bonjour, { nom: donnees.monNom })}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(dico.pages.faco.bonjour, { nom: donnees.monNom })}</h1>
         <p className="mt-1 text-muted-foreground">{donnees.nomEntreprise}</p>
       </div>
 
@@ -44,19 +46,19 @@ export function TableauDeBord({
                 <Users className="size-4.5" aria-hidden />
               </span>
               <div>
-                <CardTitle className="text-sm font-medium">Total des comptes clients</CardTitle>
-                <CardDescription>{impayeesClient.length} facture{impayeesClient.length > 1 ? "s" : ""} impayée{impayeesClient.length > 1 ? "s" : ""}</CardDescription>
+                <CardTitle className="text-sm font-medium">{t("Total des comptes clients")}</CardTitle>
+                <CardDescription>{impayeesClient.length > 1 ? t("{n} factures impayées", { n: impayeesClient.length }) : t("{n} facture impayée", { n: impayeesClient.length })}</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex items-end justify-between border-t pt-3">
             <div>
               <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(totalImpayeClient)}</p>
-              <p className="text-xs text-muted-foreground">Actuel</p>
+              <p className="text-xs text-muted-foreground">{t("Actuel")}</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-medium text-destructive">{formaterFCFA(totalEnRetardClient)}</p>
-              <p className="text-xs text-muted-foreground">En retard</p>
+              <p className="text-xs text-muted-foreground">{t("En retard")}</p>
             </div>
           </CardContent>
         </Card>
@@ -69,9 +71,9 @@ export function TableauDeBord({
                   <Truck className="size-4.5" aria-hidden />
                 </span>
                 <div>
-                  <CardTitle className="text-sm font-medium">Total des comptes fournisseurs</CardTitle>
+                  <CardTitle className="text-sm font-medium">{t("Total des comptes fournisseurs")}</CardTitle>
                   <CardDescription>
-                    {impayeesFournisseur.length} facture{impayeesFournisseur.length > 1 ? "s" : ""} fournisseur{impayeesFournisseur.length > 1 ? "s" : ""} impayée{impayeesFournisseur.length > 1 ? "s" : ""}
+                    {impayeesFournisseur.length > 1 ? t("{n} factures fournisseurs impayées", { n: impayeesFournisseur.length }) : t("{n} facture fournisseur impayée", { n: impayeesFournisseur.length })}
                   </CardDescription>
                 </div>
               </div>
@@ -79,11 +81,11 @@ export function TableauDeBord({
             <CardContent className="flex items-end justify-between border-t pt-3">
               <div>
                 <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(totalImpayeFournisseur)}</p>
-                <p className="text-xs text-muted-foreground">Actuel</p>
+                <p className="text-xs text-muted-foreground">{t("Actuel")}</p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-medium text-destructive">{formaterFCFA(totalEnRetardFournisseur)}</p>
-                <p className="text-xs text-muted-foreground">En retard</p>
+                <p className="text-xs text-muted-foreground">{t("En retard")}</p>
               </div>
             </CardContent>
           </Card>
@@ -96,24 +98,24 @@ export function TableauDeBord({
             <CardHeader>
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Wallet2 className="size-4" aria-hidden />
-                Flux de trésorerie — depuis le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(donnees.financier.debutAnnee)}
+                {t("Flux de trésorerie — depuis le {date}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(donnees.financier.debutAnnee) })}
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-1.5 border-t pt-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Espèces en début de période</span>
+                <span className="text-muted-foreground">{t("Espèces en début de période")}</span>
                 <span className="tabular-nums">{formaterFCFA(donnees.financier.especesOuverture)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Entrant (+)</span>
+                <span className="text-muted-foreground">{t("Entrant (+)")}</span>
                 <span className="tabular-nums text-emerald-600">{formaterFCFA(donnees.financier.entrant)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Sortant (-)</span>
+                <span className="text-muted-foreground">{t("Sortant (-)")}</span>
                 <span className="tabular-nums text-destructive">{formaterFCFA(donnees.financier.sortant)}</span>
               </div>
               <div className="mt-1 flex justify-between border-t pt-1.5 font-medium">
-                <span>Espèces aujourd&apos;hui (=)</span>
+                <span>{t("Espèces aujourd'hui (=)")}</span>
                 <span className="tabular-nums">{formaterFCFA(donnees.financier.especesCloture)}</span>
               </div>
             </CardContent>
@@ -123,19 +125,19 @@ export function TableauDeBord({
             <CardHeader>
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <TrendingUp className="size-4" aria-hidden />
-                Revenu et dépense — exercice en cours
+                {t("Revenu et dépense — exercice en cours")}
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 border-t pt-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Revenu total</span>
+                <span className="text-sm text-muted-foreground">{t("Revenu total")}</span>
                 <span className="text-lg font-semibold tabular-nums text-emerald-600">{formaterFCFA(donnees.financier.totalProduits)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total des dépenses</span>
+                <span className="text-sm text-muted-foreground">{t("Total des dépenses")}</span>
                 <span className="text-lg font-semibold tabular-nums text-destructive">{formaterFCFA(donnees.financier.totalCharges)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">* Montants hors taxes, cumul de l&apos;exercice en cours.</p>
+              <p className="text-xs text-muted-foreground">{t("* Montants hors taxes, cumul de l'exercice en cours.")}</p>
             </CardContent>
           </Card>
         </div>
@@ -147,7 +149,7 @@ export function TableauDeBord({
             <div>
               <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <PiggyBank className="size-4" aria-hidden />
-                Dépenses principales
+                {t("Dépenses principales")}
               </h2>
               <Card className="p-0">
                 <div className="flex flex-col divide-y divide-border">
@@ -158,7 +160,7 @@ export function TableauDeBord({
                     </div>
                   ))}
                   {donnees.depensesPrincipales.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune dépense enregistrée pour cet exercice.</p>
+                    <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune dépense enregistrée pour cet exercice.")}</p>
                   ) : null}
                 </div>
               </Card>
@@ -168,7 +170,7 @@ export function TableauDeBord({
           <div>
             <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <FolderKanban className="size-4" aria-hidden />
-              Projets
+              {t("Projets")}
             </h2>
             <Card className="p-0">
               <div className="flex flex-col divide-y divide-border">
@@ -177,12 +179,12 @@ export function TableauDeBord({
                   return (
                     <Link key={p.id} href={`/app/projets/${p.id}`} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm hover:bg-muted/50">
                       <span className="truncate">{p.titre}</span>
-                      <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? p.statut}</Badge>
+                      <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     </Link>
                   );
                 })}
                 {donnees.projetsWatchlist.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun projet à suivre pour le moment.</p>
+                  <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun projet à suivre pour le moment.")}</p>
                 ) : null}
               </div>
             </Card>
@@ -192,15 +194,15 @@ export function TableauDeBord({
             <div>
               <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Landmark className="size-4" aria-hidden />
-                Banque
+                {t("Banque")}
               </h2>
               <Card>
                 <CardContent className="flex flex-col items-start gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Importez un relevé bancaire (CSV) pour rapprocher vos paiements — aucune connexion bancaire automatique n&apos;est configurée pour l&apos;instant.
+                    {t("Importez un relevé bancaire (CSV) pour rapprocher vos paiements — aucune connexion bancaire automatique n'est configurée pour l'instant.")}
                   </p>
                   <Link href="/app/comptabilite/rapprochement" className="text-sm font-medium text-primary hover:underline">
-                    Importer un relevé →
+                    {t("Importer un relevé →")}
                   </Link>
                 </CardContent>
               </Card>

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { produit } from "@/db/schema";
 import { montant, normaliser } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 import { avertir, erreur, lots, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
 
 function typeProduit(brut: string | undefined): "BIEN" | "SERVICE" {
@@ -23,7 +24,7 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   for (const { numero, v } of lignes) {
     const nom = (v.nom ?? "").trim();
     if (nom.length < 2) {
-      erreur(rapport, numero, "Nom manquant ou trop court.");
+      erreur(rapport, numero, m("Nom manquant ou trop court."));
       continue;
     }
     const cle = normaliser(nom);
@@ -34,7 +35,7 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
     const prixVente = montant(v.prixVente);
     const prixAchat = montant(v.prixAchat);
     if ((prixVente ?? 0) < 0 || (prixAchat ?? 0) < 0) {
-      erreur(rapport, numero, "Prix négatif.");
+      erreur(rapport, numero, m("Prix négatif."));
       continue;
     }
     if (prixVente === null) prixAbsents++;
@@ -59,6 +60,6 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
 
   for (const lot of lots(aCreer)) await tx.insert(produit).values(lot);
   rapport.crees = aCreer.length;
-  if (prixAbsents > 0) avertir(rapport, 0, `${prixAbsents} article(s) sans prix de vente : prix mis à 0, à compléter.`);
+  if (prixAbsents > 0) avertir(rapport, 0, m("{n} article(s) sans prix de vente : prix mis à 0, à compléter."), { n: prixAbsents });
   return rapport;
 }

@@ -9,10 +9,12 @@ import { projet, commentaire, statutProjet } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { creerCanalPourProjet } from "@/lib/chat/pont";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaProjet = z.object({
   dossierId: z.string(),
-  titre: z.string().trim().min(2, "Le titre est trop court."),
+  titre: z.string().trim().min(2, m("Le titre est trop court.")),
   description: z.string().trim().optional(),
   dateEcheance: z.string().optional(),
 });
@@ -20,10 +22,11 @@ const schemaProjet = z.object({
 export type EtatProjet = { erreur?: string } | null;
 
 export async function creerProjet(_etat: EtatProjet, formData: FormData): Promise<EtatProjet> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PROJETS", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un projet." };
+    return { erreur: t("Vous n'avez pas le droit de créer un projet.") };
   }
 
   const analyse = schemaProjet.safeParse({
@@ -34,7 +37,7 @@ export async function creerProjet(_etat: EtatProjet, formData: FormData): Promis
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { dossierId, titre, description, dateEcheance } = analyse.data;
@@ -85,15 +88,16 @@ export async function changerStatutProjet(projetId: string, statut: (typeof stat
 export type EtatCommentaireProjet = { erreur?: string } | null;
 
 export async function ajouterCommentaireProjet(_etat: EtatCommentaireProjet, formData: FormData): Promise<EtatCommentaireProjet> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de commenter ce projet." };
+    return { erreur: t("Vous n'avez pas le droit de commenter ce projet.") };
   }
 
   const projetId = String(formData.get("projetId") ?? "");
   const contenu = String(formData.get("contenu") ?? "").trim();
-  if (!contenu) return { erreur: "Le commentaire ne peut pas être vide." };
+  if (!contenu) return { erreur: t("Le commentaire ne peut pas être vide.") };
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.insert(commentaire).values({

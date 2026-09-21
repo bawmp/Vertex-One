@@ -8,6 +8,8 @@ import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { tacheCrm, reunionCrm, statutTacheCrm, deal } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 // Activités de l'Accueil CRM (inspirées de Zoho CRM, échange du 2026-09-06)
 // — Objet/Titre + une seule relation optionnelle parmi Lead/Contact/Deal
@@ -38,7 +40,7 @@ async function resoudreRelation(tx: TransactionDrizzle, donnees: z.infer<typeof 
 }
 
 const schemaTacheCrm = schemaRelation.extend({
-  objet: z.string().trim().min(2, "L'objet est trop court."),
+  objet: z.string().trim().min(2, m("L'objet est trop court.")),
   dateEcheance: z.string().trim().optional(),
   priorite: z.enum(["BASSE", "NORMALE", "HAUTE"]),
 });
@@ -46,10 +48,11 @@ const schemaTacheCrm = schemaRelation.extend({
 export type EtatTacheCrm = { erreur?: string } | null;
 
 export async function creerTacheCrm(_etat: EtatTacheCrm, formData: FormData): Promise<EtatTacheCrm> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer une tâche." };
+    return { erreur: t("Vous n'avez pas le droit de créer une tâche.") };
   }
 
   const analyse = schemaTacheCrm.safeParse({
@@ -60,7 +63,7 @@ export async function creerTacheCrm(_etat: EtatTacheCrm, formData: FormData): Pr
     relatifAId: formData.get("relatifAId") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { objet, dateEcheance, priorite } = analyse.data;
 
@@ -99,18 +102,19 @@ export async function changerStatutTacheCrm(tacheId: string, statut: (typeof sta
 }
 
 const schemaReunionCrm = schemaRelation.extend({
-  titre: z.string().trim().min(2, "Le titre est trop court."),
-  dateDebut: z.string().trim().min(1, "La date de début est obligatoire."),
-  dateFin: z.string().trim().min(1, "La date de fin est obligatoire."),
+  titre: z.string().trim().min(2, m("Le titre est trop court.")),
+  dateDebut: z.string().trim().min(1, m("La date de début est obligatoire.")),
+  dateFin: z.string().trim().min(1, m("La date de fin est obligatoire.")),
 });
 
 export type EtatReunionCrm = { erreur?: string } | null;
 
 export async function creerReunionCrm(_etat: EtatReunionCrm, formData: FormData): Promise<EtatReunionCrm> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer une réunion." };
+    return { erreur: t("Vous n'avez pas le droit de créer une réunion.") };
   }
 
   const analyse = schemaReunionCrm.safeParse({
@@ -121,12 +125,12 @@ export async function creerReunionCrm(_etat: EtatReunionCrm, formData: FormData)
     relatifAId: formData.get("relatifAId") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { titre, dateDebut, dateFin } = analyse.data;
 
   if (new Date(dateFin) < new Date(dateDebut)) {
-    return { erreur: "La date de fin doit être après la date de début." };
+    return { erreur: t("La date de fin doit être après la date de début.") };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {

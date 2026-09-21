@@ -8,8 +8,10 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
 import { Card } from "@/components/ui/card";
 import { LigneTache } from "../[id]/ligne-tache";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageMesTaches() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -41,7 +43,7 @@ export default async function PageMesTaches() {
   if (!donnees) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-muted-foreground">Les Projets sont disponibles à partir du forfait Pro.</p>
+        <p className="text-muted-foreground">{t("Les Projets sont disponibles à partir du forfait Pro.")}</p>
       </div>
     );
   }
@@ -52,12 +54,12 @@ export default async function PageMesTaches() {
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/projets" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <ListChecks className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Mes tâches</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Mes tâches")}</h1>
       </div>
 
       {mesTaches.length > 0 ? (
@@ -87,7 +89,7 @@ export default async function PageMesTaches() {
           </div>
         </Card>
       ) : (
-        <p className="text-sm text-muted-foreground">Aucune tâche en cours qui vous soit assignée.</p>
+        <p className="text-sm text-muted-foreground">{t("Aucune tâche en cours qui vous soit assignée.")}</p>
       )}
     </div>
   );

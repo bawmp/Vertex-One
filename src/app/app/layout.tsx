@@ -1,3 +1,4 @@
+import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, KeyRound, Upload } from "lucide-react";
@@ -62,24 +63,24 @@ type ItemMenu =
 const MODULES_MENU: ItemMenu[] = [
   {
     module: "CRM",
-    libelle: "One CRM",
+    libelle: m("One CRM"),
     hrefAccueil: "/app/crm",
     Icone: Users,
     groupes: [
       {
         categorie: "Ventes",
         liens: [
-          { libelle: "Leads", href: "/app/leads", Icone: UserPlus },
-          { libelle: "Contacts", href: "/app/contacts", Icone: Users },
-          { libelle: "Comptes", href: "/app/comptes", Icone: Building2 },
-          { libelle: "Deals", href: "/app/deals", Icone: Handshake },
+          { libelle: m("Leads"), href: "/app/leads", Icone: UserPlus },
+          { libelle: m("Contacts"), href: "/app/contacts", Icone: Users },
+          { libelle: m("Comptes"), href: "/app/comptes", Icone: Building2 },
+          { libelle: m("Deals"), href: "/app/deals", Icone: Handshake },
           // Raccourcis vers des modules qui existent déjà ailleurs dans la
           // sidebar (Documents du Palier 3, Campagnes au sein de Marketing du
           // Palier 6) — présents dans "Ventes" chez Zoho, donc dupliqués ici
           // plutôt que déplacés, pour ne retirer l'accès direct à personne
           // (retour utilisateur, 2026-09-06).
-          { libelle: "One Docs", href: "/app/documents", Icone: FileText, module: "DOCUMENTS" },
-          { libelle: "Campagnes", href: "/app/marketing", Icone: Megaphone, module: "MARKETING" },
+          { libelle: m("One Docs"), href: "/app/documents", Icone: FileText, module: "DOCUMENTS" },
+          { libelle: m("Campagnes"), href: "/app/marketing", Icone: Megaphone, module: "MARKETING" },
         ],
       },
     ],
@@ -104,13 +105,13 @@ const MODULES_MENU: ItemMenu[] = [
   // vérifie sa propre permission — jamais une page entièrement verrouillée à
   // l'Administrateur comme /app/comptabilite l'est.
   {
-    libelle: "One Books",
+    libelle: m("One Books"),
     hrefAccueil: "/app/facturation",
     Icone: Landmark,
     groupes: [
       {
         categorie: "Articles",
-        liens: [{ libelle: "Produits", href: "/app/produits", Icone: Package, module: "PRODUITS" }],
+        liens: [{ libelle: m("Produits"), href: "/app/produits", Icone: Package, module: "PRODUITS" }],
       },
       {
         // Les 8 onglets exacts de Zoho Books > Ventes (échange du
@@ -127,14 +128,14 @@ const MODULES_MENU: ItemMenu[] = [
           // sidebar (Contacts, sous CRM) — Zoho Books a ses propres
           // "Clients", dupliqué ici plutôt que déplacé, même principe que
           // Documents/Campagnes sous CRM > Ventes.
-          { libelle: "Clients", href: "/app/contacts", Icone: Users, module: "CRM" },
-          { libelle: "Devis", href: "/app/facturation#devis", Icone: FileText, module: "FACTURATION" },
-          { libelle: "Commandes client", href: "/app/facturation#commandes-client", Icone: ClipboardList, module: "FACTURATION" },
-          { libelle: "Factures", href: "/app/facturation#factures", Icone: Receipt, module: "FACTURATION" },
-          { libelle: "Tickets de vente", href: "/app/facturation#tickets-de-vente", Icone: Wallet, module: "FACTURATION" },
-          { libelle: "Factures périodiques", href: "/app/facturation#factures-periodiques", Icone: Repeat, module: "FACTURATION" },
-          { libelle: "Paiements reçus", href: "/app/facturation#paiements-recus", Icone: CreditCard, module: "FACTURATION" },
-          { libelle: "Factures d'avoir", href: "/app/facturation#factures-avoir", Icone: Undo2, module: "FACTURATION" },
+          { libelle: m("Clients"), href: "/app/contacts", Icone: Users, module: "CRM" },
+          { libelle: m("Devis"), href: "/app/facturation#devis", Icone: FileText, module: "FACTURATION" },
+          { libelle: m("Commandes client"), href: "/app/facturation#commandes-client", Icone: ClipboardList, module: "FACTURATION" },
+          { libelle: m("Factures"), href: "/app/facturation#factures", Icone: Receipt, module: "FACTURATION" },
+          { libelle: m("Tickets de vente"), href: "/app/facturation#tickets-de-vente", Icone: Wallet, module: "FACTURATION" },
+          { libelle: m("Factures périodiques"), href: "/app/facturation#factures-periodiques", Icone: Repeat, module: "FACTURATION" },
+          { libelle: m("Paiements reçus"), href: "/app/facturation#paiements-recus", Icone: CreditCard, module: "FACTURATION" },
+          { libelle: m("Factures d'avoir"), href: "/app/facturation#factures-avoir", Icone: Undo2, module: "FACTURATION" },
         ],
       },
       {
@@ -146,12 +147,12 @@ const MODULES_MENU: ItemMenu[] = [
         // plutôt qu'un lien mort, voir docs/crm-roadmap-post-commercialisation.md.
         categorie: "Achats",
         liens: [
-          { libelle: "Dépenses", href: "/app/achats#depenses", Icone: ShoppingCart, module: "ACHATS" },
-          { libelle: "Bons de commande", href: "/app/achats#bons-de-commande", Icone: ClipboardList, module: "ACHATS" },
-          { libelle: "Factures fournisseurs", href: "/app/achats#factures-fournisseurs", Icone: FileText, module: "ACHATS" },
-          { libelle: "Paiements effectués", href: "/app/achats#paiements-effectues", Icone: CreditCard, module: "ACHATS" },
-          { libelle: "Avoirs fournisseur", href: "/app/achats#avoirs-fournisseur", Icone: Undo2, module: "ACHATS" },
-          { libelle: "Fournisseurs", href: "/app/achats#fournisseurs", Icone: UserPlus, module: "ACHATS" },
+          { libelle: m("Dépenses"), href: "/app/achats#depenses", Icone: ShoppingCart, module: "ACHATS" },
+          { libelle: m("Bons de commande"), href: "/app/achats#bons-de-commande", Icone: ClipboardList, module: "ACHATS" },
+          { libelle: m("Factures fournisseurs"), href: "/app/achats#factures-fournisseurs", Icone: FileText, module: "ACHATS" },
+          { libelle: m("Paiements effectués"), href: "/app/achats#paiements-effectues", Icone: CreditCard, module: "ACHATS" },
+          { libelle: m("Avoirs fournisseur"), href: "/app/achats#avoirs-fournisseur", Icone: Undo2, module: "ACHATS" },
+          { libelle: m("Fournisseurs"), href: "/app/achats#fournisseurs", Icone: UserPlus, module: "ACHATS" },
         ],
       },
       // Suivi des heures (échange du 2026-09-07) — anciennement omis faute
@@ -162,13 +163,13 @@ const MODULES_MENU: ItemMenu[] = [
       {
         categorie: "Suivi des heures",
         liens: [
-          { libelle: "One Projects", href: "/app/projets", Icone: FolderKanban, module: "PROJETS" },
-          { libelle: "Feuille de temps", href: "/app/projets/feuille-temps", Icone: Clock, module: "PROJETS" },
+          { libelle: m("One Projects"), href: "/app/projets", Icone: FolderKanban, module: "PROJETS" },
+          { libelle: m("Feuille de temps"), href: "/app/projets/feuille-temps", Icone: Clock, module: "PROJETS" },
         ],
       },
       {
         categorie: "Banque",
-        liens: [{ libelle: "Rapprochement bancaire", href: "/app/comptabilite/rapprochement", Icone: Wallet, module: "COMPTABILITE" }],
+        liens: [{ libelle: m("Rapprochement bancaire"), href: "/app/comptabilite/rapprochement", Icone: Wallet, module: "COMPTABILITE" }],
       },
       // 5 des 6 onglets Zoho Books > Comptable (échange du 2026-09-07) —
       // seuls "Mise à jour en bloc"/"Ajustements de la devise" restent sans
@@ -179,28 +180,28 @@ const MODULES_MENU: ItemMenu[] = [
       {
         categorie: "Comptable",
         liens: [
-          { libelle: "Journal", href: "/app/comptabilite#journal", Icone: Calculator, module: "COMPTABILITE" },
-          { libelle: "Journaux manuels", href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
-          { libelle: "Plan comptable", href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
-          { libelle: "Budgets", href: "/app/comptabilite/budgets", Icone: PiggyBank, module: "COMPTABILITE" },
-          { libelle: "Verrouillage", href: "/app/comptabilite#verrouillage", Icone: ShieldCheck, module: "COMPTABILITE" },
+          { libelle: m("Journal"), href: "/app/comptabilite#journal", Icone: Calculator, module: "COMPTABILITE" },
+          { libelle: m("Journaux manuels"), href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
+          { libelle: m("Plan comptable"), href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
+          { libelle: m("Budgets"), href: "/app/comptabilite/budgets", Icone: PiggyBank, module: "COMPTABILITE" },
+          { libelle: m("Verrouillage"), href: "/app/comptabilite#verrouillage", Icone: ShieldCheck, module: "COMPTABILITE" },
         ],
       },
       {
         categorie: "Rapports",
-        liens: [{ libelle: "Bilan & résultat", href: "/app/comptabilite", Icone: BarChart3, module: "COMPTABILITE" }],
+        liens: [{ libelle: m("Bilan & résultat"), href: "/app/comptabilite", Icone: BarChart3, module: "COMPTABILITE" }],
       },
       {
         categorie: "Documents",
-        liens: [{ libelle: "Documents financiers", href: "/app/comptabilite/documents", Icone: FileText, module: "COMPTABILITE" }],
+        liens: [{ libelle: m("Documents financiers"), href: "/app/comptabilite/documents", Icone: FileText, module: "COMPTABILITE" }],
       },
     ],
   },
-  { module: "PROJETS", libelle: "One Projects", href: "/app/projets", Icone: FolderKanban },
-  { module: "DOCUMENTS", libelle: "One Docs", href: "/app/documents", Icone: FileText },
-  { module: "MESSAGERIE", libelle: "One Chat", href: "/app/messagerie", Icone: MessageSquare },
-  { module: "ANNONCES", libelle: "One Announcements", href: "/app/annonces", Icone: Megaphone },
-  { module: "SIGNATURE", libelle: "One Sign", href: "/app/signatures", Icone: FileSignature },
+  { module: "PROJETS", libelle: m("One Projects"), href: "/app/projets", Icone: FolderKanban },
+  { module: "DOCUMENTS", libelle: m("One Docs"), href: "/app/documents", Icone: FileText },
+  { module: "MESSAGERIE", libelle: m("One Chat"), href: "/app/messagerie", Icone: MessageSquare },
+  { module: "ANNONCES", libelle: m("One Announcements"), href: "/app/annonces", Icone: Megaphone },
+  { module: "SIGNATURE", libelle: m("One Sign"), href: "/app/signatures", Icone: FileSignature },
   // RH regroupe l'équivalent Zoho People de Vertex One sous une seule entrée
   // à liste déroulante, comme CRM/FACO — retour utilisateur ("organise le RH
   // comme tu as organisé CRM et FACO"), le module existait jusque-là en item
@@ -214,54 +215,54 @@ const MODULES_MENU: ItemMenu[] = [
   // seulement les pages dédiées qui existent en plus.
   {
     module: "RH",
-    libelle: "One People",
+    libelle: m("One People"),
     hrefAccueil: "/app/rh",
     Icone: IdCard,
     groupes: [
       {
         categorie: "Présence",
-        liens: [{ libelle: "Shifts", href: "/app/rh/shifts", Icone: Clock, reserveAdmin: true }],
+        liens: [{ libelle: m("Shifts"), href: "/app/rh/shifts", Icone: Clock, reserveAdmin: true }],
       },
       {
         categorie: "Congés",
-        liens: [{ libelle: "Politiques de congé", href: "/app/rh/politiques-conges", Icone: CalendarClock, reserveAdmin: true }],
+        liens: [{ libelle: m("Politiques de congé"), href: "/app/rh/politiques-conges", Icone: CalendarClock, reserveAdmin: true }],
       },
       {
         categorie: "Assistance",
-        liens: [{ libelle: "Tickets RH", href: "/app/rh/tickets", Icone: LifeBuoy }],
+        liens: [{ libelle: m("Tickets RH"), href: "/app/rh/tickets", Icone: LifeBuoy }],
       },
       {
         categorie: "Sondages",
-        liens: [{ libelle: "Sondages", href: "/app/rh/sondages", Icone: ClipboardCheck }],
+        liens: [{ libelle: m("Sondages"), href: "/app/rh/sondages", Icone: ClipboardCheck }],
       },
       {
         categorie: "Rapports",
-        liens: [{ libelle: "Rapports RH", href: "/app/rh/rapports", Icone: BarChart3 }],
+        liens: [{ libelle: m("Rapports RH"), href: "/app/rh/rapports", Icone: BarChart3 }],
       },
     ],
   },
-  { module: "MARKETING", libelle: "One Marketing", href: "/app/marketing", Icone: Rocket },
+  { module: "MARKETING", libelle: m("One Marketing"), href: "/app/marketing", Icone: Rocket },
   // Booking (échange du 2026-09-13, addon à la carte comme Marketing) — item
   // racine plat, pas de regroupement en sous-menu pour ce v1 (portée assez
   // restreinte pour rester une seule entrée, comme Projets/Documents) ; les
   // pages Services/Personnel/Paramètres restent atteignables depuis l'accueil
   // /app/reservations lui-même.
-  { module: "RESERVATIONS", libelle: "One Bookings", href: "/app/reservations", Icone: CalendarCheck },
+  { module: "RESERVATIONS", libelle: m("One Bookings"), href: "/app/reservations", Icone: CalendarCheck },
   // Recrutement (échange du 2026-09-13, addon à la carte comme
   // Marketing/Réservations) — item racine plat, même raisonnement que
   // Réservations pour ce v1.
-  { module: "RECRUTEMENT", libelle: "One Recruit", href: "/app/recrutement", Icone: Briefcase },
+  { module: "RECRUTEMENT", libelle: m("One Recruit"), href: "/app/recrutement", Icone: Briefcase },
   // Assistance client (échange du 2026-09-13, addon à la carte) — item
   // racine plat, même raisonnement que Réservations/Recrutement. Ne
   // gouverne que le côté agent (/app/support) ; le portail (/portail)
   // n'apparaît jamais dans cette sidebar, réservé au rôle CLIENT.
-  { module: "SUPPORT", libelle: "One Desk", href: "/app/support", Icone: LifeBuoy },
+  { module: "SUPPORT", libelle: m("One Desk"), href: "/app/support", Icone: LifeBuoy },
   // One Form (addon à la carte) — item racine plat, même raisonnement que
   // Réservations/Recrutement/Assistance client.
-  { module: "ONE_FORM", libelle: "One Form", href: "/app/one-form", Icone: ClipboardList },
+  { module: "ONE_FORM", libelle: m("One Form"), href: "/app/one-form", Icone: ClipboardList },
   // One Vault (addon à la carte) — item racine plat, même raisonnement que
   // One Form/Réservations/Recrutement/Assistance client.
-  { module: "ONE_VAULT", libelle: "One Vault", href: "/app/one-vault", Icone: KeyRound },
+  { module: "ONE_VAULT", libelle: m("One Vault"), href: "/app/one-vault", Icone: KeyRound },
 ];
 
 // Paramètres (2026-09-20) : sorti de la barre latérale, il vit désormais dans le
@@ -270,11 +271,11 @@ const MODULES_MENU: ItemMenu[] = [
 // "Mon compte" et "Espace personnel" (réservé à l'Administrateur, gardé par la
 // page elle-même) sont dans le menu du compte (menu-compte.tsx).
 const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }[] = [
-  { libelle: "Entreprise", href: "/app/parametres/entreprise", Icone: Building2 },
-  { libelle: "Équipe", href: "/app/parametres/equipe", Icone: Users },
-  { libelle: "Modèles d'email", href: "/app/parametres/modeles-email", Icone: Mail },
-  { libelle: "Importer des données", href: "/app/parametres/import", Icone: Upload },
-  { libelle: "Abonnement", href: "/app/parametres/abonnement", Icone: CreditCard },
+  { libelle: m("Entreprise"), href: "/app/parametres/entreprise", Icone: Building2 },
+  { libelle: m("Équipe"), href: "/app/parametres/equipe", Icone: Users },
+  { libelle: m("Modèles d'email"), href: "/app/parametres/modeles-email", Icone: Mail },
+  { libelle: m("Importer des données"), href: "/app/parametres/import", Icone: Upload },
+  { libelle: m("Abonnement"), href: "/app/parametres/abonnement", Icone: CreditCard },
 ];
 
 // Un item plat, ou groupé avec un module unifiant (CRM), reste gouverné par
@@ -325,6 +326,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     : menuVisible;
 
   const t = traduire(utilisateurConnecte.langue);
+  const tp = traducteur(utilisateurConnecte.langue); // libellés des sous-menus (catalogue de phrases)
 
   // Une seule requête jointe plutôt que deux round-trips séparés — ce layout
   // s'exécute à chaque navigation complète vers /app/*, et CLAUDE.md
@@ -381,7 +383,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
               .filter((lien) => (!lien.module || peut(utilisateurConnecte, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
               .map((lien) => ({
                 href: lien.href,
-                libelle: lien.libelle,
+                libelle: tp(lien.libelle),
                 icone: <lien.Icone className="size-3.5 shrink-0" aria-hidden />,
               })),
           }))
@@ -400,11 +402,11 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     );
 
   const liensParametres = peut(utilisateurConnecte, "PARAMETRES", "VOIR")
-    ? LIENS_PARAMETRES.map((lien) => ({ href: lien.href, libelle: lien.libelle, icone: <lien.Icone className="size-4" aria-hidden /> }))
+    ? LIENS_PARAMETRES.map((lien) => ({ href: lien.href, libelle: tp(lien.libelle), icone: <lien.Icone className="size-4" aria-hidden /> }))
     : [];
 
   return (
-    <LangueProvider dictionnaire={t}>
+    <LangueProvider dictionnaire={t} langue={utilisateurConnecte.langue ?? "fr"}>
     <div className="flex min-h-screen flex-col bg-background md:flex-row" style={styleMarque}>
       <CadreSidebar>
         <LogoEntreprise taille="panneau" entrepriseId={utilisateurConnecte.entrepriseId} logoCleStockage={ligne?.logoCleStockage ?? null} nomEntreprise={ligne?.entrepriseNom} />

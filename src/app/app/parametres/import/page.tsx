@@ -9,8 +9,10 @@ import { DEFINITIONS } from "@/lib/import/definitions";
 import { NB_MAX_LIGNES_IMPORT } from "@/lib/import/fichier";
 import { typesImportables } from "@/lib/import/droits";
 import { AssistantImport, type TypeAffiche } from "./assistant-import";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageImport() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -19,7 +21,7 @@ export default async function PageImport() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas le droit d&apos;importer des données.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas le droit d'importer des données.")}</p>
       </div>
     );
   }
@@ -53,11 +55,10 @@ export default async function PageImport() {
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <Upload className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Importer des données</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Importer des données")}</h1>
       </div>
       <p className="text-sm text-muted-foreground">
-        Reprenez vos données depuis Asana, Zoho One (CRM, Books, Projects…) ou toute autre application qui sait exporter en CSV ou Excel (.xlsx). Rien n&apos;est enregistré avant que vous ayez vu le résultat
-        d&apos;une simulation et confirmé. Jusqu&apos;à {NB_MAX_LIGNES_IMPORT} lignes et 4 Mo par fichier.
+        {t("Reprenez vos données depuis Asana, Zoho One (CRM, Books, Projects…) ou toute autre application qui sait exporter en CSV ou Excel (.xlsx). Rien n'est enregistré avant que vous ayez vu le résultat d'une simulation et confirmé. Jusqu'à {n} lignes et 4 Mo par fichier.", { n: NB_MAX_LIGNES_IMPORT })}
       </p>
       <AssistantImport types={affiches} clients={clients} />
     </div>

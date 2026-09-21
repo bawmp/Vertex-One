@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { commentaire, contact, dossier, projet, tache } from "@/db/schema";
 import { booleen, date, normaliser } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 import { avertir, avertirResponsablesInconnus, compter, erreur, lots, nouveauRapport, resoudreResponsable, TELEPHONE_ABSENT, type ContexteImport, type LigneImport, type Rapport } from "./commun";
 
 export const NOM_CLIENT_PROJETS_IMPORTES = "Projets importés";
@@ -35,7 +36,7 @@ async function dossierDesProjets(ctx: ContexteImport): Promise<{ dossierId: stri
       .from(contact)
       .where(eq(contact.id, options.contactProjetsId));
     // Jamais un identifiant pris tel quel : il doit exister dans CETTE entreprise (RLS) et être visible de l'importateur.
-    if (!choisi || (ctx.visibleCrm !== "TOUT" && !ctx.visibleCrm.includes(choisi.assigneAId))) return { erreur: "Le client choisi pour rattacher les projets est introuvable." };
+    if (!choisi || (ctx.visibleCrm !== "TOUT" && !ctx.visibleCrm.includes(choisi.assigneAId))) return { erreur: m("Le client choisi pour rattacher les projets est introuvable.") };
     contactId = choisi.id;
     nomClient = choisi.nom;
   } else {
@@ -82,14 +83,14 @@ export async function importerProjetsEtTaches(ctx: ContexteImport, lignes: Ligne
   for (const { numero, v } of lignes) {
     const titreBrut = (v.titre ?? "").trim();
     if (!titreBrut) {
-      erreur(rapport, numero, "Titre de la tâche manquant.");
+      erreur(rapport, numero, m("Titre de la tâche manquant."));
       continue;
     }
     const parent = (v.parent ?? "").trim();
     const projetNom = ((v.projet ?? "").split(",")[0] ?? "").trim() || PROJET_PAR_DEFAUT;
     const { statut, termineeLe } = statutDepuisLigne(v);
     const echeanceBrute = (v.echeance ?? "").trim();
-    if (echeanceBrute && !date(echeanceBrute)) avertir(rapport, numero, `Échéance illisible (« ${echeanceBrute} ») : ignorée.`);
+    if (echeanceBrute && !date(echeanceBrute)) avertir(rapport, numero, m("Échéance illisible (« {valeur} ») : ignorée."), { valeur: echeanceBrute });
     taches.push({
       projetNom,
       // Une sous-tâche Asana n'a pas d'équivalent ici : elle devient une tâche à part qui rappelle sa tâche parente.
@@ -150,7 +151,7 @@ export async function importerProjetsEtTaches(ctx: ContexteImport, lignes: Ligne
           .returning({ id: projet.id, titre: projet.titre });
         for (const p of crees) projetParNom.set(normaliser(p.titre), p.id);
       }
-      compter(rapport, "Projets créés", groupes.size);
+      compter(rapport, m("Projets créés"), groupes.size);
     }
 
     const aInserer: (typeof tache.$inferInsert)[] = [];
@@ -183,7 +184,7 @@ export async function importerProjetsEtTaches(ctx: ContexteImport, lignes: Ligne
     for (const lot of lots(aInserer)) await tx.insert(tache).values(lot);
     for (const lot of lots(commentaires)) await tx.insert(commentaire).values(lot);
     rapport.crees = aInserer.length;
-    compter(rapport, "Notes de tâches conservées en commentaire", commentaires.length);
+    compter(rapport, m("Notes de tâches conservées en commentaire"), commentaires.length);
   }
 
   avertirResponsablesInconnus(ctx, rapport);

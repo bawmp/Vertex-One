@@ -7,19 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { creerCompteClient } from "@/lib/actions/compte-client";
+import { useT } from "@/lib/i18n/contexte";
 
 export default function PageNouveauCompte() {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerCompteClient, null);
 
   return (
     <Card className="max-w-lg">
       <CardHeader>
-        <CardTitle>Nouveau compte</CardTitle>
+        <CardTitle>{t("Nouveau compte")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="nom">Nom de la société</Label>
+            <Label htmlFor="nom">{t("Nom de la société")}</Label>
             <Input id="nom" name="nom" required minLength={2} />
           </div>
 
@@ -32,7 +34,7 @@ export default function PageNouveauCompte() {
 
           <Button type="submit" disabled={enCours}>
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer le compte"}
+            {enCours ? t("Création…") : t("Créer le compte")}
           </Button>
         </form>
       </CardContent>

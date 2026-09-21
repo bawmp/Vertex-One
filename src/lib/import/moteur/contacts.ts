@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { compteClient, contact } from "@/db/schema";
 import { normaliser } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 import {
   avertir,
   avertirResponsablesInconnus,
@@ -35,7 +36,7 @@ export async function importerContacts(ctx: ContexteImport, lignes: LigneImport[
     const societe = (v.entreprise ?? "").trim();
     const nom = [v.prenom, v.nom].map((s) => (s ?? "").trim()).filter(Boolean).join(" ") || societe;
     if (nom.length < 2) {
-      erreur(rapport, numero, "Nom manquant ou trop court.");
+      erreur(rapport, numero, m("Nom manquant ou trop court."));
       continue;
     }
     let email: string | null = (v.email ?? "").trim().toLowerCase() || null;
@@ -101,9 +102,9 @@ export async function importerContacts(ctx: ContexteImport, lignes: LigneImport[
   }
   rapport.crees = aCreer.length;
 
-  compter(rapport, "Sociétés créées", nouvelles.size);
-  if (sansTelephone > 0) avertir(rapport, 0, `${sansTelephone} contact(s) sans téléphone : « ${TELEPHONE_ABSENT} » a été inscrit, à compléter avant tout paiement en ligne.`);
-  if (emailsInvalides > 0) avertir(rapport, 0, `${emailsInvalides} adresse(s) email invalide(s) ignorée(s).`);
+  compter(rapport, m("Sociétés créées"), nouvelles.size);
+  if (sansTelephone > 0) avertir(rapport, 0, m("{n} contact(s) sans téléphone : « {absent} » a été inscrit, à compléter avant tout paiement en ligne."), { n: sansTelephone, absent: TELEPHONE_ABSENT });
+  if (emailsInvalides > 0) avertir(rapport, 0, m("{n} adresse(s) email invalide(s) ignorée(s)."), { n: emailsInvalides });
   avertirResponsablesInconnus(ctx, rapport);
   return rapport;
 }

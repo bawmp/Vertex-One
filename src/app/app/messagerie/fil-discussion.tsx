@@ -8,6 +8,7 @@ import type { MessageAffiche } from "@/lib/messagerie/acces";
 import { Compositeur } from "./compositeur";
 import { LigneMessage } from "./ligne-message";
 import { cleJour, delaiProchaineLecture, fusionner, type PersonneMentionnable } from "./utilitaires-conversation";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Fil de discussion d'un message : le message d'origine et ses réponses, dans un panneau à côté de la conversation.
@@ -32,6 +33,7 @@ export function FilDiscussion({
   nomsConnus: string[];
   surFermer: () => void;
 }) {
+  const t = useT();
   const [messages, setMessages] = useState<MessageAffiche[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const defilement = useRef<HTMLDivElement>(null);
@@ -55,7 +57,7 @@ export function FilDiscussion({
           derniereSignature.current = signature;
           setMessages(recus);
         }
-        else if (!reponse.ok && !arrete) setErreur("Ce fil n'est plus disponible.");
+        else if (!reponse.ok && !arrete) setErreur(t("Ce fil n'est plus disponible."));
       } catch {
         // Réseau coupé : on réessaiera au prochain passage.
       }
@@ -82,7 +84,7 @@ export function FilDiscussion({
   }
 
   async function supprimer(messageId: string) {
-    if (!window.confirm("Supprimer ce message pour tout le monde ?")) return;
+    if (!window.confirm(t("Supprimer ce message pour tout le monde ?"))) return;
     const resultat = await supprimerMessage(messageId);
     if (resultat.erreur) return setErreur(resultat.erreur);
     setMessages((actuels) => actuels?.map((m) => (m.id === messageId ? { ...m, contenu: null, supprime: true, piece: null, reactions: [] } : m)) ?? null);
@@ -91,13 +93,13 @@ export function FilDiscussion({
   const reponses = (messages ?? []).filter((m) => m.id !== racineId).length;
 
   return (
-    <aside aria-label="Fil de discussion" className="absolute inset-y-0 right-0 z-30 flex w-full flex-col border-l border-border bg-card shadow-xl sm:w-96">
+    <aside aria-label={t("Fil de discussion")} className="absolute inset-y-0 right-0 z-30 flex w-full flex-col border-l border-border bg-card shadow-xl sm:w-96">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
         <div>
-          <p className="text-sm font-semibold">Fil de discussion</p>
-          <p className="text-xs text-muted-foreground">{messages ? `${reponses} réponse${reponses > 1 ? "s" : ""}` : "Chargement…"}</p>
+          <p className="text-sm font-semibold">{t("Fil de discussion")}</p>
+          <p className="text-xs text-muted-foreground">{messages ? `${reponses} réponse${reponses > 1 ? "s" : ""}` : t("Chargement…")}</p>
         </div>
-        <button type="button" onClick={surFermer} aria-label="Fermer le fil" className="rounded p-1 hover:bg-muted">
+        <button type="button" onClick={surFermer} aria-label={t("Fermer le fil")} className="rounded p-1 hover:bg-muted">
           <X className="size-4" aria-hidden />
         </button>
       </div>
@@ -133,7 +135,7 @@ export function FilDiscussion({
           canalId={canalId}
           parentId={racineId}
           candidats={candidats}
-          placeholder="Répondre dans le fil…"
+          placeholder={t("Répondre dans le fil…")}
           surEnvoye={(envoye) => setMessages((actuels) => fusionner(actuels ?? [], [envoye]))}
         />
       ) : null}

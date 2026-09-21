@@ -1,5 +1,6 @@
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { getT } from "@/lib/i18n/langue";
 
 type Ligne = { id: string; designation: string; quantite: number; prixUnitaire: number; tauxTVA: number };
 
@@ -19,16 +20,17 @@ export function CadreDocumentClient({ entrepriseId, logoCleStockage, nomEntrepri
   );
 }
 
-export function LignesDocumentClient({ lignes, montantHT, montantTVA, montantTTC }: { lignes: Ligne[]; montantHT: number; montantTVA: number; montantTTC: number }) {
+export async function LignesDocumentClient({ lignes, montantHT, montantTVA, montantTTC }: { lignes: Ligne[]; montantHT: number; montantTVA: number; montantTTC: number }) {
+  const t = await getT();
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-              <th className="px-3 py-2 font-medium">Désignation</th>
-              <th className="px-3 py-2 text-right font-medium">Qté</th>
-              <th className="px-3 py-2 text-right font-medium">Prix unit.</th>
+              <th className="px-3 py-2 font-medium">{t("Désignation")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("Qté")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("Prix unit.")}</th>
               <th className="px-3 py-2 text-right font-medium">TVA</th>
             </tr>
           </thead>
@@ -46,13 +48,13 @@ export function LignesDocumentClient({ lignes, montantHT, montantTVA, montantTTC
       </div>
       <div className="flex flex-col items-end gap-0.5 border-t bg-muted/20 px-3 py-3 text-sm">
         <p className="text-muted-foreground">
-          HT : <span className="tabular-nums text-foreground">{formaterFCFA(montantHT)}</span>
+          {t("HT :")} <span className="tabular-nums text-foreground">{formaterFCFA(montantHT)}</span>
         </p>
         <p className="text-muted-foreground">
-          TVA : <span className="tabular-nums text-foreground">{formaterFCFA(montantTVA)}</span>
+          {t("TVA :")} <span className="tabular-nums text-foreground">{formaterFCFA(montantTVA)}</span>
         </p>
         <p className="text-lg font-semibold">
-          Total TTC : <span className="tabular-nums">{formaterFCFA(montantTTC)}</span>
+          {t("Total TTC :")} <span className="tabular-nums">{formaterFCFA(montantTTC)}</span>
         </p>
       </div>
     </div>

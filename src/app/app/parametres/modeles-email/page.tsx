@@ -4,13 +4,16 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { recupererModele, VARIABLES_DISPONIBLES } from "@/lib/email/modeles";
 import { FormulaireModeleEmail } from "./formulaire-modele-email";
+import { getT } from "@/lib/i18n/langue";
+
 
 export default async function PageModelesEmail() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return <p className="text-muted-foreground">Seul un Administrateur peut modifier ces modèles.</p>;
+    return <p className="text-muted-foreground">{t("Seul un Administrateur peut modifier ces modèles.")}</p>;
   }
 
   const [modeleDevis, modeleFacture] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
@@ -23,13 +26,12 @@ export default async function PageModelesEmail() {
   return (
     <div className="max-w-2xl flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Modèles d&apos;email</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Modèles d'email")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Personnalisez le texte envoyé au client lorsqu&apos;un devis ou une facture lui est transmis par email. Le
-          PDF du document est toujours joint automatiquement.
+          {t("Personnalisez le texte envoyé au client lorsqu'un devis ou une facture lui est transmis par email. Le PDF du document est toujours joint automatiquement.")}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          Variables disponibles :
+          {t("Variables disponibles :")}
           {VARIABLES_DISPONIBLES.map((v) => (
             <code
               key={v.cle}

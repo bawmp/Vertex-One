@@ -7,6 +7,7 @@ import { avecEntreprise } from "@/db/client";
 import { utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-libelles";
+import { getT } from "@/lib/i18n/langue";
 
 /**
  * Choisit les modules auxquels un Manager ou un Employé (ou prestataire) a accès.
@@ -16,9 +17,10 @@ import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-li
  * l'entreprise de la cible sont relus en base, jamais pris dans la requête.
  */
 export async function definirModulesUtilisateur(utilisateurId: string, modules: string[] | null): Promise<{ erreur?: string } | null> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (utilisateurConnecte.role !== "ADMIN") return { erreur: "Seul l'Administrateur peut choisir les modules d'un collaborateur." };
+  if (utilisateurConnecte.role !== "ADMIN") return { erreur: t("Seul l'Administrateur peut choisir les modules d'un collaborateur.") };
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     // utilisateur reste en RLS permissive (Better-Auth) : le filtre entrepriseId est explicite, pas déduit.
@@ -26,8 +28,8 @@ export async function definirModulesUtilisateur(utilisateurId: string, modules: 
       .select({ role: utilisateur.role })
       .from(utilisateur)
       .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
-    if (!cible) return { erreur: "Collaborateur introuvable." };
-    if (cible.role !== "MANAGER" && cible.role !== "EMPLOYE") return { erreur: "Les modules ne se choisissent que pour un Manager ou un Employé." };
+    if (!cible) return { erreur: t("Collaborateur introuvable.") };
+    if (cible.role !== "MANAGER" && cible.role !== "EMPLOYE") return { erreur: t("Les modules ne se choisissent que pour un Manager ou un Employé.") };
 
     let aEnregistrer: string[] | null = null;
     if (modules) {

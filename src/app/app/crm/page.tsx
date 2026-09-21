@@ -13,8 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { FormulaireTacheCrm } from "./formulaire-tache-crm";
 import { FormulaireReunionCrm } from "./formulaire-reunion-crm";
 import { LigneTacheCrm } from "./ligne-tache-crm";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageAccueilCrm() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "VOIR")) redirect("/app");
@@ -133,13 +135,13 @@ export default async function PageAccueilCrm() {
   });
 
   const totalPipeline = donnees.pipelineParEtape.reduce((somme, p) => somme + p.montant, 0);
-  const t = traduire(utilisateurConnecte.langue);
+  const dico = traduire(utilisateurConnecte.langue);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(t.pages.crm.bienvenue, { nom: donnees.monNom })}</h1>
-        <p className="mt-1 text-muted-foreground">{t.pages.crm.sousTitre}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{interpoler(dico.pages.crm.bienvenue, { nom: donnees.monNom })}</h1>
+        <p className="mt-1 text-muted-foreground">{dico.pages.crm.sousTitre}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -149,7 +151,7 @@ export default async function PageAccueilCrm() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                 <Briefcase className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Mes Deals ouverts</CardDescription>
+              <CardDescription>{t("Mes Deals ouverts")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalDealsOuverts}</CardTitle>
           </CardHeader>
@@ -160,7 +162,7 @@ export default async function PageAccueilCrm() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                 <Target className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Mes Deals non touchés</CardDescription>
+              <CardDescription>{t("Mes Deals non touchés")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalDealsNonTouches}</CardTitle>
           </CardHeader>
@@ -171,7 +173,7 @@ export default async function PageAccueilCrm() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                 <Phone className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Mes appels aujourd&apos;hui</CardDescription>
+              <CardDescription>{t("Mes appels aujourd'hui")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.appelsAujourdhui}</CardTitle>
           </CardHeader>
@@ -182,7 +184,7 @@ export default async function PageAccueilCrm() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
                 <UserPlus className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Mes prospects</CardDescription>
+              <CardDescription>{t("Mes prospects")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalProspects}</CardTitle>
           </CardHeader>
@@ -193,7 +195,7 @@ export default async function PageAccueilCrm() {
         <div className="mb-2 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <ListChecks className="size-4" aria-hidden />
-            Mes tâches ouvertes
+            {t("Mes tâches ouvertes")}
           </h2>
           <FormulaireTacheCrm
             leads={donnees.leadsPourFormulaire}
@@ -206,12 +208,12 @@ export default async function PageAccueilCrm() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Objet</th>
-                  <th className="px-4 py-2.5 font-medium">Date d&apos;échéance</th>
-                  <th className="px-4 py-2.5 font-medium">État</th>
-                  <th className="px-4 py-2.5 font-medium">Priorité</th>
-                  <th className="px-4 py-2.5 font-medium">Relatif à</th>
-                  <th className="px-4 py-2.5 font-medium">Nom du contact</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Objet")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Date d'échéance")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("État")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Priorité")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Relatif à")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Nom du contact")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,9 +233,9 @@ export default async function PageAccueilCrm() {
             </table>
           </div>
           {donnees.tachesBrutes.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune tâche ouverte.</p>
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune tâche ouverte.")}</p>
           ) : (
-            <p className="border-t px-4 py-2 text-xs text-muted-foreground">Total enregistrements {donnees.tachesBrutes.length}</p>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t("Total enregistrements {n}", { n: donnees.tachesBrutes.length })}</p>
           )}
         </Card>
       </div>
@@ -242,7 +244,7 @@ export default async function PageAccueilCrm() {
         <div className="mb-2 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Video className="size-4" aria-hidden />
-            Mes réunions
+            {t("Mes réunions")}
           </h2>
           <FormulaireReunionCrm
             leads={donnees.leadsPourFormulaire}
@@ -255,11 +257,11 @@ export default async function PageAccueilCrm() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Titre</th>
-                  <th className="px-4 py-2.5 font-medium">De</th>
-                  <th className="px-4 py-2.5 font-medium">Au</th>
-                  <th className="px-4 py-2.5 font-medium">Relatif à</th>
-                  <th className="px-4 py-2.5 font-medium">Nom du contact</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Titre")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("De")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Au")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Relatif à")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("Nom du contact")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,10 +269,10 @@ export default async function PageAccueilCrm() {
                   <tr key={r.id} className="border-b last:border-0">
                     <td className="px-4 py-2.5">{r.titre}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">
-                      {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(r.dateDebut)}
+                      {new Intl.DateTimeFormat(t.locale, { dateStyle: "short", timeStyle: "short" }).format(r.dateDebut)}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
-                      {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(r.dateFin)}
+                      {new Intl.DateTimeFormat(t.locale, { dateStyle: "short", timeStyle: "short" }).format(r.dateFin)}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.leadNom ?? r.dealTitre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.contactNom ?? "—"}</td>
@@ -280,42 +282,42 @@ export default async function PageAccueilCrm() {
             </table>
           </div>
           {donnees.reunionsBrutes.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune réunion trouvée.</p>
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune réunion trouvée.")}</p>
           ) : (
-            <p className="border-t px-4 py-2 text-xs text-muted-foreground">Total enregistrements {donnees.reunionsBrutes.length}</p>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t("Total enregistrements {n}", { n: donnees.reunionsBrutes.length })}</p>
           )}
         </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">Prospects d&apos;aujourd&apos;hui</h2>
+          <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Prospects d'aujourd'hui")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
               {donnees.prospectsAujourdhui.map((l) => (
                 <div key={l.id} className="px-4 py-2.5 text-sm text-muted-foreground">
-                  {new Intl.DateTimeFormat("fr-FR", { timeStyle: "short" }).format(l.creeLe)}
+                  {new Intl.DateTimeFormat(t.locale, { timeStyle: "short" }).format(l.creeLe)}
                 </div>
               ))}
               {donnees.prospectsAujourdhui.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun prospect aujourd&apos;hui.</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun prospect aujourd'hui.")}</p>
               ) : null}
             </div>
           </Card>
         </div>
 
         <div>
-          <h2 className="mb-2 text-sm font-medium text-muted-foreground">Mes Deals en clôture ce mois-ci</h2>
+          <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Mes Deals en clôture ce mois-ci")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
               {donnees.dealsClotureCeMois.map((d) => (
                 <div key={d.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montant)}</span>
-                  <Badge variant={STATUT_DEAL[d.statut]?.variante ?? "neutral"}>{STATUT_DEAL[d.statut]?.libelle ?? d.statut}</Badge>
+                  <Badge variant={STATUT_DEAL[d.statut]?.variante ?? "neutral"}>{t(STATUT_DEAL[d.statut]?.libelle ?? d.statut)}</Badge>
                 </div>
               ))}
               {donnees.dealsClotureCeMois.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun deal en clôture ce mois-ci.</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun deal en clôture ce mois-ci.")}</p>
               ) : null}
             </div>
           </Card>
@@ -325,7 +327,7 @@ export default async function PageAccueilCrm() {
       <div>
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <TrendingUp className="size-4" aria-hidden />
-          Mon pipeline Deals par étape
+          {t("Mon pipeline Deals par étape")}
         </h2>
         <Card>
           <CardContent className="flex flex-col gap-2.5">
@@ -335,7 +337,7 @@ export default async function PageAccueilCrm() {
               return (
                 <div key={p.statut} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between text-sm">
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? p.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     <span className="tabular-nums font-medium text-foreground">
                       {p.total} — {formaterFCFA(p.montant)}
                     </span>

@@ -16,8 +16,10 @@ import { FormulaireEnvoiFacture } from "./formulaire-envoi-facture";
 import { BoutonPaiementEnLigne } from "./bouton-paiement-en-ligne";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDetailFacture({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -43,7 +45,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
   if (!donnees) notFound();
   const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient } = donnees;
 
-  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
+  const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
   const resumeReponse =
     laFacture.reponseClient === "ACCEPTEE"
       ? { ton: "succes" as const, texte: `Acceptée par le client${quand(laFacture.reponseClientLe)}.` }
@@ -62,13 +64,13 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{laFacture.numero}</h1>
-            <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? laFacture.statut}</Badge>
+            <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? laFacture.statut)}</Badge>
           </div>
           <p className="text-muted-foreground">
             {leProspect?.nom}
             {leCompte ? ` — ${leCompte.nom}` : ""}
           </p>
-          {monEntreprise.niu ? <p className="text-xs text-muted-foreground">NIU émetteur : {monEntreprise.niu}</p> : null}
+          {monEntreprise.niu ? <p className="text-xs text-muted-foreground">{t("NIU émetteur : {niu}", { niu: monEntreprise.niu })}</p> : null}
         </div>
         <Button
           variant="outline"
@@ -77,7 +79,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           nativeButton={false}
         >
           <Download data-icon="inline-start" aria-hidden />
-          Télécharger le PDF
+          {t("Télécharger le PDF")}
         </Button>
       </div>
 
@@ -95,9 +97,9 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Désignation</th>
-              <th className="px-4 py-2.5 text-right font-medium">Qté</th>
-              <th className="px-4 py-2.5 text-right font-medium">Prix unit.</th>
+              <th className="px-4 py-2.5 font-medium">{t("Désignation")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("Qté")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("Prix unit.")}</th>
               <th className="px-4 py-2.5 text-right font-medium">TVA</th>
             </tr>
           </thead>
@@ -115,19 +117,19 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         </div>
         <CardContent className="flex flex-col items-end gap-1 border-t bg-muted/20 py-3 text-sm">
           <p className="text-muted-foreground">
-            HT : <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantHT)}</span>
+            {t("HT :")} <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantHT)}</span>
           </p>
           <p className="text-muted-foreground">
-            TVA : <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantTVA)}</span>
+            {t("TVA :")} <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantTVA)}</span>
           </p>
-          <p className="text-lg font-medium">TTC : <span className="tabular-nums">{formaterFCFA(laFacture.montantTTC)}</span></p>
+          <p className="text-lg font-medium">{t("TTC :")} <span className="tabular-nums">{formaterFCFA(laFacture.montantTTC)}</span></p>
         </CardContent>
       </Card>
 
       {avoir ? (
         <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <XCircle className="size-4 shrink-0" aria-hidden />
-          Facture annulée — motif : {avoir.motif}
+          {t("Facture annulée — motif : {motif}", { motif: avoir.motif })}
         </div>
       ) : null}
 
@@ -135,7 +137,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         <div>
           <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <CreditCard className="size-4" aria-hidden />
-            Paiements
+            {t("Paiements")}
           </h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
@@ -154,7 +156,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4">
           {!paiementEnLigneDisponible ? (
             <p className="text-sm text-muted-foreground">
-              Paiement en ligne disponible à partir du forfait Pro — en attendant, pointez le règlement manuellement.
+              {t("Paiement en ligne disponible à partir du forfait Pro — en attendant, pointez le règlement manuellement.")}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
@@ -162,12 +164,12 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
             <form action={marquerFacturePayee.bind(null, laFacture.id)}>
               <Button type="submit">
                 <CheckCircle2 data-icon="inline-start" aria-hidden />
-                Marquer comme payée
+                {t("Marquer comme payée")}
               </Button>
             </form>
             <form action={annulerFacture.bind(null, laFacture.id, "Annulée depuis la fiche facture")}>
               <Button type="submit" variant="destructive">
-                Annuler (avoir)
+                {t("Annuler (avoir)")}
               </Button>
             </form>
           </div>

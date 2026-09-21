@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { getT } from "@/lib/i18n/langue";
 import { refusImport } from "@/lib/import/droits";
 import { disponible, type Fonctionnalite } from "@/lib/plans";
 import { assainirCorrespondance, DEFINITIONS, proposerCorrespondance, TYPES_IMPORT, type TypeImport } from "@/lib/import/definitions";
@@ -32,17 +33,18 @@ function typeValide(brut: FormDataEntryValue | null): TypeImport | null {
 
 /** Étape 1 : lit le fichier (rien n'est enregistré) et propose l'association des colonnes. */
 export async function analyserFichierImport(formData: FormData): Promise<ApercuFichier> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) return { ok: false, erreur: "Session expirée : reconnectez-vous." };
+  if (!utilisateurConnecte) return { ok: false, erreur: t("Session expirée : reconnectez-vous.") };
   const type = typeValide(formData.get("type"));
-  if (!type) return { ok: false, erreur: "Type de données inconnu." };
-  const refus = refusImport(utilisateurConnecte, type);
+  if (!type) return { ok: false, erreur: t("Type de données inconnu.") };
+  const refus = refusImport(utilisateurConnecte, type, t);
   if (refus) return { ok: false, erreur: refus };
 
   const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: "Choisissez un fichier CSV ou Excel." };
+  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: t("Choisissez un fichier CSV ou Excel.") };
   const tableau = await lireTableau(fichier);
-  if (!tableau.ok) return tableau;
+  if (!tableau.ok) return { ok: false, erreur: t(tableau.erreur, tableau.valeurs) };
 
   return {
     ok: true,
@@ -59,30 +61,31 @@ export async function analyserFichierImport(formData: FormData): Promise<ApercuF
  * ce qui sera fait.
  */
 export async function lancerImport(formData: FormData): Promise<ResultatImport> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) return { ok: false, erreur: "Session expirée : reconnectez-vous." };
+  if (!utilisateurConnecte) return { ok: false, erreur: t("Session expirée : reconnectez-vous.") };
   const type = typeValide(formData.get("type"));
-  if (!type) return { ok: false, erreur: "Type de données inconnu." };
-  const refus = refusImport(utilisateurConnecte, type);
+  if (!type) return { ok: false, erreur: t("Type de données inconnu.") };
+  const refus = refusImport(utilisateurConnecte, type, t);
   if (refus) return { ok: false, erreur: refus };
 
   const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: "Choisissez un fichier CSV ou Excel." };
+  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: t("Choisissez un fichier CSV ou Excel.") };
   const tableau = await lireTableau(fichier);
-  if (!tableau.ok) return tableau;
+  if (!tableau.ok) return { ok: false, erreur: t(tableau.erreur, tableau.valeurs) };
 
   let brute: unknown = null;
   try {
     brute = JSON.parse(String(formData.get("correspondance") ?? "{}"));
   } catch {
-    return { ok: false, erreur: "Association des colonnes illisible." };
+    return { ok: false, erreur: t("Association des colonnes illisible.") };
   }
   const correspondance = assainirCorrespondance(brute, DEFINITIONS[type].champs, tableau.entetes);
   const manquants = champsObligatoiresManquants(type, correspondance);
-  if (manquants.length > 0) return { ok: false, erreur: `Associez d'abord une colonne à : ${manquants.join(", ")}.` };
+  if (manquants.length > 0) return { ok: false, erreur: t("Associez d'abord une colonne à : {liste}.", { liste: manquants.map((c) => t(c)).join(", ") }) };
 
   const lignes = appliquerCorrespondance(tableau.lignes, correspondance);
-  if (lignes.length === 0) return { ok: false, erreur: "Aucune ligne exploitable avec cette association de colonnes." };
+  if (lignes.length === 0) return { ok: false, erreur: t("Aucune ligne exploitable avec cette association de colonnes.") };
 
   const simulation = formData.get("simulation") === "1";
   const contactProjetsId = String(formData.get("contactProjetsId") ?? "").trim() || undefined;
@@ -102,9 +105,9 @@ export async function lancerImport(formData: FormData): Promise<ResultatImport> 
     return { ok: true, simulation: false, rapport };
   } catch (e) {
     if (e instanceof SimulationTerminee) return { ok: true, simulation: true, rapport: e.rapport };
-    if (e instanceof Error && e.message === "ABONNEMENT") return { ok: false, erreur: "Votre abonnement ne permet pas cet import actuellement." };
+    if (e instanceof Error && e.message === "ABONNEMENT") return { ok: false, erreur: t("Votre abonnement ne permet pas cet import actuellement.") };
     console.error("Import de données échoué", e);
-    return { ok: false, erreur: "L'import a échoué et rien n'a été enregistré. Réessayez ; si le problème persiste, découpez le fichier en plusieurs parties." };
+    return { ok: false, erreur: t("L'import a échoué et rien n'a été enregistré. Réessayez ; si le problème persiste, découpez le fichier en plusieurs parties.") };
   }
 }
 

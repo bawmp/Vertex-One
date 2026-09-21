@@ -9,27 +9,29 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerContact } from "@/lib/actions/contact";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireNouveauContact({ comptes }: { comptes: { id: string; nom: string }[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerContact, null);
 
   return (
     <Card className="max-w-lg">
       <CardHeader>
-        <CardTitle>Nouveau contact</CardTitle>
-        <CardDescription>Pour un client déjà connu, sans passer par un lead.</CardDescription>
+        <CardTitle>{t("Nouveau contact")}</CardTitle>
+        <CardDescription>{t("Pour un client déjà connu, sans passer par un lead.")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="nom">Nom</Label>
+            <Label htmlFor="nom">{t("Nom")}</Label>
             <Input id="nom" name="nom" required minLength={2} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="compteId">Compte (société, si B2B)</Label>
+            <Label htmlFor="compteId">{t("Compte (société, si B2B)")}</Label>
             <Select id="compteId" name="compteId" defaultValue="">
-              <option value="">Aucun</option>
+              <option value="">{t("Aucun")}</option>
               {comptes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nom}
@@ -39,22 +41,22 @@ export function FormulaireNouveauContact({ comptes }: { comptes: { id: string; n
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="fonction">Fonction</Label>
-            <Input id="fonction" name="fonction" placeholder="ex : Directeur achats" />
+            <Label htmlFor="fonction">{t("Fonction")}</Label>
+            <Input id="fonction" name="fonction" placeholder={t("ex : Directeur achats")} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="telephone">Téléphone (WhatsApp de préférence)</Label>
+            <Label htmlFor="telephone">{t("Téléphone (WhatsApp de préférence)")}</Label>
             <Input id="telephone" name="telephone" required />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("Email")}</Label>
             <Input id="email" name="email" type="email" />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">{t("Notes")}</Label>
             <Textarea id="notes" name="notes" rows={3} />
           </div>
 
@@ -62,7 +64,7 @@ export function FormulaireNouveauContact({ comptes }: { comptes: { id: string; n
 
           <Button type="submit" disabled={enCours}>
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer le contact"}
+            {enCours ? t("Création…") : t("Créer le contact")}
           </Button>
         </form>
       </CardContent>

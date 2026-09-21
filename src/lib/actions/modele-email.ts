@@ -6,11 +6,13 @@ import { avecEntreprise } from "@/db/client";
 import { modeleEmail, typeModeleEmail } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaModele = z.object({
   type: z.enum(typeModeleEmail.enumValues),
-  objet: z.string().trim().min(1, "L'objet ne peut pas être vide."),
-  corps: z.string().trim().min(1, "Le message ne peut pas être vide."),
+  objet: z.string().trim().min(1, m("L'objet ne peut pas être vide.")),
+  corps: z.string().trim().min(1, m("Le message ne peut pas être vide.")),
 });
 
 export type EtatModeleEmail = { erreur?: string; enregistre?: boolean } | null;
@@ -21,10 +23,11 @@ export type EtatModeleEmail = { erreur?: string; enregistre?: boolean } | null;
  * l'Administrateur (PARAMETRES/MODIFIER), même garde que les infos légales.
  */
 export async function enregistrerModeleEmail(_etat: EtatModeleEmail, formData: FormData): Promise<EtatModeleEmail> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) return { erreur: "Session expirée." };
+  if (!utilisateurConnecte) return { erreur: t("Session expirée.") };
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier les modèles d'email." };
+    return { erreur: t("Vous n'avez pas le droit de modifier les modèles d'email.") };
   }
 
   const analyse = schemaModele.safeParse({
@@ -34,7 +37,7 @@ export async function enregistrerModeleEmail(_etat: EtatModeleEmail, formData: F
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { type, objet, corps } = analyse.data;

@@ -8,8 +8,10 @@ import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { FormulaireAnnonce } from "./formulaire-annonce";
 import { LigneAnnonce, type PieceAnnonce } from "./ligne-annonce";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageAnnonces() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -51,7 +53,7 @@ export default async function PageAnnonces() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Les Annonces sont disponibles à partir du forfait Pro.</p>
+        <p className="text-muted-foreground">{t("Les Annonces sont disponibles à partir du forfait Pro.")}</p>
       </div>
     );
   }
@@ -64,7 +66,7 @@ export default async function PageAnnonces() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <Megaphone className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">One Announcements</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("One Announcements")}</h1>
       </div>
 
       {peutCreer ? <FormulaireAnnonce /> : null}
@@ -82,7 +84,7 @@ export default async function PageAnnonces() {
             peutGerer={peutGerer}
           />
         ))}
-        {annonces.length === 0 ? <p className="text-sm text-muted-foreground">Aucune annonce pour le moment.</p> : null}
+        {annonces.length === 0 ? <p className="text-sm text-muted-foreground">{t("Aucune annonce pour le moment.")}</p> : null}
       </div>
     </div>
   );

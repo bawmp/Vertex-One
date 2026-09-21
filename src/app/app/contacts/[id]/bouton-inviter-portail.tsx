@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { creerInvitation } from "@/lib/actions/invitation";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Assistance client (échange du 2026-09-13) — invite ce Contact précis au
@@ -14,6 +15,7 @@ import { creerInvitation } from "@/lib/actions/invitation";
  * invitation existant, jamais une nouvelle mécanique de création de compte.
  */
 export function BoutonInviterPortail({ contactId, emailActuel }: { contactId: string; emailActuel: string | null }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerInvitation, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -25,7 +27,7 @@ export function BoutonInviterPortail({ contactId, emailActuel }: { contactId: st
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <UserPlus data-icon="inline-start" aria-hidden />
-        Inviter au portail
+        {t("Inviter au portail")}
       </Button>
     );
   }
@@ -35,15 +37,15 @@ export function BoutonInviterPortail({ contactId, emailActuel }: { contactId: st
       <input type="hidden" name="roleProposee" value="CLIENT" />
       <input type="hidden" name="contactId" value={contactId} />
       <div className="flex flex-col gap-1">
-        <Label htmlFor="email-invitation-portail">Email</Label>
+        <Label htmlFor="email-invitation-portail">{t("Email")}</Label>
         <Input id="email-invitation-portail" name="email" type="email" defaultValue={emailActuel ?? ""} required className="w-56" />
       </div>
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? <Spinner className="size-3.5" /> : null}
-        Envoyer l&apos;invitation
+        {t("Envoyer l'invitation")}
       </Button>
       <Button type="button" size="sm" variant="ghost" onClick={() => setOuvert(false)}>
-        Annuler
+        {t("Annuler")}
       </Button>
       {etat?.erreur ? <p className="w-full text-xs text-destructive">{etat.erreur}</p> : null}
     </form>

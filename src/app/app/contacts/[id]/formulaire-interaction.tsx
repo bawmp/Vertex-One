@@ -8,32 +8,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ajouterInteraction } from "@/lib/actions/contact";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireInteraction({ contactId }: { contactId: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(ajouterInteraction, null);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Nouvelle interaction</CardTitle>
+        <CardTitle>{t("Nouvelle interaction")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-3">
           <input type="hidden" name="contactId" value={contactId} />
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="type">Type</Label>
+            <Label htmlFor="type">{t("Type")}</Label>
             <Select id="type" name="type" defaultValue="note" className="max-w-56">
-              <option value="appel">Appel</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">Email</option>
-              <option value="rendez-vous">Rendez-vous</option>
-              <option value="note">Note</option>
+              <option value="appel">{t("Appel")}</option>
+              <option value="whatsapp">{t("WhatsApp")}</option>
+              <option value="email">{t("Email")}</option>
+              <option value="rendez-vous">{t("Rendez-vous")}</option>
+              <option value="note">{t("Note")}</option>
             </Select>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="contenu">Note</Label>
+            <Label htmlFor="contenu">{t("Note")}</Label>
             <Textarea id="contenu" name="contenu" required rows={3} />
           </div>
 
@@ -41,7 +43,7 @@ export function FormulaireInteraction({ contactId }: { contactId: string }) {
 
           <Button type="submit" disabled={enCours} className="self-start">
             {enCours ? <Spinner /> : null}
-            {enCours ? "Ajout…" : "Ajouter"}
+            {enCours ? t("Ajout…") : t("Ajouter")}
           </Button>
         </form>
       </CardContent>

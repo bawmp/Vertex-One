@@ -7,13 +7,15 @@ import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireInfosLegales } from "./formulaire-infos-legales";
 import { FormulaireGroupe } from "./formulaire-groupe";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageInfosLegales() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return <p className="text-muted-foreground">Seul un Administrateur peut modifier ces informations.</p>;
+    return <p className="text-muted-foreground">{t("Seul un Administrateur peut modifier ces informations.")}</p>;
   }
 
   const [monEntreprise] = await db.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -35,15 +37,14 @@ export default async function PageInfosLegales() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="text-2xl font-semibold tracking-tight">Informations légales</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("Informations légales")}</h1>
       <p className="mt-1 mb-6 text-muted-foreground">
-        Le NIU est obligatoire avant d&apos;émettre le moindre devis — c&apos;est la mention la plus
-        surveillée par la DGI.
+        {t("Le NIU est obligatoire avant d'émettre le moindre devis — c'est la mention la plus surveillée par la DGI.")}
       </p>
       <Card>
         <CardHeader>
-          <CardTitle>Identification de l&apos;entreprise</CardTitle>
-          <CardDescription>Utilisée sur tous les devis et factures émis.</CardDescription>
+          <CardTitle>{t("Identification de l'entreprise")}</CardTitle>
+          <CardDescription>{t("Utilisée sur tous les devis et factures émis.")}</CardDescription>
         </CardHeader>
         <CardContent>
           <FormulaireInfosLegales entreprise={monEntreprise} />
@@ -52,8 +53,8 @@ export default async function PageInfosLegales() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Groupe d&apos;entreprises</CardTitle>
-          <CardDescription>Relie cette entreprise à d&apos;autres filiales du même propriétaire — vue d&apos;ensemble uniquement, aucune donnée partagée.</CardDescription>
+          <CardTitle>{t("Groupe d'entreprises")}</CardTitle>
+          <CardDescription>{t("Relie cette entreprise à d'autres filiales du même propriétaire — vue d'ensemble uniquement, aucune donnée partagée.")}</CardDescription>
         </CardHeader>
         <CardContent>
           <FormulaireGroupe groupe={monGroupe} filiales={filiales} />

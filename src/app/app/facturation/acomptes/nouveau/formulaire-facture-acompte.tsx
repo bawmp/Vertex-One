@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { creerFactureAcompte } from "@/lib/actions/facture-acompte";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireFactureAcompte({ dealId, contactId }: { dealId?: string; contactId?: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerFactureAcompte, null);
 
   return (
@@ -19,7 +21,7 @@ export function FormulaireFactureAcompte({ dealId, contactId }: { dealId?: strin
           {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="montant">Montant de l&apos;avance (FCFA)</Label>
+            <Label htmlFor="montant">{t("Montant de l'avance (FCFA)")}</Label>
             <Input id="montant" name="montant" type="number" min="1" required autoFocus />
           </div>
 
@@ -27,7 +29,7 @@ export function FormulaireFactureAcompte({ dealId, contactId }: { dealId?: strin
 
           <Button type="submit" disabled={enCours} className="self-start">
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer la facture d'acompte"}
+            {enCours ? t("Création…") : t("Créer la facture d'acompte")}
           </Button>
         </form>
       </CardContent>

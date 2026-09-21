@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/contexte";
 import { Button } from "@/components/ui/button";
 import { changerStatutDeal } from "@/lib/actions/deal";
 import { STATUT_DEAL } from "@/lib/libelles";
@@ -7,6 +8,7 @@ import { STATUT_DEAL } from "@/lib/libelles";
 const STATUTS = ["QUALIFICATION", "PROPOSITION", "NEGOCIATION", "GAGNE", "PERDU"] as const;
 
 export function ChangeurStatutDeal({ dealId, statutActuel }: { dealId: string; statutActuel: string }) {
+  const t = useT();
   return (
     <div className="inline-flex w-fit flex-wrap gap-1 rounded-lg border bg-muted/40 p-1">
       {STATUTS.map((valeur) => {
@@ -14,7 +16,7 @@ export function ChangeurStatutDeal({ dealId, statutActuel }: { dealId: string; s
         return (
           <form key={valeur} action={changerStatutDeal.bind(null, dealId, valeur)}>
             <Button type="submit" variant={actif ? "default" : "ghost"} size="sm" className={actif ? "shadow-sm" : "text-muted-foreground"}>
-              {STATUT_DEAL[valeur].libelle}
+              {t(STATUT_DEAL[valeur].libelle)}
             </Button>
           </form>
         );

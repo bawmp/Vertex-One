@@ -11,8 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { STATUT_DEAL } from "@/lib/libelles";
 import { libelleDossier } from "@/lib/vocabulaire";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageTableauDeBord() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) return null;
 
@@ -89,9 +91,9 @@ export default async function PageTableauDeBord() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Tableau de bord")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Connecté en tant que <span className="font-medium text-foreground">{utilisateurConnecte.role}</span>.
+          {t("Connecté en tant que")} <span className="font-medium text-foreground">{utilisateurConnecte.role}</span>.
         </p>
       </div>
 
@@ -102,7 +104,7 @@ export default async function PageTableauDeBord() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
                 <Wallet className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Chiffre d&apos;affaires du mois</CardDescription>
+              <CardDescription>{t("Chiffre d'affaires du mois")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{formaterFCFA(caDuMois)}</CardTitle>
           </CardHeader>
@@ -114,7 +116,7 @@ export default async function PageTableauDeBord() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
                 <AlertTriangle className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Factures en retard</CardDescription>
+              <CardDescription>{t("Factures en retard")}</CardDescription>
             </div>
             <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{facturesEnRetard.length}</CardTitle>
           </CardHeader>
@@ -140,7 +142,7 @@ export default async function PageTableauDeBord() {
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                 <Users className="size-4.5" aria-hidden />
               </span>
-              <CardDescription>Pipeline commercial</CardDescription>
+              <CardDescription>{t("Pipeline commercial")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
@@ -150,7 +152,7 @@ export default async function PageTableauDeBord() {
               return (
                 <div key={p.statut} className="flex flex-col gap-1">
                   <div className="flex items-center justify-between text-sm">
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? p.statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     <span className="font-medium text-foreground">{p.total}</span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -159,7 +161,7 @@ export default async function PageTableauDeBord() {
                 </div>
               );
             })}
-            {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">Aucun deal.</p> : null}
+            {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">{t("Aucun deal.")}</p> : null}
           </CardContent>
         </Card>
       </div>
@@ -172,7 +174,7 @@ export default async function PageTableauDeBord() {
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                   <ClipboardList className="size-4.5" aria-hidden />
                 </span>
-                <CardDescription>Tâches en retard</CardDescription>
+                <CardDescription>{t("Tâches en retard")}</CardDescription>
               </div>
               <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{tachesEnRetard.length}</CardTitle>
             </CardHeader>
@@ -197,7 +199,7 @@ export default async function PageTableauDeBord() {
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600 dark:bg-stone-500/10 dark:text-stone-300">
                   <FolderClock className="size-4.5" aria-hidden />
                 </span>
-                <CardDescription>{vocabDossier.pluriel} sans travail en cours</CardDescription>
+                <CardDescription>{t("{objet} sans travail en cours", { objet: t(vocabDossier.pluriel) })}</CardDescription>
               </div>
               <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{dossiersSansProjetActif.length}</CardTitle>
             </CardHeader>

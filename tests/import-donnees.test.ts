@@ -8,6 +8,10 @@ import { DEFINITIONS, proposerCorrespondance, type TypeImport } from "@/lib/impo
 import { versTableau } from "@/lib/import/fichier";
 import { appliquerCorrespondance, executerImport, SimulationTerminee, type Rapport } from "@/lib/import/moteur";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
+import { traducteur } from "@/lib/i18n/catalogue";
+
+/** Message d'un rapport, valeurs remplacées, dans la langue française d'origine. */
+const texte = (p: { message: string; valeurs?: Record<string, string | number> }) => traducteur("fr")(p.message, p.valeurs);
 
 const suffixe = Math.random().toString(36).slice(2, 8);
 const nomA = `TEST Import A ${suffixe}`;
@@ -90,8 +94,8 @@ describe("Import — contacts", () => {
     const rapport = await lancer(adminA, "CONTACTS", csv);
     expect(rapport.crees).toBe(3);
     expect(rapport.resume).toContainEqual({ libelle: "Sociétés créées", nombre: 2 }); // Alpha (une seule fois) et Beta
-    expect(rapport.avertissements.map((a) => a.message).join(" ")).toContain("Responsables absents");
-    expect(rapport.avertissements.map((a) => a.message).join(" ")).toContain("sans téléphone");
+    expect(rapport.avertissements.map(texte).join(" ")).toContain("Responsables absents");
+    expect(rapport.avertissements.map(texte).join(" ")).toContain("sans téléphone");
 
     const { contacts, comptes } = await avecEntreprise(idA, async (tx) => ({ contacts: await tx.select().from(contact), comptes: await tx.select().from(compteClient) }));
     expect(comptes.map((c) => c.nom).sort()).toEqual(["Société Alpha", "Société Beta"]);
@@ -203,7 +207,7 @@ describe("Import — devis et factures historiques (export Zoho Books)", () => {
     expect(factures.some((f) => f.numero === "INV-000103")).toBe(false);
     expect(ecritures).toHaveLength(0);
     // Le total du fichier (238 500) diffère de la somme des lignes : signalé, jamais retenu en silence.
-    expect(rapport.avertissements.map((a) => a.message).join(" ")).toContain("INV-000101");
+    expect(rapport.avertissements.map(texte).join(" ")).toContain("INV-000101");
     // « Société Alpha » existait (import de contacts) : sa facture est rattachée à son premier contact et à la société ;
     // seul « Client Historique SA » est créé.
     expect(rapport.resume).toContainEqual({ libelle: "Clients créés", nombre: 1 });
@@ -230,7 +234,7 @@ describe("Import — devis et factures historiques (export Zoho Books)", () => {
     expect(qt1.montantHT).toBe(100000);
     expect(d.find((x) => x.numero === "QT-002")?.statut).toBe("REFUSE");
     expect(l).toHaveLength(2);
-    expect(rapport.avertissements.map((a) => a.message).join(" ")).toContain("19,25");
+    expect(rapport.avertissements.map(texte).join(" ")).toContain("19,25");
   }, 120_000);
 
   test("un fichier sans aucun montant est refusé ligne par ligne, sans rien écrire", async () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { memoriserLangue } from "@/lib/i18n/cookie-langue";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { authClient } from "@/lib/auth-client";
@@ -17,6 +18,7 @@ export function FormulairePreferences({ langue }: { langue: Langue }) {
   const { theme: themeActifNextThemes, setTheme } = useTheme();
 
   async function changerLangue(nouvelle: Langue) {
+    memoriserLangue(nouvelle);
     await authClient.updateUser({ langue: nouvelle });
     router.refresh();
   }

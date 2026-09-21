@@ -9,17 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { STATUT_DEAL } from "@/lib/libelles";
 import { changerStatutDeal } from "@/lib/actions/deal";
+import { useT } from "@/lib/i18n/contexte";
 
 type Deal = { id: string; titre: string; montant: number; statut: string; contactNom: string; compteNom: string | null };
 type Vue = "kanban" | "liste";
 
 const ORDRE_STATUTS = ["QUALIFICATION", "PROPOSITION", "NEGOCIATION", "GAGNE", "PERDU"];
 
-function formaterMontant(n: number): string {
-  return new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
+function formaterMontant(n: number, locale: string): string {
+  return new Intl.NumberFormat(locale).format(n) + " FCFA";
 }
 
 export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier: boolean }) {
+  const t = useT();
   const [vue, setVue] = useState<Vue>("kanban");
   const [recherche, setRecherche] = useState("");
   const [donnees, setDonnees] = useState(deals);
@@ -56,13 +58,13 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
       <div className="flex items-center justify-between gap-3">
         <div className="relative w-full max-w-xs">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un deal…" className="pl-8" aria-label="Rechercher un deal" />
+          <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder={t("Rechercher un deal…")} className="pl-8" aria-label={t("Rechercher un deal")} />
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button variant={vue === "kanban" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setVue("kanban")} aria-label="Vue Kanban">
+          <Button variant={vue === "kanban" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setVue("kanban")} aria-label={t("Vue Kanban")}>
             <LayoutGrid className="size-4" aria-hidden />
           </Button>
-          <Button variant={vue === "liste" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setVue("liste")} aria-label="Vue liste">
+          <Button variant={vue === "liste" ? "secondary" : "ghost"} size="icon-sm" onClick={() => setVue("liste")} aria-label={t("Vue liste")}>
             <List className="size-4" aria-hidden />
           </Button>
         </div>
@@ -88,10 +90,10 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
               >
                 <div className="flex flex-col gap-0.5 px-1">
                   <div className="flex items-center justify-between">
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? statut}</Badge>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? statut)}</Badge>
                     <span className="text-xs text-muted-foreground">{cartes.length}</span>
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">{formaterMontant(total)}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{formaterMontant(total, t.locale)}</span>
                 </div>
                 <div className="flex min-h-16 flex-col gap-2">
                   {cartes.map((d) => (
@@ -110,7 +112,7 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
                         <CardContent className="flex flex-col gap-1 p-3">
                           <p className="text-sm font-medium">{d.titre}</p>
                           <p className="text-xs text-muted-foreground">{d.compteNom ?? d.contactNom}</p>
-                          <p className="text-xs font-medium">{formaterMontant(d.montant)}</p>
+                          <p className="text-xs font-medium">{formaterMontant(d.montant, t.locale)}</p>
                         </CardContent>
                       </Card>
                     </Link>
@@ -135,14 +137,14 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formaterMontant(d.montant)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
+                    <span className="text-xs text-muted-foreground">{formaterMontant(d.montant, t.locale)}</span>
+                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </div>
                 </Link>
               );
             })}
             {donneesFiltrees.length === 0 ? (
-              <p className="px-4 py-8 text-center text-muted-foreground">{terme ? "Aucun deal ne correspond à cette recherche." : "Aucun deal pour le moment."}</p>
+              <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun deal ne correspond à cette recherche.") : t("Aucun deal pour le moment.")}</p>
             ) : null}
           </div>
         </Card>

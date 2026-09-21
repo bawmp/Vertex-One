@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Propose d'activer les notifications du navigateur (nouveaux messages pendant que l'onglet est masqué). Elles ne
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
  * messages directs restés sans réponse sont aussi envoyés par email.
  */
 export function ActiverNotifications() {
+  const t = useT();
   const [etat, setEtat] = useState<NotificationPermission | "indisponible">("indisponible");
 
   // Lecture de la permission après le montage : elle n'existe pas côté serveur (évite un écart d'hydratation).
@@ -22,7 +24,7 @@ export function ActiverNotifications() {
   return (
     <Button type="button" variant="outline" size="sm" onClick={() => Notification.requestPermission().then(setEtat)} className="w-full">
       <Bell data-icon="inline-start" aria-hidden />
-      Activer les notifications
+      {t("Activer les notifications")}
     </Button>
   );
 }

@@ -6,8 +6,10 @@ import { Send, CheckCircle2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { envoyerFacture } from "@/lib/actions/facture";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireEnvoiFacture({ factureId, peutPersonnaliserModele }: { factureId: string; peutPersonnaliserModele: boolean }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(envoyerFacture.bind(null, factureId), null);
 
   return (
@@ -15,7 +17,7 @@ export function FormulaireEnvoiFacture({ factureId, peutPersonnaliserModele }: {
       <div className="flex items-center gap-3">
         <Button type="submit" variant="outline" disabled={enCours}>
           {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
-          {enCours ? "Envoi en cours…" : "Envoyer par email"}
+          {enCours ? t("Envoi en cours…") : t("Envoyer par email")}
         </Button>
         {peutPersonnaliserModele ? (
           <Link
@@ -23,7 +25,7 @@ export function FormulaireEnvoiFacture({ factureId, peutPersonnaliserModele }: {
             className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             <Settings2 className="size-3.5" aria-hidden />
-            Personnaliser le message
+            {t("Personnaliser le message")}
           </Link>
         ) : null}
       </div>
@@ -33,7 +35,7 @@ export function FormulaireEnvoiFacture({ factureId, peutPersonnaliserModele }: {
       {etat?.envoye ? (
         <p className="flex animate-in fade-in items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="size-4" aria-hidden />
-          Email envoyé avec succès.
+          {t("Email envoyé avec succès.")}
         </p>
       ) : null}
     </form>

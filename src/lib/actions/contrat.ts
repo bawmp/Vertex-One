@@ -9,11 +9,13 @@ import { entreprise, contrat } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaCreationContrat = z.object({
   dossierId: z.string(),
-  titre: z.string().trim().min(2, "Le titre est requis."),
-  dateDebut: z.string().min(1, "La date de début est requise."),
+  titre: z.string().trim().min(2, m("Le titre est requis.")),
+  dateDebut: z.string().min(1, m("La date de début est requise.")),
   dateFin: z.string().optional(),
   renouvellementAuto: z.string().optional(),
   preavisJours: z.coerce.number().int().min(0).default(30),
@@ -22,10 +24,11 @@ const schemaCreationContrat = z.object({
 export type EtatContrat = { erreur?: string } | null;
 
 export async function creerContrat(_etat: EtatContrat, formData: FormData): Promise<EtatContrat> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CONTRATS", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer de contrat." };
+    return { erreur: t("Vous n'avez pas le droit de créer de contrat.") };
   }
 
   const analyse = schemaCreationContrat.safeParse({
@@ -37,14 +40,14 @@ export async function creerContrat(_etat: EtatContrat, formData: FormData): Prom
     preavisJours: formData.get("preavisJours") || 30,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierId, titre, dateDebut, dateFin, renouvellementAuto, preavisJours } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "CONTRATS")) {
-      return { erreur: "Le suivi des contrats est disponible à partir du forfait Business." };
+      return { erreur: t("Le suivi des contrats est disponible à partir du forfait Business.") };
     }
 
     await tx.insert(contrat).values({

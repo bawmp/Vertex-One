@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/contexte";
 
 const CLE_REPLIE = "vertexone.sidebar.repliee";
 const EVENEMENT_REPLIE = "vertexone:sidebar-repliee";
@@ -47,6 +48,7 @@ function ecrireRepli(valeur: boolean) {
  * déplacée côté client.
  */
 export function CadreSidebar({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   // Mémorise la page pour laquelle le menu a été ouvert : dès que la page
   // change, il se referme sans effet de bord ni setState dans un effet.
@@ -68,7 +70,7 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
       <button
         type="button"
         onClick={() => setOuvertPour(pathname)}
-        aria-label="Ouvrir le menu"
+        aria-label={t("Ouvrir le menu")}
         aria-expanded={ouvert}
         className="fixed bottom-4 right-4 z-30 flex size-12 items-center justify-center rounded-full bg-sidebar text-sidebar-foreground shadow-lg ring-1 ring-sidebar-border md:hidden"
       >
@@ -91,7 +93,7 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => setOuvertPour(null)}
-          aria-label="Fermer le menu"
+          aria-label={t("Fermer le menu")}
           className="absolute right-6 top-6 z-10 flex size-8 items-center justify-center rounded-lg bg-white text-stone-500 shadow-sm ring-1 ring-black/10 hover:text-stone-800 md:hidden"
         >
           <X className="size-5" aria-hidden />
@@ -100,8 +102,8 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => ecrireRepli(!replie)}
-          aria-label={replie ? "Déployer la barre latérale" : "Réduire la barre latérale"}
-          title={replie ? "Déployer la barre latérale" : "Réduire la barre latérale"}
+          aria-label={replie ? t("Déployer la barre latérale") : t("Réduire la barre latérale")}
+          title={replie ? t("Déployer la barre latérale") : t("Réduire la barre latérale")}
           className={cn(
             "hidden items-center justify-center rounded-lg md:flex",
             // Déployée : petite pastille blanche dans le coin du panneau du logo. Réduite : bouton seul sur la bande sombre.

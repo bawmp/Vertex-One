@@ -10,6 +10,7 @@ import { peut } from "@/lib/permissions";
 import { genererNumeroFactureAcompte } from "@/lib/facturation/numerotation";
 import { genererEcrituresPaiementAcompte, genererEcrituresApplicationAcompte } from "@/lib/comptabilite/ecritures";
 import { resoudreClientVente, memeClientVente } from "@/lib/facturation/client-document";
+import { getT } from "@/lib/i18n/langue";
 
 const CHEMIN = "/app/facturation";
 
@@ -23,17 +24,18 @@ export type EtatFactureAcompte = { erreur?: string } | null;
  * Facture.
  */
 export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: FormData): Promise<EtatFactureAcompte> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer une facture d'acompte." };
+    return { erreur: t("Vous n'avez pas le droit de créer une facture d'acompte.") };
   }
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
   const montant = Number(formData.get("montant"));
-  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
-  if (!Number.isInteger(montant) || montant <= 0) return { erreur: "Le montant doit être un entier positif." };
+  if (!dealId && !contactId) return { erreur: t("Formulaire invalide.") };
+  if (!Number.isInteger(montant) || montant <= 0) return { erreur: t("Le montant doit être un entier positif.") };
 
   const [nouvelAcompte] = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -68,7 +70,7 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
   });
 
   if (!nouvelAcompte) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
+    return { erreur: t("Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable.") };
   }
 
   revalidatePath(CHEMIN);
@@ -81,18 +83,19 @@ export async function creerFactureAcompte(_etat: EtatFactureAcompte, formData: F
  * appliqué sur une vraie Facture.
  */
 export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompte, formData: FormData): Promise<EtatFactureAcompte> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'encaisser une facture d'acompte." };
+    return { erreur: t("Vous n'avez pas le droit d'encaisser une facture d'acompte.") };
   }
 
   const factureAcompteId = String(formData.get("factureAcompteId") ?? "");
   const moyenPaiement = String(formData.get("moyenPaiement") ?? "");
   const referenceTransaction = String(formData.get("referenceTransaction") ?? "").trim();
-  if (!factureAcompteId) return { erreur: "Formulaire invalide." };
+  if (!factureAcompteId) return { erreur: t("Formulaire invalide.") };
   if (!["orange_money", "mtn_momo", "especes", "virement", "manuel"].includes(moyenPaiement)) {
-    return { erreur: "Moyen de paiement invalide." };
+    return { erreur: t("Moyen de paiement invalide.") };
   }
 
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -121,7 +124,7 @@ export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompt
     return acompte.dealId;
   });
 
-  if (!dealId) return { erreur: "Cette facture d'acompte n'est plus en attente de paiement." };
+  if (!dealId) return { erreur: t("Cette facture d'acompte n'est plus en attente de paiement.") };
 
   revalidatePath(`/app/deals/${dealId}`);
   revalidatePath(CHEMIN);

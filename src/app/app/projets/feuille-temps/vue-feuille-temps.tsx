@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/contexte";
 
 export type EntreeSemaine = { id: string; date: string; dureeHeures: number; ligne: string };
 
@@ -34,12 +35,13 @@ function lundiDeLaSemaine(date: Date) {
  * derrière).
  */
 export function VueFeuilleTemps({ entrees, children }: { entrees: EntreeSemaine[]; children: React.ReactNode }) {
+  const t = useT();
   const [vue, setVue] = useState<"jour" | "semaine">("jour");
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Afficher par :</span>
+        <span className="text-muted-foreground">{t("Afficher par :")}</span>
         <div className="flex w-fit items-center gap-0.5 rounded-lg border p-0.5">
         {([
           ["jour", "Jour"],
@@ -66,6 +68,7 @@ export function VueFeuilleTemps({ entrees, children }: { entrees: EntreeSemaine[
 }
 
 function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
+  const t = useT();
   const [reference, setReference] = useState(() => new Date());
   const lundi = lundiDeLaSemaine(reference);
   const jours = Array.from({ length: 7 }, (_, i) => {
@@ -105,13 +108,12 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
               return n;
             })
           }
-          aria-label="Semaine précédente"
+          aria-label={t("Semaine précédente")}
         >
           <ChevronLeft className="size-4" aria-hidden />
         </Button>
         <p className="text-sm font-medium">
-          Semaine du {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(jours[0])} au{" "}
-          {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(jours[6])}
+          {t("Semaine du {debut} au {fin}", { debut: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(jours[0]), fin: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(jours[6]) })}
         </p>
         <Button
           type="button"
@@ -124,7 +126,7 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
               return n;
             })
           }
-          aria-label="Semaine suivante"
+          aria-label={t("Semaine suivante")}
         >
           <ChevronRight className="size-4" aria-hidden />
         </Button>
@@ -134,20 +136,20 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">Projet</th>
+              <th className="px-3 py-2 text-left font-medium text-muted-foreground">{t("Projet")}</th>
               {jours.map((j, i) => (
                 <th key={i} className="px-2 py-2 text-center font-medium text-muted-foreground">
                   {JOURS_COURTS[i]} {j.getDate()}
                 </th>
               ))}
-              <th className="px-3 py-2 text-right font-medium text-muted-foreground">Total</th>
+              <th className="px-3 py-2 text-right font-medium text-muted-foreground">{t("Total")}</th>
             </tr>
           </thead>
           <tbody>
             {lignes.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">
-                  Aucune heure cette semaine.
+                  {t("Aucune heure cette semaine.")}
                 </td>
               </tr>
             ) : (
@@ -170,7 +172,7 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
           {lignes.length > 0 ? (
             <tfoot>
               <tr className="border-t bg-muted/30">
-                <td className="px-3 py-2 font-medium">Total</td>
+                <td className="px-3 py-2 font-medium">{t("Total")}</td>
                 {jours.map((j, i) => {
                   const h = totalJour(j);
                   return (

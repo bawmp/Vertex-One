@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { creerGroupe, rattacherFilialeAuGroupe, genererInvitationGroupe, quitterGroupe } from "@/lib/actions/groupe";
+import { useT } from "@/lib/i18n/contexte";
+
 
 const LIBELLE_STATUT: Record<string, { texte: string; variant: "success" | "danger" | "brand" }> = {
   essai: { texte: "Essai", variant: "brand" },
@@ -23,33 +25,33 @@ export function FormulaireGroupe({ groupe, filiales }: { groupe: { id: string; n
 }
 
 function FormulairesSansGroupe() {
+  const t = useT();
   const [etatCreation, actionCreation, creationEnCours] = useActionState(creerGroupe, null);
   const [etatRattachement, actionRattachement, rattachementEnCours] = useActionState(rattacherFilialeAuGroupe, null);
 
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        Un groupe relie plusieurs entreprises Vertex One appartenant au même propriétaire (filiales) — chacune garde sa
-        propre connexion, ses propres données et son propre abonnement. Le groupe n&apos;est qu&apos;une vue d&apos;ensemble.
+        {t("Un groupe relie plusieurs entreprises Vertex One appartenant au même propriétaire (filiales) — chacune garde sa propre connexion, ses propres données et son propre abonnement. Le groupe n'est qu'une vue d'ensemble.")}
       </p>
 
       <form action={actionCreation} className="flex flex-col gap-2">
-        <Label htmlFor="nom">Créer un nouveau groupe</Label>
+        <Label htmlFor="nom">{t("Créer un nouveau groupe")}</Label>
         <div className="flex gap-2">
-          <Input id="nom" name="nom" placeholder="ex : Groupe Mbarga & Fils" required className="max-w-xs" />
+          <Input id="nom" name="nom" placeholder={t("ex : Groupe Mbarga & Fils")} required className="max-w-xs" />
           <Button type="submit" disabled={creationEnCours}>
-            {creationEnCours ? <Spinner /> : "Créer"}
+            {creationEnCours ? <Spinner /> : t("Créer")}
           </Button>
         </div>
         {etatCreation?.erreur ? <p className="text-sm text-destructive">{etatCreation.erreur}</p> : null}
       </form>
 
       <form action={actionRattachement} className="flex flex-col gap-2 border-t border-border pt-4">
-        <Label htmlFor="jeton">Rattacher cette entreprise à un groupe existant</Label>
+        <Label htmlFor="jeton">{t("Rattacher cette entreprise à un groupe existant")}</Label>
         <div className="flex gap-2">
-          <Input id="jeton" name="jeton" placeholder="Code reçu de l'autre entreprise" required className="max-w-xs" />
+          <Input id="jeton" name="jeton" placeholder={t("Code reçu de l'autre entreprise")} required className="max-w-xs" />
           <Button type="submit" variant="outline" disabled={rattachementEnCours}>
-            {rattachementEnCours ? <Spinner /> : "Rattacher"}
+            {rattachementEnCours ? <Spinner /> : t("Rattacher")}
           </Button>
         </div>
         {etatRattachement?.erreur ? <p className="text-sm text-destructive">{etatRattachement.erreur}</p> : null}
@@ -59,6 +61,7 @@ function FormulairesSansGroupe() {
 }
 
 function VueGroupe({ nomGroupe, filiales }: { nomGroupe: string; filiales: Filiale[] }) {
+  const t = useT();
   const [code, setCode] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
@@ -98,22 +101,22 @@ function VueGroupe({ nomGroupe, filiales }: { nomGroupe: string; filiales: Filia
           );
         })}
         {filiales.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune autre filiale rattachée pour le moment.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune autre filiale rattachée pour le moment.")}</p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
         <Button type="button" variant="outline" size="sm" onClick={genererCode} disabled={genereEnCours} className="self-start">
           {genereEnCours ? <Spinner /> : null}
-          Générer un code pour rattacher une nouvelle filiale
+          {t("Générer un code pour rattacher une nouvelle filiale")}
         </Button>
         {code ? (
           <div className="flex items-center gap-2">
             <code className="rounded-md bg-muted px-2 py-1 text-sm">{code}</code>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Copier" onClick={copierCode}>
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={t("Copier")} onClick={copierCode}>
               {copie ? <Check className="text-emerald-600" aria-hidden /> : <Copy aria-hidden />}
             </Button>
-            <p className="text-xs text-muted-foreground">Valable 72h, à usage unique — à coller depuis l&apos;autre entreprise.</p>
+            <p className="text-xs text-muted-foreground">{t("Valable 72h, à usage unique — à coller depuis l'autre entreprise.")}</p>
           </div>
         ) : null}
         {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
@@ -126,13 +129,13 @@ function VueGroupe({ nomGroupe, filiales }: { nomGroupe: string; filiales: Filia
         className="self-start text-destructive hover:text-destructive"
         disabled={quitteEnCours}
         onClick={() => {
-          if (window.confirm("Quitter ce groupe ? Cette entreprise redeviendra indépendante — aucune donnée n'est affectée.")) {
+          if (window.confirm(t("Quitter ce groupe ? Cette entreprise redeviendra indépendante — aucune donnée n'est affectée."))) {
             demarrerDepart(() => quitterGroupe());
           }
         }}
       >
         {quitteEnCours ? <Spinner /> : null}
-        Quitter le groupe
+        {t("Quitter le groupe")}
       </Button>
     </div>
   );

@@ -9,8 +9,10 @@ import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { Button } from "@/components/ui/button";
 import { LeadsVues } from "./leads-vues";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageLeads() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -24,15 +26,15 @@ export default async function PageLeads() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Leads")}</h1>
           <p className="text-muted-foreground">
-            {leads.length} lead{leads.length > 1 ? "s" : ""} visible{leads.length > 1 ? "s" : ""}.
+            {leads.length > 1 ? t("{n} leads visibles.", { n: leads.length }) : t("{n} lead visible.", { n: leads.length })}
           </p>
         </div>
         {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/leads/nouveau" />} nativeButton={false}>
             <UserPlus data-icon="inline-start" aria-hidden />
-            Nouveau lead
+            {t("Nouveau lead")}
           </Button>
         ) : null}
       </div>

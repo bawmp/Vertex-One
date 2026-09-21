@@ -9,12 +9,15 @@ import { Spinner } from "@/components/ui/spinner";
 import { definirModulesUtilisateur } from "@/lib/actions/acces-modules";
 import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
+import { useT } from "@/lib/i18n/contexte";
+
 
 export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null };
 
 const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
 
 function LigneMembre({ membre }: { membre: MembreEquipe }) {
+  const t = useT();
   const tous = modulesRestreignables(membre.role);
   const initiales = membre.modulesAutorises ?? tous;
   const [ouvert, setOuvert] = useState(false);
@@ -42,10 +45,10 @@ function LigneMembre({ membre }: { membre: MembreEquipe }) {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="neutral">{LIBELLE_ROLE[membre.role]}</Badge>
-          <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : "Tous les modules"}</Badge>
+          <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : t("Tous les modules")}</Badge>
           <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert((v) => !v)}>
             <KeyRound data-icon="inline-start" aria-hidden />
-            Accès
+            {t("Accès")}
           </Button>
         </div>
       </div>
@@ -56,10 +59,10 @@ function LigneMembre({ membre }: { membre: MembreEquipe }) {
           <div className="flex gap-2">
             <Button type="button" size="sm" disabled={enCours} onClick={enregistrer}>
               {enCours ? <Spinner /> : null}
-              Enregistrer
+              {t("Enregistrer")}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOuvert(false)}>
-              Annuler
+              {t("Annuler")}
             </Button>
           </div>
         </div>
@@ -69,16 +72,17 @@ function LigneMembre({ membre }: { membre: MembreEquipe }) {
 }
 
 export function MembresEquipe({ membres }: { membres: MembreEquipe[] }) {
+  const t = useT();
   return (
     <div>
-      <h2 className="mb-1 text-sm font-medium text-muted-foreground">Membres et accès aux modules</h2>
-      <p className="mb-2 text-xs text-muted-foreground">Choisissez les modules que chaque Manager ou Employé peut utiliser. Ses droits à l&apos;intérieur d&apos;un module restent ceux de son rôle.</p>
+      <h2 className="mb-1 text-sm font-medium text-muted-foreground">{t("Membres et accès aux modules")}</h2>
+      <p className="mb-2 text-xs text-muted-foreground">{t("Choisissez les modules que chaque Manager ou Employé peut utiliser. Ses droits à l'intérieur d'un module restent ceux de son rôle.")}</p>
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
           {membres.map((m) => (
             <LigneMembre key={m.id} membre={m} />
           ))}
-          {membres.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun Manager ni Employé pour le moment.</p> : null}
+          {membres.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun Manager ni Employé pour le moment.")}</p> : null}
         </div>
       </Card>
     </div>

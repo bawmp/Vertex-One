@@ -15,6 +15,7 @@ import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles"
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
+import { getT } from "@/lib/i18n/langue";
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -139,17 +140,18 @@ export type EtatEnvoiFacture = { erreur?: string; envoye?: boolean } | null;
  * touche donc pas le statut, elle se contente d'envoyer.
  */
 export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture, _formData: FormData): Promise<EtatEnvoiFacture> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'envoyer cette facture." };
+    return { erreur: t("Vous n'avez pas le droit d'envoyer cette facture.") };
   }
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const donnees = await recupererFacturePourPDF(tx, utilisateurConnecte, factureId);
-    if (!donnees) return { erreur: "Facture introuvable." };
+    if (!donnees) return { erreur: t("Facture introuvable.") };
     if (!donnees.client?.email) {
-      return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
+      return { erreur: t("Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM).") };
     }
 
     const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { factureId });
@@ -185,7 +187,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
       attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
     });
 
-    if (!envoye) return { erreur: erreur ?? "Échec de l'envoi de l'email." };
+    if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
     return { envoye: true };
   });
 }

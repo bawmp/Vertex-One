@@ -4,8 +4,11 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { mettreEnPauseFactureRecurrente, reactiverFactureRecurrente, arreterFactureRecurrente } from "@/lib/actions/facture-recurrente";
+import { useT } from "@/lib/i18n/contexte";
+
 
 export function BoutonsFactureRecurrente({ factureRecurrenteId, statut }: { factureRecurrenteId: string; statut: string }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
 
   return (
@@ -13,13 +16,13 @@ export function BoutonsFactureRecurrente({ factureRecurrenteId, statut }: { fact
       {statut === "ACTIF" ? (
         <Button type="button" size="sm" variant="outline" disabled={enCours} onClick={() => startTransition(() => mettreEnPauseFactureRecurrente(factureRecurrenteId))}>
           {enCours ? <Spinner /> : null}
-          Mettre en pause
+          {t("Mettre en pause")}
         </Button>
       ) : null}
       {statut === "EN_PAUSE" ? (
         <Button type="button" size="sm" variant="outline" disabled={enCours} onClick={() => startTransition(() => reactiverFactureRecurrente(factureRecurrenteId))}>
           {enCours ? <Spinner /> : null}
-          Réactiver
+          {t("Réactiver")}
         </Button>
       ) : null}
       <Button
@@ -30,7 +33,7 @@ export function BoutonsFactureRecurrente({ factureRecurrenteId, statut }: { fact
         disabled={enCours}
         onClick={() => startTransition(() => arreterFactureRecurrente(factureRecurrenteId))}
       >
-        Arrêter
+        {t("Arrêter")}
       </Button>
     </div>
   );

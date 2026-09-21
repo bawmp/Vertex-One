@@ -8,6 +8,7 @@ import { LogoEntreprise } from "@/components/logo-entreprise";
 import { MenuUtilisateur } from "@/app/app/menu-utilisateur";
 import { traduire } from "@/lib/i18n/traduire";
 import { LangueProvider } from "@/lib/i18n/contexte";
+import { getT } from "@/lib/i18n/langue";
 
 /**
  * Portail client (échange du 2026-09-13) — premier vrai usage du rôle
@@ -17,6 +18,7 @@ import { LangueProvider } from "@/lib/i18n/contexte";
  * ne doit jamais voir de menu CRM/Facturation/etc.
  */
 export default async function LayoutPortail({ children }: { children: React.ReactNode }) {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -38,13 +40,13 @@ export default async function LayoutPortail({ children }: { children: React.Reac
   if (!monContact) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 text-center">
-        <p className="text-muted-foreground">Votre compte n&apos;est lié à aucun profil client — contactez l&apos;entreprise.</p>
+        <p className="text-muted-foreground">{t("Votre compte n'est lié à aucun profil client — contactez l'entreprise.")}</p>
       </div>
     );
   }
 
   return (
-    <LangueProvider dictionnaire={traduire(utilisateurConnecte.langue)}>
+    <LangueProvider dictionnaire={traduire(utilisateurConnecte.langue)} langue={utilisateurConnecte.langue ?? "fr"}>
       <div className="flex min-h-screen flex-col bg-background" style={styleMarque}>
         <header className="flex items-center justify-between gap-4 border-b-2 border-b-marque-bleu-100 px-6 py-4">
           <div className="flex flex-col items-start gap-1.5">

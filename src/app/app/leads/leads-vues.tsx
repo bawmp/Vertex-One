@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { STATUT_LEAD } from "@/lib/libelles";
 import { convertirLeadAction } from "@/lib/actions/lead";
+import { useT } from "@/lib/i18n/contexte";
 
 type Lead = { id: string; nom: string; societeCliente: string | null; telephone: string; statut: string; convertiLe: boolean };
 
 export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier: boolean }) {
+  const t = useT();
   const [recherche, setRecherche] = useState("");
   const [enCours, demarrer] = useTransition();
   const [enConversion, setEnConversion] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
     <div className="flex flex-col gap-4">
       <div className="relative w-full max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un lead…" className="pl-8" aria-label="Rechercher un lead" />
+        <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder={t("Rechercher un lead…")} className="pl-8" aria-label={t("Rechercher un lead")} />
       </div>
 
       <Card className="p-0">
@@ -52,7 +54,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
                   </span>
                 </Link>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Badge variant={info?.variante ?? "neutral"}>{l.convertiLe ? "Converti" : info?.libelle ?? l.statut}</Badge>
+                  <Badge variant={info?.variante ?? "neutral"}>{l.convertiLe ? t("Converti") : t(info?.libelle ?? l.statut)}</Badge>
                   {peutModifier && !l.convertiLe ? (
                     <Button
                       size="xs"
@@ -64,7 +66,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
                       }}
                     >
                       {enCours && enConversion === l.id ? <Spinner /> : <ArrowRightCircle data-icon="inline-start" aria-hidden />}
-                      Convertir
+                      {t("Convertir")}
                     </Button>
                   ) : null}
                 </div>
@@ -72,7 +74,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
             );
           })}
           {leadsFiltres.length === 0 ? (
-            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? "Aucun lead ne correspond à cette recherche." : "Aucun lead pour le moment."}</p>
+            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun lead ne correspond à cette recherche.") : t("Aucun lead pour le moment.")}</p>
           ) : null}
         </div>
       </Card>

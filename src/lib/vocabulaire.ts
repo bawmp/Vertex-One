@@ -2,20 +2,23 @@
 // secteur de l'entreprise (un artisan parle de "Chantier", un cabinet de
 // "Mission"), sans que le modèle de données ou le code métier ne change.
 
+// Les mots sont marqués m() : traduits à l'affichage avec t(vocab.singulier) (voir src/lib/i18n/catalogue.ts).
+import { m } from "@/lib/i18n/catalogue";
+
 export type VocabulaireEntree = { singulier: string; pluriel: string };
 
 export const VOCABULAIRE_DOSSIER: Record<string, VocabulaireEntree> = {
-  artisan: { singulier: "Fiche client", pluriel: "Fiches clients" },
-  cabinet: { singulier: "Dossier", pluriel: "Dossiers" },
-  agence: { singulier: "Compte client", pluriel: "Comptes clients" },
-  generique: { singulier: "Dossier", pluriel: "Dossiers" },
+  artisan: { singulier: m("Fiche client"), pluriel: m("Fiches clients") },
+  cabinet: { singulier: m("Dossier"), pluriel: m("Dossiers") },
+  agence: { singulier: m("Compte client"), pluriel: m("Comptes clients") },
+  generique: { singulier: m("Dossier"), pluriel: m("Dossiers") },
 };
 
 export const VOCABULAIRE_PROJET: Record<string, VocabulaireEntree> = {
-  artisan: { singulier: "Chantier", pluriel: "Chantiers" },
-  cabinet: { singulier: "Mission", pluriel: "Missions" },
-  agence: { singulier: "Projet", pluriel: "Projets" },
-  generique: { singulier: "Projet", pluriel: "Projets" },
+  artisan: { singulier: m("Chantier"), pluriel: m("Chantiers") },
+  cabinet: { singulier: m("Mission"), pluriel: m("Missions") },
+  agence: { singulier: m("Projet"), pluriel: m("Projets") },
+  generique: { singulier: m("Projet"), pluriel: m("Projets") },
 };
 
 export function libelleDossier(secteurProfil: string): VocabulaireEntree {

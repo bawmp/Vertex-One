@@ -10,13 +10,15 @@ import { entreprise, utilisateur, compte } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaInscription = z.object({
-  nomEntreprise: z.string().trim().min(2, "Le nom de l'entreprise est trop court."),
+  nomEntreprise: z.string().trim().min(2, m("Le nom de l'entreprise est trop court.")),
   secteurProfil: z.enum(["agence", "artisan", "cabinet", "generique"]),
-  nomComplet: z.string().trim().min(2, "Le nom complet est trop court."),
-  email: z.email("Adresse email invalide."),
-  motDePasse: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  nomComplet: z.string().trim().min(2, m("Le nom complet est trop court.")),
+  email: z.email(m("Adresse email invalide.")),
+  motDePasse: z.string().min(8, m("Le mot de passe doit contenir au moins 8 caractères.")),
 });
 
 export type EtatInscription = { erreur?: string } | null;
@@ -28,6 +30,7 @@ export type EtatInscription = { erreur?: string } | null;
  * entrepriseId et role sont calculés ici, jamais reçus du client.
  */
 export async function creerEntreprise(_etat: EtatInscription, formData: FormData): Promise<EtatInscription> {
+  const t = await getT();
   const analyse = schemaInscription.safeParse({
     nomEntreprise: formData.get("nomEntreprise"),
     secteurProfil: formData.get("secteurProfil"),
@@ -37,7 +40,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { nomEntreprise, secteurProfil, nomComplet, email, motDePasse } = analyse.data;
@@ -88,7 +91,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
     idAdmin = resultat.utilisateurId;
   } catch (erreur) {
     if (contientContrainteEmailUnique(erreur)) {
-      return { erreur: "Cette adresse email est déjà utilisée." };
+      return { erreur: t("Cette adresse email est déjà utilisée.") };
     }
     throw erreur;
   }

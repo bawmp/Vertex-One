@@ -94,7 +94,7 @@ describe("Import — lecture de fichiers", () => {
     expect((await lireTableau(fichier("x.csv", Uint8Array.from([65, 0, 66, 0, 10, 67])))).ok).toBe(false);
     expect((await lireTableau(fichier("seuls.csv", "Nom,Email\n"))).ok).toBe(false);
     const enorme = versTableau([["a"], ...Array.from({ length: NB_MAX_LIGNES_IMPORT + 1 }, (_, i) => [String(i)])]);
-    expect(!enorme.ok && enorme.erreur).toContain(String(NB_MAX_LIGNES_IMPORT));
+    expect(!enorme.ok && enorme.valeurs?.max).toBe(NB_MAX_LIGNES_IMPORT);
   });
 });
 

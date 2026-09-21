@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { epinglerAnnonce, supprimerAnnonce } from "@/lib/actions/annonce";
 import { formaterTaille } from "@/lib/one-form/fichiers";
+import { useT } from "@/lib/i18n/contexte";
 
 export type PieceAnnonce = { id: string; nom: string; taille: number; image: boolean };
 
@@ -25,6 +26,7 @@ export function LigneAnnonce({
   pieces: PieceAnnonce[];
   peutGerer: boolean;
 }) {
+  const t = useT();
   const images = pieces.filter((p) => p.image);
   const fichiers = pieces.filter((p) => !p.image);
   return (
@@ -34,7 +36,7 @@ export function LigneAnnonce({
           <div>
             <p className="text-sm font-medium">{auteurNom}</p>
             <p className="text-xs text-muted-foreground">
-              {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(creeLe)}
+              {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(creeLe)}
             </p>
           </div>
           {peutGerer ? (
@@ -43,8 +45,8 @@ export function LigneAnnonce({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => epinglerAnnonce(id, !epinglee)}
-                aria-label={epinglee ? "Désépingler" : "Épingler"}
-                title={epinglee ? "Désépingler" : "Épingler"}
+                aria-label={epinglee ? t("Désépingler") : t("Épingler")}
+                title={epinglee ? t("Désépingler") : t("Épingler")}
               >
                 {epinglee ? <PinOff className="size-4" aria-hidden /> : <Pin className="size-4" aria-hidden />}
               </Button>
@@ -52,8 +54,8 @@ export function LigneAnnonce({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => supprimerAnnonce(id)}
-                aria-label="Supprimer"
-                title="Supprimer"
+                aria-label={t("Supprimer")}
+                title={t("Supprimer")}
                 className="hover:text-destructive"
               >
                 <Trash2 className="size-4" aria-hidden />
@@ -74,7 +76,7 @@ export function LigneAnnonce({
           </div>
         ) : null}
         {fichiers.length > 0 ? (
-          <ul className="flex flex-col gap-1.5" aria-label="Pièces jointes">
+          <ul className="flex flex-col gap-1.5" aria-label={t("Pièces jointes")}>
             {fichiers.map((p) => (
               <li key={p.id}>
                 <a href={`/app/annonces/fichier/${p.id}`} className="flex w-fit max-w-full items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm transition-colors hover:bg-muted">

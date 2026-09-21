@@ -10,6 +10,7 @@ import { peut } from "@/lib/permissions";
 import { effacerObjetStockage, televerserDocument } from "@/lib/documents/stockage";
 import { nomFichierSain } from "@/lib/one-form/fichiers";
 import { validerPiecesAnnonce } from "@/lib/annonces/pieces";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatAnnonce = { erreur?: string } | null;
 
@@ -34,16 +35,17 @@ async function effacerFichiers(cles: string[]): Promise<void> {
  * échoue après le téléversement, les fichiers déjà envoyés sont effacés.
  */
 export async function creerAnnonce(_etat: EtatAnnonce, formData: FormData): Promise<EtatAnnonce> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "ANNONCES", "CREER")) {
-    return { erreur: "Seuls les Managers et l'Administrateur peuvent publier une annonce." };
+    return { erreur: t("Seuls les Managers et l'Administrateur peuvent publier une annonce.") };
   }
 
   const contenu = String(formData.get("contenu") ?? "").trim();
   const verdict = await validerPiecesAnnonce(formData.getAll("fichiers"));
   if (!verdict.ok) return { erreur: verdict.erreur };
-  if (!contenu && verdict.pieces.length === 0) return { erreur: "L'annonce ne peut pas être vide : écrivez un texte ou joignez un fichier." };
+  if (!contenu && verdict.pieces.length === 0) return { erreur: t("L'annonce ne peut pas être vide : écrivez un texte ou joignez un fichier.") };
 
   const televerses: { cle: string; piece: (typeof verdict.pieces)[number] }[] = [];
   for (const piece of verdict.pieces) {
@@ -56,7 +58,7 @@ export async function creerAnnonce(_etat: EtatAnnonce, formData: FormData): Prom
     });
     if (!resultat.televerse) {
       await effacerFichiers(televerses.map((t) => t.cle));
-      return { erreur: "Le stockage des fichiers n'est pas disponible pour le moment." };
+      return { erreur: t("Le stockage des fichiers n'est pas disponible pour le moment.") };
     }
     televerses.push({ cle: resultat.cleStockage, piece });
   }
@@ -76,7 +78,7 @@ export async function creerAnnonce(_etat: EtatAnnonce, formData: FormData): Prom
   } catch (erreur) {
     await effacerFichiers(televerses.map((t) => t.cle));
     console.error("[annonces] publication impossible :", erreur instanceof Error ? erreur.message : erreur);
-    return { erreur: "L'annonce n'a pas pu être publiée. Réessayez." };
+    return { erreur: t("L'annonce n'a pas pu être publiée. Réessayez.") };
   }
 
   revalidatePath("/app/annonces");

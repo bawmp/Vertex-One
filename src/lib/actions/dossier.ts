@@ -8,6 +8,7 @@ import { dossier, contact, commentaire, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
+import { getT } from "@/lib/i18n/langue";
 
 /**
  * Création manuelle (docs/palier-2-*, section 8, étape 2) — pour un client
@@ -59,15 +60,16 @@ export async function creerDossier(contactId: string) {
 export type EtatCommentaire = { erreur?: string } | null;
 
 export async function ajouterCommentaireDossier(_etat: EtatCommentaire, formData: FormData): Promise<EtatCommentaire> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "DOSSIERS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de commenter ce dossier." };
+    return { erreur: t("Vous n'avez pas le droit de commenter ce dossier.") };
   }
 
   const dossierId = String(formData.get("dossierId") ?? "");
   const contenu = String(formData.get("contenu") ?? "").trim();
-  if (!contenu) return { erreur: "Le commentaire ne peut pas être vide." };
+  if (!contenu) return { erreur: t("Le commentaire ne peut pas être vide.") };
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.insert(commentaire).values({

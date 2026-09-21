@@ -8,10 +8,12 @@ import { avecEntreprise } from "@/db/client";
 import { tache, statutTache } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaTache = z.object({
   projetId: z.string(),
-  titre: z.string().trim().min(2, "Le titre est trop court."),
+  titre: z.string().trim().min(2, m("Le titre est trop court.")),
   assigneAId: z.string(),
   echeance: z.string().optional(),
 });
@@ -19,10 +21,11 @@ const schemaTache = z.object({
 export type EtatTache = { erreur?: string } | null;
 
 export async function creerTache(_etat: EtatTache, formData: FormData): Promise<EtatTache> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter une tâche." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter une tâche.") };
   }
 
   const analyse = schemaTache.safeParse({
@@ -33,7 +36,7 @@ export async function creerTache(_etat: EtatTache, formData: FormData): Promise<
   });
 
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const { projetId, titre, assigneAId, echeance } = analyse.data;

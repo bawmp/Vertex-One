@@ -9,6 +9,8 @@ import { envoyerMessage } from "@/lib/actions/messagerie";
 import type { MessageAffiche } from "@/lib/messagerie/acces";
 import { attributAccept, CATEGORIES_FICHIER, formaterTaille, TAILLE_MAX_TOTAL_LIBELLE } from "@/lib/one-form/fichiers";
 import type { PersonneMentionnable } from "./utilitaires-conversation";
+import { useT } from "@/lib/i18n/contexte";
+
 
 // « @ » suivi de quelques lettres (un prénom, éventuellement un nom) juste avant le curseur.
 const MOTIF_MENTION_EN_COURS = /(^|\s)@([^\s@]{0,30}(?: [^\s@]{0,30})?)$/u;
@@ -30,6 +32,7 @@ export function Compositeur({
   placeholder: string;
   surEnvoye: (message: MessageAffiche) => void;
 }) {
+  const t = useT();
   const [texte, setTexte] = useState("");
   const [fichier, setFichier] = useState<File | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -100,7 +103,7 @@ export function Compositeur({
   return (
     <div className="relative flex flex-col gap-1.5 border-t border-border p-3">
       {suggestions.length > 0 ? (
-        <ul role="listbox" aria-label="Personnes à mentionner" className="absolute bottom-full left-3 z-20 mb-1 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
+        <ul role="listbox" aria-label={t("Personnes à mentionner")} className="absolute bottom-full left-3 z-20 mb-1 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
           {suggestions.map((s, i) => (
             <li key={s.id} role="option" aria-selected={i === indexSuggestion}>
               <button
@@ -124,14 +127,14 @@ export function Compositeur({
           <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <span className="min-w-0 truncate">{fichier.name}</span>
           <span className="shrink-0 text-xs text-muted-foreground">{formaterTaille(fichier.size)}</span>
-          <button type="button" onClick={retirerFichier} aria-label="Retirer la pièce jointe">
+          <button type="button" onClick={retirerFichier} aria-label={t("Retirer la pièce jointe")}>
             <X className="size-3.5 text-muted-foreground hover:text-destructive" aria-hidden />
           </button>
         </div>
       ) : null}
       <div className="flex items-end gap-2">
-        <input ref={champFichier} type="file" accept={attributAccept(CATEGORIES_FICHIER)} onChange={choisirFichier} className="hidden" aria-label="Joindre un fichier" />
-        <Button type="button" variant="outline" size="icon" onClick={() => champFichier.current?.click()} disabled={envoiEnCours} aria-label="Joindre un fichier" title={`Image, PDF, Word ou Excel — ${TAILLE_MAX_TOTAL_LIBELLE} au plus`}>
+        <input ref={champFichier} type="file" accept={attributAccept(CATEGORIES_FICHIER)} onChange={choisirFichier} className="hidden" aria-label={t("Joindre un fichier")} />
+        <Button type="button" variant="outline" size="icon" onClick={() => champFichier.current?.click()} disabled={envoiEnCours} aria-label={t("Joindre un fichier")} title={`Image, PDF, Word ou Excel — ${TAILLE_MAX_TOTAL_LIBELLE} au plus`}>
           <Paperclip aria-hidden />
         </Button>
         <Textarea
@@ -166,11 +169,11 @@ export function Compositeur({
           maxLength={4000}
           placeholder={placeholder}
           className="max-h-32 min-h-9 flex-1 resize-none"
-          aria-label={parentId ? "Votre réponse" : "Votre message"}
+          aria-label={parentId ? t("Votre réponse") : t("Votre message")}
         />
-        <Button type="button" onClick={envoyer} disabled={envoiEnCours || (!texte.trim() && !fichier)} aria-label={parentId ? "Envoyer la réponse" : "Envoyer le message"}>
+        <Button type="button" onClick={envoyer} disabled={envoiEnCours || (!texte.trim() && !fichier)} aria-label={parentId ? t("Envoyer la réponse") : t("Envoyer le message")}>
           {envoiEnCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
-          Envoyer
+          {t("Envoyer")}
         </Button>
       </div>
     </div>

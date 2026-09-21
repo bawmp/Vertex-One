@@ -8,6 +8,7 @@ import {
   ComboboxItem,
   ComboboxEmpty,
 } from "@/components/ui/combobox";
+import { useT } from "@/lib/i18n/contexte";
 
 export type PersonneSelectionnable = { id: string; nomComplet: string };
 
@@ -41,6 +42,7 @@ export function SelecteurPersonne({
   required?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const items = personnes.map((p) => ({ value: p.id, label: p.nomComplet }));
   const valeurParDefaut = items.find((item) => item.value === defaultValue) ?? null;
 
@@ -62,7 +64,7 @@ export function SelecteurPersonne({
             </ComboboxItem>
           )}
         </ComboboxList>
-        <ComboboxEmpty>Aucune personne trouvée.</ComboboxEmpty>
+        <ComboboxEmpty>{t("Aucune personne trouvée.")}</ComboboxEmpty>
       </ComboboxContent>
     </Combobox>
   );

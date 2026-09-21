@@ -18,6 +18,7 @@ import { FormulaireInteraction } from "./formulaire-interaction";
 import { BoutonInviterPortail } from "./bouton-inviter-portail";
 import { creerDossier } from "@/lib/actions/dossier";
 import { genererEtEnregistrerLienVisio, modifierNotesContact } from "@/lib/actions/contact";
+import { getT } from "@/lib/i18n/langue";
 
 const ICONE_INTERACTION: Record<string, typeof Phone> = {
   appel: Phone,
@@ -28,6 +29,7 @@ const ICONE_INTERACTION: Record<string, typeof Phone> = {
 };
 
 export default async function PageFicheContact({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -96,14 +98,14 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
           {peut(utilisateurConnecte, "CRM", "CREER") ? (
             <Button size="sm" render={<Link href={`/app/deals/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
               <Briefcase data-icon="inline-start" aria-hidden />
-              Nouveau deal
+              {t("Nouveau deal")}
             </Button>
           ) : null}
           {peutModifier ? (
             <form action={genererEtEnregistrerLienVisio.bind(null, fiche.id)}>
               <Button type="submit" variant="outline" size="sm">
                 <Video data-icon="inline-start" aria-hidden />
-                Lien de visio
+                {t("Lien de visio")}
               </Button>
             </form>
           ) : null}
@@ -111,13 +113,13 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
             dossierExistant ? (
               <Button variant="outline" size="sm" render={<Link href={`/app/projets/dossiers/${dossierExistant.id}`} />} nativeButton={false}>
                 <FolderOpen data-icon="inline-start" aria-hidden />
-                Voir le {vocabDossier.singulier.toLowerCase()}
+                {t("Voir le {objet}", { objet: t(vocabDossier.singulier).toLowerCase() })}
               </Button>
             ) : peut(utilisateurConnecte, "DOSSIERS", "CREER") ? (
               <form action={creerDossier.bind(null, fiche.id)}>
                 <Button type="submit" variant="outline" size="sm">
                   <FolderOpen data-icon="inline-start" aria-hidden />
-                  Ouvrir un {vocabDossier.singulier.toLowerCase()}
+                  {t("Ouvrir un {objet}", { objet: t(vocabDossier.singulier).toLowerCase() })}
                 </Button>
               </form>
             ) : null
@@ -128,7 +130,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       {utilisateurConnecte.role === "ADMIN" ? (
         <div className="flex flex-wrap gap-2">
           {fiche.utilisateurId ? (
-            <p className="text-sm text-muted-foreground">Déjà invité(e) au portail.</p>
+            <p className="text-sm text-muted-foreground">{t("Déjà invité(e) au portail.")}</p>
           ) : (
             <BoutonInviterPortail contactId={fiche.id} emailActuel={fiche.email} />
           )}
@@ -139,23 +141,23 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/devis/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <FileText data-icon="inline-start" aria-hidden />
-            Créer un devis
+            {t("Créer un devis")}
           </Button>
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/bons-commande/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <ClipboardList data-icon="inline-start" aria-hidden />
-            Créer un bon de commande
+            {t("Créer un bon de commande")}
           </Button>
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/recurrentes/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <Repeat data-icon="inline-start" aria-hidden />
-            Créer une facture récurrente
+            {t("Créer une facture récurrente")}
           </Button>
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/recus-vente/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <Receipt data-icon="inline-start" aria-hidden />
-            Créer un reçu de vente
+            {t("Créer un reçu de vente")}
           </Button>
           <Button size="sm" variant="outline" render={<Link href={`/app/facturation/acomptes/nouveau?contactId=${fiche.id}`} />} nativeButton={false}>
             <Wallet data-icon="inline-start" aria-hidden />
-            Créer une facture d&apos;acompte
+            {t("Créer une facture d'acompte")}
           </Button>
         </div>
       ) : null}
@@ -164,17 +166,17 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         <div className="flex flex-col gap-6">
           <Card>
             <CardContent>
-              <h2 className="mb-2 text-sm font-medium text-muted-foreground">Notes</h2>
+              <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Notes")}</h2>
               {peutModifier ? (
                 <EditeurNotes notesInitiales={fiche.notes} onEnregistrer={modifierNotesAction} />
               ) : (
-                <p className="text-sm text-muted-foreground">{fiche.notes || "Aucune note."}</p>
+                <p className="text-sm text-muted-foreground">{fiche.notes || t("Aucune note.")}</p>
               )}
             </CardContent>
           </Card>
 
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium text-muted-foreground">Deals</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">{t("Deals")}</h2>
             {deals.length > 0 ? (
               <Card className="p-0">
                 <div className="flex flex-col divide-y divide-border">
@@ -184,8 +186,8 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                       <Link key={d.id} href={`/app/deals/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
                         <span className="truncate font-medium">{d.titre}</span>
                         <div className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{new Intl.NumberFormat("fr-FR").format(d.montant)} FCFA</span>
-                          <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? d.statut}</Badge>
+                          <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(d.montant)} FCFA</span>
+                          <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                         </div>
                       </Link>
                     );
@@ -193,7 +195,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                 </div>
               </Card>
             ) : (
-              <p className="text-sm text-muted-foreground">Aucun deal pour le moment.</p>
+              <p className="text-sm text-muted-foreground">{t("Aucun deal pour le moment.")}</p>
             )}
           </div>
 
@@ -201,7 +203,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         </div>
 
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
           {interactions.length > 0 ? (
             <Card className="lg:sticky lg:top-6">
               <CardContent className="flex max-h-[70vh] flex-col divide-y divide-border overflow-y-auto p-0">
@@ -216,7 +218,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{h.type}</p>
                           <p className="shrink-0 text-xs text-muted-foreground">
-                            {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(h.creeLe)}
+                            {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(h.creeLe)}
                           </p>
                         </div>
                         {h.contenu.startsWith("https://meet.jit.si/") ? (
@@ -233,7 +235,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
               </CardContent>
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucune activité pour le moment.</p>
+            <p className="text-sm text-muted-foreground">{t("Aucune activité pour le moment.")}</p>
           )}
         </div>
       </div>

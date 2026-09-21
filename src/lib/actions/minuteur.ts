@@ -8,9 +8,11 @@ import { avecEntreprise } from "@/db/client";
 import { minuteurActif, entreeTemps, projet } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaDemarrer = z.object({
-  projetId: z.string().min(1, "Le projet est requis."),
+  projetId: z.string().min(1, m("Le projet est requis.")),
   tacheId: z.string().trim().optional(),
   note: z.string().trim().optional(),
 });
@@ -24,10 +26,11 @@ export type EtatMinuteur = { erreur?: string } | null;
  * renvoie une erreur plutôt que d'écraser silencieusement celui en cours.
  */
 export async function demarrerMinuteur(_etat: EtatMinuteur, formData: FormData): Promise<EtatMinuteur> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de démarrer un minuteur." };
+    return { erreur: t("Vous n'avez pas le droit de démarrer un minuteur.") };
   }
 
   const analyse = schemaDemarrer.safeParse({
@@ -36,7 +39,7 @@ export async function demarrerMinuteur(_etat: EtatMinuteur, formData: FormData):
     note: formData.get("note") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { projetId, tacheId, note } = analyse.data;
 

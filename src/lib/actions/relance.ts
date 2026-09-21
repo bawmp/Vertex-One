@@ -6,6 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { marquerFacturesEnRetard, type ResultatRelance } from "@/lib/facturation/relance";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatRelances = { resultats: ResultatRelance[] } | { erreur: string } | null;
 
@@ -16,10 +17,11 @@ export type EtatRelances = { resultats: ResultatRelance[] } | { erreur: string }
  * geste d'exploitation.
  */
 export async function declencherRelances(): Promise<EtatRelances> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Réservé à l'Administrateur." };
+    return { erreur: t("Réservé à l'Administrateur.") };
   }
 
   const resultats = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>

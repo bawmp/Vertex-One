@@ -9,6 +9,8 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { analyserFichierImport, lancerImport, type ApercuFichier } from "@/lib/actions/import-donnees";
 import type { Rapport } from "@/lib/import/moteur";
+import { useT } from "@/lib/i18n/contexte";
+import { m } from "@/lib/i18n/catalogue";
 
 export type TypeAffiche = {
   type: string;
@@ -22,15 +24,16 @@ type Apercu = Extract<ApercuFichier, { ok: true }>;
 type Etape = "choix" | "colonnes" | "simulation" | "termine";
 
 const LIENS_APRES_IMPORT: Record<string, { href: string; libelle: string }> = {
-  CONTACTS: { href: "/app/contacts", libelle: "Voir les contacts" },
-  PRODUITS: { href: "/app/produits", libelle: "Voir les produits" },
-  PROJETS_TACHES: { href: "/app/projets", libelle: "Voir les projets" },
-  DEVIS: { href: "/app/facturation", libelle: "Voir la facturation" },
-  FACTURES: { href: "/app/facturation", libelle: "Voir la facturation" },
-  NOTES: { href: "/app/mon-espace", libelle: "Voir mon espace personnel" },
+  CONTACTS: { href: "/app/contacts", libelle: m("Voir les contacts") },
+  PRODUITS: { href: "/app/produits", libelle: m("Voir les produits") },
+  PROJETS_TACHES: { href: "/app/projets", libelle: m("Voir les projets") },
+  DEVIS: { href: "/app/facturation", libelle: m("Voir la facturation") },
+  FACTURES: { href: "/app/facturation", libelle: m("Voir la facturation") },
+  NOTES: { href: "/app/mon-espace", libelle: m("Voir mon espace personnel") },
 };
 
 export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clients: { id: string; nom: string }[] }) {
+  const t = useT();
   const [etape, setEtape] = useState<Etape>("choix");
   const [typeChoisi, setTypeChoisi] = useState<string>(types[0].type);
   const [fichier, setFichier] = useState<File | null>(null);
@@ -42,7 +45,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
   const [enCours, demarrer] = useTransition();
   const champFichier = useRef<HTMLInputElement>(null);
 
-  const def = types.find((t) => t.type === typeChoisi) ?? types[0];
+  const def = types.find((x) => x.type === typeChoisi) ?? types[0];
 
   function formData(simulation: boolean): FormData {
     const f = new FormData();
@@ -57,7 +60,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
   function analyser() {
     setErreur(null);
     if (!fichier) {
-      setErreur("Choisissez d'abord un fichier CSV ou Excel.");
+      setErreur(t("Choisissez d'abord un fichier CSV ou Excel."));
       return;
     }
     const f = new FormData();
@@ -106,28 +109,28 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
         <Card>
           <CardContent className="flex flex-col gap-4">
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium">1. Que voulez-vous importer ?</legend>
+              <legend className="mb-1 text-sm font-medium">{t("1. Que voulez-vous importer ?")}</legend>
               <div className="grid gap-2 sm:grid-cols-2">
-                {types.map((t) => (
+                {types.map((x) => (
                   <button
-                    key={t.type}
+                    key={x.type}
                     type="button"
-                    aria-pressed={t.type === typeChoisi}
-                    onClick={() => setTypeChoisi(t.type)}
-                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${t.type === typeChoisi ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
+                    aria-pressed={x.type === typeChoisi}
+                    onClick={() => setTypeChoisi(x.type)}
+                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${x.type === typeChoisi ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
                   >
-                    <span className="font-medium">{t.libelle}</span>
+                    <span className="font-medium">{t(x.libelle)}</span>
                   </button>
                 ))}
               </div>
             </fieldset>
 
             <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3 text-sm">
-              <p>{def.description}</p>
+              <p>{t(def.description)}</p>
               <ul className="flex flex-col gap-1 text-muted-foreground">
                 {def.conseils.map((c) => (
                   <li key={c.source}>
-                    <span className="font-medium text-foreground">{c.source} :</span> {c.texte}
+                    <span className="font-medium text-foreground">{t(c.source)} :</span> {t(c.texte)}
                   </li>
                 ))}
               </ul>
@@ -135,7 +138,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
 
             <div className="flex flex-col gap-2">
               <label htmlFor="fichier-import" className="text-sm font-medium">
-                2. Fichier à importer (CSV ou Excel .xlsx)
+                {t("2. Fichier à importer (CSV ou Excel .xlsx)")}
               </label>
               <input
                 id="fichier-import"
@@ -151,7 +154,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
             <div>
               <Button type="button" onClick={analyser} disabled={enCours || !fichier}>
                 {enCours ? <Spinner /> : <FileSpreadsheet data-icon="inline-start" aria-hidden />}
-                {enCours ? "Lecture du fichier…" : "Analyser le fichier"}
+                {enCours ? t("Lecture du fichier…") : t("Analyser le fichier")}
               </Button>
             </div>
           </CardContent>
@@ -162,9 +165,9 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
         <Card>
           <CardContent className="flex flex-col gap-4">
             <div>
-              <h2 className="text-sm font-medium">3. Associer les colonnes — {def.libelle}</h2>
+              <h2 className="text-sm font-medium">{t("3. Associer les colonnes — {type}", { type: t(def.libelle) })}</h2>
               <p className="text-sm text-muted-foreground">
-                {apercu.nbLignes} ligne(s) lues dans « {fichier?.name} ». Les colonnes reconnues sont déjà associées ; vérifiez-les et complétez au besoin. Un champ marqué * est obligatoire.
+                {t("{n} ligne(s) lues dans « {nom} ». Les colonnes reconnues sont déjà associées ; vérifiez-les et complétez au besoin. Un champ marqué * est obligatoire.", { n: apercu.nbLignes, nom: fichier?.name ?? "" })}
               </p>
             </div>
 
@@ -175,12 +178,12 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
                 return (
                   <div key={champ.cle} className="grid items-center gap-2 sm:grid-cols-[14rem_minmax(0,1fr)_10rem]">
                     <label htmlFor={`champ-${champ.cle}`} className="text-sm">
-                      {champ.libelle}
+                      {t(champ.libelle)}
                       {champ.obligatoire ? <span className="text-destructive"> *</span> : null}
                     </label>
                     <Select
                       id={`champ-${champ.cle}`}
-                      aria-label={champ.libelle}
+                      aria-label={t(champ.libelle)}
                       value={entete ?? ""}
                       onChange={(e) => setCorrespondance((c) => {
                         const suivant = { ...c };
@@ -189,7 +192,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
                         return suivant;
                       })}
                     >
-                      <option value="">— ne pas importer —</option>
+                      <option value="">{t("— ne pas importer —")}</option>
                       {apercu.entetes.map((e) => (
                         <option key={e} value={e}>
                           {e}
@@ -207,33 +210,33 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
             {typeChoisi === "PROJETS_TACHES" ? (
               <div className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-3">
                 <label htmlFor="client-projets" className="text-sm font-medium">
-                  Rattacher les nouveaux projets à quel client ?
+                  {t("Rattacher les nouveaux projets à quel client ?")}
                 </label>
                 <Select id="client-projets" value={contactProjetsId} onChange={(e) => setContactProjetsId(e.target.value)}>
-                  <option value="NOUVEAU">Un client interne « Projets importés » (recommandé)</option>
+                  <option value="NOUVEAU">{t("Un client interne « Projets importés » (recommandé)")}</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nom}
                     </option>
                   ))}
                 </Select>
-                <p className="text-xs text-muted-foreground">Dans Vertex One, chaque projet appartient au dossier d&apos;un client.</p>
+                <p className="text-xs text-muted-foreground">{t("Dans Vertex One, chaque projet appartient au dossier d'un client.")}</p>
               </div>
             ) : null}
 
-            {manquants.length > 0 ? <p className="text-sm text-destructive">À associer : {manquants.map((m) => m.libelle).join(", ")}.</p> : null}
+            {manquants.length > 0 ? <p className="text-sm text-destructive">{t("À associer : {liste}.", { liste: manquants.map((c) => t(c.libelle)).join(", ") })}</p> : null}
             {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
 
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => lancer(true)} disabled={enCours || manquants.length > 0}>
                 {enCours ? <Spinner /> : null}
-                {enCours ? "Simulation…" : "Simuler l'import"}
+                {enCours ? t("Simulation…") : t("Simuler l'import")}
               </Button>
               <Button type="button" variant="ghost" onClick={recommencer} disabled={enCours}>
-                Changer de fichier
+                {t("Changer de fichier")}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">La simulation ne modifie rien : elle montre exactement ce qui serait créé, ignoré ou refusé.</p>
+            <p className="text-xs text-muted-foreground">{t("La simulation ne modifie rien : elle montre exactement ce qui serait créé, ignoré ou refusé.")}</p>
           </CardContent>
         </Card>
       ) : null}
@@ -241,19 +244,19 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
       {etape === "simulation" && rapport ? (
         <Card>
           <CardContent className="flex flex-col gap-4">
-            <h2 className="text-sm font-medium">4. Résultat de la simulation — rien n&apos;a encore été enregistré</h2>
+            <h2 className="text-sm font-medium">{t("4. Résultat de la simulation — rien n'a encore été enregistré")}</h2>
             <ResumeRapport rapport={rapport} conditionnel />
             {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => lancer(false)} disabled={enCours || rapport.crees === 0}>
                 {enCours ? <Spinner /> : <CheckCircle2 data-icon="inline-start" aria-hidden />}
-                {enCours ? "Import en cours…" : `Importer pour de bon (${rapport.crees})`}
+                {enCours ? t("Import en cours…") : `Importer pour de bon (${rapport.crees})`}
               </Button>
               <Button type="button" variant="outline" onClick={() => setEtape("colonnes")} disabled={enCours}>
-                Modifier l&apos;association
+                {t("Modifier l'association")}
               </Button>
               <Button type="button" variant="ghost" onClick={recommencer} disabled={enCours}>
-                Annuler
+                {t("Annuler")}
               </Button>
             </div>
           </CardContent>
@@ -265,15 +268,15 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
           <CardContent className="flex flex-col gap-4">
             <h2 className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="size-4" aria-hidden />
-              Import terminé
+              {t("Import terminé")}
             </h2>
             <ResumeRapport rapport={rapport} />
             <div className="flex flex-wrap gap-2">
               <Link href={LIENS_APRES_IMPORT[typeChoisi]?.href ?? "/app"} className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm text-primary-foreground">
-                {LIENS_APRES_IMPORT[typeChoisi]?.libelle ?? "Retour"}
+                {t(LIENS_APRES_IMPORT[typeChoisi]?.libelle ?? "Retour")}
               </Link>
               <Button type="button" variant="outline" onClick={recommencer}>
-                Importer un autre fichier
+                {t("Importer un autre fichier")}
               </Button>
             </div>
           </CardContent>
@@ -284,20 +287,21 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
 }
 
 function ResumeRapport({ rapport, conditionnel = false }: { rapport: Rapport; conditionnel?: boolean }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3 text-sm">
       <ul className="grid gap-2 sm:grid-cols-3">
         <li className="rounded-lg border border-border p-3">
           <p className="text-2xl font-semibold">{rapport.crees}</p>
-          <p className="text-muted-foreground">{conditionnel ? "seront créés" : "créés"}</p>
+          <p className="text-muted-foreground">{conditionnel ? t("seront créés") : t("créés")}</p>
         </li>
         <li className="rounded-lg border border-border p-3">
           <p className="text-2xl font-semibold">{rapport.ignores}</p>
-          <p className="text-muted-foreground">ignorés (déjà présents)</p>
+          <p className="text-muted-foreground">{t("ignorés (déjà présents)")}</p>
         </li>
         <li className="rounded-lg border border-border p-3">
           <p className="text-2xl font-semibold">{rapport.nbErreurs}</p>
-          <p className="text-muted-foreground">refusés</p>
+          <p className="text-muted-foreground">{t("refusés")}</p>
         </li>
       </ul>
 
@@ -305,7 +309,7 @@ function ResumeRapport({ rapport, conditionnel = false }: { rapport: Rapport; co
         <ul className="text-muted-foreground">
           {rapport.resume.map((r) => (
             <li key={r.libelle}>
-              {r.libelle} : <span className="font-medium text-foreground">{r.nombre}</span>
+              {t(r.libelle)} : <span className="font-medium text-foreground">{r.nombre}</span>
             </li>
           ))}
         </ul>
@@ -314,11 +318,11 @@ function ResumeRapport({ rapport, conditionnel = false }: { rapport: Rapport; co
       {rapport.avertissements.length > 0 ? (
         <div className="flex flex-col gap-1 rounded-lg border border-marque-orange-600/30 bg-marque-orange-600/5 p-3">
           <p className="flex items-center gap-1.5 font-medium">
-            <AlertTriangle className="size-4 text-marque-orange-600" aria-hidden />À noter
+            <AlertTriangle className="size-4 text-marque-orange-600" aria-hidden />{t("À noter")}
           </p>
           <ul className="flex flex-col gap-0.5 text-muted-foreground">
             {rapport.avertissements.map((a, i) => (
-              <li key={i}>{a.ligne > 0 ? `Ligne ${a.ligne} : ${a.message}` : a.message}</li>
+              <li key={i}>{a.ligne > 0 ? t("Ligne {n} : {message}", { n: a.ligne, message: t(a.message, a.valeurs) }) : t(a.message, a.valeurs)}</li>
             ))}
           </ul>
         </div>
@@ -328,14 +332,14 @@ function ResumeRapport({ rapport, conditionnel = false }: { rapport: Rapport; co
         <div className="flex flex-col gap-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
           <p className="flex items-center gap-1.5 font-medium">
             <XCircle className="size-4 text-destructive" aria-hidden />
-            Lignes refusées (ligne 1 = en-têtes du fichier)
+            {t("Lignes refusées (ligne 1 = en-têtes du fichier)")}
           </p>
           <ul className="flex max-h-48 flex-col gap-0.5 overflow-y-auto text-muted-foreground">
             {rapport.erreurs.map((e, i) => (
-              <li key={i}>{e.ligne > 0 ? `Ligne ${e.ligne} : ${e.message}` : e.message}</li>
+              <li key={i}>{e.ligne > 0 ? t("Ligne {n} : {message}", { n: e.ligne, message: t(e.message, e.valeurs) }) : t(e.message, e.valeurs)}</li>
             ))}
           </ul>
-          {rapport.nbErreurs > rapport.erreurs.length ? <p className="text-xs text-muted-foreground">… et {rapport.nbErreurs - rapport.erreurs.length} autre(s).</p> : null}
+          {rapport.nbErreurs > rapport.erreurs.length ? <p className="text-xs text-muted-foreground">{t("… et {n} autre(s).", { n: rapport.nbErreurs - rapport.erreurs.length })}</p> : null}
         </div>
       ) : null}
     </div>

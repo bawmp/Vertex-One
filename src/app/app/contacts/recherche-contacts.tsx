@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Search, Phone, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useT } from "@/lib/i18n/contexte";
 
 type Contact = { id: string; nom: string; telephone: string; email: string | null; compteNom: string | null };
 
 export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
+  const t = useT();
   const [recherche, setRecherche] = useState("");
   const terme = recherche.trim().toLowerCase();
   const filtres = terme
@@ -19,7 +21,7 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
     <div className="flex flex-col gap-4">
       <div className="relative w-full max-w-xs">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un contact…" className="pl-8" aria-label="Rechercher un contact" />
+        <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder={t("Rechercher un contact…")} className="pl-8" aria-label={t("Rechercher un contact")} />
       </div>
 
       <Card className="p-0">
@@ -42,7 +44,7 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
             </Link>
           ))}
           {filtres.length === 0 ? (
-            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? "Aucun contact ne correspond à cette recherche." : "Aucun contact pour le moment."}</p>
+            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun contact ne correspond à cette recherche.") : t("Aucun contact pour le moment.")}</p>
           ) : null}
         </div>
       </Card>

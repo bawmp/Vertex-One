@@ -12,8 +12,10 @@ import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/sel
 import { creerInvitation } from "@/lib/actions/invitation";
 import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireInvitation({ collegues }: { collegues: PersonneSelectionnable[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerInvitation, null);
   const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT">("EMPLOYE");
   // Par défaut : tous les modules du rôle ; l'Administrateur décoche ce qu'il veut retirer.
@@ -22,17 +24,17 @@ export function FormulaireInvitation({ collegues }: { collegues: PersonneSelecti
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Inviter un collaborateur</CardTitle>
+        <CardTitle>{t("Inviter un collaborateur")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email de l&apos;invité</Label>
+            <Label htmlFor="email">{t("Email de l'invité")}</Label>
             <Input id="email" name="email" type="email" required />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="roleProposee">Rôle</Label>
+            <Label htmlFor="roleProposee">{t("Rôle")}</Label>
             <Select
               id="roleProposee"
               name="roleProposee"
@@ -44,43 +46,43 @@ export function FormulaireInvitation({ collegues }: { collegues: PersonneSelecti
                 if (suivant !== "CLIENT") setModules(modulesRestreignables(suivant));
               }}
             >
-              <option value="MANAGER">Manager</option>
-              <option value="EMPLOYE">Employé</option>
-              <option value="CLIENT">Client</option>
+              <option value="MANAGER">{t("Manager")}</option>
+              <option value="EMPLOYE">{t("Employé")}</option>
+              <option value="CLIENT">{t("Client")}</option>
             </Select>
           </div>
 
           {role !== "CLIENT" ? (
             <div className="flex flex-col gap-2">
-              <Label>Modules accessibles</Label>
+              <Label>{t("Modules accessibles")}</Label>
               <input type="hidden" name="restreindreModules" value="1" />
               <SelecteurModules role={role} valeurs={modules} onChange={setModules} name="modules" />
             </div>
           ) : null}
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="postePropose">Poste</Label>
-            <Input id="postePropose" name="postePropose" placeholder="Ex : Chargé de clientèle" />
+            <Label htmlFor="postePropose">{t("Poste")}</Label>
+            <Input id="postePropose" name="postePropose" placeholder={t("Ex : Chargé de clientèle")} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="typeContratPropose">Type de contrat</Label>
+            <Label htmlFor="typeContratPropose">{t("Type de contrat")}</Label>
             <Select id="typeContratPropose" name="typeContratPropose" defaultValue="CDI">
               <option value="CDI">CDI</option>
               <option value="CDD">CDD</option>
-              <option value="STAGE">Stage</option>
-              <option value="PRESTATAIRE">Prestataire</option>
+              <option value="STAGE">{t("Stage")}</option>
+              <option value="PRESTATAIRE">{t("Prestataire")}</option>
             </Select>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="dateEmbauchePropose">Date d&apos;embauche réelle</Label>
+            <Label htmlFor="dateEmbauchePropose">{t("Date d'embauche réelle")}</Label>
             <Input id="dateEmbauchePropose" name="dateEmbauchePropose" type="date" />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="managerPropose">Manager (optionnel)</Label>
-            <SelecteurPersonne id="managerPropose" name="managerPropose" personnes={collegues} placeholder="Rechercher un manager…" />
+            <Label htmlFor="managerPropose">{t("Manager (optionnel)")}</Label>
+            <SelecteurPersonne id="managerPropose" name="managerPropose" personnes={collegues} placeholder={t("Rechercher un manager…")} />
           </div>
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
@@ -93,7 +95,7 @@ export function FormulaireInvitation({ collegues }: { collegues: PersonneSelecti
 
           <Button type="submit" disabled={enCours} className="self-start">
             {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
-            {enCours ? "Envoi…" : "Inviter"}
+            {enCours ? t("Envoi…") : t("Inviter")}
           </Button>
         </form>
       </CardContent>

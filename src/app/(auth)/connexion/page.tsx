@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/contexte";
 
 export default function PageConnexion() {
+  const t = useT();
   const router = useRouter();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -27,7 +29,7 @@ export default function PageConnexion() {
     setEnCours(false);
 
     if (error) {
-      setErreur("Email ou mot de passe incorrect.");
+      setErreur(t("Email ou mot de passe incorrect."));
       return;
     }
 
@@ -40,18 +42,18 @@ export default function PageConnexion() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Connexion à Vertex One</CardTitle>
-        <CardDescription>Accédez à votre espace entreprise.</CardDescription>
+        <CardTitle>{t("Connexion à Vertex One")}</CardTitle>
+        <CardDescription>{t("Accédez à votre espace entreprise.")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={seConnecter} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("Email")}</Label>
             <Input id="email" name="email" type="email" required />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="motDePasse">Mot de passe</Label>
+            <Label htmlFor="motDePasse">{t("Mot de passe")}</Label>
             <Input id="motDePasse" name="motDePasse" type="password" required />
           </div>
 
@@ -59,14 +61,14 @@ export default function PageConnexion() {
 
           <Button type="submit" disabled={enCours} className="w-full">
             {enCours ? <Spinner /> : null}
-            {enCours ? "Connexion…" : "Se connecter"}
+            {enCours ? t("Connexion…") : t("Se connecter")}
           </Button>
         </form>
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Pas encore de compte ?{" "}
+          {t("Pas encore de compte ?")}{" "}
           <Link href="/inscription" className="underline underline-offset-4">
-            Créer votre entreprise
+            {t("Créer votre entreprise")}
           </Link>
         </p>
       </CardContent>

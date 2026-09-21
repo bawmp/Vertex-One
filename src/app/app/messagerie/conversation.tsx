@@ -9,6 +9,8 @@ import { Compositeur } from "./compositeur";
 import { FilDiscussion } from "./fil-discussion";
 import { LigneMessage } from "./ligne-message";
 import { cleJour, delaiProchaineLecture, fusionner, plusRecentChangement, type PersonneMentionnable } from "./utilitaires-conversation";
+import { useT } from "@/lib/i18n/contexte";
+
 
 const PREMIERE_LECTURE_MS = 3000;
 
@@ -33,6 +35,7 @@ export function Conversation({
   /** Message à afficher en évidence à l'ouverture (résultat de recherche, lien d'une notification). */
   messageCibleId?: string;
 }) {
+  const t = useT();
   const [messages, setMessages] = useState(messagesInitiaux);
   const [erreur, setErreur] = useState<string | null>(null);
   const [plusAnciens, setPlusAnciens] = useState(!messageCibleId && messagesInitiaux.length >= 50);
@@ -128,7 +131,7 @@ export function Conversation({
   }
 
   async function supprimer(id: string) {
-    if (!window.confirm("Supprimer ce message pour tout le monde ?")) return;
+    if (!window.confirm(t("Supprimer ce message pour tout le monde ?"))) return;
     setErreur(null);
     const resultat = await supprimerMessage(id);
     if (resultat.erreur) return setErreur(resultat.erreur);
@@ -163,11 +166,11 @@ export function Conversation({
         {plusAnciens ? (
           <Button type="button" variant="ghost" size="sm" disabled={chargementAnciens} onClick={chargerAnciens} className="mb-2 self-center">
             {chargementAnciens ? <Spinner /> : null}
-            Messages plus anciens
+            {t("Messages plus anciens")}
           </Button>
         ) : null}
 
-        {messages.length === 0 ? <p className="m-auto text-sm text-muted-foreground">Aucun message pour le moment. Écrivez le premier !</p> : null}
+        {messages.length === 0 ? <p className="m-auto text-sm text-muted-foreground">{t("Aucun message pour le moment. Écrivez le premier !")}</p> : null}
 
         {messages.map((m, i) => (
           <LigneMessage
@@ -192,7 +195,7 @@ export function Conversation({
         <Compositeur
           canalId={canalId}
           candidats={candidats}
-          placeholder="Écrivez un message… (Entrée pour envoyer, @ pour mentionner)"
+          placeholder={t("Écrivez un message… (Entrée pour envoyer, @ pour mentionner)")}
           surEnvoye={(envoye) => {
             lecturesVides.current = 0;
             enBas.current = true;
@@ -201,7 +204,7 @@ export function Conversation({
           }}
         />
       ) : (
-        <p className="border-t border-border p-3 text-sm text-muted-foreground">Vous pouvez lire cette conversation mais pas y écrire.</p>
+        <p className="border-t border-border p-3 text-sm text-muted-foreground">{t("Vous pouvez lire cette conversation mais pas y écrire.")}</p>
       )}
 
       {filOuvertId ? (

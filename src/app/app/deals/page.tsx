@@ -9,8 +9,10 @@ import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { Button } from "@/components/ui/button";
 import { DealsVues } from "./deals-vues";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDeals() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -36,15 +38,15 @@ export default async function PageDeals() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Deals</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Deals")}</h1>
           <p className="text-muted-foreground">
-            {deals.length} deal{deals.length > 1 ? "s" : ""} visible{deals.length > 1 ? "s" : ""}.
+            {deals.length > 1 ? t("{n} deals visibles.", { n: deals.length }) : t("{n} deal visible.", { n: deals.length })}
           </p>
         </div>
         {peut(utilisateurConnecte, "CRM", "CREER") ? (
           <Button render={<Link href="/app/deals/nouveau" />} nativeButton={false}>
             <Briefcase data-icon="inline-start" aria-hidden />
-            Nouveau deal
+            {t("Nouveau deal")}
           </Button>
         ) : null}
       </div>

@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { creerGroupePour, genererInvitationGroupePour, rattacherFilialeAuGroupePour, quitterGroupePour, type ResultatGroupe } from "@/lib/groupe/logique";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/parametres/entreprise";
 
@@ -20,15 +22,16 @@ export type EtatGroupe = ResultatGroupe;
  * l'Administrateur, même garde que le reste de Paramètres.
  */
 export async function creerGroupe(_etat: EtatGroupe, formData: FormData): Promise<EtatGroupe> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Seul l'Administrateur peut créer un groupe." };
+    return { erreur: t("Seul l'Administrateur peut créer un groupe.") };
   }
 
-  const analyse = z.object({ nom: z.string().trim().min(2, "Le nom du groupe est trop court.") }).safeParse({ nom: formData.get("nom") });
+  const analyse = z.object({ nom: z.string().trim().min(2, m("Le nom du groupe est trop court.")) }).safeParse({ nom: formData.get("nom") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const resultat = await creerGroupePour(utilisateurConnecte.entrepriseId, analyse.data.nom);
@@ -43,10 +46,11 @@ export async function creerGroupe(_etat: EtatGroupe, formData: FormData): Promis
  * de lien cliquable magique, chaque filiale garde sa propre session.
  */
 export async function genererInvitationGroupe(): Promise<EtatGroupe> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Seul l'Administrateur peut générer un code de rattachement." };
+    return { erreur: t("Seul l'Administrateur peut générer un code de rattachement.") };
   }
 
   const resultat = await genererInvitationGroupePour(utilisateurConnecte.entrepriseId);
@@ -55,15 +59,16 @@ export async function genererInvitationGroupe(): Promise<EtatGroupe> {
 }
 
 export async function rattacherFilialeAuGroupe(_etat: EtatGroupe, formData: FormData): Promise<EtatGroupe> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
-    return { erreur: "Seul l'Administrateur peut rattacher cette entreprise à un groupe." };
+    return { erreur: t("Seul l'Administrateur peut rattacher cette entreprise à un groupe.") };
   }
 
-  const analyse = z.object({ jeton: z.string().trim().min(1, "Le code est requis.") }).safeParse({ jeton: formData.get("jeton") });
+  const analyse = z.object({ jeton: z.string().trim().min(1, m("Le code est requis.")) }).safeParse({ jeton: formData.get("jeton") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
   const resultat = await rattacherFilialeAuGroupePour(utilisateurConnecte.entrepriseId, analyse.data.jeton);

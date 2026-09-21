@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/contexte";
 import { useTransition } from "react";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ export function LigneTacheCrm({
   relatifA: string | null;
   nomContact: string | null;
 }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
   const infoPriorite = PRIORITE_TACHE_CRM[priorite];
 
@@ -33,7 +35,7 @@ export function LigneTacheCrm({
     <tr className="border-b last:border-0">
       <td className="px-4 py-2.5">{objet}</td>
       <td className="px-4 py-2.5 text-muted-foreground">
-        {dateEcheance ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" }).format(dateEcheance) : "—"}
+        {dateEcheance ? new Intl.DateTimeFormat(t.locale, { dateStyle: "short" }).format(dateEcheance) : "—"}
       </td>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2">
@@ -52,14 +54,14 @@ export function LigneTacheCrm({
           >
             {Object.entries(STATUT_TACHE_CRM).map(([valeur, info]) => (
               <option key={valeur} value={valeur}>
-                {info.libelle}
+                {t(info.libelle)}
               </option>
             ))}
           </Select>
         </div>
       </td>
       <td className="px-4 py-2.5">
-        <Badge variant={infoPriorite?.variante ?? "neutral"}>{infoPriorite?.libelle ?? priorite}</Badge>
+        <Badge variant={infoPriorite?.variante ?? "neutral"}>{t(infoPriorite?.libelle ?? priorite)}</Badge>
       </td>
       <td className="px-4 py-2.5 text-muted-foreground">{relatifA ?? "—"}</td>
       <td className="px-4 py-2.5 text-muted-foreground">{nomContact ?? "—"}</td>

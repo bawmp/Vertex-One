@@ -8,29 +8,31 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerDeal } from "@/lib/actions/deal";
+import { useT } from "@/lib/i18n/contexte";
 
 type Contact = { id: string; nom: string; compteNom: string | null };
 
 export function FormulaireNouveauDeal({ contacts, contactIdPreselectionne }: { contacts: Contact[]; contactIdPreselectionne?: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerDeal, null);
 
   return (
     <Card className="max-w-lg">
       <CardHeader>
-        <CardTitle>Nouveau deal</CardTitle>
+        <CardTitle>{t("Nouveau deal")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="titre">Titre</Label>
+            <Label htmlFor="titre">{t("Titre")}</Label>
             <Input id="titre" name="titre" required minLength={2} autoFocus />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="contactId">Contact</Label>
+            <Label htmlFor="contactId">{t("Contact")}</Label>
             <Select id="contactId" name="contactId" defaultValue={contactIdPreselectionne ?? ""} required>
               <option value="" disabled>
-                Choisir un contact
+                {t("Choisir un contact")}
               </option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -43,11 +45,11 @@ export function FormulaireNouveauDeal({ contacts, contactIdPreselectionne }: { c
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="montant">Montant (FCFA)</Label>
+              <Label htmlFor="montant">{t("Montant (FCFA)")}</Label>
               <Input id="montant" name="montant" type="number" min={0} defaultValue={0} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dateClotureEstimee">Clôture estimée</Label>
+              <Label htmlFor="dateClotureEstimee">{t("Clôture estimée")}</Label>
               <Input id="dateClotureEstimee" name="dateClotureEstimee" type="date" />
             </div>
           </div>
@@ -56,7 +58,7 @@ export function FormulaireNouveauDeal({ contacts, contactIdPreselectionne }: { c
 
           <Button type="submit" disabled={enCours}>
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer le deal"}
+            {enCours ? t("Création…") : t("Créer le deal")}
           </Button>
         </form>
       </CardContent>

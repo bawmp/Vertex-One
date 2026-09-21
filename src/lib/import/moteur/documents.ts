@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { compteClient, contact, devis, facture, ligneDevis, ligneFacture, paiement } from "@/db/schema";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { date, decimal, montant, normaliser } from "../valeurs";
+import { m } from "@/lib/i18n/catalogue";
 import {
   avertir,
   chiffresTelephone,
@@ -77,7 +78,7 @@ export async function importerDocuments(ctx: ContexteImport, genre: "DEVIS" | "F
   for (const { numero, v } of lignes) {
     const numeroDoc = (v.numero ?? "").trim();
     if (!numeroDoc) {
-      erreur(rapport, numero, `Numéro de ${estFacture ? "facture" : "devis"} manquant.`);
+      erreur(rapport, numero, estFacture ? m("Numéro de facture manquant.") : m("Numéro de devis manquant."));
       continue;
     }
     let doc = groupes.get(numeroDoc);
@@ -86,7 +87,7 @@ export async function importerDocuments(ctx: ContexteImport, genre: "DEVIS" | "F
       const emission = date(v.date) ?? new Date();
       const echeance = date(v.echeance) ?? new Date(emission.getTime() + JOURS_VALIDITE_PAR_DEFAUT * MS_JOUR);
       if (client.length < 2) {
-        erreur(rapport, numero, `Client manquant ou trop court pour ${numeroDoc}.`);
+        erreur(rapport, numero, m("Client manquant ou trop court pour {numero}."), { numero: numeroDoc });
         continue;
       }
       doc = {
@@ -172,18 +173,18 @@ export async function importerDocuments(ctx: ContexteImport, genre: "DEVIS" | "F
     }
     if (estFacture && statutFactureDepuisTexte(d.statutBrut) === null) {
       rapport.ignores++;
-      avertir(rapport, d.premiereLigne, `${d.numeroDoc} est un brouillon : une facture n'a pas de numéro tant qu'elle n'est pas émise, elle n'est pas reprise.`);
+      avertir(rapport, d.premiereLigne, m("{numero} est un brouillon : une facture n'a pas de numéro tant qu'elle n'est pas émise, elle n'est pas reprise."), { numero: d.numeroDoc });
       continue;
     }
     if (d.lignes.length === 0) {
-      erreur(rapport, d.premiereLigne, `Aucun montant pour ${d.numeroDoc} (ni ligne détaillée, ni total).`);
+      erreur(rapport, d.premiereLigne, m("Aucun montant pour {numero} (ni ligne détaillée, ni total)."), { numero: d.numeroDoc });
       continue;
     }
     if (d.totalTTCFichier !== null) {
       const calcule = calculerMontants(d.lignes).montantTTC;
       if (Math.abs(calcule - d.totalTTCFichier) > 1) {
         ecartsTotaux++;
-        if (ecartsTotaux <= 20) avertir(rapport, d.premiereLigne, `${d.numeroDoc} : le total du fichier (${d.totalTTCFichier}) diffère de la somme des lignes (${calcule}) — remise ou frais ? Le total des lignes est retenu.`);
+        if (ecartsTotaux <= 20) avertir(rapport, d.premiereLigne, m("{numero} : le total du fichier ({fichier}) diffère de la somme des lignes ({calcule}) — remise ou frais ? Le total des lignes est retenu."), { numero: d.numeroDoc, fichier: d.totalTTCFichier, calcule });
       }
     }
     retenus.push(d);
@@ -263,7 +264,7 @@ export async function importerDocuments(ctx: ContexteImport, genre: "DEVIS" | "F
       });
       for (const r of lots(reglements)) await tx.insert(paiement).values(r);
     }
-    if (paiementsInconnus > 0) avertir(rapport, 0, `${paiementsInconnus} facture(s) « partiellement payée(s) » sans montant payé : reprises comme émises, à pointer à la main.`);
+    if (paiementsInconnus > 0) avertir(rapport, 0, m("{n} facture(s) « partiellement payée(s) » sans montant payé : reprises comme émises, à pointer à la main."), { n: paiementsInconnus });
   } else {
     for (const lot of lots(entetes)) {
       const crees = await tx
@@ -292,8 +293,8 @@ export async function importerDocuments(ctx: ContexteImport, genre: "DEVIS" | "F
   }
   rapport.crees = retenus.length;
 
-  compter(rapport, "Clients créés", nouveauxClients.size);
-  if (tvaSupposee > 0) avertir(rapport, 0, `Aucune colonne de TVA associée : un taux de ${String(TVA_PAR_DEFAUT).replace(".", ",")} % a été supposé. Associez la colonne de TVA si vos documents en portent une.`);
-  if (ecartsTotaux > 20) avertir(rapport, 0, `${ecartsTotaux} documents au total ont un total différent de la somme de leurs lignes.`);
+  compter(rapport, m("Clients créés"), nouveauxClients.size);
+  if (tvaSupposee > 0) avertir(rapport, 0, m("Aucune colonne de TVA associée : un taux de {taux} % a été supposé. Associez la colonne de TVA si vos documents en portent une."), { taux: "19,25" });
+  if (ecartsTotaux > 20) avertir(rapport, 0, m("{n} documents au total ont un total différent de la somme de leurs lignes."), { n: ecartsTotaux });
   return rapport;
 }

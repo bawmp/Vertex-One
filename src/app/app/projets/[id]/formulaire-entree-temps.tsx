@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerEntreeTemps } from "@/lib/actions/entree-temps";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireEntreeTemps({
   projetId,
@@ -18,6 +19,7 @@ export function FormulaireEntreeTemps({
   taches: { id: string; titre: string }[];
   tauxHoraireParDefaut: number | null;
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerEntreeTemps, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -25,7 +27,7 @@ export function FormulaireEntreeTemps({
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Plus data-icon="inline-start" aria-hidden />
-        Enregistrer des heures
+        {t("Enregistrer des heures")}
       </Button>
     );
   }
@@ -36,21 +38,21 @@ export function FormulaireEntreeTemps({
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div className="flex flex-col gap-1">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">{t("Date")}</Label>
           <Input id="date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="dureeHeures">Durée (h)</Label>
+          <Label htmlFor="dureeHeures">{t("Durée (h)")}</Label>
           <Input id="dureeHeures" name="dureeHeures" type="number" step="0.25" min="0.25" required defaultValue="1" />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="tauxHoraire">Taux (FCFA/h)</Label>
+          <Label htmlFor="tauxHoraire">{t("Taux (FCFA/h)")}</Label>
           <Input id="tauxHoraire" name="tauxHoraire" type="number" min="0" defaultValue={tauxHoraireParDefaut ?? 0} />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="tacheId">Tâche (optionnel)</Label>
+          <Label htmlFor="tacheId">{t("Tâche (optionnel)")}</Label>
           <Select id="tacheId" name="tacheId" defaultValue="">
-            <option value="">Aucune</option>
+            <option value="">{t("Aucune")}</option>
             {taches.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.titre}
@@ -61,13 +63,13 @@ export function FormulaireEntreeTemps({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor="note">Note (optionnel)</Label>
-        <Input id="note" name="note" placeholder="Description du travail effectué" />
+        <Label htmlFor="note">{t("Note (optionnel)")}</Label>
+        <Input id="note" name="note" placeholder={t("Description du travail effectué")} />
       </div>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="facturable" defaultChecked className="size-4" />
-        Facturable
+        {t("Facturable")}
       </label>
 
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
@@ -75,10 +77,10 @@ export function FormulaireEntreeTemps({
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Enregistrement…" : "Enregistrer"}
+          {enCours ? t("Enregistrement…") : t("Enregistrer")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

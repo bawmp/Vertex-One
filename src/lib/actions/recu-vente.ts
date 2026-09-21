@@ -13,6 +13,8 @@ import { genererNumeroRecuVente } from "@/lib/facturation/numerotation";
 import { genererEcrituresRecuVente } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/facturation";
 
@@ -35,19 +37,20 @@ export type EtatRecuVente = { erreur?: string } | null;
  * définitif dès sa création, jamais sans NIU renseigné.
  */
 export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): Promise<EtatRecuVente> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un reçu de vente." };
+    return { erreur: t("Vous n'avez pas le droit de créer un reçu de vente.") };
   }
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
   const moyenPaiement = String(formData.get("moyenPaiement") ?? "");
   const referenceTransaction = String(formData.get("referenceTransaction") ?? "").trim();
-  if (!dealId && !contactId) return { erreur: "Formulaire invalide." };
+  if (!dealId && !contactId) return { erreur: t("Formulaire invalide.") };
   if (!["orange_money", "mtn_momo", "especes", "virement", "manuel"].includes(moyenPaiement)) {
-    return { erreur: "Moyen de paiement invalide." };
+    return { erreur: t("Moyen de paiement invalide.") };
   }
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
@@ -57,9 +60,9 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
     prixUnitaire: formData.getAll("prixUnitaire")[i],
     tauxTVA: formData.getAll("tauxTVA")[i],
   }));
-  const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
+  const analyseLignes = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
   if (!analyseLignes.success) {
-    return { erreur: analyseLignes.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyseLignes.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
@@ -127,7 +130,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
   });
 
   if (!nouveauRecu) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
+    return { erreur: t("Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable.") };
   }
 
   revalidatePath(CHEMIN);

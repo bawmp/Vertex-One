@@ -3,12 +3,14 @@ import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { resoudreDonneesClientPage } from "@/lib/facturation/client-document";
 import { FormulaireFactureAcompte } from "./formulaire-facture-acompte";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageNouvelleFactureAcompte({
   searchParams,
 }: {
   searchParams: Promise<{ dealId?: string; contactId?: string }>;
 }) {
+  const t = await getT();
   const { dealId, contactId } = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -19,14 +21,14 @@ export default async function PageNouvelleFactureAcompte({
 
   return (
     <div className="max-w-md">
-      <h1 className="text-2xl font-semibold tracking-tight">Nouvelle facture d&apos;acompte</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("Nouvelle facture d'acompte")}</h1>
       <p className="mt-1 text-muted-foreground">
         {donnees.dealId ? (
           <>
-            Pour le deal <span className="font-medium text-foreground">{donnees.titreDeal}</span> —{" "}
+            {t("Pour le deal")} <span className="font-medium text-foreground">{donnees.titreDeal}</span> —{" "}
           </>
         ) : (
-          "Pour "
+          t("Pour ")
         )}
         {donnees.compte?.nom ?? donnees.contact?.nom}. Demande d&apos;avance, à appliquer plus tard sur une vraie facture.
       </p>

@@ -6,8 +6,10 @@ import { Send, CheckCircle2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { envoyerDevis } from "@/lib/actions/devis";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { devisId: string; peutPersonnaliserModele: boolean }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(envoyerDevis.bind(null, devisId), null);
 
   return (
@@ -15,7 +17,7 @@ export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { dev
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={enCours}>
           {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
-          {enCours ? "Envoi en cours…" : "Envoyer au client par email"}
+          {enCours ? t("Envoi en cours…") : t("Envoyer au client par email")}
         </Button>
         {peutPersonnaliserModele ? (
           <Link
@@ -23,7 +25,7 @@ export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { dev
             className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             <Settings2 className="size-3.5" aria-hidden />
-            Personnaliser le message
+            {t("Personnaliser le message")}
           </Link>
         ) : null}
       </div>
@@ -33,7 +35,7 @@ export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { dev
       {etat?.envoye ? (
         <p className="flex animate-in fade-in items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="size-4" aria-hidden />
-          Email envoyé avec succès.
+          {t("Email envoyé avec succès.")}
         </p>
       ) : null}
     </form>

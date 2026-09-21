@@ -13,8 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { MinuteurEnCours } from "../minuteur-en-cours";
 import { FormulaireDemarrerMinuteur } from "./formulaire-demarrer-minuteur";
 import { VueFeuilleTemps } from "./vue-feuille-temps";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageFeuilleTemps() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -63,7 +65,7 @@ export default async function PageFeuilleTemps() {
   if (!donnees) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-muted-foreground">Les Projets sont disponibles à partir du forfait Pro.</p>
+        <p className="text-muted-foreground">{t("Les Projets sont disponibles à partir du forfait Pro.")}</p>
       </div>
     );
   }
@@ -82,15 +84,16 @@ export default async function PageFeuilleTemps() {
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/projets" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <Clock className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Feuille de temps</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Feuille de temps")}</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        {totalHeures}h enregistrées au total{nombreAFacturer > 0 ? ` · ${nombreAFacturer} entrée${nombreAFacturer > 1 ? "s" : ""} à facturer` : ""}
+        {t("{n}h enregistrées au total", { n: totalHeures })}
+        {nombreAFacturer > 0 ? (nombreAFacturer > 1 ? t(" · {n} entrées à facturer", { n: nombreAFacturer }) : t(" · {n} entrée à facturer", { n: nombreAFacturer })) : ""}
       </p>
 
       {minuteurActif ? (
@@ -125,18 +128,18 @@ export default async function PageFeuilleTemps() {
                         </Link>
                       ) : null}
                       <p className="truncate text-xs text-muted-foreground">
-                        {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(e.date)}
+                        {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(e.date)}
                         {e.note ? ` — ${e.note}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="text-xs text-muted-foreground">{e.dureeHeures}h</span>
                       {e.factureId ? (
-                        <Badge variant="success">Facturée</Badge>
+                        <Badge variant="success">{t("Facturée")}</Badge>
                       ) : e.facturable ? (
-                        <Badge variant="warning">À facturer</Badge>
+                        <Badge variant="warning">{t("À facturer")}</Badge>
                       ) : (
-                        <Badge variant="neutral">Non facturable</Badge>
+                        <Badge variant="neutral">{t("Non facturable")}</Badge>
                       )}
                     </div>
                   </div>
@@ -145,7 +148,7 @@ export default async function PageFeuilleTemps() {
             </div>
           </Card>
         ) : (
-          <p className="text-sm text-muted-foreground">Aucune heure enregistrée pour le moment.</p>
+          <p className="text-sm text-muted-foreground">{t("Aucune heure enregistrée pour le moment.")}</p>
         )}
       </VueFeuilleTemps>
     </div>

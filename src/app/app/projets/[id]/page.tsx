@@ -27,8 +27,10 @@ import { ListeCommentaires } from "../liste-commentaires";
 import { FormulaireDocument } from "../formulaire-document";
 import { ListeDocuments } from "../liste-documents";
 import { ajouterCommentaireProjet } from "@/lib/actions/projet";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDetailProjet({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -105,12 +107,12 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{leProjet.titre}</h1>
-            <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? leProjet.statut}</Badge>
+            <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? leProjet.statut)}</Badge>
           </div>
           {leProjet.description ? <p className="mt-1 text-muted-foreground">{leProjet.description}</p> : null}
           {leProjet.dateEcheance ? (
             <p className="mt-1 text-sm text-muted-foreground">
-              Échéance : {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(leProjet.dateEcheance)}
+              {t("Échéance : {date}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(leProjet.dateEcheance) })}
             </p>
           ) : null}
         </div>
@@ -120,7 +122,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Tâches</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Tâches")}</h2>
           {peutModifier ? (
             <FormulaireNouvelleTache projetId={leProjet.id} collegues={collegues} utilisateurId={utilisateurConnecte.utilisateurId} />
           ) : null}
@@ -143,13 +145,13 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
             </div>
           </Card>
         ) : (
-          <p className="text-sm text-muted-foreground">Aucune tâche pour le moment dans ce {vocab.singulier.toLowerCase()}.</p>
+          <p className="text-sm text-muted-foreground">{t("Aucune tâche pour le moment dans ce {objet}.", { objet: t(vocab.singulier).toLowerCase() })}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Feuille de temps</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Feuille de temps")}</h2>
           <div className="flex items-center gap-2">
             {peutFacturer && aDesHeuresAFacturer ? <BoutonGenererFactureHeures projetId={leProjet.id} /> : null}
             {peutModifier ? (
@@ -170,7 +172,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
             <MinuteurEnCours demarreLe={minuteurActif.demarreLe.toISOString()} libelle={minuteurActif.tacheTitre ?? "Minuteur en cours"} projetId={leProjet.id} />
           ) : (
             <p className="text-xs text-muted-foreground">
-              Un minuteur est en cours sur{" "}
+              {t("Un minuteur est en cours sur")}{" "}
               <Link href={`/app/projets/${minuteurActif.projetId}`} className="underline">
                 {minuteurActif.projetTitre}
               </Link>
@@ -199,12 +201,12 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
             </div>
           </Card>
         ) : (
-          <p className="text-sm text-muted-foreground">Aucune heure enregistrée pour le moment sur ce {vocab.singulier.toLowerCase()}.</p>
+          <p className="text-sm text-muted-foreground">{t("Aucune heure enregistrée pour le moment sur ce {objet}.", { objet: t(vocab.singulier).toLowerCase() })}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Documents</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Documents")}</h2>
         <ListeDocuments
           documents={documents}
           peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
@@ -216,7 +218,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Commentaires</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Commentaires")}</h2>
         <ListeCommentaires commentaires={commentaires} auteursParId={auteursParId} />
         {peutModifier ? (
           <FormulaireCommentaire action={ajouterCommentaireProjet} champCache="projetId" idCache={leProjet.id} />

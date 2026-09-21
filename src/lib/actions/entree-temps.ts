@@ -12,12 +12,14 @@ import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroFacture } from "@/lib/facturation/numerotation";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaEntreeTemps = z.object({
   projetId: z.string(),
   tacheId: z.string().trim().optional(),
-  date: z.string().min(1, "La date est requise."),
-  dureeHeures: z.coerce.number().positive("La durée doit être positive."),
+  date: z.string().min(1, m("La date est requise.")),
+  dureeHeures: z.coerce.number().positive(m("La durée doit être positive.")),
   tauxHoraire: z.coerce.number().int().nonnegative().default(0),
   facturable: z.string().optional(),
   note: z.string().trim().optional(),
@@ -31,10 +33,11 @@ export type EtatEntreeTemps = { erreur?: string } | null;
  * simplification que les créations Achats/Ventes sans Deal.
  */
 export async function creerEntreeTemps(_etat: EtatEntreeTemps, formData: FormData): Promise<EtatEntreeTemps> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PROJETS", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'enregistrer des heures." };
+    return { erreur: t("Vous n'avez pas le droit d'enregistrer des heures.") };
   }
 
   const analyse = schemaEntreeTemps.safeParse({
@@ -47,7 +50,7 @@ export async function creerEntreeTemps(_etat: EtatEntreeTemps, formData: FormDat
     note: formData.get("note") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { projetId, tacheId, date, dureeHeures, tauxHoraire, facturable, note } = analyse.data;
 

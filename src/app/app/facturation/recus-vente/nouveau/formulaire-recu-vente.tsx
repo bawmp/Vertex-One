@@ -10,17 +10,19 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerRecuVente } from "@/lib/actions/recu-vente";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
+import { useT } from "@/lib/i18n/contexte";
+import { m } from "@/lib/i18n/catalogue";
 
 type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
 const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
 
 const MOYENS_PAIEMENT: { valeur: string; libelle: string }[] = [
-  { valeur: "orange_money", libelle: "Orange Money" },
-  { valeur: "mtn_momo", libelle: "MTN MoMo" },
-  { valeur: "especes", libelle: "Espèces" },
-  { valeur: "virement", libelle: "Virement" },
-  { valeur: "manuel", libelle: "Autre" },
+  { valeur: "orange_money", libelle: m("Orange Money") },
+  { valeur: "mtn_momo", libelle: m("MTN MoMo") },
+  { valeur: "especes", libelle: m("Espèces") },
+  { valeur: "virement", libelle: m("Virement") },
+  { valeur: "manuel", libelle: m("Autre") },
 ];
 
 export function FormulaireRecuVente({
@@ -32,6 +34,7 @@ export function FormulaireRecuVente({
   contactId?: string;
   produits: { id: string; nom: string; prixVente: number }[];
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerRecuVente, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
 
@@ -65,18 +68,18 @@ export function FormulaireRecuVente({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="moyenPaiement">Moyen de paiement</Label>
+              <Label htmlFor="moyenPaiement">{t("Moyen de paiement")}</Label>
               <Select id="moyenPaiement" name="moyenPaiement" required defaultValue="manuel">
                 {MOYENS_PAIEMENT.map((m) => (
                   <option key={m.valeur} value={m.valeur}>
-                    {m.libelle}
+                    {t(m.libelle)}
                   </option>
                 ))}
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="referenceTransaction">Référence de transaction (optionnel)</Label>
-              <Input id="referenceTransaction" name="referenceTransaction" placeholder="Ex. ID de transaction Mobile Money" />
+              <Label htmlFor="referenceTransaction">{t("Référence de transaction (optionnel)")}</Label>
+              <Input id="referenceTransaction" name="referenceTransaction" placeholder={t("Ex. ID de transaction Mobile Money")} />
             </div>
           </div>
 
@@ -88,9 +91,9 @@ export function FormulaireRecuVente({
               >
                 <input type="hidden" name="produitId" value={ligne.produitId} />
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Produit</Label> : null}
+                  {index === 0 ? <Label>{t("Produit")}</Label> : null}
                   <Select value={ligne.produitId} onChange={(e) => choisirProduit(index, e.target.value)}>
-                    <option value="">Texte libre</option>
+                    <option value="">{t("Texte libre")}</option>
                     {produits.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nom}
@@ -99,7 +102,7 @@ export function FormulaireRecuVente({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Désignation</Label> : null}
+                  {index === 0 ? <Label>{t("Désignation")}</Label> : null}
                   <Input
                     name="designation"
                     required
@@ -108,7 +111,7 @@ export function FormulaireRecuVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Qté</Label> : null}
+                  {index === 0 ? <Label>{t("Qté")}</Label> : null}
                   <Input
                     name="quantite"
                     type="number"
@@ -120,7 +123,7 @@ export function FormulaireRecuVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>Prix unit. (FCFA)</Label> : null}
+                  {index === 0 ? <Label>{t("Prix unit. (FCFA)")}</Label> : null}
                   <Input
                     name="prixUnitaire"
                     type="number"
@@ -131,7 +134,7 @@ export function FormulaireRecuVente({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {index === 0 ? <Label>TVA %</Label> : null}
+                  {index === 0 ? <Label>{t("TVA %")}</Label> : null}
                   <Input
                     name="tauxTVA"
                     type="number"
@@ -148,7 +151,7 @@ export function FormulaireRecuVente({
                   size="icon-sm"
                   disabled={lignes.length === 1}
                   onClick={() => setLignes((precedent) => precedent.filter((_, i) => i !== index))}
-                  aria-label="Retirer la ligne"
+                  aria-label={t("Retirer la ligne")}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <X className="size-4" aria-hidden />
@@ -164,13 +167,13 @@ export function FormulaireRecuVente({
               onClick={() => setLignes((p) => [...p, { ...LIGNE_VIDE }])}
             >
               <Plus data-icon="inline-start" aria-hidden />
-              Ajouter une ligne
+              {t("Ajouter une ligne")}
             </Button>
           </div>
 
           <div className="rounded-lg bg-muted/40 p-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Montant HT</span>
+              <span className="text-muted-foreground">{t("Montant HT")}</span>
               <span className="tabular-nums">{formaterFCFA(montants.montantHT)}</span>
             </div>
             <div className="flex justify-between">
@@ -178,7 +181,7 @@ export function FormulaireRecuVente({
               <span className="tabular-nums">{formaterFCFA(montants.montantTVA)}</span>
             </div>
             <div className="mt-2 flex justify-between border-t pt-2 text-base font-medium">
-              <span>Total encaissé</span>
+              <span>{t("Total encaissé")}</span>
               <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
             </div>
           </div>
@@ -187,7 +190,7 @@ export function FormulaireRecuVente({
 
           <Button type="submit" disabled={enCours} className="self-start">
             {enCours ? <Spinner /> : null}
-            {enCours ? "Création…" : "Créer le reçu de vente"}
+            {enCours ? t("Création…") : t("Créer le reçu de vente")}
           </Button>
         </form>
       </CardContent>

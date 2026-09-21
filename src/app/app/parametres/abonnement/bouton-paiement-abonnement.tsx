@@ -5,6 +5,7 @@ import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { genererLienPaiementAbonnement } from "@/lib/actions/abonnement";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Copie conforme de src/app/app/facturation/factures/[id]/bouton-paiement-en-ligne.tsx
@@ -12,6 +13,7 @@ import { genererLienPaiementAbonnement } from "@/lib/actions/abonnement";
  * jamais un lien Next.js interne.
  */
 export function BoutonPaiementAbonnement() {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export function BoutonPaiementAbonnement() {
     <div className="flex flex-col items-center gap-1.5">
       <Button type="button" onClick={generer} disabled={enCours}>
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
-        Régler mon abonnement (50 000 FCFA)
+        {t("Régler mon abonnement (50 000 FCFA)")}
       </Button>
       {erreur ? <p className="text-xs text-destructive">{erreur}</p> : null}
     </div>

@@ -17,6 +17,8 @@ import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaLigne = z.object({
   produitId: z.string().trim().optional(),
@@ -38,10 +40,11 @@ export type EtatDevis = { erreur?: string } | null;
  * FACTURE, seul soumis à la contrainte stricte de séquence sans trou.
  */
 export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<EtatDevis> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un devis." };
+    return { erreur: t("Vous n'avez pas le droit de créer un devis.") };
   }
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
@@ -56,9 +59,9 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
     tauxTVA: formData.getAll("tauxTVA")[i],
   }));
 
-  const analyseLignes = z.array(schemaLigne).min(1, "Au moins une ligne est requise.").safeParse(lignesBrutes);
+  const analyseLignes = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
   if (!analyseLignes.success || (!dealId && !contactId) || !dateValidite) {
-    return { erreur: analyseLignes.success ? "Formulaire invalide." : analyseLignes.error.issues[0]?.message };
+    return { erreur: analyseLignes.success ? t("Formulaire invalide.") : analyseLignes.error.issues[0]?.message };
   }
 
   const lignes = analyseLignes.data;
@@ -111,7 +114,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
   });
 
   if (!nouveauDevis) {
-    return { erreur: "Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable." };
+    return { erreur: t("Complétez d'abord le NIU de votre entreprise (Paramètres > Informations légales), ou le client indiqué est introuvable.") };
   }
 
   redirect(`/app/facturation/devis/${nouveauDevis.id}`);
@@ -152,17 +155,18 @@ export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;
  * le devis est parti.
  */
 export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _formData: FormData): Promise<EtatEnvoiDevis> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'envoyer ce devis." };
+    return { erreur: t("Vous n'avez pas le droit d'envoyer ce devis.") };
   }
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const donnees = await recupererDevisPourPDF(tx, utilisateurConnecte, devisId);
-    if (!donnees) return { erreur: "Devis introuvable." };
+    if (!donnees) return { erreur: t("Devis introuvable.") };
     if (!donnees.client?.email) {
-      return { erreur: "Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM)." };
+      return { erreur: t("Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM).") };
     }
 
     const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { devisId });
@@ -198,7 +202,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
     });
 
-    if (!envoye) return { erreur: erreur ?? "Échec de l'envoi de l'email." };
+    if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
     await tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, devisId));
     return { envoye: true };
