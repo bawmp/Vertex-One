@@ -895,6 +895,22 @@ Trois voies chiffrées, à reprendre dans cet ordre :
 
 À prévoir quelle que soit la voie : essais sur un vrai iPhone et un vrai Android (jamais testé, seul un navigateur de bureau est utilisé), poids des pages vérifié sur une connexion 3G/4G réelle au Cameroun.
 
+## 52. Import de données depuis Asana, Zoho et autres applications — construit le 2026-09-21
+
+Demande explicite : pouvoir importer dans Vertex One des données issues d'Asana, de Zoho One et d'autres applications. Décision retenue avec l'utilisateur : **assistant générique par fichier CSV/Excel d'abord** (fonctionne avec n'importe quelle application qui sait exporter), connecteurs directs par API plus tard. Périmètre choisi : contacts et entreprises clientes, tâches et projets, produits et services, devis et factures historiques, notes personnelles.
+
+Construit : `/app/parametres/import` (menu Paramètres → « Importer des données »), association automatique des colonnes (alias Zoho CRM/Books, Asana, français/anglais), simulation identique à l'import réel puis confirmation, rapport (créés / ignorés / refusés avec numéro de ligne / avertissements). Voir CLAUDE.md, section « Import de données », pour les règles (droits, isolation entre entreprises, reprise de factures sans écriture comptable, doublons).
+
+Testé : `tests/import-lecture.test.ts` (lecture CSV/xlsx, valeurs, alias — 16 tests), `tests/import-donnees.test.ts` (moteur réel contre la base : contacts, produits, Asana, factures et devis Zoho Books, notes, simulation sans effet, rejeu idempotent, fuite entre deux entreprises — 16 tests), `tests/import-droits.test.ts`, E2E permanent `tests-e2e/import-donnees.spec.ts`.
+
+**Reste à faire, à la demande :**
+- **Annuler un import** réalisé (aujourd'hui, seule la simulation protège) : exigerait un identifiant de lot sur chaque table importable.
+- **Journal des imports** (qui, quand, combien) : une table `import_donnees` avec RLS.
+- **Connecteurs directs** Asana et Zoho (OAuth/jeton, récupération automatique) : un connecteur par application, comptes développeur chez chacune, accès de test nécessaires.
+- Autres objets : fournisseurs, dépenses, bons de commande, employés (RH), leads, opportunités (deals), pièces jointes des tâches.
+- Ancien format Excel `.xls` (l'utilisateur doit l'enregistrer en `.xlsx` ou CSV).
+- Import de **PDF** de factures (extraction de texte) : hors périmètre.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
