@@ -2,12 +2,12 @@ import { redirect } from "next/navigation";
 import { eq, desc, inArray } from "drizzle-orm";
 import { Megaphone, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { annonce, utilisateur, entreprise } from "@/db/schema";
+import { annonce, utilisateur, entreprise, pieceJointeAnnonce } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { FormulaireAnnonce } from "./formulaire-annonce";
-import { LigneAnnonce } from "./ligne-annonce";
+import { LigneAnnonce, type PieceAnnonce } from "./ligne-annonce";
 
 export default async function PageAnnonces() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -37,7 +37,14 @@ export default async function PageAnnonces() {
         ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(inArray(utilisateur.id, idsAuteurs))
         : [];
 
-    return { annonces: lignes, auteursParId: Object.fromEntries(auteurs.map((u) => [u.id, u.nomComplet])) };
+    // Pièces jointes de ces annonces, regroupées par annonce (le contenu des fichiers passe par la route protégée).
+    const pieces = lignes.length
+      ? await tx.select().from(pieceJointeAnnonce).where(inArray(pieceJointeAnnonce.annonceId, lignes.map((a) => a.id))).orderBy(pieceJointeAnnonce.creeLe)
+      : [];
+    const piecesParAnnonce: Record<string, PieceAnnonce[]> = {};
+    for (const p of pieces) (piecesParAnnonce[p.annonceId] ??= []).push({ id: p.id, nom: p.nom, taille: p.tailleOctets, image: p.typeMime.startsWith("image/") });
+
+    return { annonces: lignes, auteursParId: Object.fromEntries(auteurs.map((u) => [u.id, u.nomComplet])), piecesParAnnonce };
   });
 
   if (!donnees) {
@@ -49,7 +56,7 @@ export default async function PageAnnonces() {
     );
   }
 
-  const { annonces, auteursParId } = donnees;
+  const { annonces, auteursParId, piecesParAnnonce } = donnees;
   const peutCreer = peut(utilisateurConnecte, "ANNONCES", "CREER");
   const peutGerer = peut(utilisateurConnecte, "ANNONCES", "MODIFIER");
 
@@ -71,6 +78,7 @@ export default async function PageAnnonces() {
             auteurNom={auteursParId[a.auteurId] ?? "Utilisateur"}
             creeLe={a.creeLe}
             epinglee={a.epinglee}
+            pieces={piecesParAnnonce[a.id] ?? []}
             peutGerer={peutGerer}
           />
         ))}

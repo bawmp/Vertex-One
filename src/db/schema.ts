@@ -2045,6 +2045,36 @@ export const annonce = pgTable(
   ]
 ).enableRLS();
 
+// Pièces jointes d'une annonce (2026-09-21) : jusqu'à cinq par annonce, image, PDF, Word ou Excel, type vérifié sur les
+// octets. Stockées dans R2 sous l'entrepriseId, jamais servies sans repasser par le contrôle d'accès (voir
+// src/app/app/annonces/fichier/[id]/route.ts).
+export const pieceJointeAnnonce = pgTable(
+  "piece_jointe_annonce",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    annonceId: text("annonce_id")
+      .notNull()
+      .references(() => annonce.id),
+    cleStockage: text("cle_stockage").notNull(),
+    nom: text("nom").notNull(),
+    typeMime: text("type_mime").notNull(),
+    tailleOctets: integer("taille_octets").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("piece_jointe_annonce_entreprise_idx").on(table.entrepriseId),
+    index("piece_jointe_annonce_annonce_idx").on(table.annonceId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Palier 4 — voir docs/palier-4-signature-contrats-comptabilite-specification-technique.md
 export const typeSignature = pgEnum("type_signature", ["SIMPLE", "CERTIFIEE"]);
 export const statutSignature = pgEnum("statut_signature", ["EN_ATTENTE", "SIGNE", "REFUSE", "EXPIRE"]);

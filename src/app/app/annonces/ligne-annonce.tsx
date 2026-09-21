@@ -1,9 +1,12 @@
 "use client";
 
-import { Pin, PinOff, Trash2 } from "lucide-react";
+import { Paperclip, Pin, PinOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { epinglerAnnonce, supprimerAnnonce } from "@/lib/actions/annonce";
+import { formaterTaille } from "@/lib/one-form/fichiers";
+
+export type PieceAnnonce = { id: string; nom: string; taille: number; image: boolean };
 
 export function LigneAnnonce({
   id,
@@ -11,6 +14,7 @@ export function LigneAnnonce({
   auteurNom,
   creeLe,
   epinglee,
+  pieces,
   peutGerer,
 }: {
   id: string;
@@ -18,8 +22,11 @@ export function LigneAnnonce({
   auteurNom: string;
   creeLe: Date;
   epinglee: boolean;
+  pieces: PieceAnnonce[];
   peutGerer: boolean;
 }) {
+  const images = pieces.filter((p) => p.image);
+  const fichiers = pieces.filter((p) => !p.image);
   return (
     <Card className={epinglee ? "ring-primary/30" : undefined}>
       <CardContent className="flex flex-col gap-2">
@@ -54,7 +61,31 @@ export function LigneAnnonce({
             </div>
           ) : null}
         </div>
-        <p className="whitespace-pre-wrap text-sm">{contenu}</p>
+        {contenu ? <p className="whitespace-pre-wrap text-sm">{contenu}</p> : null}
+        {images.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {images.map((p) => (
+              <a key={p.id} href={`/app/annonces/fichier/${p.id}?apercu=1`} target="_blank" rel="noopener noreferrer" aria-label={`Ouvrir l'image ${p.nom}`}>
+                {/* Image protégée : servie par une route qui revérifie l'accès, donc pas de <Image> optimisé. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/app/annonces/fichier/${p.id}?apercu=1`} alt={p.nom} className="max-h-64 max-w-full rounded-lg border border-border object-cover" />
+              </a>
+            ))}
+          </div>
+        ) : null}
+        {fichiers.length > 0 ? (
+          <ul className="flex flex-col gap-1.5" aria-label="Pièces jointes">
+            {fichiers.map((p) => (
+              <li key={p.id}>
+                <a href={`/app/annonces/fichier/${p.id}`} className="flex w-fit max-w-full items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm transition-colors hover:bg-muted">
+                  <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="min-w-0 truncate font-medium">{p.nom}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formaterTaille(p.taille)}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </CardContent>
     </Card>
   );

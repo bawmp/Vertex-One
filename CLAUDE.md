@@ -74,6 +74,10 @@ One Chat n'utilise **aucun prestataire externe** : les messages vivent dans notr
 - **Lecture adaptative** : 3 s tant que ça bouge, jusqu'à 10 s en conversation calme, 20 s onglet masqué (`delaiProchaineLecture`). Chaque lecture coûte plusieurs requêtes : ne pas la resserrer sans mesurer.
 - Pas encore : messages épinglés, modification d'un message envoyé, réactions personnalisées, appels audio/vidéo.
 
+## Annonces avec pièces jointes (2026-09-21)
+
+Une annonce (One Announcements) porte jusqu'à 5 pièces jointes (`piece_jointe_annonce`) : image, PDF, Word ou Excel, **4 Mo au total** (limite de corps de requête de Vercel), type reconnu sur les octets par `validerFichier()` — même règle que One Form et la messagerie, jamais sur le nom ni le type déclaré. Une annonce est un texte, des fichiers, ou les deux, jamais vide. `validerPiecesAnnonce()` (`src/lib/annonces/pieces.ts`) valide tout AVANT le moindre envoi vers R2 ; si l'enregistrement échoue après le téléversement, les fichiers déjà envoyés sont effacés. Les fichiers ne sont **jamais servis par leur seul lien** : `GET /app/annonces/fichier/[id]` revérifie session, droit `ANNONCES/VOIR` et forfait (image en ligne, le reste en URL signée à téléchargement forcé). Supprimer une annonce efface aussi ses fichiers dans R2.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.

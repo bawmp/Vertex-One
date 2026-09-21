@@ -722,6 +722,13 @@
       "when": 1789938827211,
       "tag": "0102_one_chat_groupes_reactions_fils_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1789949236976,
+      "tag": "0103_annonces_pieces_jointes",
+      "breakpoints": true
     }
   ]
 }
