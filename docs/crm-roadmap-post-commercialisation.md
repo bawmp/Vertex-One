@@ -923,6 +923,16 @@ Demande explicite : « continuer avec l'internationalisation ». Décisions avec
 3. **Ce que voit le client** : pages publiques (devis, facture, signature, réservation, carrières, formulaires), emails et PDF — la langue devra venir du client ou de l'entreprise, pas d'un compte (le client n'en a pas).
 4. Format des montants (`formaterFCFA` : « 15 000 FCFA » → « 15,000 FCFA »), formats de date dans les PDF.
 
+## 54. Console interne : contrôle des utilisateurs — demandé le 2026-09-21, à faire
+
+Demande du propriétaire : contrôler les utilisateurs de l'application depuis son panel (`/plateforme`, accessible avec un compte dont l'email figure dans `PLATEFORME_ADMINS`). **Aujourd'hui** la console liste les entreprises, montre l'usage des modules et permet de suspendre/réactiver un abonnement, mais **pas de gérer les utilisateurs un par un**.
+
+À construire (rien de commencé) : liste des utilisateurs d'une entreprise (rôle, statut, dernière activité, modules autorisés), désactivation/réactivation d'un compte (`utilisateur.statut`, déjà respecté par `recupererUtilisateurConnecte()`), réinitialisation d'accès, journal de chaque action du staff (qui, quand, sur quoi). Contrainte : la console lit avec un rôle `BYPASSRLS` en lecture seule (`plateforme_lecture`) ; toute écriture doit passer par une action serveur dédiée qui vérifie `estStaffPlateforme()` et journalise, jamais par ce rôle.
+
+## Reprise de l'internationalisation (rappel)
+
+Prochaine étape convenue : le **site vitrine** (~250 textes, `src/app/(marketing)/` + `src/lib/marketing/*`, sélecteur FR/EN dans l'en-tête), puis les autres modules, puis ce que voit le client. Voir la section 53.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
