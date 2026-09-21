@@ -27,7 +27,7 @@ export type ResultatKyria = { reponse: string; erreur?: undefined } | { reponse?
 /**
  * Envoie l'historique de conversation à Claude et renvoie la réponse de
  * Kyria — ne lève jamais d'exception, toujours { reponse } | { erreur }
- * (même contrat que initierPaiement(), src/lib/cinetpay/client.ts).
+ * (même contrat que initierPaiement(), src/lib/campay/client.ts).
  */
 export async function demanderReponseKyria(messages: MessageKyria[]): Promise<ResultatKyria> {
   if (!kyriaConfigure()) {

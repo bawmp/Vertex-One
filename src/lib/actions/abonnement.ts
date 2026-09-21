@@ -3,10 +3,11 @@
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, tentativePaiementAbonnement, utilisateur } from "@/db/schema";
+import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { initierPaiement } from "@/lib/cinetpay/client";
+import { initierPaiement } from "@/lib/campay/client";
+import { referenceExterne } from "@/lib/campay/utilitaires";
 import { getT } from "@/lib/i18n/langue";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
@@ -20,8 +21,8 @@ function urlBase(): string {
  * genererLienPaiement() (src/lib/actions/facture.ts), mais un flux d'argent
  * différent : le tenant paie ici Vertex One lui-même, jamais un de ses
  * propres clients. Table (tentativePaiementAbonnement) et webhook
- * (src/app/api/paiements/cinetpay/notify-abonnement/route.ts) séparés de
- * ceux des factures — deux flux distincts, pas un mécanisme générique.
+ * (src/app/api/paiements/campay/notify/route.ts, distingué par le préfixe de la
+ * référence externe) séparés de ceux des factures — deux flux distincts.
  */
 export async function genererLienPaiementAbonnement(): Promise<{ url?: string; erreur?: string }> {
   const t = await getT();
@@ -32,28 +33,16 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
   }
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    // UtilisateurConnecte ne porte que utilisateurId/entrepriseId/role
-    // (voir src/lib/session.ts) — nomComplet/email se relisent ici, comme le
-    // fait déjà src/app/app/layout.tsx pour ses propres besoins.
-    const [monUtilisateur] = await tx
-      .select({ nomComplet: utilisateur.nomComplet, email: utilisateur.email })
-      .from(utilisateur)
-      .where(eq(utilisateur.id, utilisateurConnecte.utilisateurId));
-
     const [tentative] = await tx
       .insert(tentativePaiementAbonnement)
       .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: PRIX_ABONNEMENT_MENSUEL })
       .returning({ id: tentativePaiementAbonnement.id });
 
     const resultat = await initierPaiement({
-      transactionId: tentative.id,
+      reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: PRIX_ABONNEMENT_MENSUEL,
       description: t("Abonnement Vertex One — mensuel"),
-      notifyUrl: `${urlBase()}/api/paiements/cinetpay/notify-abonnement`,
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
-      clientNom: monUtilisateur?.nomComplet ?? "Client",
-      clientTelephone: "",
-      clientEmail: monUtilisateur?.email ?? null,
     });
 
     if (resultat.erreur) return { erreur: resultat.erreur };

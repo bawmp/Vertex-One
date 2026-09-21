@@ -1175,7 +1175,7 @@ export const recuVente = pgTable(
     montantTVA: integer("montant_tva").notNull().default(0),
     montantTTC: integer("montant_ttc").notNull(),
     moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
-    referenceTransaction: text("reference_transaction"), // renvoyée par CinetPay — absente en saisie manuelle, comme paiement.referenceTransaction
+    referenceTransaction: text("reference_transaction"), // renvoyée par le prestataire de paiement — absente en saisie manuelle, comme paiement.referenceTransaction
     creeParId: text("cree_par_id")
       .notNull()
       .references(() => utilisateur.id),
@@ -1299,7 +1299,7 @@ export const paiement = pgTable(
       .references(() => facture.id),
     montant: integer("montant").notNull(),
     moyenPaiement: moyenPaiement("moyen_paiement").notNull(),
-    referenceTransaction: text("reference_transaction"), // renvoyée par CinetPay — absente en saisie manuelle
+    referenceTransaction: text("reference_transaction"), // renvoyée par le prestataire de paiement — absente en saisie manuelle
     saisiParId: text("saisi_par_id").references(() => utilisateur.id), // traçabilité d'un pointage manuel
     datePaiement: timestamp("date_paiement").notNull().defaultNow(),
     // Rapprochement bancaire (Palier 4, section 4) — renseigné quand ce
@@ -1376,7 +1376,7 @@ export const tentativePaiementFacture = pgTable(
 // tentativePaiementFacture, mais un flux d'argent différent (le tenant paie
 // Vertex One lui-même, pas un de ses propres clients) : table et webhook
 // séparés plutôt qu'un mécanisme générique à discriminant (voir
-// src/lib/actions/abonnement.ts / src/app/api/paiements/cinetpay/notify-abonnement/route.ts).
+// src/lib/actions/abonnement.ts / src/app/api/paiements/campay/notify/route.ts).
 // Carve-out de lecture anonyme, même patron que `invitation` et
 // tentativePaiementFacture (voir son commentaire ci-dessus pour le détail :
 // migration cinetpay-js du 2026-09-18, limite de 30 caractères sur

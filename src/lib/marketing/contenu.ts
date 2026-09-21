@@ -40,7 +40,7 @@ export const FAQ_ACCUEIL = [
   },
   {
     question: m("Le paiement Mobile Money est-il instantané ?"),
-    reponse: m("Non — CinetPay, notre partenaire de paiement, fonctionne en mode custodial avec un délai de reversement (8 jours par défaut). Vertex One ne présente jamais ce paiement comme instantané ou direct."),
+    reponse: m("Non — CamPay, notre partenaire de paiement, reverse les fonds à l'entreprise avec un délai. Vertex One ne présente jamais ce paiement comme instantané ou direct."),
   },
   {
     question: m("Puis-je inviter mon équipe ?"),
@@ -71,7 +71,7 @@ export const FAQ_TARIFS = [
   },
   {
     question: m("Comment se passe le paiement ?"),
-    reponse: m("Par Mobile Money (Orange Money, MTN MoMo) via CinetPay, un partenaire de paiement local. Le règlement est custodial, avec un délai de reversement — jamais présenté comme instantané."),
+    reponse: m("Par Mobile Money (Orange Money, MTN MoMo) via CamPay, un partenaire de paiement local. Les fonds sont reversés avec un délai — jamais présenté comme instantané."),
   },
   {
     question: m("Que se passe-t-il à la fin de l'essai gratuit ?"),

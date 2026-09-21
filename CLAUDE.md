@@ -17,7 +17,7 @@ Suite de gestion multi-tenant pour entreprises de services au Cameroun. Spécifi
 - Aucune fonction serveur ne fait confiance à une donnée envoyée par le client (rôle, entrepriseId) — uniquement à la session signée par le serveur (Better-Auth).
 - Toute action ou tout accès à une route vérifie `peut()`/`portee()` et, si la fonctionnalité est verrouillée par forfait ou add-on, `disponible()` — toujours côté serveur, jamais seulement dans l'interface.
 - Après chaque nouveau module touchant à des données d'entreprise, un test délibéré doit vérifier qu'une entreprise fictive ne peut techniquement pas accéder aux données d'une autre.
-- Tout identifiant transmis à un service externe partagé entre plusieurs entreprises clientes (Migadu, CinetPay, le prestataire de chat...) est préfixé par l'`entrepriseId`.
+- Tout identifiant transmis à un service externe partagé entre plusieurs entreprises clientes (Migadu, CamPay, le prestataire de chat...) est préfixé par l'`entrepriseId` — sauf quand le prestataire impose une limite ou qu'un identifiant opaque suffit : CamPay reçoit seulement `fac_<id de tentative>` / `abo_<id de tentative>` (jamais un identifiant de facture ou d'entreprise), et le webhook retrouve l'entreprise par une lecture anonyme dédiée.
 
 ## Latence de connexion Neon — à connaître avant de crier au bug
 
@@ -53,7 +53,7 @@ Le client répond sans compte, depuis un lien à jeton : `/devis/[jeton]` (accep
 - Toute réponse du client enregistre sa date et son adresse IP côté serveur (`headers()`), et un motif éventuel ; le texte saisi par un client est échappé (`echapper()`) avant d'entrer dans un email.
 - **Les emails d'alerte partent APRÈS la réponse (`after()` de `next/server`)** : le rendu du certificat PDF et les envois Resend ont pris jusqu'à 60 s, le client ne doit jamais les attendre.
 - Quand le dernier signataire signe : le contrat et son certificat horodaté sont fusionnés en un PDF signé (`pdf-lib`), **rangé directement dans le dossier du client**, et envoyé à l'Administrateur, à l'auteur de la demande et au signataire (`src/lib/signature/finalisation.ts`). Si l'original n'est pas un PDF, l'original et le certificat sont envoyés séparés.
-- **CinetPay exige un numéro au format international** (`+237…`) : les contacts sont saisis au format local (« 690 11 12 22 »), d'où `telephoneInternational()` (`src/lib/cinetpay/utilitaires.ts`). Sans elle, le paiement échouait avec « must be in international format » pour la plupart des clients.
+- **Les prestataires Mobile Money exigent un numéro au format international** (`+237…`) : les contacts sont saisis au format local (« 690 11 12 22 »), d'où `telephoneInternational()` (`src/lib/paiement/telephone.ts`). Le lien de paiement CamPay actuel n'en a pas besoin (le client saisit son numéro sur la page CamPay), elle sert à un futur paiement « collect » par USSD.
 
 ## One Chat — messagerie intégrée (2026-09-20)
 
@@ -103,6 +103,17 @@ Deux langues seulement, **français (langue source) et anglais**. Le **texte fra
 - Le sélecteur FR/EN d'un visiteur sans compte (`SelecteurLangue`, page de connexion) pose le cookie `vertexone-langue` ; le basculement de langue dans l'application le pose aussi, pour que les pages publiques suivent.
 - **Traduit** : connexion/inscription, menus et barre supérieure, accueil, CRM (leads, contacts, comptes, deals), One Books ventes (devis, factures, bons de commande, récurrentes, acomptes, reçus, tableau de bord), produits, projets/dossiers/contrats/feuille de temps, One Chat, annonces, documents, paramètres (entreprise, équipe, modèles d'email, abonnement), import de données, et les messages d'erreur des actions de ces modules. **Site vitrine** (accueil, modules, tarifs, à propos, contact, assistant Kyria) traduit aussi : ses contenus (`src/lib/marketing/modules.ts`, `contenu.ts`) sont marqués `m()`, les FAQ portent des `{jours}`/`{heures}`/`{prix}` remplis par `valeursSite(t.locale)`, les métadonnées de page passent par `generateMetadata()`, et un `SelecteurLangue` FR/EN est dans l'en-tête. **Pas encore** : RH, comptabilité, achats, recrutement, réservations, support, marketing, One Form, One Vault, signatures, espace personnel, console interne, pages publiques envoyées au client (devis, facture, signature, réservation, carrières), emails, PDF, format des montants (`formaterFCFA` reste en « 15 000 FCFA »).
 
+## Paiement Mobile Money — CamPay (2026-09-21)
+
+CamPay remplace CinetPay. Code : `src/lib/campay/` (`client.ts` : jeton, lien de paiement, lecture d'une transaction ; `utilitaires.ts` : logique pure — statuts, opérateurs, référence externe, signature) et `src/lib/paiement/confirmation.ts` (traitement d'une notification, **une seule adresse pour toute l'application : `/api/paiements/campay/notify`**, GET ou POST, saisie dans le tableau de bord CamPay).
+
+- **La notification n'est jamais crue.** Elle ne fournit que la référence CamPay (UUID) ; la transaction est relue serveur-à-serveur (`GET /transaction/{ref}/`) et c'est CETTE réponse qui donne le statut, le montant et la `external_reference` qui désigne la tentative. Une signature présente mais invalide (JWT HS256, clé webhook — vérifié sur une vraie signature du bac à sable) écarte l'appel avant tout appel à CamPay ; absente, elle n'empêche pas le traitement.
+- **Un montant payé différent de celui de la tentative n'est jamais confirmé** (facture comme abonnement) ; une transaction `PENDING` ne change rien, `FAILED` marque la tentative en échec, et tout statut inconnu n'est jamais pris pour un succès (`SUCCESSFUL` est le seul succès).
+- **CamPay injoignable au moment de la notification : la route répond 503**, pour qu'il rappelle — jamais 200, qui ferait perdre le paiement. Idempotent : une tentative n'est confirmée qu'une fois, un rappel ne duplique ni règlement ni écriture comptable ni prolongation d'abonnement.
+- **Référence externe** `fac_<id>` (facture d'un client) ou `abo_<id>` (abonnement à Vertex One) : le préfixe dit dans quelle table chercher. Les tables `tentative_paiement_facture` / `tentative_paiement_abonnement` gardent leur lecture anonyme dédiée (carve-out par id exact, écriture toujours stricte).
+- **Bac à sable : `CAMPAY_ENV` absent ou différent de `production` = `demo.campay.net`**, où chaque transaction est plafonnée à **25 FCFA** (l'abonnement de 50 000 FCFA n'y passe pas). Les identifiants du bac à sable et de la production sont distincts. Ne jamais coller d'identifiants de production dans une conversation ni dans le dépôt : `.env.local` (ignoré par git) en local, variables d'environnement Vercel en production.
+- Tests : `tests/campay-logique.test.ts` (purs, dont une vraie signature du bac à sable si `CAMPAY_WEBHOOK_KEY` est présente) et `tests/campay-confirmation.test.ts` (base réelle, seul l'appel réseau vers CamPay est simulé). Pas encore : paiement « collect » par USSD depuis l'application, remboursement, retrait des fonds depuis l'application, confirmation au retour du client sur la page de facture (aujourd'hui, seule la notification confirme).
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.
@@ -110,7 +121,7 @@ Deux langues seulement, **français (langue source) et anglais**. Le **texte fra
 - Un document classé `PIECE_IDENTITE` ou `DONNEES_SANTE` reste restreint au responsable du dossier et à l'Administrateur, quel que soit l'accès normal au dossier qui le contient ; sa consultation est journalisée ; sa suppression réelle doit être possible sur demande légitime.
 - Le salaire d'un employé n'est jamais rempli automatiquement et reste visible uniquement par l'Administrateur et l'intéressé.
 - Aucun calcul de cotisation sociale (CNPS), d'IRPP, ou de bulletin de paie n'est implémenté dans le produit — seule l'exportation des données vers un partenaire est prévue.
-- Le discours commercial et le code ne doivent jamais présenter le paiement Mobile Money (CinetPay) comme "instantané" ou "direct" — le modèle est custodial, avec un délai de reversement de 8 jours par défaut (réductible sur demande après KYC), voir stratégie, section 3.
+- Le discours commercial et le code ne doivent jamais présenter le paiement Mobile Money (CamPay) comme "instantané" ou "direct" — les fonds sont reversés avec un délai. **Aucun nombre de jours n'est annoncé** (site, Kyria, emails) tant que CamPay ne l'a pas confirmé : le « 8 jours » d'avant était propre à CinetPay.
 
 ## Indépendance des modules — chaque module doit rester vendable et utilisable seul
 
@@ -135,7 +146,7 @@ Le pied de la sidebar (`src/app/app/menu-utilisateur.tsx`) affiche le nom comple
 
 ## Stack
 
-TypeScript de bout en bout, Next.js 16 (App Router, Turbopack), Drizzle ORM + PostgreSQL (Neon, driver `neon-serverless`), Better-Auth, Tailwind CSS + shadcn/ui, Cloudflare R2, graphile-worker, React-PDF, CinetPay (Mobile Money), API Cloud WhatsApp Business (Meta, direct), Resend/Postmark (email transactionnel), Migadu (boîte mail hébergée par entreprise cliente).
+TypeScript de bout en bout, Next.js 16 (App Router, Turbopack), Drizzle ORM + PostgreSQL (Neon, driver `neon-serverless`), Better-Auth, Tailwind CSS + shadcn/ui, Cloudflare R2, graphile-worker, React-PDF, CamPay (Mobile Money), API Cloud WhatsApp Business (Meta, direct), Resend/Postmark (email transactionnel), Migadu (boîte mail hébergée par entreprise cliente).
 
 ## Charte graphique et logo — à respecter dans toute nouvelle interface
 

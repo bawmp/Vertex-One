@@ -933,6 +933,20 @@ Demande du propriétaire : contrôler les utilisateurs de l'application depuis s
 
 Prochaine étape convenue : le **site vitrine** (~250 textes, `src/app/(marketing)/` + `src/lib/marketing/*`, sélecteur FR/EN dans l'en-tête), puis les autres modules, puis ce que voit le client. Voir la section 53.
 
+## 55. CamPay remplace CinetPay pour le Mobile Money — 2026-09-21
+
+Décision du propriétaire, après la recherche d'une solution de paiement : CinetPay restait inutilisable (authentification refusée depuis l'extérieur, probable liste blanche d'adresses IP, réponse du support jamais arrivée). **CamPay** (MTN et Orange) est intégré à la place ; l'ancien code CinetPay et la dépendance `cinetpay-js` sont retirés.
+
+Construit et vérifié contre le bac à sable : jeton permanent et jeton temporaire, création d'un lien de paiement (`link` + `reference`), lecture d'une transaction (`status`, `amount`, `operator`, `external_reference`), signature d'une notification (JWT HS256 avec la clé webhook, confirmée sur une vraie transaction). Voir CLAUDE.md, section « Paiement Mobile Money — CamPay », et la section 3 de `docs/mise-en-production-checklist.md` (étapes de passage en production).
+
+**Ce qui n'est PAS fait et bloque le premier vrai encaissement** :
+- Identifiants **de production** CamPay (compte à valider) et `CAMPAY_ENV=production` sur Vercel.
+- Adresse de notification `https://vertexone.cm/api/paiements/campay/notify` à saisir dans le tableau de bord CamPay.
+- Un premier paiement réel de bout en bout (facture, puis abonnement).
+- Les **conditions réelles de CamPay** (commission, délai de reversement, plafonds) : le site, Kyria et les FAQ n'annoncent plus aucun délai chiffré (l'ancien « 8 jours » était propre à CinetPay) — à compléter une fois confirmé.
+
+**Idées, à la demande** : confirmer aussi au retour du client sur la page de facture (aujourd'hui, seule la notification confirme) ; paiement « collect » par USSD directement depuis l'application ; retrait des fonds collectés ; un second prestataire de secours.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

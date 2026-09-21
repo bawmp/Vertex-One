@@ -103,18 +103,18 @@ export async function annulerFacture(factureId: string, motif: string) {
 
 /**
  * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : génère un
- * lien de paiement CinetPay (Mobile Money) — non branché tant que
- * CINETPAY_APIKEY/CINETPAY_APIPASSWORD ne sont pas configurées (même
+ * lien de paiement CamPay (Mobile Money) — non branché tant que
+ * CAMPAY_TOKEN (ou CAMPAY_USERNAME/CAMPAY_PASSWORD) ne sont pas configurées (même
  * traitement que Migadu/Resend/R2 : le contrôle d'accès est réel,
- * l'intégration externe est différée). Rappel CLAUDE.md : CinetPay est
+ * l'intégration externe est différée). Rappel CLAUDE.md : le paiement Mobile Money est
  * custodial avec délai de reversement — ne jamais présenter ce lien comme un
  * encaissement "instantané" ou "direct".
  *
- * Une ligne tentativePaiementFacture est créée AVANT l'appel à CinetPay —
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à CamPay —
  * son id sert de transaction_id (jamais l'id de la Facture, transmis à un
  * service externe partagé entre entreprises clientes) et sert d'ancrage
  * retrouvable par le webhook de notification (route publique, sans
- * session, voir src/app/api/paiements/cinetpay/notify/route.ts).
+ * session, voir src/app/api/paiements/campay/notify/route.ts).
  */
 export async function genererLienPaiement(factureId: string): Promise<{ url?: string; erreur?: string }> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();

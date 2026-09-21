@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { telephoneInternational } from "@/lib/cinetpay/utilitaires";
+import { telephoneInternational } from "@/lib/paiement/telephone";
 
 // Bug réel trouvé en testant le paiement depuis le lien client : CinetPay rejetait « 690111222 »
 // avec « must be in international format +XXXXXXXXXXXX ».

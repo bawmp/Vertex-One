@@ -8,8 +8,8 @@ import { genererLienPaiement } from "@/lib/actions/facture";
 import { useT } from "@/lib/i18n/contexte";
 
 /**
- * Redirige le navigateur vers l'URL de paiement CinetPay retournée par
- * genererLienPaiement() — jamais un lien Next.js interne, CinetPay héberge
+ * Redirige le navigateur vers l'URL de paiement CamPay retournée par
+ * genererLienPaiement() — jamais un lien Next.js interne, CamPay héberge
  * lui-même la page de paiement (choix de l'opérateur Mobile Money, saisie
  * du numéro, code de confirmation).
  */
