@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Building2, Users2, Puzzle } from "lucide-react";
-import { recupererDetailEntreprise } from "@/lib/plateforme/donnees";
+import { recupererDetailEntreprise, MODULES_SUIVIS } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +21,7 @@ const LIBELLE_ACTION: Record<string, string> = {
   SUSPENDU_MANUELLEMENT: "Suspendu manuellement",
 };
 
-const LIBELLE_ADDON: Record<string, string> = {
-  MARKETING: "One Marketing",
-  FACTURATION_ABONNEMENTS: "Facturation par abonnements",
-  RESERVATIONS: "One Bookings",
-  RECRUTEMENT: "One Recruit",
-  SUPPORT: "One Desk",
-  ONE_FORM: "One Form",
-  ONE_VAULT: "One Vault",
-};
+const LIBELLE_MODULE: Record<string, string> = Object.fromEntries(MODULES_SUIVIS.map((m) => [m.cle, m.libelle]));
 
 const formatDate = (date: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(date);
 
@@ -75,24 +67,24 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Puzzle className="size-4" aria-hidden />
-            Modules à la carte utilisés
+            Modules utilisés
           </CardTitle>
           <CardDescription>
-            Marketing, Réservations, Recrutement, Assistance client et One Form restent tous inclus dans l&apos;abonnement — ceci reflète
-            l&apos;usage réel (au moins une donnée créée), pas une activation.
+            Tous les modules sont inclus dans l&apos;abonnement — ceci reflète l&apos;usage réel (au moins une donnée créée), pas une
+            activation.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {modulesUtilises.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {modulesUtilises.map((addon) => (
-                <Badge key={addon} variant="brand">
-                  {LIBELLE_ADDON[addon] ?? addon}
+              {modulesUtilises.map((cle) => (
+                <Badge key={cle} variant="brand">
+                  {LIBELLE_MODULE[cle] ?? cle}
                 </Badge>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun module à la carte utilisé pour le moment.</p>
+            <p className="text-sm text-muted-foreground">Aucun module utilisé pour le moment.</p>
           )}
         </CardContent>
       </Card>

@@ -13,7 +13,7 @@ const SECTEURS = [
   { icone: Building2, nom: "Agences", classeFond: "bg-blue-500", description: "Communication, conseil, événementiel — pipeline commercial et facturation au même endroit." },
   { icone: Wrench, nom: "Artisans", classeFond: "bg-orange-500", description: "Vocabulaire adapté (Chantier plutôt que Projet), du devis jusqu'au paiement Mobile Money." },
   { icone: Briefcase, nom: "Cabinets", classeFond: "bg-purple-500", description: "Dossiers clients permanents, missions bornées, documents sensibles protégés." },
-  { icone: LayoutGrid, nom: "Toute autre entreprise de services", classeFond: "bg-teal-500", description: "Le tronc commun (One CRM, One Invoicing, One People, One Docs) s'adapte à votre activité." },
+  { icone: LayoutGrid, nom: "Toute autre entreprise de services", classeFond: "bg-teal-500", description: "Le tronc commun (One CRM, One Books, One People, One Docs) s'adapte à votre activité." },
 ];
 
 export default function PageAPropos() {
@@ -26,7 +26,7 @@ export default function PageAPropos() {
           puissants mais pensés pour d&apos;autres réalités — facturés en devise étrangère, sans Mobile Money, sans
           conformité SYSCOHADA — ou des solutions locales plus simples mais qui n&apos;offrent pas la même largeur
           fonctionnelle. Vertex One est construit pour ne plus avoir à choisir : la même couverture qu&apos;une grande
-          suite internationale, mais pensée Mobile Money-first et WhatsApp-first, en français, conforme à la
+          suite internationale, mais pensée Mobile Money-first, en français, conforme à la
           réglementation locale.
         </p>
       </Reveal>

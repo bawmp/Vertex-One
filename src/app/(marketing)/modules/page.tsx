@@ -8,7 +8,7 @@ import { Reveal } from "../reveal";
 
 export const metadata: Metadata = {
   title: "Modules — Vertex One",
-  description: "Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Invoicing, One People, One Projects, One Bookings, One Recruit et plus.",
+  description: "Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus.",
 };
 
 export default function PageModules() {

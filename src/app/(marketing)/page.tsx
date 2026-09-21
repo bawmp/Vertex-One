@@ -20,7 +20,7 @@ import { CompteurAnime } from "./compteur-anime";
 
 const ATOUTS = [
   { icone: Smartphone, titre: "Mobile Money natif", classeFond: "bg-blue-500", description: "Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients." },
-  { icone: MessageCircle, titre: "WhatsApp-first", classeFond: "bg-emerald-500", description: "Signatures, relances et notifications par le canal que vos clients utilisent déjà tous les jours." },
+  { icone: MessageCircle, titre: "WhatsApp bientôt", classeFond: "bg-emerald-500", description: "Signatures, relances et notifications partent par email dès maintenant ; l'envoi par WhatsApp, le canal que vos clients utilisent tous les jours, arrive dans une prochaine mise à jour." },
   { icone: Landmark, titre: "Conforme au Cameroun", classeFond: "bg-amber-500", description: "SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup." },
   { icone: HandCoins, titre: "Sans coût d'implémentation", classeFond: "bg-rose-500", description: "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique." },
 ];
@@ -52,8 +52,8 @@ export default function PageAccueil() {
             La suite de gestion tout-en-un pour les entreprises de services au Cameroun
           </h1>
           <p className="max-w-2xl text-lg text-marque-bleu-50/90">
-            One CRM, One Invoicing, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
-            international, pensée Mobile Money-first et WhatsApp-first, en français, sans les coûts d&apos;implémentation.
+            One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu&apos;un grand logiciel
+            international, pensée Mobile Money-first, en français, sans les coûts d&apos;implémentation.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button

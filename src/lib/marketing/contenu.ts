@@ -43,7 +43,11 @@ export const FAQ_ACCUEIL = [
   },
   {
     question: "Puis-je inviter mon équipe ?",
-    reponse: "Oui, sans limite de nombre. Une fois votre abonnement actif, vous attribuez librement un rôle à chaque employé ou collaborateur invité.",
+    reponse: "Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents.",
+  },
+  {
+    question: "Mes clients peuvent-ils accepter un devis, payer et signer en ligne ?",
+    reponse: "Oui, sans créer de compte. Ils reçoivent un lien : ils consultent le devis ou la facture, l'acceptent ou la refusent, puis règlent en Mobile Money tout de suite ou plus tard. Vos contrats se signent aussi en ligne, avec un code de vérification envoyé par email ; la copie signée, horodatée, est rangée dans le dossier du client et vous est envoyée.",
   },
   {
     question: "Que se passe-t-il si je ne renouvelle pas à temps ?",
@@ -58,7 +62,7 @@ export const FAQ_ACCUEIL = [
 export const FAQ_TARIFS = [
   {
     question: "Le prix change-t-il selon le nombre de modules utilisés ?",
-    reponse: "Non. Un seul prix, tous les modules inclus dès le premier jour — One CRM, One Invoicing, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk et plus. Aucun module n'est verrouillé derrière un forfait supérieur.",
+    reponse: "Non. Un seul prix, tous les modules inclus dès le premier jour — One CRM, One Books, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk et plus. Aucun module n'est verrouillé derrière un forfait supérieur.",
   },
   {
     question: "Le prix change-t-il selon le nombre d'employés ?",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2, Wallet2, Hourglass, ShieldAlert, ArrowRight } from "lucide-react";
-import { recupererKpiPlateforme } from "@/lib/plateforme/donnees";
+import { recupererKpiPlateforme, recupererAdoptionModules } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ function relatif(date: Date): string {
 }
 
 export default async function PagePlateformeAccueil() {
-  const kpi = await recupererKpiPlateforme();
+  const [kpi, adoption] = await Promise.all([recupererKpiPlateforme(), recupererAdoptionModules()]);
   const total = kpi.total || 1; // évite une division par zéro sur une plateforme toute neuve
 
   return (
@@ -86,6 +86,29 @@ export default async function PagePlateformeAccueil() {
             <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> Actif ({kpi.parStatut.actif})</span>
             <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-red-500" /> Suspendu ({kpi.parStatut.suspendu})</span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Adoption des modules</CardTitle>
+          <CardDescription>
+            Nombre d&apos;entreprises qui utilisent réellement chaque module (au moins une donnée créée) — tous sont inclus dans
+            l&apos;abonnement, c&apos;est l&apos;usage qui compte.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2.5">
+          {adoption.map((m) => (
+            <div key={m.cle} className="flex items-center gap-3 text-sm">
+              <span className="w-56 shrink-0 truncate sm:w-72">{m.libelle}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
+                <div className="h-full rounded-full bg-marque-bleu" style={{ width: `${(m.entreprises / total) * 100}%` }} />
+              </div>
+              <span className="w-16 shrink-0 text-right tabular-nums text-muted-foreground">
+                {m.entreprises} / {kpi.total}
+              </span>
+            </div>
+          ))}
         </CardContent>
       </Card>
 

@@ -1,8 +1,6 @@
 import {
   Handshake,
   Receipt,
-  ShoppingCart,
-  Calculator,
   Users,
   Briefcase,
   LifeBuoy,
@@ -24,7 +22,7 @@ import {
  * pages sous src/app/app/), pas une description marketing générique.
  *
  * Depuis l'abonnement plat unique (2026-09-14, voir src/lib/plans.ts), les
- * 14 modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
+ * modules ci-dessous sont TOUS inclus dans le même prix — aucun n'est
  * vendu séparément, contrairement à Zoho One.
  */
 export type ModuleMarketing = {
@@ -58,9 +56,9 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     ],
   },
   {
-    slug: "facturation",
-    nom: "One Invoicing",
-    resume: "Devis, factures, acomptes et relances — jusqu'au paiement Mobile Money.",
+    slug: "books",
+    nom: "One Books",
+    resume: "Facturation, achats et comptabilité SYSCOHADA dans un seul module — du devis au paiement Mobile Money.",
     icone: Receipt,
     classeFond: "bg-amber-500",
     capacites: [
@@ -69,32 +67,15 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Acomptes, bons de commande, factures récurrentes et reçus de vente",
       "Relance automatique des factures impayées, sans intervention manuelle",
       "Paiement en ligne Mobile Money (Orange Money, MTN MoMo) directement depuis la facture, via CinetPay",
-    ],
-  },
-  {
-    slug: "achats",
-    nom: "One Purchases",
-    resume: "Bons de commande, factures fournisseurs et suivi des échéances à payer.",
-    icone: ShoppingCart,
-    classeFond: "bg-orange-500",
-    capacites: [
-      "Fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur",
-      "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients",
-      "Marquage d'une facture comme payée, ou son annulation, en gardant l'historique",
-    ],
-  },
-  {
-    slug: "comptabilite",
-    nom: "One Accounting",
-    resume: "Plan comptable SYSCOHADA, journaux, rapprochement bancaire et budgets.",
-    icone: Calculator,
-    classeFond: "bg-teal-500",
-    capacites: [
-      "Plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise",
-      "Journaux manuels et rapprochement bancaire par import de relevé",
-      "Budgets comparés au réalisé, par compte",
+      "Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture",
+      "Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien",
+      "Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email",
+      "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur",
+      "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique",
+      "Comptabilité : plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise",
+      "Journaux manuels, rapprochement bancaire par import de relevé, et budgets comparés au réalisé par compte",
       "Verrouillage d'une période comptable une fois clôturée",
-      "Réservé à l'Administrateur — jamais visible d'un simple employé",
+      "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé",
     ],
   },
   {
@@ -122,6 +103,9 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       "Postes ouverts et candidatures avec CV stocké en toute sécurité",
       "Suivi du candidat de Reçue à Entretien, Offre puis Embauche",
       "Conversion d'une candidature embauchée directement en compte utilisateur, sans ressaisie",
+      "Page carrières publique aux couleurs de l'entreprise, avec dépôt de candidature et CV",
+      "Offres modifiables à tout moment, désactivables puis réactivables ; une offre qui a déjà reçu des candidatures se désactive au lieu de se supprimer",
+      "Candidatures corrigeables, annulables (et rétablissables) ou supprimables avec effacement réel du CV",
     ],
   },
   {
@@ -171,18 +155,19 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     capacites: [
       "Documents classés par catégorie — les pièces d'identité et données de santé restent réservées au responsable du dossier et à l'Administrateur, avec journalisation de chaque consultation",
       "Signature électronique avec empreinte du document au moment de l'envoi",
-      "Code de vérification envoyé par WhatsApp ou SMS, adresse IP et consentement capturés dans un certificat d'audit consultable",
-      "Option de signature certifiée, en plus de la signature simple",
+      "Code de vérification envoyé par email, adresse IP, appareil et consentement capturés dans un certificat d'audit consultable",
+      "Envoi d'un contrat au client depuis son dossier : il lit le document, le signe ou le refuse en indiquant pourquoi",
+      "À la signature, le contrat signé et son certificat horodaté (date et heure de Yaoundé) sont rangés directement dans le dossier du client et envoyés à l'Administrateur et au signataire",
     ],
   },
   {
     slug: "marketing",
     nom: "One Marketing",
-    resume: "Campagnes email et WhatsApp, pages d'atterrissage et relances automatiques.",
+    resume: "Campagnes email, pages d'atterrissage et relances automatiques — WhatsApp bientôt.",
     icone: Megaphone,
     classeFond: "bg-fuchsia-500",
     capacites: [
-      "Campagnes par email ou WhatsApp, ciblées par statut de prospect ou ancienneté d'inactivité",
+      "Campagnes par email, ciblées par statut de prospect ou ancienneté d'inactivité — l'envoi par WhatsApp arrivera dans une prochaine mise à jour",
       "Pages d'atterrissage publiques pour capter de nouveaux prospects",
       "Automatisations prêtes à l'emploi — par exemple relancer un prospect resté sans réponse depuis 7 jours",
     ],
@@ -194,7 +179,9 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     icone: ClipboardList,
     classeFond: "bg-lime-500",
     capacites: [
-      "9 types de champs (texte, email, téléphone, nombre, date, choix unique ou multiple, liste déroulante)",
+      "10 types de champs (texte, email, téléphone, nombre, date, choix unique ou multiple, liste déroulante, fichier joint)",
+      "8 modèles prêts à l'emploi : contact, demande de devis, accompagnement visa, candidature, satisfaction client, inscription à un événement, assistance et rendez-vous",
+      "Formulaire modifiable, désactivable ou supprimable depuis la liste, champ par champ",
       "Lien public partageable, sans compte ni connexion requise pour y répondre",
       "Réponses centralisées et consultables directement dans l'application",
       "Création automatique d'un Lead CRM à chaque réponse, en option",
@@ -219,14 +206,19 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   },
   {
     slug: "communication-interne",
-    nom: "One Connect",
-    resume: "Messagerie par canal et fil d'annonces, pour toute l'équipe.",
+    nom: "One Chat",
+    resume: "Messagerie d'équipe : canaux, messages directs, groupes privés, fils et pièces jointes.",
     icone: MessageSquare,
     classeFond: "bg-sky-500",
     capacites: [
-      "Canaux de discussion rattachés à un projet, une équipe, ou libres",
-      "Fil d'annonces internes façon intranet",
-      "Isolation stricte entre entreprises clientes, même chez le prestataire technique",
+      "Canaux par projet, par équipe ou libres, avec un canal Général créé pour vous",
+      "Messages directs et groupes privés, visibles de leurs seuls membres — pas même de l'Administrateur",
+      "Pièces jointes (images, PDF, Word, Excel), réactions par emoji et fils de discussion qui n'encombrent pas la conversation",
+      "Mentions @nom avec auto-complétion, prévenues par email quand elles restent sans lecture",
+      "Recherche dans les messages, limitée aux conversations auxquelles vous avez accès",
+      "Présence en ligne, compteur de messages non lus et notifications du navigateur",
+      "Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)",
+      "Isolation stricte entre entreprises clientes",
     ],
   },
 ];

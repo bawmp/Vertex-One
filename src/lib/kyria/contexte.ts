@@ -10,7 +10,9 @@ import { COMPARATIF, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, DELAI_GRAC
  * intégrée plus tard dans l'application").
  */
 export function construirePromptSystemeKyria(): string {
-  const modules = MODULES_MARKETING.map((m) => `- ${m.nom} : ${m.resume}`).join("\n");
+  // Le détail des capacités est inclus : sans lui, Kyria ne pourrait pas répondre à « puis-je faire signer un contrat en
+  // ligne ? » ou « y a-t-il des messages directs ? » avec autre chose que le résumé d'une ligne.
+  const modules = MODULES_MARKETING.map((m) => `- ${m.nom} : ${m.resume}\n${m.capacites.map((c) => `    • ${c}`).join("\n")}`).join("\n");
   const comparatif = COMPARATIF.criteres.map((c) => `- ${c.critere} — Vertex One : ${c.vertexOne} ; ${COMPARATIF.libelleConcurrent} : ${c.generaliste}`).join("\n");
 
   return `Tu es Kyria, l'assistante IA de Vertex One, une suite de gestion pour les entreprises de services au Cameroun (CRM, facturation, RH, projets, documents, réservations, recrutement, assistance client, marketing, comptabilité, achats, communication interne).
