@@ -884,6 +884,17 @@ Demande explicite, avec le fichier du logo officiel (`Logo vertexone transparent
 
 **Vérifié dans un vrai navigateur** (scénarios scratch supprimés après succès, données de test nettoyées) : séquence de démarrage image par image, disparition effective de l'écran, logo officiel par défaut dans la barre latérale (panneau sur toute la largeur), téléversement d'un logo d'entreprise par l'interface puis affichage avec les mêmes propriétés (`object-fit: contain`, panneau blanc arrondi), menu mobile, mode sombre, console interne (compte staff), page candidats avec logo de l'entreprise et sans écran de démarrage, PDF avec accent par défaut puis couleur de marque personnalisée, repli sur pastille quand l'image du logo est inaccessible.
 
+## 51. Application mobile — à faire plus tard (noté le 2026-09-21)
+
+Demande de l'utilisateur : savoir si une application mobile est faisable et en combien de temps ; **décision : ne pas la construire maintenant, la noter pour une prochaine mise à jour.** Aucune date fixée.
+
+Trois voies chiffrées, à reprendre dans cet ordre :
+1. **PWA (application web installable) — recommandée en premier**, environ 2 à 4 jours pour le manifeste, les icônes, le service worker, une page hors ligne minimale et l'adaptation mobile des écrans principaux (One Chat, CRM, factures, annonces : menu bas à la place de la barre latérale, tableaux lisibles, formulaires tactiles) ; le reste des écrans par vagues. Rend possibles les notifications push (One Chat, annonces) avec des clés VAPID — sur iPhone, seulement si l'app est installée sur l'écran d'accueil. Pas de présence dans les boutiques.
+2. **Enveloppe native (Capacitor)** autour du site, environ 1 semaine de plus : App Store / Google Play, push natif, appareil photo, partage de fichiers. Comptes à ouvrir au nom du propriétaire (Google Play 25 $ une fois, Apple Developer 99 $ par an) ; Apple refuse parfois un simple site emballé, il faut y ajouter de vraies fonctions natives.
+3. **Application native (React Native / Expo)**, 2 à 3 mois pour un périmètre limité : exige une API mobile authentifiée (aujourd'hui tout passe par des Server Actions liées au navigateur). À n'envisager que si des clients réclament ce que le web ne peut pas donner.
+
+À prévoir quelle que soit la voie : essais sur un vrai iPhone et un vrai Android (jamais testé, seul un navigateur de bureau est utilisé), poids des pages vérifié sur une connexion 3G/4G réelle au Cameroun.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.
