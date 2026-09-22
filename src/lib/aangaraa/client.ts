@@ -117,7 +117,9 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
 
   const reponse = await appeler("/no_redirect/payment", {
     phone_number: params.telephone,
-    amount: params.montant,
+    // ⚠️ Contrairement à /redirect/payment (amount numérique), le schéma NoRedirectPaymentRequest exige une CHAÎNE
+    // pour amount (vérifié en réel le 2026-09-22 : "Input should be a valid string" sur un nombre JSON).
+    amount: String(params.montant),
     description: params.description.slice(0, 255),
     transaction_id: params.reference,
     return_url: params.returnUrl,
