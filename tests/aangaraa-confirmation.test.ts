@@ -3,24 +3,25 @@ import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, facture, paiement, tentativePaiementFacture, tentativePaiementAbonnement } from "@/db/schema";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
-import type { ResultatVerification } from "@/lib/campay/client";
+import type { ResultatVerification } from "@/lib/paiement/types";
 
 // « server-only » interdit l'import hors d'un composant serveur : sans effet pour un test Node.
 vi.mock("server-only", () => ({}));
 
-// Seul l'appel réseau vers CamPay est simulé : tout le reste (base, RLS, écritures comptables) est réel.
-const verifierTransaction = vi.fn<(reference: string) => Promise<ResultatVerification>>();
-vi.mock("@/lib/campay/client", () => ({
-  verifierTransaction: (reference: string) => verifierTransaction(reference),
-  moyenPaiementDepuisOperateur: (operateur: string | undefined) => (/orange/i.test(operateur ?? "") ? "orange_money" : "mtn_momo"),
-}));
+// Seul l'appel réseau vers Aangaraa Pay est simulé : tout le reste (base, RLS, écritures comptables) est réel.
+const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
+vi.mock("@/lib/aangaraa/client", async () => {
+  // La logique pure (opérateur → mode de paiement) reste la vraie ; seul l'appel réseau est remplacé.
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+  return { verifierTransaction: (payToken: string) => verifierTransaction(payToken), moyenPaiementDepuisOperateur };
+});
 
-const { traiterNotificationCampay } = await import("@/lib/paiement/confirmation");
+const { traiterNotificationPaiement } = await import("@/lib/paiement/confirmation");
 
 const suffixe = Math.random().toString(36).slice(2, 8);
-const nomA = `TEST Campay A ${suffixe}`;
-const nomB = `TEST Campay B ${suffixe}`;
-const REFERENCE_CAMPAY = "11111111-2222-3333-4444-555555555555";
+const nomA = `TEST Aangaraa A ${suffixe}`;
+const nomB = `TEST Aangaraa B ${suffixe}`;
+const PAY_TOKEN = "MP260921.1234.A56789";
 
 let idA: string;
 let idB: string;
@@ -28,7 +29,7 @@ let factureA: string;
 let factureB: string;
 let contactA: string;
 
-const accepte = (referenceExterne: string, montant: number, operateur = "MTN"): ResultatVerification => ({ statut: "ACCEPTED", indisponible: false, referenceExterne, montant, operateur });
+const accepte = (referenceExterne: string, montant: number, operateur = "MTN_Cameroon"): ResultatVerification => ({ statut: "ACCEPTED", indisponible: false, referenceExterne, montant, operateur });
 
 async function nouvelleTentativeFacture(entrepriseId: string, factureId: string, montant: number) {
   const [t] = await avecEntreprise(entrepriseId, (tx) => tx.insert(tentativePaiementFacture).values({ entrepriseId, factureId, montant }).returning({ id: tentativePaiementFacture.id }));
@@ -52,8 +53,8 @@ beforeAll(async () => {
         .returning({ id: facture.id });
       return { contactId: c.id, factureId: f.id };
     });
-  const ra = await creerFacture(idA, uA.id, `FAC-CP-A-${suffixe}`);
-  const rb = await creerFacture(idB, uB.id, `FAC-CP-B-${suffixe}`);
+  const ra = await creerFacture(idA, uA.id, `FAC-AP-A-${suffixe}`);
+  const rb = await creerFacture(idB, uB.id, `FAC-AP-B-${suffixe}`);
   factureA = ra.factureId;
   contactA = ra.contactId;
   factureB = rb.factureId;
@@ -66,12 +67,12 @@ afterAll(async () => {
 
 beforeEach(() => verifierTransaction.mockReset());
 
-describe("CamPay — confirmation d'un paiement de facture", () => {
+describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
   test("un paiement accepté crée UN règlement, passe la facture à payée, confirme la tentative, et garde l'opérateur", async () => {
     const tentative = await nouvelleTentativeFacture(idA, factureA, 11925);
-    verifierTransaction.mockResolvedValue(accepte(`fac_${tentative}`, 11925, "ORANGE"));
+    verifierTransaction.mockResolvedValue(accepte(`fac_${tentative}`, 11925, "Orange_Cameroon"));
 
-    const issue = await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null });
+    const issue = await traiterNotificationPaiement({ payToken: PAY_TOKEN });
     expect(issue.code).toBe(200);
 
     const { f, p } = await lireFacture(idA, factureA);
@@ -81,15 +82,15 @@ describe("CamPay — confirmation d'un paiement de facture", () => {
     const [t] = await avecEntreprise(idA, (tx) => tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative)));
     expect(t.statut).toBe("CONFIRME");
 
-    // CamPay rappelle la même notification : rien ne se duplique.
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    // Aangaraa Pay rappelle la même notification : rien ne se duplique.
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     expect((await lireFacture(idA, factureA)).p).toHaveLength(1);
   }, 180_000);
 
   test("un montant différent de celui de la tentative n'est jamais confirmé", async () => {
     const [{ id: autre }] = await avecEntreprise(idB, (tx) => tx.insert(tentativePaiementFacture).values({ entrepriseId: idB, factureId: factureB, montant: 11925 }).returning({ id: tentativePaiementFacture.id }));
     verifierTransaction.mockResolvedValue(accepte(`fac_${autre}`, 100));
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     const { f, p } = await lireFacture(idB, factureB);
     expect(f.statut).toBe("EMISE");
     expect(p).toHaveLength(0);
@@ -97,63 +98,71 @@ describe("CamPay — confirmation d'un paiement de facture", () => {
     expect(t.statut).toBe("EN_ATTENTE");
   }, 180_000);
 
-  test("un échec chez CamPay marque la tentative en échec, la facture reste due", async () => {
+  test("un échec chez Aangaraa Pay marque la tentative en échec, la facture reste due", async () => {
     const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
     verifierTransaction.mockResolvedValue({ statut: "REFUSED", indisponible: false, referenceExterne: `fac_${tentative}`, montant: 11925 });
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     const [t] = await avecEntreprise(idB, (tx) => tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative)));
     expect(t.statut).toBe("ECHEC");
     expect((await lireFacture(idB, factureB)).f.statut).toBe("EMISE");
   }, 180_000);
 
-  test("un paiement en attente ne change rien (CamPay rappellera)", async () => {
+  test("un paiement en attente ne change rien (Aangaraa Pay rappellera)", async () => {
     const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
     verifierTransaction.mockResolvedValue({ statut: "PENDING", indisponible: false, referenceExterne: `fac_${tentative}`, montant: 11925 });
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     expect((await lireFacture(idB, factureB)).f.statut).toBe("EMISE");
   }, 180_000);
 
   test("facture déjà réglée à la main entre-temps : la tentative est confirmée, aucun second règlement", async () => {
     const tentative = await nouvelleTentativeFacture(idA, factureA, 11925); // factureA est déjà PAYEE (premier test)
     verifierTransaction.mockResolvedValue(accepte(`fac_${tentative}`, 11925));
-    await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null });
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
     expect((await lireFacture(idA, factureA)).p).toHaveLength(1);
   }, 180_000);
 });
 
-describe("CamPay — refus en amont", () => {
-  test("référence manquante : 400 ; signature présente mais invalide : 401, sans même interroger CamPay", async () => {
-    expect((await traiterNotificationCampay({ reference: null, signature: null })).code).toBe(400);
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: "pas.une.signature" })).code).toBe(401);
+describe("Aangaraa Pay — refus en amont", () => {
+  test("paytoken absent : 400, sans interroger le prestataire", async () => {
+    expect((await traiterNotificationPaiement({ payToken: null })).code).toBe(400);
     expect(verifierTransaction).not.toHaveBeenCalled();
   });
 
-  test("CamPay injoignable : 503, pour qu'il rappelle plus tard au lieu de perdre le paiement", async () => {
+  test("prestataire injoignable ou clé refusée : 503, pour qu'il rappelle plus tard au lieu de perdre le paiement", async () => {
     verifierTransaction.mockResolvedValue({ statut: "INCONNU", indisponible: true });
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(503);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(503);
   });
 
-  test("transaction sans référence externe reconnue (ou tentative inexistante) : rien n'est modifié", async () => {
+  test("transaction sans référence reconnue : 404 ; tentative inexistante : rien n'est modifié", async () => {
     verifierTransaction.mockResolvedValue(accepte("sans-prefixe", 11925));
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(404);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(404);
     verifierTransaction.mockResolvedValue(accepte("fac_identifiant-inexistant", 11925));
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     expect((await lireFacture(idB, factureB)).p).toHaveLength(0);
+  }, 180_000);
+
+  test("un paiement par carte est enregistré comme virement (même compte bancaire), jamais comme Mobile Money", async () => {
+    const [{ id: carte }] = await avecEntreprise(idB, (tx) => tx.insert(tentativePaiementFacture).values({ entrepriseId: idB, factureId: factureB, montant: 11925 }).returning({ id: tentativePaiementFacture.id }));
+    verifierTransaction.mockResolvedValue(accepte(`fac_${carte}`, 11925, "CARTE"));
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
+    const { p } = await lireFacture(idB, factureB);
+    expect(p).toHaveLength(1);
+    expect(p[0].moyenPaiement).toBe("virement");
   }, 180_000);
 });
 
-describe("CamPay — abonnement à Vertex One", () => {
+describe("Aangaraa Pay — abonnement à Vertex One", () => {
   test("un paiement d'abonnement accepté réactive l'entreprise et repousse l'échéance ; un rappel ne la repousse pas deux fois", async () => {
     await db.update(entreprise).set({ statutAbonnement: "suspendu", abonnementEcheanceLe: new Date(Date.now() - 5 * 86_400_000) }).where(eq(entreprise.id, idB));
     const [t] = await avecEntreprise(idB, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idB, montant: 50000 }).returning({ id: tentativePaiementAbonnement.id }));
     verifierTransaction.mockResolvedValue(accepte(`abo_${t.id}`, 50000));
 
-    expect((await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null })).code).toBe(200);
+    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     const [apres] = await db.select().from(entreprise).where(eq(entreprise.id, idB));
     expect(apres.statutAbonnement).toBe("actif");
     expect(apres.abonnementEcheanceLe!.getTime()).toBeGreaterThan(Date.now());
 
-    await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null });
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
     const [encore] = await db.select().from(entreprise).where(eq(entreprise.id, idB));
     expect(encore.abonnementEcheanceLe!.getTime()).toBe(apres.abonnementEcheanceLe!.getTime());
   }, 180_000);
@@ -162,18 +171,18 @@ describe("CamPay — abonnement à Vertex One", () => {
     await db.update(entreprise).set({ statutAbonnement: "suspendu" }).where(eq(entreprise.id, idA));
     const [t] = await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idA, montant: 50000 }).returning({ id: tentativePaiementAbonnement.id }));
     verifierTransaction.mockResolvedValue(accepte(`abo_${t.id}`, 25));
-    await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null });
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
     const [apres] = await db.select().from(entreprise).where(eq(entreprise.id, idA));
     expect(apres.statutAbonnement).toBe("suspendu");
   }, 180_000);
 });
 
-describe("CamPay — isolation entre entreprises", () => {
+describe("Aangaraa Pay — isolation entre entreprises", () => {
   test("la confirmation d'une tentative de A ne touche jamais les factures de B", async () => {
     const avant = (await lireFacture(idB, factureB)).f.statut;
     const tentative = await nouvelleTentativeFacture(idA, factureA, 11925);
     verifierTransaction.mockResolvedValue(accepte(`fac_${tentative}`, 11925));
-    await traiterNotificationCampay({ reference: REFERENCE_CAMPAY, signature: null });
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
     expect((await lireFacture(idB, factureB)).f.statut).toBe(avant);
     expect(contactA).toBeTruthy();
   }, 180_000);

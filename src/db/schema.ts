@@ -1376,7 +1376,7 @@ export const tentativePaiementFacture = pgTable(
 // tentativePaiementFacture, mais un flux d'argent différent (le tenant paie
 // Vertex One lui-même, pas un de ses propres clients) : table et webhook
 // séparés plutôt qu'un mécanisme générique à discriminant (voir
-// src/lib/actions/abonnement.ts / src/app/api/paiements/campay/notify/route.ts).
+// src/lib/actions/abonnement.ts / src/app/api/paiements/aangaraa/notify/route.ts).
 // Carve-out de lecture anonyme, même patron que `invitation` et
 // tentativePaiementFacture (voir son commentaire ci-dessus pour le détail :
 // migration cinetpay-js du 2026-09-18, limite de 30 caractères sur

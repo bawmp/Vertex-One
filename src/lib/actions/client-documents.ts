@@ -273,7 +273,7 @@ export async function repondreFacturePublic(
 /**
  * Le client paie sa facture depuis son lien : seulement après l'avoir acceptée (le
  * paiement direct n'est proposé qu'à un client qui reconnaît la facture). Renvoie
- * l'URL de paiement CamPay — paiement Mobile Money avec reversement différé, jamais
+ * l'URL de paiement Aangaraa Pay — paiement Mobile Money avec reversement différé, jamais
  * présenté comme instantané (voir CLAUDE.md).
  */
 export async function payerFacturePublic(

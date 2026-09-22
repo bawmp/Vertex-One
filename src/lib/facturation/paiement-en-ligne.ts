@@ -2,20 +2,24 @@ import { eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { entreprise, facture, tentativePaiementFacture } from "@/db/schema";
 import { disponible } from "@/lib/plans";
-import { initierPaiement } from "@/lib/campay/client";
-import { referenceExterne } from "@/lib/campay/utilitaires";
+import { initierPaiement } from "@/lib/aangaraa/client";
+import { referenceExterne } from "@/lib/paiement/reference";
 
 /**
- * Crée une tentative de paiement CamPay pour une facture et renvoie l'URL de
- * paiement (forfait Pro et au-dessus, identifiants CamPay configurés). Partagée
+ * Crée une tentative de paiement (Aangaraa Pay) pour une facture et renvoie l'URL de
+ * paiement (forfait Pro et au-dessus, clé Aangaraa Pay configurée). Partagée
  * entre le bouton interne « Payer en ligne » (src/lib/actions/facture.ts) et le
  * paiement par le client depuis son lien public (src/lib/actions/client-documents.ts).
  *
- * Une ligne tentativePaiementFacture est créée AVANT l'appel à CamPay — son id
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à Aangaraa Pay — son id
  * (préfixé, voir referenceExterne()) sert de référence externe (jamais l'id de la Facture,
  * transmis à un service externe partagé entre entreprises clientes) et d'ancrage au webhook.
  * Rappel CLAUDE.md : le paiement Mobile Money n'est jamais présenté comme « instantané » ou « direct ».
  */
+function urlBase(): string {
+  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+}
+
 export async function creerLienPaiementFacture(
   tx: TransactionDrizzle,
   params: { entrepriseId: string; factureId: string; returnUrl: string }
@@ -41,6 +45,7 @@ export async function creerLienPaiementFacture(
     reference: referenceExterne("FACTURE", tentative.id),
     montant: laFacture.montantTTC,
     description: `Facture ${laFacture.numero}`,
+    notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
     returnUrl,
   });
 

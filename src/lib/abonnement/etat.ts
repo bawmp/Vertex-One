@@ -1,7 +1,7 @@
 /**
  * Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — logique pure de
  * l'état essai/actif/suspendu, isolée pour rester testable directement en
- * Vitest (pas de "server-only", même patron que src/lib/campay/utilitaires.ts).
+ * Vitest (pas de "server-only", même patron que src/lib/aangaraa/utilitaires.ts).
  *
  * Tout est recalculé depuis les deux dates à chaque appel, jamais par
  * transition incrémentale mutable — auto-réparant si un jour de vérification

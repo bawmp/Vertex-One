@@ -6,8 +6,8 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { initierPaiement } from "@/lib/campay/client";
-import { referenceExterne } from "@/lib/campay/utilitaires";
+import { initierPaiement } from "@/lib/aangaraa/client";
+import { referenceExterne } from "@/lib/paiement/reference";
 import { getT } from "@/lib/i18n/langue";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
@@ -21,7 +21,7 @@ function urlBase(): string {
  * genererLienPaiement() (src/lib/actions/facture.ts), mais un flux d'argent
  * différent : le tenant paie ici Vertex One lui-même, jamais un de ses
  * propres clients. Table (tentativePaiementAbonnement) et webhook
- * (src/app/api/paiements/campay/notify/route.ts, distingué par le préfixe de la
+ * (src/app/api/paiements/aangaraa/notify/route.ts, distingué par le préfixe de la
  * référence externe) séparés de ceux des factures — deux flux distincts.
  */
 export async function genererLienPaiementAbonnement(): Promise<{ url?: string; erreur?: string }> {
@@ -42,6 +42,7 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
       reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: PRIX_ABONNEMENT_MENSUEL,
       description: t("Abonnement Vertex One — mensuel"),
+      notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
     });
 

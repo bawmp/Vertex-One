@@ -4,28 +4,26 @@ import { db, avecEntreprise } from "@/db/client";
 import { entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture } from "@/db/schema";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { moyenPaiementDepuisOperateur, verifierTransaction, type ResultatVerification } from "@/lib/campay/client";
-import { lireReferenceExterne, signatureValide } from "@/lib/campay/utilitaires";
+import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
+import { lireReferenceExterne } from "./reference";
+import type { ResultatVerification } from "./types";
 
 export type IssueNotification = { code: number; message: string };
 
 /**
- * Traite une notification CamPay (route publique, sans session, appelée par les serveurs de CamPay).
+ * Traite une notification de paiement (route publique, sans session, appelée par les serveurs du prestataire).
  *
- * Rien de ce qui arrive dans la requête n'est cru : seule la référence CamPay sert à savoir QUOI vérifier, puis la transaction
- * est relue serveur-à-serveur (statut, montant, référence externe). Une signature présente mais invalide écarte l'appel avant
- * tout appel au prestataire ; une signature absente n'empêche pas le traitement (la relecture reste la seule source de vérité).
+ * Rien de ce qui arrive dans la requête n'est cru — le prestataire ne signe pas ses notifications : seul le `payToken` sert à
+ * savoir QUOI relire, puis la transaction est relue serveur-à-serveur (statut, montant, notre référence). Le statut, le montant
+ * et la référence viennent de CETTE relecture, jamais de la notification. Le format du `payToken` est validé avant tout appel.
  *
- * Idempotent : CamPay peut rappeler plusieurs fois pour une même transaction — une tentative n'est confirmée qu'une fois.
+ * Idempotent : le prestataire peut rappeler plusieurs fois pour une même transaction — une tentative n'est confirmée qu'une fois.
  */
-export async function traiterNotificationCampay(entree: { reference: string | null; signature: string | null }): Promise<IssueNotification> {
-  if (!entree.reference) return { code: 400, message: "reference manquante" };
-  if (entree.signature && !signatureValide(entree.signature, process.env.CAMPAY_WEBHOOK_KEY)) {
-    return { code: 401, message: "signature invalide" };
-  }
+export async function traiterNotificationPaiement(entree: { payToken: string | null }): Promise<IssueNotification> {
+  if (!entree.payToken) return { code: 400, message: "paytoken manquant ou invalide" };
 
-  const verification = await verifierTransaction(entree.reference);
-  // Prestataire injoignable : un code d'erreur fait rappeler CamPay plus tard, au lieu de perdre le paiement.
+  const verification = await verifierTransaction(entree.payToken);
+  // Prestataire injoignable ou clé refusée : un code d'erreur le fait rappeler plus tard, au lieu de perdre le paiement.
   if (verification.indisponible) return { code: 503, message: "vérification indisponible" };
 
   const cible = lireReferenceExterne(verification.referenceExterne);
@@ -56,9 +54,9 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
       await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, idTentative));
       return;
     }
-    if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — CamPay rappellera
+    if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — le prestataire rappellera
     if (!montantConforme(verification, tentative.montant)) {
-      console.error(`[campay] montant inattendu pour la tentative ${idTentative} : ${verification.montant} au lieu de ${tentative.montant}`);
+      console.error(`[paiement] montant inattendu pour la tentative ${idTentative} : ${verification.montant} au lieu de ${tentative.montant}`);
       return;
     }
 
@@ -107,7 +105,7 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
     }
     if (verification.statut !== "ACCEPTED") return;
     if (!montantConforme(verification, tentative.montant)) {
-      console.error(`[campay] montant inattendu pour l'abonnement ${idTentative} : ${verification.montant} au lieu de ${tentative.montant}`);
+      console.error(`[paiement] montant inattendu pour l'abonnement ${idTentative} : ${verification.montant} au lieu de ${tentative.montant}`);
       return;
     }
 

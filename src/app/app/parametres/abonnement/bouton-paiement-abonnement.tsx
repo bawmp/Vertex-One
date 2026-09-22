@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Copie conforme de src/app/app/facturation/factures/[id]/bouton-paiement-en-ligne.tsx
- * pour l'abonnement plateforme — redirige vers l'URL de paiement CamPay,
+ * pour l'abonnement plateforme — redirige vers l'URL de paiement Aangaraa Pay,
  * jamais un lien Next.js interne.
  */
 export function BoutonPaiementAbonnement() {

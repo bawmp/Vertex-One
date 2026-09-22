@@ -67,7 +67,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("TVA calculée ligne par ligne à 19,25 %, avec blocage de toute émission tant que le NIU de l'entreprise n'est pas renseigné"),
       m("Acomptes, bons de commande, factures récurrentes et reçus de vente"),
       m("Relance automatique des factures impayées, sans intervention manuelle"),
-      m("Paiement en ligne Mobile Money (Orange Money, MTN MoMo) directement depuis la facture, via CamPay"),
+      m("Paiement en ligne Mobile Money (Orange Money, MTN MoMo) directement depuis la facture, via Aangaraa Pay"),
       m("Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture"),
       m("Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien"),
       m("Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email"),

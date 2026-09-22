@@ -23,7 +23,7 @@ export default async function PageAbonnementExpire() {
     .from(entreprise)
     .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
-  // Le paiement a peut-être été confirmé entre-temps (webhook CamPay) —
+  // Le paiement a peut-être été confirmé entre-temps (notification de paiement) —
   // ne jamais laisser un tenant à jour bloqué sur cette page par erreur.
   if (monEntreprise?.statutAbonnement !== "suspendu") redirect("/app");
 

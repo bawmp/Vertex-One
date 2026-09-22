@@ -56,7 +56,7 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise }: { jeton: strin
             Payer plus tard
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Paiement par Mobile Money, traité par CamPay.</p>
+        <p className="text-xs text-muted-foreground">Paiement par Mobile Money, traité par Aangaraa Pay.</p>
         {plusTard ? <p className="rounded-md bg-muted p-3 text-sm">Pas de problème : vous pouvez régler cette facture à tout moment depuis ce lien, avant son échéance.</p> : null}
         {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
       </div>
