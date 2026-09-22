@@ -32,7 +32,7 @@ function urlBase(): string {
  * jamais de page hébergée externe à ouvrir. La confirmation reste exclusivement la notification asynchrone
  * (voir src/app/api/paiements/aangaraa/notify/route.ts) — cette fonction ne dit que « la demande a été transmise ».
  */
-export async function declencherPaiementAbonnement(telephoneBrut: string): Promise<{ declenche?: boolean; erreur?: string }> {
+export async function declencherPaiementAbonnement(telephoneBrut: string, operateur: "MTN_Cameroon" | "Orange_Cameroon"): Promise<{ declenche?: boolean; erreur?: string }> {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -42,6 +42,7 @@ export async function declencherPaiementAbonnement(telephoneBrut: string): Promi
 
   const telephone = telephoneInternational(telephoneBrut);
   if (!telephone) return { erreur: t("Numéro de téléphone invalide.") };
+  if (operateur !== "MTN_Cameroon" && operateur !== "Orange_Cameroon") return { erreur: t("Choisissez votre opérateur Mobile Money.") };
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [tentative] = await tx
@@ -51,6 +52,7 @@ export async function declencherPaiementAbonnement(telephoneBrut: string): Promi
 
     const resultat = await initierPaiementDirect({
       telephone,
+      operateur,
       reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: PRIX_ABONNEMENT_MENSUEL,
       description: t("Abonnement Vertex One — mensuel"),

@@ -8,23 +8,28 @@ import { Spinner } from "@/components/ui/spinner";
 import { declencherPaiementAbonnement } from "@/lib/actions/abonnement";
 import { useT } from "@/lib/i18n/contexte";
 
+type Operateur = "MTN_Cameroon" | "Orange_Cameroon";
+
 /**
  * Paiement direct sans redirection (2026-09-22) : le numéro de téléphone est saisi ici, une invite USSD part
- * directement dessus — jamais de page hébergée Aangaraa Pay à ouvrir. La confirmation réelle arrive de façon
- * asynchrone (notification) ; cet écran ne fait qu'indiquer que la demande a été transmise au téléphone du client,
- * qui doit ensuite valider lui-même sur son appareil.
+ * directement dessus — jamais de page hébergée Aangaraa Pay à ouvrir. L'opérateur (MTN/Orange) est choisi
+ * explicitement par le client : contrairement à /redirect/payment, il n'y a ici aucune page hébergée où le
+ * choisir, et "ALL" n'a fonctionnellement aucun effet pour ce parcours (vérifié en réel — aucune invite envoyée).
+ * La confirmation réelle arrive de façon asynchrone (notification) ; cet écran ne fait qu'indiquer que la demande
+ * a été transmise au téléphone du client, qui doit ensuite valider lui-même sur son appareil.
  */
 export function BoutonPaiementAbonnement() {
   const t = useT();
   const [enCours, startTransition] = useTransition();
   const [telephone, setTelephone] = useState("");
+  const [operateur, setOperateur] = useState<Operateur>("MTN_Cameroon");
   const [erreur, setErreur] = useState<string | null>(null);
   const [declenche, setDeclenche] = useState(false);
 
   function payer() {
     setErreur(null);
     startTransition(async () => {
-      const resultat = await declencherPaiementAbonnement(telephone);
+      const resultat = await declencherPaiementAbonnement(telephone, operateur);
       if (resultat.erreur) {
         setErreur(resultat.erreur);
         return;
@@ -52,6 +57,14 @@ export function BoutonPaiementAbonnement() {
         disabled={enCours}
         className="max-w-xs"
       />
+      <div className="flex gap-2">
+        <Button type="button" variant={operateur === "MTN_Cameroon" ? "default" : "outline"} size="sm" onClick={() => setOperateur("MTN_Cameroon")} disabled={enCours}>
+          MTN Mobile Money
+        </Button>
+        <Button type="button" variant={operateur === "Orange_Cameroon" ? "default" : "outline"} size="sm" onClick={() => setOperateur("Orange_Cameroon")} disabled={enCours}>
+          Orange Money
+        </Button>
+      </div>
       <Button type="button" onClick={payer} disabled={enCours || !telephone}>
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
         {t("Régler mon abonnement (50 000 FCFA)")}

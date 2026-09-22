@@ -97,6 +97,13 @@ export async function initierPaiement(params: InitierPaiementParams): Promise<Re
 export type InitierPaiementDirectParams = InitierPaiementParams & {
   /** Format international obligatoire (+237…) — voir telephoneInternational() dans @/lib/paiement/telephone. */
   telephone: string;
+  /**
+   * Contrairement à `/redirect/payment` (« ALL » laisse le client choisir sur la page hébergée), il n'y a ici aucune
+   * page où choisir : Aangaraa Pay doit savoir à l'avance vers quel opérateur pousser l'invite USSD. Jamais deviné
+   * depuis le préfixe du numéro (risque d'erreur avec de l'argent réel) — le client choisit lui-même dans notre
+   * interface. Leur propre exemple de documentation pour cet endpoint utilise "Orange_Cameroon", jamais "ALL".
+   */
+  operateur: "MTN_Cameroon" | "Orange_Cameroon";
 };
 
 export type ResultatInitiationDirecte = { declenche: true; erreur?: undefined } | { declenche?: undefined; erreur: string };
@@ -124,7 +131,7 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
     transaction_id: params.reference,
     return_url: params.returnUrl,
     notify_url: params.notifyUrl,
-    operator: "ALL",
+    operator: params.operateur,
     devise_id: "XAF",
   });
 
