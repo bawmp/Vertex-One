@@ -6,8 +6,9 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { initierPaiement } from "@/lib/aangaraa/client";
+import { initierPaiementDirect } from "@/lib/aangaraa/client";
 import { referenceExterne } from "@/lib/paiement/reference";
+import { telephoneInternational } from "@/lib/paiement/telephone";
 import { getT } from "@/lib/i18n/langue";
 
 // ⚠️ TEMPORAIRE — vérification réelle de l'intégration Aangaraa Pay (clé tout juste configurée) : prix ramené à
@@ -25,8 +26,13 @@ function urlBase(): string {
  * propres clients. Table (tentativePaiementAbonnement) et webhook
  * (src/app/api/paiements/aangaraa/notify/route.ts, distingué par le préfixe de la
  * référence externe) séparés de ceux des factures — deux flux distincts.
+ *
+ * Paiement direct sans redirection (2026-09-22, correction — la première intégration utilisait le flux avec
+ * redirection partout) : le numéro de téléphone est saisi ici même, une invite USSD part directement dessus,
+ * jamais de page hébergée externe à ouvrir. La confirmation reste exclusivement la notification asynchrone
+ * (voir src/app/api/paiements/aangaraa/notify/route.ts) — cette fonction ne dit que « la demande a été transmise ».
  */
-export async function genererLienPaiementAbonnement(): Promise<{ url?: string; erreur?: string }> {
+export async function declencherPaiementAbonnement(telephoneBrut: string): Promise<{ declenche?: boolean; erreur?: string }> {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -34,13 +40,17 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
     return { erreur: t("Seul un administrateur peut régler l'abonnement.") };
   }
 
+  const telephone = telephoneInternational(telephoneBrut);
+  if (!telephone) return { erreur: t("Numéro de téléphone invalide.") };
+
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [tentative] = await tx
       .insert(tentativePaiementAbonnement)
       .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: PRIX_ABONNEMENT_MENSUEL })
       .returning({ id: tentativePaiementAbonnement.id });
 
-    const resultat = await initierPaiement({
+    const resultat = await initierPaiementDirect({
+      telephone,
       reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: PRIX_ABONNEMENT_MENSUEL,
       description: t("Abonnement Vertex One — mensuel"),
@@ -49,7 +59,7 @@ export async function genererLienPaiementAbonnement(): Promise<{ url?: string; e
     });
 
     if (resultat.erreur) return { erreur: resultat.erreur };
-    return { url: resultat.url };
+    return { declenche: true };
   });
 }
 

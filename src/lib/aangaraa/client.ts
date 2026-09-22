@@ -94,6 +94,47 @@ export async function initierPaiement(params: InitierPaiementParams): Promise<Re
   return { erreur: "Impossible de générer le lien de paiement pour le moment." };
 }
 
+export type InitierPaiementDirectParams = InitierPaiementParams & {
+  /** Format international obligatoire (+237…) — voir telephoneInternational() dans @/lib/paiement/telephone. */
+  telephone: string;
+};
+
+export type ResultatInitiationDirecte = { declenche: true; erreur?: undefined } | { declenche?: undefined; erreur: string };
+
+/**
+ * Déclenche un paiement SANS redirection (`/no_redirect/payment`) : Aangaraa Pay envoie une invite USSD directement au
+ * téléphone du client, qui valide sur son appareil — jamais de page hébergée à ouvrir. Correction du 2026-09-22 : la
+ * première intégration utilisait `/redirect/payment` partout, alors que ce produit-ci (paiement encaissé sans quitter
+ * notre interface) appelle celui-ci.
+ *
+ * Le format de la RÉPONSE n'est pas documenté par Aangaraa Pay (schéma OpenAPI vide pour cet endpoint, vérifié le
+ * 2026-09-22) : on ne s'y fie donc PAS pour confirmer quoi que ce soit — seul un HTTP 200/201 dit que la demande a bien
+ * été transmise au client, exactement comme `initierPaiement()` ne fait que renvoyer un lien. La confirmation réelle
+ * reste exclusivement la notification + verifierTransaction(), comme pour le flux avec redirection.
+ */
+export async function initierPaiementDirect(params: InitierPaiementDirectParams): Promise<ResultatInitiationDirecte> {
+  if (!aangaraaConfigure()) return { erreur: "Intégration Aangaraa Pay non configurée pour le moment — utilisez l'encaissement manuel." };
+
+  const reponse = await appeler("/no_redirect/payment", {
+    phone_number: params.telephone,
+    amount: params.montant,
+    description: params.description.slice(0, 255),
+    transaction_id: params.reference,
+    return_url: params.returnUrl,
+    notify_url: params.notifyUrl,
+    operator: "ALL",
+    devise_id: "XAF",
+  });
+
+  if (reponse && (reponse.statut === 200 || reponse.statut === 201)) return { declenche: true };
+
+  console.error(
+    "[aangaraa] échec d'initiation de paiement direct :",
+    reponse ? masquerCle(`HTTP ${reponse.statut} ${JSON.stringify(reponse.corps)}`, process.env.AANGARAA_PAY_APP_KEY) : "aucune réponse"
+  );
+  return { erreur: "Impossible de déclencher le paiement pour le moment." };
+}
+
 /**
  * Relit une transaction directement chez Aangaraa Pay, par son `payToken` (le seul identifiant que son API accepte pour lire un
  * statut — il arrive avec la notification). Seule source de vérité sur le statut, le montant et NOTRE référence : le contenu d'une

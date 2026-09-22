@@ -2,6 +2,8 @@
 export const PARAMETRES: Record<string, string> = {
   // Général
   "Régler mon abonnement (50 000 FCFA)": "Pay my subscription (50,000 FCFA)",
+  "Vérifiez votre téléphone et validez la demande de paiement.": "Check your phone and confirm the payment request.",
+  "Numéro Mobile Money (ex : 690 11 12 22)": "Mobile Money number (e.g. 690 11 12 22)",
   "Impossible de récupérer le statut de l'abonnement.": "Unable to retrieve the subscription status.",
   "Vertex One — 50 000 FCFA/mois": "Vertex One — 50,000 FCFA/month",
   "Réglez votre abonnement pour réactiver immédiatement l'accès.": "Pay your subscription to reactivate access immediately.",
