@@ -5,6 +5,13 @@ export const PARAMETRES: Record<string, string> = {
   "Vérifiez votre téléphone et validez la demande de paiement.": "Check your phone and confirm the payment request.",
   "Numéro Mobile Money (ex : 690 11 12 22)": "Mobile Money number (e.g. 690 11 12 22)",
   "Choisissez votre opérateur Mobile Money.": "Choose your Mobile Money operator.",
+  "Paiement confirmé — votre abonnement est actif.": "Payment confirmed — your subscription is active.",
+  "Nous attendons la confirmation…": "Waiting for confirmation…",
+  "Nous n'avons pas encore reçu de confirmation. Si vous avez validé le paiement sur votre téléphone, contactez-nous — sinon réessayez.":
+    "We haven't received confirmation yet. If you approved the payment on your phone, contact us — otherwise try again.",
+  "Le paiement n'a pas abouti.": "The payment did not go through.",
+  Réessayer: "Try again",
+  "Impossible de déclencher le paiement pour le moment.": "Unable to start the payment right now.",
   "Impossible de récupérer le statut de l'abonnement.": "Unable to retrieve the subscription status.",
   "Vertex One — 50 000 FCFA/mois": "Vertex One — 50,000 FCFA/month",
   "Réglez votre abonnement pour réactiver immédiatement l'accès.": "Pay your subscription to reactivate access immediately.",

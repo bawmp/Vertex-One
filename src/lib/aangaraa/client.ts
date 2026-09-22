@@ -1,6 +1,6 @@
 import "server-only";
 import type { ResultatVerification } from "@/lib/paiement/types";
-import { analyserReponseStatut, masquerCle, moyenPaiementDepuisOperateur, urlPaiementAbsolue } from "./utilitaires";
+import { analyserReponseStatut, lirePayToken, masquerCle, moyenPaiementDepuisOperateur, urlPaiementAbsolue } from "./utilitaires";
 
 export { moyenPaiementDepuisOperateur };
 
@@ -106,7 +106,7 @@ export type InitierPaiementDirectParams = InitierPaiementParams & {
   operateur: "MTN_Cameroon" | "Orange_Cameroon";
 };
 
-export type ResultatInitiationDirecte = { declenche: true; erreur?: undefined } | { declenche?: undefined; erreur: string };
+export type ResultatInitiationDirecte = { declenche: true; payToken: string | null; erreur?: undefined } | { declenche?: undefined; payToken?: undefined; erreur: string };
 
 /**
  * Déclenche un paiement SANS redirection (`/no_redirect/payment`) : Aangaraa Pay envoie une invite USSD directement au
@@ -114,10 +114,11 @@ export type ResultatInitiationDirecte = { declenche: true; erreur?: undefined } 
  * première intégration utilisait `/redirect/payment` partout, alors que ce produit-ci (paiement encaissé sans quitter
  * notre interface) appelle celui-ci.
  *
- * Le format de la RÉPONSE n'est pas documenté par Aangaraa Pay (schéma OpenAPI vide pour cet endpoint, vérifié le
- * 2026-09-22) : on ne s'y fie donc PAS pour confirmer quoi que ce soit — seul un HTTP 200/201 dit que la demande a bien
- * été transmise au client, exactement comme `initierPaiement()` ne fait que renvoyer un lien. La confirmation réelle
- * reste exclusivement la notification + verifierTransaction(), comme pour le flux avec redirection.
+ * Le format de la RÉPONSE n'est pas documenté par Aangaraa Pay (schéma OpenAPI vide pour cet endpoint) — on tente
+ * d'en extraire un `payToken` (même format que celui d'une notification, voir lirePayToken()) pour une relecture
+ * ACTIVE du statut : constaté en réel le 2026-09-22 qu'Aangaraa Pay n'appelle `notify_url` qu'une fois, immédiatement
+ * (transaction encore PENDING) — jamais une seconde fois quand le client valide réellement sur son téléphone. Sans ce
+ * payToken, aucune confirmation n'est possible : voir relireEtConfirmerAbonnement() dans @/lib/paiement/confirmation.
  */
 export async function initierPaiementDirect(params: InitierPaiementDirectParams): Promise<ResultatInitiationDirecte> {
   if (!aangaraaConfigure()) return { erreur: "Intégration Aangaraa Pay non configurée pour le moment — utilisez l'encaissement manuel." };
@@ -135,7 +136,14 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
     devise_id: "XAF",
   });
 
-  if (reponse && (reponse.statut === 200 || reponse.statut === 201)) return { declenche: true };
+  if (reponse && (reponse.statut === 200 || reponse.statut === 201)) {
+    // Journalisé une fois pour de bon (diagnostic du 2026-09-22) : la réponse n'étant pas documentée, on garde une
+    // trace de sa forme réelle. Rien de secret dedans (contrairement au corps envoyé) — la clé n'y figure jamais.
+    console.log("[aangaraa] paiement direct déclenché, réponse :", JSON.stringify(reponse.corps));
+    const donnees = (reponse.corps as { data?: Record<string, unknown> } | null)?.data;
+    const payToken = lirePayToken(donnees) ?? lirePayToken(reponse.corps as Record<string, unknown>);
+    return { declenche: true, payToken };
+  }
 
   console.error(
     "[aangaraa] échec d'initiation de paiement direct :",

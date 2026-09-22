@@ -1,22 +1,25 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CreditCard, CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { CreditCard, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { declencherPaiementAbonnement } from "@/lib/actions/abonnement";
+import { declencherPaiementAbonnement, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
 import { useT } from "@/lib/i18n/contexte";
 
 type Operateur = "MTN_Cameroon" | "Orange_Cameroon";
+type Etape = "formulaire" | "en_attente" | "confirme" | "echec";
+
+const DELAI_SONDAGE_MS = 4_000;
+const DUREE_MAX_SONDAGE_MS = 2 * 60 * 1000; // 2 minutes — au-delà, le client valide peut-être encore, mais on arrête de solliciter le serveur en boucle.
 
 /**
- * Paiement direct sans redirection (2026-09-22) : le numéro de téléphone est saisi ici, une invite USSD part
- * directement dessus — jamais de page hébergée Aangaraa Pay à ouvrir. L'opérateur (MTN/Orange) est choisi
- * explicitement par le client : contrairement à /redirect/payment, il n'y a ici aucune page hébergée où le
- * choisir, et "ALL" n'a fonctionnellement aucun effet pour ce parcours (vérifié en réel — aucune invite envoyée).
- * La confirmation réelle arrive de façon asynchrone (notification) ; cet écran ne fait qu'indiquer que la demande
- * a été transmise au téléphone du client, qui doit ensuite valider lui-même sur son appareil.
+ * Paiement direct sans redirection (2026-09-22) : le numéro de téléphone et l'opérateur (MTN/Orange — jamais deviné,
+ * "ALL" n'a aucun effet pour ce parcours) sont saisis ici, une invite USSD part directement dessus. La confirmation
+ * ne peut pas compter sur la seule notification (Aangaraa Pay ne la renvoie qu'une fois, immédiatement, transaction
+ * encore PENDING) : cet écran SONDE activement le statut (verifierStatutTentativeAbonnement) toutes les 4 secondes
+ * pendant 2 minutes, avec un retour visuel à chaque étape plutôt qu'un message figé.
  */
 export function BoutonPaiementAbonnement() {
   const t = useT();
@@ -24,25 +27,75 @@ export function BoutonPaiementAbonnement() {
   const [telephone, setTelephone] = useState("");
   const [operateur, setOperateur] = useState<Operateur>("MTN_Cameroon");
   const [erreur, setErreur] = useState<string | null>(null);
-  const [declenche, setDeclenche] = useState(false);
+  const [etape, setEtape] = useState<Etape>("formulaire");
+  const minuteurRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (minuteurRef.current) clearTimeout(minuteurRef.current);
+  }, []);
+
+  function sonder(tentativeId: string, depuis: number) {
+    minuteurRef.current = setTimeout(() => {
+      startTransition(async () => {
+        const statut = await verifierStatutTentativeAbonnement(tentativeId);
+        if (statut === "CONFIRME") {
+          setEtape("confirme");
+          return;
+        }
+        if (statut === "ECHEC") {
+          setEtape("echec");
+          return;
+        }
+        if (Date.now() - depuis > DUREE_MAX_SONDAGE_MS) {
+          setEtape("echec");
+          setErreur(t("Nous n'avons pas encore reçu de confirmation. Si vous avez validé le paiement sur votre téléphone, contactez-nous — sinon réessayez."));
+          return;
+        }
+        sonder(tentativeId, depuis); // INDISPONIBLE ou EN_ATTENTE : on continue de sonder
+      });
+    }, DELAI_SONDAGE_MS);
+  }
 
   function payer() {
     setErreur(null);
     startTransition(async () => {
       const resultat = await declencherPaiementAbonnement(telephone, operateur);
-      if (resultat.erreur) {
-        setErreur(resultat.erreur);
+      if (resultat.erreur || !resultat.tentativeId) {
+        setErreur(resultat.erreur ?? t("Impossible de déclencher le paiement pour le moment."));
         return;
       }
-      setDeclenche(true);
+      setEtape("en_attente");
+      sonder(resultat.tentativeId, Date.now());
     });
   }
 
-  if (declenche) {
+  if (etape === "confirme") {
     return (
       <div className="flex flex-col items-center gap-1.5 text-center">
         <CheckCircle2 className="size-6 text-primary" aria-hidden />
-        <p className="text-sm">{t("Vérifiez votre téléphone et validez la demande de paiement.")}</p>
+        <p className="text-sm font-medium">{t("Paiement confirmé — votre abonnement est actif.")}</p>
+      </div>
+    );
+  }
+
+  if (etape === "en_attente") {
+    return (
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
+        <p className="text-sm font-medium">{t("Vérifiez votre téléphone et validez la demande de paiement.")}</p>
+        <p className="text-xs text-muted-foreground">{t("Nous attendons la confirmation…")}</p>
+      </div>
+    );
+  }
+
+  if (etape === "echec") {
+    return (
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <XCircle className="size-6 text-destructive" aria-hidden />
+        <p className="text-sm font-medium">{erreur ?? t("Le paiement n'a pas abouti.")}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => setEtape("formulaire")}>
+          {t("Réessayer")}
+        </Button>
       </div>
     );
   }

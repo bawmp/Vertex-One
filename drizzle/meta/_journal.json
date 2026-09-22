@@ -729,6 +729,13 @@
       "when": 1789949236976,
       "tag": "0103_annonces_pieces_jointes",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1790064000000,
+      "tag": "0104_pay_token_abonnement",
+      "breakpoints": true
     }
   ]
 }

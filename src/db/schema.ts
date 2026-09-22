@@ -1390,6 +1390,11 @@ export const tentativePaiementAbonnement = pgTable(
       .references(() => entreprise.id),
     montant: integer("montant").notNull(),
     statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
+    // Paiement direct (2026-09-22) : Aangaraa Pay n'appelle notify_url qu'une fois, immédiatement (transaction encore
+    // PENDING) — jamais une seconde fois quand le client valide réellement sur son téléphone. Le payToken est donc
+    // conservé pour une relecture active (voir relireEtConfirmerAbonnement() dans src/lib/paiement/confirmation.ts),
+    // pas seulement une attente passive de la notification.
+    payToken: text("pay_token"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     confirmeLe: timestamp("confirme_le"),
   },

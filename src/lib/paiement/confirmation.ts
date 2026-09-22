@@ -124,3 +124,31 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
     await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: new Date() }).where(eq(tentativePaiementAbonnement.id, idTentative));
   });
 }
+
+export type StatutRelectureAbonnement = "CONFIRME" | "ECHEC" | "EN_ATTENTE" | "INTROUVABLE" | "INDISPONIBLE";
+
+/**
+ * Relecture ACTIVE du statut d'une tentative d'abonnement (paiement direct, 2026-09-22) : contrairement au webhook
+ * (une seule fois, immédiatement, transaction encore PENDING — jamais rappelé quand le client valide réellement sur
+ * son téléphone), cette fonction relit VRAIMENT le statut chez Aangaraa Pay via le payToken conservé sur la tentative
+ * à sa création. Réutilise EXACTEMENT la même logique de confirmation que le webhook (confirmerTentativeAbonnement)
+ * — idempotente, un appel répété une fois déjà confirmé ne fait rien. Appelée en sondage depuis l'interface
+ * (voir src/lib/actions/abonnement.ts) : aucune session ici, l'appelant vérifie déjà que la tentative lui appartient.
+ */
+export async function relireEtConfirmerAbonnement(idTentative: string): Promise<StatutRelectureAbonnement> {
+  const [anonyme] = await db.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
+  if (!anonyme) return "INTROUVABLE";
+  if (anonyme.statut === "CONFIRME") return "CONFIRME";
+  if (anonyme.statut === "ECHEC") return "ECHEC";
+  if (!anonyme.payToken) return "EN_ATTENTE"; // rien à relire pour l'instant (réponse initiale sans payToken exploitable)
+
+  const verification = await verifierTransaction(anonyme.payToken);
+  if (verification.indisponible) return "INDISPONIBLE";
+
+  await confirmerTentativeAbonnement(idTentative, verification);
+
+  const [apres] = await db.select({ statut: tentativePaiementAbonnement.statut }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
+  if (apres?.statut === "CONFIRME") return "CONFIRME";
+  if (apres?.statut === "ECHEC") return "ECHEC";
+  return "EN_ATTENTE";
+}
