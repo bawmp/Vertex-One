@@ -10,7 +10,9 @@ import { initierPaiement } from "@/lib/aangaraa/client";
 import { referenceExterne } from "@/lib/paiement/reference";
 import { getT } from "@/lib/i18n/langue";
 
-const PRIX_ABONNEMENT_MENSUEL = 50_000;
+// ⚠️ TEMPORAIRE — vérification réelle de l'intégration Aangaraa Pay (clé tout juste configurée) : prix ramené à
+// 100 XAF le temps du test, à remettre à 50 000 juste après (voir conversation du 2026-09-22).
+const PRIX_ABONNEMENT_MENSUEL = 100;
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
