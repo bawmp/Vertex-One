@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gt, isNotNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
@@ -87,6 +87,31 @@ export async function verifierStatutTentativeAbonnement(tentativeId: string): Pr
     const [tentative] = await tx.select({ id: tentativePaiementAbonnement.id }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentativeId));
     if (!tentative) return "INTROUVABLE" as const;
     return relireEtConfirmerAbonnement(tentativeId);
+  });
+}
+
+/**
+ * Reprise après rechargement de page (2026-09-23) : le sondage vit uniquement en état React côté client
+ * (bouton-paiement-abonnement.tsx) — si l'onglet est déchargé pendant que le client bascule sur son téléphone
+ * pour valider l'invite USSD (comportement réel constaté sur mobile : l'onglet en arrière-plan est parfois
+ * déchargé par le système, pas seulement mis en pause), tout l'état de sondage est perdu au retour, y compris
+ * pour un paiement pourtant déjà réussi côté Aangaraa Pay. Appelée au chargement de l'écran d'abonnement : si une
+ * tentative récente (moins de 10 minutes, avec payToken) est encore EN_ATTENTE, l'interface reprend le sondage
+ * automatiquement au lieu de réafficher un formulaire vierge qui masque un paiement en cours ou déjà confirmé.
+ */
+export async function recupererTentativeAbonnementEnAttente(): Promise<{ tentativeId: string } | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const seuil = new Date(Date.now() - 10 * 60 * 1000);
+    const [tentative] = await tx
+      .select({ id: tentativePaiementAbonnement.id })
+      .from(tentativePaiementAbonnement)
+      .where(and(eq(tentativePaiementAbonnement.statut, "EN_ATTENTE"), isNotNull(tentativePaiementAbonnement.payToken), gt(tentativePaiementAbonnement.creeLe, seuil)))
+      .orderBy(desc(tentativePaiementAbonnement.creeLe))
+      .limit(1);
+    return tentative ? { tentativeId: tentative.id } : null;
   });
 }
 
