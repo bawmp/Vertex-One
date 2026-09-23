@@ -1,12 +1,38 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { db, avecEntreprise } from "@/db/client";
-import { entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { db, avecEntreprise, type TransactionDrizzle } from "@/db/client";
+import { entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture, utilisateur } from "@/db/schema";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
+import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
+import { envoyerEmail } from "@/lib/email/client";
 import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
+
+function urlBase(): string {
+  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+}
+
+/**
+ * Notifie les Administrateurs actifs du résultat d'un paiement d'abonnement — quel que soit le chemin qui a
+ * confirmé/invalidé le paiement (sondage client, webhook, réconciliation serveur), pour qu'un client qui a quitté
+ * l'écran de paiement soit informé sans devoir y revenir (2026-09-23). Best-effort : un échec d'envoi (Resend non
+ * configuré, etc.) ne doit jamais faire échouer la confirmation elle-même, seulement être journalisé.
+ */
+async function notifierResultatPaiementAbonnement(tx: TransactionDrizzle, entrepriseId: string, nomEntreprise: string, reussi: boolean) {
+  const admins = await tx
+    .select({ email: utilisateur.email })
+    .from(utilisateur)
+    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.role, "ADMIN"), eq(utilisateur.statut, "ACTIF")));
+
+  const { subject, html } = gabaritPaiementAbonnement({ reussi, nomEntreprise, lienPaiement: `${urlBase()}/app/parametres/abonnement` });
+
+  for (const admin of admins) {
+    const { envoye, erreur } = await envoyerEmail({ to: admin.email, subject, html });
+    if (!envoye) console.error(`[paiement] échec d'envoi de la notification d'abonnement à ${admin.email} :`, erreur);
+  }
+}
 
 export type IssueNotification = { code: number; message: string };
 
@@ -101,6 +127,8 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
 
     if (verification.statut === "REFUSED") {
       await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC" }).where(eq(tentativePaiementAbonnement.id, idTentative));
+      const [monEntreprise] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+      if (monEntreprise) await notifierResultatPaiementAbonnement(tx, entrepriseId, monEntreprise.nom, false);
       return;
     }
     if (verification.statut !== "ACCEPTED") return;
@@ -109,7 +137,7 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
       return;
     }
 
-    const [monEntreprise] = await tx.select({ abonnementEcheanceLe: entreprise.abonnementEcheanceLe }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+    const [monEntreprise] = await tx.select({ nom: entreprise.nom, abonnementEcheanceLe: entreprise.abonnementEcheanceLe }).from(entreprise).where(eq(entreprise.id, entrepriseId));
     if (!monEntreprise) return;
 
     const nouvelleEcheance = prochaineEcheanceApresPaiement(monEntreprise.abonnementEcheanceLe, new Date());
@@ -122,6 +150,7 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
       .set({ abonnementEcheanceLe: nouvelleEcheance, statutAbonnement: "actif", dernierRappelAbonnementEnvoye: null })
       .where(eq(entreprise.id, entrepriseId));
     await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: new Date() }).where(eq(tentativePaiementAbonnement.id, idTentative));
+    await notifierResultatPaiementAbonnement(tx, entrepriseId, monEntreprise.nom, true);
   });
 }
 

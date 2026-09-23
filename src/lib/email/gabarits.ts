@@ -59,6 +59,43 @@ const TEXTES_EVENEMENT_ABONNEMENT: Record<EvenementAbonnement, { objet: string; 
 };
 
 /**
+ * Notification de RÉSULTAT d'un paiement d'abonnement (2026-09-23) — distincte de gabaritAbonnement ci-dessous
+ * (qui couvre les rappels d'échéance/essai, pilotés par calculerEtatAbonnement()) : ici, le déclencheur est une
+ * confirmation ou un échec RÉEL constaté auprès d'Aangaraa Pay (voir confirmerTentativeAbonnement(),
+ * src/lib/paiement/confirmation.ts), envoyée quel que soit le chemin qui a confirmé le paiement (sondage client ou
+ * réconciliation serveur) — un client qui a quitté l'écran de paiement doit être informé sans devoir y revenir.
+ */
+export function gabaritPaiementAbonnement({
+  reussi,
+  nomEntreprise,
+  lienPaiement,
+}: {
+  reussi: boolean;
+  nomEntreprise: string;
+  lienPaiement: string;
+}): { subject: string; html: string } {
+  if (reussi) {
+    return {
+      subject: "Paiement reçu — votre abonnement Vertex One est actif",
+      html: `
+        <p>Bonjour,</p>
+        <p>Votre paiement a bien été reçu — l'abonnement Vertex One de <strong>${nomEntreprise}</strong> est actif.</p>
+        <p>Cordialement,<br>L'équipe Vertex One</p>
+      `.trim(),
+    };
+  }
+  return {
+    subject: "Paiement non abouti — abonnement Vertex One",
+    html: `
+      <p>Bonjour,</p>
+      <p>Le paiement Mobile Money tenté pour l'abonnement Vertex One de <strong>${nomEntreprise}</strong> n'a pas abouti.</p>
+      <p><a href="${lienPaiement}">Réessayer le paiement</a></p>
+      <p>Cordialement,<br>L'équipe Vertex One</p>
+    `.trim(),
+  };
+}
+
+/**
  * Message de Vertex One vers le tenant (jamais personnalisable côté tenant,
  * contrairement aux modèles ENVOI_DEVIS/ENVOI_FACTURE — voir
  * src/lib/email/modeles.ts, volontairement un mécanisme séparé) — une seule
