@@ -5,14 +5,14 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MODULES_MARKETING, trouverModuleMarketing } from "@/lib/marketing/modules";
 import { Reveal } from "../../reveal";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 
 export function generateStaticParams() {
   return MODULES_MARKETING.map((module) => ({ slug: module.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const t = await getT();
+  const t = await getTVisiteur();
   const { slug } = await params;
   const moduleMarketing = trouverModuleMarketing(slug);
   if (!moduleMarketing) return {};
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function PageModule({ params }: { params: Promise<{ slug: string }> }) {
-  const t = await getT();
+  const t = await getTVisiteur();
   const { slug } = await params;
   const moduleMarketing = trouverModuleMarketing(slug);
   if (!moduleMarketing) notFound();

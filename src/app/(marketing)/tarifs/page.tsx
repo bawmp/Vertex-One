@@ -8,10 +8,10 @@ import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "../reveal";
 import { CompteurAnime } from "../compteur-anime";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getT();
+  const t = await getTVisiteur();
   return {
     title: `${t("Tarifs")} — Vertex One`,
     description: t("Un seul abonnement à {prix} FCFA/mois, tous les modules inclus. Essai gratuit {jours} jours.", { prix: PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString(t.locale), jours: DUREE_ESSAI_JOURS }),
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PageTarifs() {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <div className="mx-auto max-w-4xl px-6 py-20">
       <Reveal>

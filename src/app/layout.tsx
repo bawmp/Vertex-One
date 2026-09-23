@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { EcranDemarrage } from "@/components/ecran-demarrage";
 import { LangueProvider } from "@/lib/i18n/contexte";
-import { langueCourante } from "@/lib/i18n/langue";
+import { langueVisiteur } from "@/lib/i18n/langue";
 import { traduire } from "@/lib/i18n/traduire";
 import "./globals.css";
 
@@ -23,9 +23,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Langue de la personne (préférence du compte, sinon cookie/navigateur) : posée ici pour tout le site, y compris les
-  // composants client des pages publiques (connexion, site vitrine).
-  const langue = await langueCourante();
+  // Toujours la langue du VISITEUR (cookie, sinon navigateur) — jamais la préférence de compte ici, même connecté
+  // (2026-09-23, bug réel corrigé : un visiteur connecté qui changeait de langue sur le site vitrine ou /connexion
+  // voyait le cookie posé mais le contenu rester dans la langue de son compte, <html lang> ne pouvant être fixé
+  // qu'une seule fois au tout premier niveau). /app et /portail imposent ensuite leur propre LangueProvider
+  // (préférence de compte) plus bas dans l'arbre — voir src/app/app/layout.tsx et src/app/portail/layout.tsx.
+  const langue = await langueVisiteur();
   return (
     <html
       lang={langue}

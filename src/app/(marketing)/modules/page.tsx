@@ -5,11 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { Reveal } from "../reveal";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getT();
+  const t = await getTVisiteur();
   return {
     title: `${t("Modules")} — Vertex One`,
     description: t("Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus."),
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PageModules() {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <div className="mx-auto max-w-6xl px-6 py-20">
       <Reveal>

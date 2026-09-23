@@ -31,3 +31,15 @@ export const langueCourante = cache(async (): Promise<Langue> => {
 export async function getT(): Promise<Traducteur> {
   return traducteur(await langueCourante());
 }
+
+/**
+ * Traducteur qui IGNORE délibérément la préférence de compte, même si la personne est connectée (2026-09-23, bug réel
+ * corrigé : un visiteur connecté — cas fréquent, une session Better-Auth ne se limite pas à /app — qui cliquait sur
+ * le sélecteur de langue du site vitrine ou de la page de connexion voyait le cookie bien posé, mais le contenu
+ * rester en français malgré tout, parce que getT()/langueCourante() donnaient toujours la priorité à la langue de
+ * son compte). Réservé aux pages publiques ((marketing), (auth)) — jamais à /app ou /portail, qui doivent au
+ * contraire respecter la préférence enregistrée du compte (voir getT() ci-dessus).
+ */
+export async function getTVisiteur(): Promise<Traducteur> {
+  return traducteur(await langueVisiteur());
+}

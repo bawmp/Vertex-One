@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { EnTeteMarketing } from "./en-tete";
 import { KyriaChat } from "./kyria/kyria-chat";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
 const LIENS_PIED = [
@@ -21,7 +21,7 @@ const LIENS_PIED = [
  * marque, sans dupliquer leur code (usage ponctuel, pas partagé).
  */
 export default async function LayoutMarketing({ children }: { children: React.ReactNode }) {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <div className="flex min-h-screen flex-col">
       <EnTeteMarketing />

@@ -17,7 +17,7 @@ import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "./reveal";
 import { CompteurAnime } from "./compteur-anime";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
 const ATOUTS = [
@@ -34,7 +34,7 @@ const ATOUTS = [
  * /app ici, décision explicite de l'utilisateur le 2026-09-14.
  */
 export default async function PageAccueil() {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <>
       {/* Héros */}

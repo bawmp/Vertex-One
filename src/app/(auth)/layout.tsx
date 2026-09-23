@@ -1,10 +1,10 @@
 import { LogoEntreprise } from "@/components/logo-entreprise";
 import { Wordmark } from "@/components/wordmark";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 import { SelecteurLangue } from "@/components/selecteur-langue";
 
 export default async function LayoutAuth({ children }: { children: React.ReactNode }) {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="relative hidden md:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-10 text-white">

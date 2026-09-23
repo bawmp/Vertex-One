@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import { ArrowRight, Rocket, Building2, Wrench, Briefcase, LayoutGrid, Users2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "../reveal";
-import { getT } from "@/lib/i18n/langue";
+import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getT();
+  const t = await getTVisiteur();
   return {
     title: `${t("À propos")} — Vertex One`,
     description: t("Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun."),
@@ -22,7 +22,7 @@ const SECTEURS = [
 ];
 
 export default async function PageAPropos() {
-  const t = await getT();
+  const t = await getTVisiteur();
   return (
     <div className="mx-auto max-w-3xl px-6 py-20">
       <Reveal>
