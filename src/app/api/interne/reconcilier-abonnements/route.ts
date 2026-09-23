@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, isNotNull, eq } from "drizzle-orm";
-import { db } from "@/db/client";
-import { tentativePaiementAbonnement } from "@/db/schema";
+import { db, avecEntreprise } from "@/db/client";
+import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
 import { relireEtConfirmerAbonnement } from "@/lib/paiement/confirmation";
 
 /**
@@ -17,6 +17,14 @@ import { relireEtConfirmerAbonnement } from "@/lib/paiement/confirmation";
  * "server-only" (protection contre une fuite de app_key dans un bundle client), incompatible avec une exécution
  * tsx/node hors Next.js — cette route existe pour cette seule raison, sur le modèle du webhook de notification.
  *
+ * ⚠️ Bug réel corrigé le 2026-09-23 : une première version lisait `tentative_paiement_abonnement` directement via
+ * `db.select()`, SANS passer par avecEntreprise() — la requête tournait donc avec `app.entreprise_id` jamais posé,
+ * et ne remontait silencieusement AUCUNE ligne (RLS active), malgré de vrais paiements confirmés côté Aangaraa Pay
+ * en attente. Corrigé en reprenant EXACTEMENT le patron déjà établi ailleurs dans ce projet (verifier-abonnements.ts
+ * → traiter-abonnement-entreprise.ts) : la table `entreprise` elle-même n'a pas de RLS (lue librement pour lister
+ * les tenants), puis chaque lecture de `tentative_paiement_abonnement` passe par avecEntreprise(), une entreprise à
+ * la fois — jamais un balayage direct multi-tenant sur une table protégée.
+ *
  * Protégée par un secret partagé (WORKER_INTERNAL_SECRET, distinct de tout secret de paiement) — jamais accessible
  * sans lui, pour qu'une requête externe ne puisse pas déclencher un balayage à volonté.
  */
@@ -27,17 +35,21 @@ export async function POST(requete: Request) {
   const autorisation = requete.headers.get("authorization");
   if (autorisation !== `Bearer ${secretAttendu}`) return NextResponse.json({ erreur: "non autorisé" }, { status: 401 });
 
-  const enAttente = await db
-    .select({ id: tentativePaiementAbonnement.id })
-    .from(tentativePaiementAbonnement)
-    .where(and(eq(tentativePaiementAbonnement.statut, "EN_ATTENTE"), isNotNull(tentativePaiementAbonnement.payToken)));
+  const entreprises = await db.select({ id: entreprise.id }).from(entreprise);
 
-  const resultats = await Promise.all(
-    enAttente.map(async (t) => {
+  const resultats: { entrepriseId: string; id: string; statut: string }[] = [];
+  for (const e of entreprises) {
+    const enAttente = await avecEntreprise(e.id, (tx) =>
+      tx
+        .select({ id: tentativePaiementAbonnement.id })
+        .from(tentativePaiementAbonnement)
+        .where(and(eq(tentativePaiementAbonnement.statut, "EN_ATTENTE"), isNotNull(tentativePaiementAbonnement.payToken)))
+    );
+    for (const t of enAttente) {
       const statut = await relireEtConfirmerAbonnement(t.id);
-      return { id: t.id, statut };
-    })
-  );
+      resultats.push({ entrepriseId: e.id, id: t.id, statut });
+    }
+  }
 
   const confirmees = resultats.filter((r) => r.statut === "CONFIRME").length;
   return NextResponse.json({ examinees: resultats.length, confirmees, resultats });

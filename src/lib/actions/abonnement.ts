@@ -13,8 +13,8 @@ import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/l
 import { getT } from "@/lib/i18n/langue";
 
 // ⚠️ TEMPORAIRE — vérification réelle de l'intégration Aangaraa Pay (clé tout juste configurée) : prix ramené à
-// 100 XAF le temps du test, à remettre à 50 000 juste après (voir conversation du 2026-09-22).
-const PRIX_ABONNEMENT_MENSUEL = 100;
+// 10 XAF le temps du test, à remettre à 50 000 juste après (voir conversation du 2026-09-22 et du 2026-09-23).
+const PRIX_ABONNEMENT_MENSUEL = 10;
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
