@@ -20,15 +20,23 @@ export function calculerEtatAbonnement(
 ): { statut: StatutAbonnement; evenement: EvenementAbonnement | null } {
   const { essaiFinLe, abonnementEcheanceLe } = entreprise;
 
-  if (maintenant < essaiFinLe) {
+  // Premier cycle : aucun paiement n'a encore jamais été confirmé (voir
+  // genererLienPaiementAbonnement()/le webhook — abonnementEcheanceLe n'est
+  // reculée qu'à la confirmation d'un paiement, jamais avant). Calculé AVANT le
+  // test d'essai ci-dessous (2026-09-23, bug réel corrigé) : un paiement confirmé
+  // PENDANT l'essai avance abonnementEcheanceLe au-delà d'essaiFinLe sans jamais
+  // toucher essaiFinLe lui-même — sans ce garde-fou, `maintenant < essaiFinLe`
+  // restait vrai jusqu'à la date de fin d'essai d'origine, et la vérification
+  // planifiée quotidienne repassait chaque jour un abonnement pourtant déjà payé
+  // en "essai" (et pouvait même renvoyer l'email ESSAI_J3 à quelqu'un qui venait
+  // de payer).
+  const premierCycle = abonnementEcheanceLe.getTime() === essaiFinLe.getTime();
+
+  if (premierCycle && maintenant < essaiFinLe) {
     const resteMs = essaiFinLe.getTime() - maintenant.getTime();
     return { statut: "essai", evenement: resteMs <= RAPPEL_ANTICIPE_MS ? "ESSAI_J3" : null };
   }
 
-  // Premier cycle : aucun paiement n'a encore jamais été confirmé (voir
-  // genererLienPaiementAbonnement()/le webhook — abonnementEcheanceLe n'est
-  // reculée qu'à la confirmation d'un paiement, jamais avant).
-  const premierCycle = abonnementEcheanceLe.getTime() === essaiFinLe.getTime();
   const finGrace = new Date(abonnementEcheanceLe.getTime() + GRACE_MS);
 
   if (maintenant > finGrace) {

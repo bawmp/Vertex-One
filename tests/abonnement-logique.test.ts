@@ -72,6 +72,26 @@ describe("Abonnement — calculerEtatAbonnement()", () => {
     expect(calculerEtatAbonnement({ essaiFinLe, abonnementEcheanceLe }, maintenant)).toEqual({ statut: "suspendu", evenement: "SUSPENDU" });
   });
 
+  test("paiement confirmé PENDANT l'essai (avant la fin) : actif tout de suite, pas de retour à essai", () => {
+    // Bug réel corrigé le 2026-09-23 : payer au jour 3 d'un essai de 14 jours avançait bien abonnementEcheanceLe
+    // (voir prochaineEcheanceApresPaiement ci-dessous), mais le recalcul quotidien retrouvait maintenant < essaiFinLe
+    // et repassait le statut à "essai" jusqu'à la date de fin d'essai d'origine, malgré le paiement déjà confirmé.
+    const maintenant = new Date("2026-01-04T00:00:00Z"); // essai commencé le 1er, encore 10 jours à courir
+    const essaiFinLe = new Date("2026-01-15T00:00:00Z");
+    const abonnementEcheanceLe = prochaineEcheanceApresPaiement(essaiFinLe, maintenant); // paiement confirmé aujourd'hui, avant la fin d'essai
+    expect(calculerEtatAbonnement({ essaiFinLe, abonnementEcheanceLe }, maintenant)).toEqual({ statut: "actif", evenement: null });
+    // Le lendemain (toujours avant essaiFinLe) : reste actif, jamais "essai".
+    const lendemain = new Date(maintenant.getTime() + JOUR_MS);
+    expect(calculerEtatAbonnement({ essaiFinLe, abonnementEcheanceLe }, lendemain).statut).toBe("actif");
+  });
+
+  test("paiement confirmé dans les 3 derniers jours de l'essai : jamais un rappel ESSAI_J3 après coup", () => {
+    const essaiFinLe = new Date("2026-01-15T00:00:00Z");
+    const maintenant = new Date("2026-01-13T00:00:00Z"); // 2 jours avant la fin d'essai
+    const abonnementEcheanceLe = prochaineEcheanceApresPaiement(essaiFinLe, maintenant);
+    expect(calculerEtatAbonnement({ essaiFinLe, abonnementEcheanceLe }, maintenant)).toEqual({ statut: "actif", evenement: null });
+  });
+
   test("le même jour ne change jamais de phase — idempotence pour dernierRappelAbonnementEnvoye", () => {
     const essaiFinLe = new Date("2026-01-14T00:00:00Z");
     const abonnementEcheanceLe = essaiFinLe;
