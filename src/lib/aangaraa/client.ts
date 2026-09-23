@@ -124,7 +124,11 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
   if (!aangaraaConfigure()) return { erreur: "Intégration Aangaraa Pay non configurée pour le moment — utilisez l'encaissement manuel." };
 
   const reponse = await appeler("/no_redirect/payment", {
-    phone_number: params.telephone,
+    // ⚠️ `telephoneInternational()` produit "+237…" (format international standard), mais /no_redirect/payment veut le
+    // numéro SANS le "+" (ex. "237690111222") — constaté en réel le 2026-09-23. On ne touche pas
+    // telephoneInternational() (réutilisable ailleurs avec le "+"), on retire juste le signe ici, au point d'entrée
+    // de cet appel précis.
+    phone_number: params.telephone.replace(/^\+/, ""),
     // ⚠️ Contrairement à /redirect/payment (amount numérique), le schéma NoRedirectPaymentRequest exige une CHAÎNE
     // pour amount (vérifié en réel le 2026-09-22 : "Input should be a valid string" sur un nombre JSON).
     amount: String(params.montant),
