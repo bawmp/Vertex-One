@@ -21,7 +21,6 @@ export const MESSAGES: Record<string, string> = {
 
   // Abonnement, entreprise, équipe
   "Seul un administrateur peut régler l'abonnement.": "Only an administrator can pay the subscription.",
-  "Abonnement Vertex One — mensuel": "Vertex One subscription — monthly",
   "Seul l'Administrateur peut choisir les modules d'un collaborateur.": "Only the Administrator can choose a team member's modules.",
   "Les modules ne se choisissent que pour un Manager ou un Employé.": "Modules can only be chosen for a Manager or an Employee.",
   "Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise.": "You are not allowed to change the company's visual identity.",

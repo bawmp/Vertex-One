@@ -62,7 +62,7 @@ export async function declencherPaiementAbonnement(
       operateur,
       reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: PRIX_ABONNEMENT_MENSUEL,
-      description: t("Abonnement Vertex One — mensuel"),
+      description: t("Abonnement Vertex One"),
       notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
     });
