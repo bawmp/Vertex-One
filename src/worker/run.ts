@@ -40,6 +40,7 @@ async function main() {
   const { default: traiterAbonnementEntreprise } = await import("./tasks/traiter-abonnement-entreprise");
   const { default: verifierMessagesANotifier } = await import("./tasks/verifier-messages-a-notifier");
   const { default: notifierMessagesEntreprise } = await import("./tasks/notifier-messages-entreprise");
+  const { default: reconcilierAbonnements } = await import("./tasks/reconcilier-abonnements");
 
   const runner = await run({
     connectionString: process.env.DATABASE_URL_WORKER,
@@ -58,6 +59,7 @@ async function main() {
       "traiter-abonnement-entreprise": traiterAbonnementEntreprise,
       "verifier-messages-a-notifier": verifierMessagesANotifier,
       "notifier-messages-entreprise": notifierMessagesEntreprise,
+      "reconcilier-abonnements": reconcilierAbonnements,
     },
   });
 
