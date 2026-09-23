@@ -25,7 +25,7 @@ export function BoutonPaiementAbonnement() {
   const t = useT();
   const [enCours, startTransition] = useTransition();
   const [telephone, setTelephone] = useState("");
-  const [operateur, setOperateur] = useState<Operateur>("MTN_Cameroon");
+  const [operateur, setOperateur] = useState<Operateur>("Orange_Cameroon");
   const [erreur, setErreur] = useState<string | null>(null);
   const [etape, setEtape] = useState<Etape>("formulaire");
   const minuteurRef = useRef<ReturnType<typeof setTimeout> | null>(null);
