@@ -12,9 +12,9 @@ import { telephoneInternational } from "@/lib/paiement/telephone";
 import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { getT } from "@/lib/i18n/langue";
 
-// ⚠️ TEMPORAIRE — vérification réelle de l'intégration Aangaraa Pay (clé tout juste configurée) : prix ramené à
-// 10 XAF le temps du test, à remettre à 50 000 juste après (voir conversation du 2026-09-22 et du 2026-09-23).
-const PRIX_ABONNEMENT_MENSUEL = 10;
+// Prix réel de l'abonnement plat mensuel (2026-09-14). Temporairement ramené à 10 XAF le 2026-09-22/23 pour
+// vérifier l'intégration Aangaraa Pay avec de l'argent réel — restauré à 50 000 le 2026-09-23, tests terminés.
+const PRIX_ABONNEMENT_MENSUEL = 50_000;
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
