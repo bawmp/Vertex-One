@@ -6,6 +6,7 @@ export const PARAMETRES: Record<string, string> = {
   "Numéro Mobile Money (ex : 690 11 12 22)": "Mobile Money number (e.g. 690 11 12 22)",
   "Choisissez votre opérateur Mobile Money.": "Choose your Mobile Money operator.",
   "Paiement confirmé — votre abonnement est actif.": "Payment confirmed — your subscription is active.",
+  "Redirection vers l'application…": "Redirecting to the application…",
   "Nous attendons la confirmation…": "Waiting for confirmation…",
   "Nous n'avons pas encore reçu de confirmation. Si vous avez validé le paiement sur votre téléphone, contactez-nous — sinon réessayez.":
     "We haven't received confirmation yet. If you approved the payment on your phone, contact us — otherwise try again.",

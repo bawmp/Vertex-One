@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2, Users2, Puzzle } from "lucide-react";
+import { ArrowLeft, Building2, Users2, Puzzle, Download } from "lucide-react";
 import { recupererDetailEntreprise, MODULES_SUIVIS } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -135,7 +135,18 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
                     <p className="font-medium">{formaterFCFA(p.montant)}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(p.creeLe)}</p>
                   </div>
-                  <Badge variant={p.statut === "CONFIRME" ? "success" : p.statut === "ECHEC" ? "danger" : "neutral"}>{LIBELLE_STATUT_PAIEMENT[p.statut] ?? p.statut}</Badge>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={p.statut === "CONFIRME" ? "success" : p.statut === "ECHEC" ? "danger" : "neutral"}>{LIBELLE_STATUT_PAIEMENT[p.statut] ?? p.statut}</Badge>
+                    {p.statut === "CONFIRME" ? (
+                      <a
+                        href={`/plateforme/entreprises/${entreprise.id}/recu/${p.id}`}
+                        className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        <Download className="size-3.5" aria-hidden />
+                        Reçu
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>

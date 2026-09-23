@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { CreditCard, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { declencherPaiementAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
 import { useT } from "@/lib/i18n/contexte";
+
+const DELAI_REDIRECTION_MS = 1_800; // laisse le temps de lire "Paiement confirmé" avant de repartir vers l'application
 
 type Operateur = "MTN_Cameroon" | "Orange_Cameroon";
 type Etape = "formulaire" | "en_attente" | "confirme" | "echec";
@@ -29,9 +32,15 @@ const DUREE_MAX_SONDAGE_MS = 2 * 60 * 1000; // 2 minutes — au-delà, le client
  * est ralenti ou mis en pause tant que l'onglet reste en arrière-plan (throttling standard des navigateurs) : un
  * `visibilitychange` déclenche une relecture immédiate dès le retour sur l'onglet, au lieu d'attendre le prochain
  * intervalle de 4 s.
+ *
+ * Redirection automatique vers /app dès la confirmation (2026-09-23) : ce composant est aussi utilisé sur l'écran
+ * de blocage /abonnement-expire (voir cette page), qui reste affiché tant que rien ne fait revenir le client dans
+ * l'application — un simple message texte laissait l'utilisateur bloqué visuellement sur cette page même une fois
+ * l'abonnement réactivé.
  */
 export function BoutonPaiementAbonnement() {
   const t = useT();
+  const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [telephone, setTelephone] = useState("");
   const [operateur, setOperateur] = useState<Operateur>("Orange_Cameroon");
@@ -67,6 +76,15 @@ export function BoutonPaiementAbonnement() {
   useEffect(() => () => {
     if (minuteurRef.current) clearTimeout(minuteurRef.current);
   }, []);
+
+  useEffect(() => {
+    if (etape !== "confirme") return;
+    const minuteur = setTimeout(() => {
+      router.push("/app");
+      router.refresh(); // re-rend la mise en page de /app, dont le statut d'abonnement (essai/actif/suspendu) vient du serveur
+    }, DELAI_REDIRECTION_MS);
+    return () => clearTimeout(minuteur);
+  }, [etape, router]);
 
   function verifierMaintenant(tentativeId: string, depuis: number) {
     startTransition(async () => {
@@ -114,6 +132,7 @@ export function BoutonPaiementAbonnement() {
       <div className="flex flex-col items-center gap-1.5 text-center">
         <CheckCircle2 className="size-6 text-primary" aria-hidden />
         <p className="text-sm font-medium">{t("Paiement confirmé — votre abonnement est actif.")}</p>
+        <p className="text-xs text-muted-foreground">{t("Redirection vers l'application…")}</p>
       </div>
     );
   }

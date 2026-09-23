@@ -7,6 +7,7 @@ import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
 import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
 import { envoyerEmail } from "@/lib/email/client";
+import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
 
@@ -14,13 +15,31 @@ function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
 
+/** "Orange_Cameroon" → "Mobile Money (Orange)" — reçu uniquement, jamais réutilisé pour une décision applicative. */
+function libelleMoyenPaiement(operateur: string | undefined): string {
+  if (!operateur) return "Mobile Money";
+  if (/orange/i.test(operateur)) return "Mobile Money (Orange)";
+  if (/mtn/i.test(operateur)) return "Mobile Money (MTN)";
+  return "Mobile Money";
+}
+
 /**
  * Notifie les Administrateurs actifs du résultat d'un paiement d'abonnement — quel que soit le chemin qui a
  * confirmé/invalidé le paiement (sondage client, webhook, réconciliation serveur), pour qu'un client qui a quitté
  * l'écran de paiement soit informé sans devoir y revenir (2026-09-23). Best-effort : un échec d'envoi (Resend non
  * configuré, etc.) ne doit jamais faire échouer la confirmation elle-même, seulement être journalisé.
+ *
+ * Sur un succès, joint le reçu PDF (Vertex One → tenant, filigrane du logo officiel — voir recu-abonnement.tsx) :
+ * le même document que celui téléchargeable depuis la Console interne (src/app/plateforme/entreprises/[id]/), pour
+ * que le tenant en garde une trace sans devoir la redemander.
  */
-async function notifierResultatPaiementAbonnement(tx: TransactionDrizzle, entrepriseId: string, nomEntreprise: string, reussi: boolean) {
+async function notifierResultatPaiementAbonnement(
+  tx: TransactionDrizzle,
+  entrepriseId: string,
+  nomEntreprise: string,
+  reussi: boolean,
+  recu?: { reference: string; montant: number; operateur: string | undefined; dateConfirmation: Date }
+) {
   const admins = await tx
     .select({ email: utilisateur.email })
     .from(utilisateur)
@@ -28,8 +47,24 @@ async function notifierResultatPaiementAbonnement(tx: TransactionDrizzle, entrep
 
   const { subject, html } = gabaritPaiementAbonnement({ reussi, nomEntreprise, lienPaiement: `${urlBase()}/app/parametres/abonnement` });
 
+  let attachments: { filename: string; content: Buffer }[] | undefined;
+  if (reussi && recu) {
+    try {
+      const buffer = await rendreRecuAbonnementPDF({
+        reference: recu.reference,
+        nomEntreprisePayeuse: nomEntreprise,
+        montant: recu.montant,
+        moyenPaiement: libelleMoyenPaiement(recu.operateur),
+        dateConfirmation: recu.dateConfirmation,
+      });
+      attachments = [{ filename: `recu-${recu.reference}.pdf`, content: buffer }];
+    } catch (erreur) {
+      console.error("[paiement] échec de génération du reçu PDF d'abonnement :", erreur instanceof Error ? erreur.message : erreur);
+    }
+  }
+
   for (const admin of admins) {
-    const { envoye, erreur } = await envoyerEmail({ to: admin.email, subject, html });
+    const { envoye, erreur } = await envoyerEmail({ to: admin.email, subject, html, attachments });
     if (!envoye) console.error(`[paiement] échec d'envoi de la notification d'abonnement à ${admin.email} :`, erreur);
   }
 }
@@ -141,6 +176,7 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
     if (!monEntreprise) return;
 
     const nouvelleEcheance = prochaineEcheanceApresPaiement(monEntreprise.abonnementEcheanceLe, new Date());
+    const dateConfirmation = new Date();
 
     // statutAbonnement repasse à "actif" immédiatement — un tenant suspendu retrouve l'accès à l'instant où le paiement est
     // confirmé, pas le lendemain via la vérification planifiée. dernierRappelAbonnementEnvoye remis à null pour repartir
@@ -149,8 +185,13 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
       .update(entreprise)
       .set({ abonnementEcheanceLe: nouvelleEcheance, statutAbonnement: "actif", dernierRappelAbonnementEnvoye: null })
       .where(eq(entreprise.id, entrepriseId));
-    await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: new Date() }).where(eq(tentativePaiementAbonnement.id, idTentative));
-    await notifierResultatPaiementAbonnement(tx, entrepriseId, monEntreprise.nom, true);
+    await tx.update(tentativePaiementAbonnement).set({ statut: "CONFIRME", confirmeLe: dateConfirmation }).where(eq(tentativePaiementAbonnement.id, idTentative));
+    await notifierResultatPaiementAbonnement(tx, entrepriseId, monEntreprise.nom, true, {
+      reference: idTentative,
+      montant: tentative.montant,
+      operateur: verification.operateur,
+      dateConfirmation,
+    });
   });
 }
 
