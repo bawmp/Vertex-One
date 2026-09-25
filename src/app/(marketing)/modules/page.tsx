@@ -7,13 +7,15 @@ import { MODULES_MARKETING } from "@/lib/marketing/modules";
 import { Reveal } from "../reveal";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
+import { metadonneesSite } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTVisiteur();
-  return {
-    title: `${t("Modules")} — Vertex One`,
+  return metadonneesSite({
+    titre: `${t("Modules")} — Vertex One`,
     description: t("Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus."),
-  };
+    chemin: "/modules",
+  });
 }
 
 export default async function PageModules() {

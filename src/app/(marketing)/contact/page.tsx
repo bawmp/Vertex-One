@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { FormulaireContact } from "./formulaire-contact";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
+import { metadonneesSite } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTVisiteur();
-  return {
-    title: `${t("Contact")} — Vertex One`,
+  return metadonneesSite({
+    titre: `${t("Contact")} — Vertex One`,
     description: t("Une question sur Vertex One ? Écrivez-nous."),
-  };
+    chemin: "/contact",
+  });
 }
 
 export default async function PageContact() {

@@ -9,13 +9,15 @@ import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, DELAI_GRAC
 import { Reveal } from "../reveal";
 import { CompteurAnime } from "../compteur-anime";
 import { getTVisiteur } from "@/lib/i18n/langue";
+import { metadonneesSite } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTVisiteur();
-  return {
-    title: `${t("Tarifs")} — Vertex One`,
+  return metadonneesSite({
+    titre: `${t("Tarifs")} — Vertex One`,
     description: t("Un seul abonnement à {prix} FCFA/mois, tous les modules inclus. Essai gratuit {jours} jours.", { prix: PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString(t.locale), jours: DUREE_ESSAI_JOURS }),
-  };
+    chemin: "/tarifs",
+  });
 }
 
 export default async function PageTarifs() {

@@ -1,5 +1,11 @@
 /** Site vitrine : pages (accueil, modules, tarifs, à propos, contact), assistant Kyria, contenu des modules, FAQ, comparatif. */
 export const VITRINE: Record<string, string> = {
+  // Métadonnées (title/description) — jamais affichées à l'écran, seulement dans l'onglet du navigateur et les
+  // aperçus de partage, mais passent par t() comme le reste : le garde-fou (tests/i18n-catalogue.test.ts) les
+  // traite pareil.
+  "La suite de gestion tout-en-un pour les entreprises de services : CRM, facturation, RH, projets et plus, avec Mobile Money natif et conformité OHADA/SYSCOHADA. Essai gratuit {jours} jours.":
+    "The all-in-one management suite for service businesses: CRM, invoicing, HR, projects and more, with native Mobile Money and OHADA/SYSCOHADA compliance. {jours}-day free trial.",
+
   // Navigation, pied de page, général
   "À propos": "About",
   Modules: "Modules",
@@ -16,8 +22,8 @@ export const VITRINE: Record<string, string> = {
   "Commencer mon essai gratuit": "Start my free trial",
 
   // À propos
-  "Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun.":
-    "Why Vertex One exists, and for whom — a management suite designed for service businesses in Cameroon.",
+  "Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun et conforme OHADA/SYSCOHADA.":
+    "Why Vertex One exists, and for whom — a management suite designed for service businesses in Cameroon, OHADA/SYSCOHADA-compliant.",
   Agences: "Agencies",
   "Communication, conseil, événementiel — pipeline commercial et facturation au même endroit.": "Communications, consulting, events — sales pipeline and invoicing in one place.",
   Artisans: "Craftspeople",

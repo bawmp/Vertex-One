@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   Check,
@@ -19,6 +20,44 @@ import { Reveal } from "./reveal";
 import { CompteurAnime } from "./compteur-anime";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
+import { metadonneesSite, URL_SITE } from "@/lib/seo";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTVisiteur();
+  return metadonneesSite({
+    titre: "Vertex One — Suite de gestion Mobile Money-first, conforme OHADA/SYSCOHADA",
+    description: t(
+      "La suite de gestion tout-en-un pour les entreprises de services : CRM, facturation, RH, projets et plus, avec Mobile Money natif et conformité OHADA/SYSCOHADA. Essai gratuit {jours} jours.",
+      { jours: DUREE_ESSAI_JOURS }
+    ),
+    chemin: "",
+  });
+}
+
+/** Organisation + logiciel — aide les moteurs de recherche à afficher un résultat enrichi (prix, note d'usage prévue plus tard). */
+function DonneesStructurees() {
+  const donnees = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Vertex One",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: URL_SITE,
+    description: "Suite de gestion tout-en-un pour les entreprises de services : CRM, facturation, RH, projets, avec Mobile Money natif et conformité OHADA/SYSCOHADA.",
+    offers: {
+      "@type": "Offer",
+      price: String(PRIX_ABONNEMENT_MENSUEL_FCFA),
+      priceCurrency: "XAF",
+      priceValidUntil: `${new Date().getFullYear() + 1}-12-31`,
+    },
+    provider: {
+      "@type": "Organization",
+      name: "Vertex One",
+      url: URL_SITE,
+    },
+  };
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(donnees) }} />;
+}
 
 const ATOUTS = [
   { icone: Smartphone, titre: m("Mobile Money natif"), classeFond: "bg-blue-500", description: m("Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients.") },
@@ -37,6 +76,7 @@ export default async function PageAccueil() {
   const t = await getTVisiteur();
   return (
     <>
+      <DonneesStructurees />
       {/* Héros */}
       <section className="relative overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 text-white">
         <div

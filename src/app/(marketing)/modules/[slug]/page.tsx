@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MODULES_MARKETING, trouverModuleMarketing } from "@/lib/marketing/modules";
 import { Reveal } from "../../reveal";
 import { getTVisiteur } from "@/lib/i18n/langue";
+import { metadonneesSite } from "@/lib/seo";
 
 export function generateStaticParams() {
   return MODULES_MARKETING.map((module) => ({ slug: module.slug }));
@@ -16,10 +17,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const moduleMarketing = trouverModuleMarketing(slug);
   if (!moduleMarketing) return {};
-  return {
-    title: `${t(moduleMarketing.nom)} — Vertex One`,
+  return metadonneesSite({
+    titre: `${t(moduleMarketing.nom)} — Vertex One`,
     description: t(moduleMarketing.resume),
-  };
+    chemin: `/modules/${slug}`,
+  });
 }
 
 export default async function PageModule({ params }: { params: Promise<{ slug: string }> }) {

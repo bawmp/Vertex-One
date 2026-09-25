@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "../reveal";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
+import { metadonneesSite } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTVisiteur();
-  return {
-    title: `${t("À propos")} — Vertex One`,
-    description: t("Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun."),
-  };
+  return metadonneesSite({
+    titre: `${t("À propos")} — Vertex One`,
+    description: t("Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun et conforme OHADA/SYSCOHADA."),
+    chemin: "/a-propos",
+  });
 }
 
 const SECTEURS = [
