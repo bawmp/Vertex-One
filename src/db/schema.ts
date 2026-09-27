@@ -163,6 +163,10 @@ export const entreprise = pgTable("entreprise", {
   // Réservations (Booking, échange du 2026-09-13) — pas un document fiscal,
   // mais une référence lisible pour retrouver un rendez-vous (RDV-2026-000123).
   compteurReservations: integer("compteur_reservations").notNull().default(0),
+  // Démo publique (2026-09-28) — nombre de fois où "Voir la démo" (site vitrine) a été utilisé pour se
+  // connecter automatiquement à CETTE entreprise (voir src/lib/actions/demo.ts). Reste à 0 pour toute
+  // vraie entreprise cliente : seul le tenant démo identifié par EMAIL_DEMO (src/lib/demo.ts) l'incrémente.
+  compteurUtilisationsDemo: integer("compteur_utilisations_demo").notNull().default(0),
   // Verrouillage de transactions (Zoho Books > Comptable, échange du
   // 2026-09-07) — aucune écriture comptable (Facture, Dépense, Paiement,
   // Journal manuel...) ne peut être datée à cette date ou avant, contrôle

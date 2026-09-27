@@ -1,8 +1,9 @@
 import "server-only";
 import { desc, eq, ne, and, sql } from "drizzle-orm";
 import { dbPlateforme } from "@/db/plateforme";
-import { entreprise, tentativePaiementAbonnement, journalActionPlateforme, groupe } from "@/db/schema";
+import { entreprise, utilisateur, tentativePaiementAbonnement, journalActionPlateforme, groupe } from "@/db/schema";
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
+import { EMAIL_DEMO } from "@/lib/demo";
 
 const PRIX_ABONNEMENT_MENSUEL = 50_000;
 
@@ -112,6 +113,21 @@ export async function recupererKpiPlateforme() {
     inscriptionsRecentes,
     attention,
   };
+}
+
+/**
+ * Nombre de fois où "Voir la démo" (site vitrine) a connecté un visiteur au tenant public — retrouvé par
+ * l'email fixe du compte démo (voir src/lib/demo.ts), pas par un identifiant d'entreprise codé en dur
+ * (différent entre bases de dev et de production). Null si le tenant démo n'existe pas encore/plus.
+ */
+export async function recupererUtilisationsDemo(): Promise<number | null> {
+  const [ligne] = await dbPlateforme
+    .select({ compteur: entreprise.compteurUtilisationsDemo })
+    .from(utilisateur)
+    .innerJoin(entreprise, eq(entreprise.id, utilisateur.entrepriseId))
+    .where(eq(utilisateur.email, EMAIL_DEMO));
+
+  return ligne?.compteur ?? null;
 }
 
 export async function recupererListeEntreprises() {

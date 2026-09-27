@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Building2, Wallet2, Hourglass, ShieldAlert, ArrowRight } from "lucide-react";
-import { recupererKpiPlateforme, recupererAdoptionModules } from "@/lib/plateforme/donnees";
+import { Building2, Wallet2, Hourglass, ShieldAlert, ArrowRight, PlayCircle } from "lucide-react";
+import { recupererKpiPlateforme, recupererAdoptionModules, recupererUtilisationsDemo } from "@/lib/plateforme/donnees";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ function relatif(date: Date): string {
 }
 
 export default async function PagePlateformeAccueil() {
-  const [kpi, adoption] = await Promise.all([recupererKpiPlateforme(), recupererAdoptionModules()]);
+  const [kpi, adoption, utilisationsDemo] = await Promise.all([recupererKpiPlateforme(), recupererAdoptionModules(), recupererUtilisationsDemo()]);
   const total = kpi.total || 1; // évite une division par zéro sur une plateforme toute neuve
 
   return (
@@ -69,6 +69,17 @@ export default async function PagePlateformeAccueil() {
             {kpi.parStatut.suspendu > 0 ? <Badge variant="danger">À traiter</Badge> : null}
           </CardContent>
         </Card>
+        {utilisationsDemo !== null ? (
+          <Card>
+            <CardHeader className="flex items-center justify-between gap-2 pb-2">
+              <CardDescription>Démo utilisée</CardDescription>
+              <PlayCircle className="size-4 text-muted-foreground" aria-hidden />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold tabular-nums">{utilisationsDemo}</p>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <Card>

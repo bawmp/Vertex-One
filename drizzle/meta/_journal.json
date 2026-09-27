@@ -736,6 +736,13 @@
       "when": 1790064000000,
       "tag": "0104_pay_token_abonnement",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1790550761000,
+      "tag": "0105_demo_compteur_utilisations",
+      "breakpoints": true
     }
   ]
 }

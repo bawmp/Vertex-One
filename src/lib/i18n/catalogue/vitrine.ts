@@ -11,6 +11,7 @@ export const VITRINE: Record<string, string> = {
   Modules: "Modules",
   Tarifs: "Pricing",
   "Essai gratuit": "Free trial",
+  "Voir la démo": "View the demo",
   Kyria: "Kyria",
   Fermer: "Close",
   "© {annee} Vertex One — Fait au Cameroun.": "© {annee} Vertex One — Made in Cameroon.",

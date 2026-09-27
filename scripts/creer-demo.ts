@@ -48,9 +48,10 @@ async function main() {
   const { genererNumeroDevis } = await import("../src/lib/facturation/numerotation");
   const { accepterDevisEtCreerFacture } = await import("../src/lib/facturation/acceptation-devis");
   const { genererEcrituresPaiement } = await import("../src/lib/comptabilite/ecritures");
+  const { EMAIL_DEMO, MOT_DE_PASSE_DEMO } = await import("../src/lib/demo");
 
-  const ADMIN_EMAIL = "demo@vertex-one-demo.local";
-  const ADMIN_MOT_DE_PASSE = "DemoVertexOne2026!";
+  const ADMIN_EMAIL = EMAIL_DEMO;
+  const ADMIN_MOT_DE_PASSE = MOT_DE_PASSE_DEMO;
 
   const [existant] = await db.select({ id: utilisateur.id }).from(utilisateur).where(eq(utilisateur.email, ADMIN_EMAIL));
   if (existant) {

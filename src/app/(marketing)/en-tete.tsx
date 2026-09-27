@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { Button } from "@/components/ui/button";
 import { SelecteurLangue } from "@/components/selecteur-langue";
+import { accederDemo } from "@/lib/actions/demo";
 import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -43,6 +44,11 @@ export function EnTeteMarketing() {
 
         <div className="hidden items-center gap-2 md:flex">
           <SelecteurLangue />
+          <form action={accederDemo}>
+            <Button type="submit" variant="outline">
+              {t("Voir la démo")}
+            </Button>
+          </form>
           <Button variant="ghost" render={<Link href="/connexion" />} nativeButton={false}>
             {t("Se connecter")}
           </Button>
@@ -76,6 +82,11 @@ export function EnTeteMarketing() {
           ))}
           <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
             <SelecteurLangue className="self-start" />
+            <form action={accederDemo}>
+              <Button type="submit" variant="outline" className="w-full">
+                {t("Voir la démo")}
+              </Button>
+            </form>
             <Button variant="outline" render={<Link href="/connexion" />} nativeButton={false}>
               {t("Se connecter")}
             </Button>
