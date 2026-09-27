@@ -56,6 +56,11 @@ export const PARAMETRES: Record<string, string> = {
   "Utilisée sur tous les devis et factures émis.": "Used on all quotes and invoices issued.",
   "Groupe d'entreprises": "Group of companies",
   "Relie cette entreprise à d'autres filiales du même propriétaire — vue d'ensemble uniquement, aucune donnée partagée.": "Links this company to other subsidiaries of the same owner — overview only, no data shared.",
+  "Nom de l'entreprise": "Company name",
+  "Affiché partout dans l'application et sur vos documents.": "Shown throughout the application and on your documents.",
+  "Seul un Administrateur peut renommer l'entreprise.": "Only an Administrator can rename the company.",
+  "Le nom de l'entreprise est trop court.": "The company name is too short.",
+  "Nom de l'entreprise mis à jour.": "Company name updated.",
 
   // Équipe
   "Inviter un collaborateur": "Invite a team member",

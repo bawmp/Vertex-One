@@ -7,6 +7,7 @@ import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireInfosLegales } from "./formulaire-infos-legales";
 import { FormulaireGroupe } from "./formulaire-groupe";
+import { FormulaireNom } from "./formulaire-nom";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageInfosLegales() {
@@ -42,6 +43,16 @@ export default async function PageInfosLegales() {
         {t("Le NIU est obligatoire avant d'émettre le moindre devis — c'est la mention la plus surveillée par la DGI.")}
       </p>
       <Card>
+        <CardHeader>
+          <CardTitle>{t("Nom de l'entreprise")}</CardTitle>
+          <CardDescription>{t("Affiché partout dans l'application et sur vos documents.")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormulaireNom nom={monEntreprise.nom} />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>{t("Identification de l'entreprise")}</CardTitle>
           <CardDescription>{t("Utilisée sur tous les devis et factures émis.")}</CardDescription>
