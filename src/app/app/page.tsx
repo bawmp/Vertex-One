@@ -9,6 +9,7 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { dossiersSansProjetActif as recupererDossiersSansProjetActif } from "@/lib/projets/indicateurs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { NombreAnime } from "@/components/nombre-anime";
 import { STATUT_DEAL } from "@/lib/libelles";
 import { libelleDossier } from "@/lib/vocabulaire";
 import { getT } from "@/lib/i18n/langue";
@@ -98,17 +99,21 @@ export default async function PageTableauDeBord() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                <Wallet className="size-4.5" aria-hidden />
-              </span>
-              <CardDescription>{t("Chiffre d'affaires du mois")}</CardDescription>
-            </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{formaterFCFA(caDuMois)}</CardTitle>
-          </CardHeader>
-        </Card>
+        <Link href="/app/facturation" className="contents">
+          <Card interactive className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  <Wallet className="size-4.5" aria-hidden />
+                </span>
+                <CardDescription>{t("Chiffre d'affaires du mois")}</CardDescription>
+              </div>
+              <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+                <NombreAnime valeur={caDuMois} suffixe=" FCFA" />
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </Link>
 
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
@@ -118,7 +123,9 @@ export default async function PageTableauDeBord() {
               </span>
               <CardDescription>{t("Factures en retard")}</CardDescription>
             </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{facturesEnRetard.length}</CardTitle>
+            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+              <NombreAnime valeur={facturesEnRetard.length} />
+            </CardTitle>
           </CardHeader>
           {facturesEnRetard.length > 0 ? (
             <CardContent className="flex flex-col gap-1.5 text-sm">
@@ -136,34 +143,36 @@ export default async function PageTableauDeBord() {
           ) : null}
         </Card>
 
-        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-                <Users className="size-4.5" aria-hidden />
-              </span>
-              <CardDescription>{t("Pipeline commercial")}</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2.5">
-            {pipeline.map((p) => {
-              const info = STATUT_DEAL[p.statut];
-              const part = totalPipeline > 0 ? (Number(p.total) / totalPipeline) * 100 : 0;
-              return (
-                <div key={p.statut} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
-                    <span className="font-medium text-foreground">{p.total}</span>
+        <Link href="/app/deals" className="contents">
+          <Card interactive className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                  <Users className="size-4.5" aria-hidden />
+                </span>
+                <CardDescription>{t("Pipeline commercial")}</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {pipeline.map((p) => {
+                const info = STATUT_DEAL[p.statut];
+                const part = totalPipeline > 0 ? (Number(p.total) / totalPipeline) * 100 : 0;
+                return (
+                  <div key={p.statut} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
+                      <span className="font-medium text-foreground">{p.total}</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${part}%` }} />
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${part}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-            {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">{t("Aucun deal.")}</p> : null}
-          </CardContent>
-        </Card>
+                );
+              })}
+              {pipeline.length === 0 ? <p className="text-sm text-muted-foreground">{t("Aucun deal.")}</p> : null}
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {projetsDisponibles ? (
@@ -176,7 +185,9 @@ export default async function PageTableauDeBord() {
                 </span>
                 <CardDescription>{t("Tâches en retard")}</CardDescription>
               </div>
-              <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{tachesEnRetard.length}</CardTitle>
+              <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+                <NombreAnime valeur={tachesEnRetard.length} />
+              </CardTitle>
             </CardHeader>
             {tachesEnRetard.length > 0 ? (
               <CardContent className="flex flex-col gap-1.5 text-sm">
@@ -201,7 +212,9 @@ export default async function PageTableauDeBord() {
                 </span>
                 <CardDescription>{t("{objet} sans travail en cours", { objet: t(vocabDossier.pluriel) })}</CardDescription>
               </div>
-              <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{dossiersSansProjetActif.length}</CardTitle>
+              <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+                <NombreAnime valeur={dossiersSansProjetActif.length} />
+              </CardTitle>
             </CardHeader>
             {dossiersSansProjetActif.length > 0 ? (
               <CardContent className="flex flex-col gap-1.5 text-sm">

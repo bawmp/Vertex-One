@@ -42,7 +42,7 @@ export function NavLink({
           actif ? "scale-y-100" : "scale-y-0"
         )}
       />
-      {children}
+      <span className="flex items-center gap-2.5 transition-transform duration-150 group-hover:translate-x-0.5">{children}</span>
     </Link>
   );
 }
@@ -114,14 +114,18 @@ export function NavGroup({
         {hrefAccueil ? (
           <Link href={hrefAccueil} prefetch={false} className={classeLigne}>
             {barreActive}
-            {icone}
-            <span className="flex-1 text-left">{libelle}</span>
+            <span className="flex flex-1 items-center gap-2.5 transition-transform duration-150 group-hover:translate-x-0.5">
+              {icone}
+              <span className="flex-1 text-left">{libelle}</span>
+            </span>
           </Link>
         ) : (
           <button type="button" onClick={() => setOuvertManuel(!ouvert)} aria-expanded={ouvert} className={classeLigne}>
             {barreActive}
-            {icone}
-            <span className="flex-1 text-left">{libelle}</span>
+            <span className="flex flex-1 items-center gap-2.5 transition-transform duration-150 group-hover:translate-x-0.5">
+              {icone}
+              <span className="flex-1 text-left">{libelle}</span>
+            </span>
           </button>
         )}
         <button
@@ -134,25 +138,32 @@ export function NavGroup({
           <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-200", ouvert ? "rotate-180" : "")} aria-hidden />
         </button>
       </div>
-      {ouvert ? (
-        <div className="flex flex-col gap-2 py-0.5 pl-4">
-          {groupes.map((groupe, index) => (
-            <div key={groupe.categorie ?? index} className="flex flex-col gap-0.5">
-              {groupe.categorie ? (
-                <p className="px-2.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/40">
-                  {groupe.categorie}
-                </p>
-              ) : null}
-              {groupe.liens.map((lien) => (
-                <NavLink key={lien.href} href={lien.href} className="py-1.5 text-[13px]">
-                  {lien.icone}
-                  {lien.libelle}
-                </NavLink>
-              ))}
-            </div>
-          ))}
+      {/*
+       * Grille à une ligne dont la hauteur (0fr → 1fr) est animée plutôt que
+       * montée/démontée instantanément — le contenu reste dans le DOM, un
+       * `overflow-hidden` masque le débordement pendant la transition.
+       */}
+      <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", ouvert ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-2 py-0.5 pl-4">
+            {groupes.map((groupe, index) => (
+              <div key={groupe.categorie ?? index} className="flex flex-col gap-0.5">
+                {groupe.categorie ? (
+                  <p className="px-2.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-sidebar-foreground/40">
+                    {groupe.categorie}
+                  </p>
+                ) : null}
+                {groupe.liens.map((lien) => (
+                  <NavLink key={lien.href} href={lien.href} className="py-1.5 text-[13px]">
+                    {lien.icone}
+                    {lien.libelle}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

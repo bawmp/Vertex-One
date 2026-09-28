@@ -96,7 +96,7 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
                   <span className="text-xs font-medium text-muted-foreground">{formaterMontant(total, t.locale)}</span>
                 </div>
                 <div className="flex min-h-16 flex-col gap-2">
-                  {cartes.map((d) => (
+                  {cartes.map((d, index) => (
                     <Link
                       key={d.id}
                       href={`/app/deals/${d.id}`}
@@ -105,9 +105,11 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
                       onDragEnd={() => setCarteEnTraine(null)}
                     >
                       <Card
-                        className={`transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.05),0_16px_32px_-16px_rgba(0,0,0,0.14)] ${
-                          carteEnTraine === d.id ? "opacity-40" : ""
-                        } ${peutModifier ? "cursor-grab active:cursor-grabbing" : ""}`}
+                        interactive
+                        style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                        className={`animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both ${carteEnTraine === d.id ? "opacity-40" : ""} ${
+                          peutModifier ? "cursor-grab active:cursor-grabbing" : ""
+                        }`}
                       >
                         <CardContent className="flex flex-col gap-1 p-3">
                           <p className="text-sm font-medium">{d.titre}</p>
@@ -125,11 +127,20 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
       ) : (
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donneesFiltrees.map((d) => {
+            {donneesFiltrees.map((d, index) => {
               const info = STATUT_DEAL[d.statut];
               return (
-                <Link key={d.id} href={`/app/deals/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                  <div className="flex min-w-0 flex-col">
+                <Link
+                  key={d.id}
+                  href={`/app/deals/${d.id}`}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                  />
+                  <div className="flex min-w-0 flex-col transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <span className="truncate font-medium">{d.titre}</span>
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       {d.compteNom ? <Building2 className="size-3" aria-hidden /> : null}

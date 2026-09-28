@@ -85,7 +85,7 @@ export function CadreSidebar({ children }: { children: React.ReactNode }) {
         }}
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col gap-1 border-l border-sidebar-border bg-sidebar p-4 transition-transform duration-200",
-          "md:sticky md:top-0 md:z-auto md:h-screen md:max-w-none md:shrink-0 md:translate-x-0 md:border-l-0 md:border-r md:transition-none",
+          "md:sticky md:top-0 md:z-auto md:h-screen md:max-w-none md:shrink-0 md:translate-x-0 md:border-l-0 md:border-r md:transition-[width,padding] md:duration-200 md:ease-out",
           replie ? "md:w-14 md:items-center md:p-2" : "md:w-64",
           ouvert ? "translate-x-0" : "translate-x-full"
         )}
