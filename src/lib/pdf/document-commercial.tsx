@@ -14,11 +14,13 @@ function teinteClaire(hex: string, part = 0.09): string {
   const canal = (decalage: number) => Math.round(255 - (255 - ((n >> decalage) & 255)) * part);
   return "#" + [16, 8, 0].map((d) => canal(d).toString(16).padStart(2, "0")).join("");
 }
+const STONE_600 = "#57534e";
 const STONE_500 = "#78716c";
+const STONE_400 = "#a8a29e";
 const STONE_200 = "#e7e5e4";
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#1c1917" },
+  page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 72, fontSize: 10, fontFamily: "Helvetica", color: "#1c1917" },
   entete: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   logo: { width: 40, height: 40, objectFit: "contain" },
@@ -60,17 +62,46 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     fontSize: 12,
   },
-  piedDePage: { position: "absolute", bottom: 30, left: 40, right: 40, fontSize: 8, color: STONE_500, textAlign: "center" },
+  // Montant unique (facture d'acompte) — pas de tableau de lignes, juste le montant mis en avant.
+  blocMontantUnique: { alignItems: "center", marginTop: 32, marginBottom: 32, gap: 6 },
+  libelleMontantUnique: { fontSize: 9, textTransform: "uppercase", letterSpacing: 0.5, color: STONE_500 },
+  valeurMontantUnique: { fontSize: 28, fontWeight: 700 },
+  detailMontantUnique: { fontSize: 9, color: STONE_500, marginTop: 4 },
+  // Pied de page : trait d'accent, identité + coordonnées à gauche, pagination à droite, mention discrète en bas.
+  piedDePage: { position: "absolute", bottom: 0, left: 0, right: 0 },
+  piedDePageTrait: { height: 2, marginHorizontal: 40 },
+  piedDePageContenu: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 40,
+    paddingTop: 8,
+  },
+  piedDePageEntreprise: { fontSize: 9, fontWeight: 700, color: STONE_600 },
+  piedDePageDetails: { fontSize: 7.5, color: STONE_500, marginTop: 2 },
+  piedDePagePage: { fontSize: 7.5, color: STONE_500 },
+  piedDePageMention: { textAlign: "center", fontSize: 7, color: STONE_400, marginTop: 10 },
 });
 
 export type LigneAffichagePDF = { designation: string; quantite: number; prixUnitaire: number; tauxTVA: number };
 
+export type TypeDocumentCommercial = "DEVIS" | "FACTURE" | "BON_COMMANDE" | "RECU_VENTE" | "FACTURE_ACOMPTE";
+
+const LIBELLE_TYPE_DOCUMENT: Record<TypeDocumentCommercial, string> = {
+  DEVIS: "DEVIS",
+  FACTURE: "FACTURE",
+  BON_COMMANDE: "BON DE COMMANDE",
+  RECU_VENTE: "REÇU",
+  FACTURE_ACOMPTE: "FACTURE D'ACOMPTE",
+};
+
 export type DocumentCommercialProps = {
-  typeDocument: "DEVIS" | "FACTURE";
+  typeDocument: TypeDocumentCommercial;
   numero: string;
   dateEmission: Date;
-  dateEcheanceOuValidite: Date;
-  labelDateSecondaire: string;
+  // Absents pour un Bon de commande/Reçu/Facture d'acompte, qui n'ont qu'une seule date.
+  dateEcheanceOuValidite?: Date;
+  labelDateSecondaire?: string;
   entreprise: {
     nom: string;
     niu: string | null;
@@ -88,10 +119,16 @@ export type DocumentCommercialProps = {
     telephone: string;
     email: string | null;
   };
-  lignes: LigneAffichagePDF[];
-  montantHT: number;
-  montantTVA: number;
+  // Présentes pour Devis/Facture/Bon de commande/Reçu ; absentes pour une Facture d'acompte
+  // (montant forfaitaire, sans détail de lignes ni ventilation HT/TVA — voir src/db/schema.ts).
+  lignes?: LigneAffichagePDF[];
+  montantHT?: number;
+  montantTVA?: number;
   montantTTC: number;
+  // Reçu de vente (moyen de paiement encaissé) et Facture d'acompte (une fois encaissée).
+  moyenPaiement?: string;
+  // Facture d'acompte seulement : ce qu'il reste à appliquer sur de futures factures.
+  montantRestant?: number;
 };
 
 function formaterDate(date: Date): string {
@@ -99,9 +136,11 @@ function formaterDate(date: Date): string {
 }
 
 /**
- * Un seul composant pour devis et facture — mêmes mentions légales
- * (docs/palier-1-*, section 2), même mise en page, seuls le libellé
- * d'en-tête et le nom de la seconde date diffèrent.
+ * Un seul composant pour les cinq documents de vente (Devis, Facture, Bon de
+ * commande, Reçu, Facture d'acompte) — mêmes mentions légales (docs/palier-1-*,
+ * section 2), même en-tête, même pied de page ; seuls le libellé d'en-tête, la
+ * présence d'une seconde date et la forme du corps (tableau de lignes ou
+ * montant unique) diffèrent.
  */
 export function DocumentCommercialPDF({
   typeDocument,
@@ -115,7 +154,15 @@ export function DocumentCommercialPDF({
   montantHT,
   montantTVA,
   montantTTC,
+  moyenPaiement,
+  montantRestant,
 }: DocumentCommercialProps) {
+  const accent = entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT;
+  const coordonnees = [entreprise.adresse, entreprise.ville].filter(Boolean).join(", ");
+  const mentionsLegales = [entreprise.niu ? `NIU ${entreprise.niu}` : null, entreprise.rccm ? `RCCM ${entreprise.rccm}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <Document title={`${typeDocument} ${numero}`}>
       <Page size="A4" style={styles.page}>
@@ -124,7 +171,7 @@ export function DocumentCommercialPDF({
             {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt */}
             {entreprise.logoUrl ? <Image src={entreprise.logoUrl} style={styles.logo} /> : null}
             <View>
-              <Text style={[styles.nomEntreprise, { color: entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT }]}>{entreprise.nom}</Text>
+              <Text style={[styles.nomEntreprise, { color: accent }]}>{entreprise.nom}</Text>
               {entreprise.adresse ? <Text style={styles.ligneTexte}>{entreprise.adresse}</Text> : null}
               {entreprise.ville ? <Text style={styles.ligneTexte}>{entreprise.ville}</Text> : null}
               {entreprise.niu ? <Text style={styles.ligneTexte}>NIU : {entreprise.niu}</Text> : null}
@@ -132,7 +179,7 @@ export function DocumentCommercialPDF({
             </View>
           </View>
           <View>
-            <Text style={styles.typeDocument}>{typeDocument === "DEVIS" ? "DEVIS" : "FACTURE"}</Text>
+            <Text style={styles.typeDocument}>{LIBELLE_TYPE_DOCUMENT[typeDocument]}</Text>
             <Text style={styles.numero}>{numero}</Text>
           </View>
         </View>
@@ -149,50 +196,78 @@ export function DocumentCommercialPDF({
           <View style={styles.colonne}>
             <Text style={styles.libelleColonne}>Date d&apos;émission</Text>
             <Text style={styles.ligneTexte}>{formaterDate(dateEmission)}</Text>
-            <Text style={[styles.libelleColonne, { marginTop: 10 }]}>{labelDateSecondaire}</Text>
-            <Text style={styles.ligneTexte}>{formaterDate(dateEcheanceOuValidite)}</Text>
+            {dateEcheanceOuValidite && labelDateSecondaire ? (
+              <>
+                <Text style={[styles.libelleColonne, { marginTop: 10 }]}>{labelDateSecondaire}</Text>
+                <Text style={styles.ligneTexte}>{formaterDate(dateEcheanceOuValidite)}</Text>
+              </>
+            ) : null}
+            {moyenPaiement ? (
+              <>
+                <Text style={[styles.libelleColonne, { marginTop: 10 }]}>Payé par</Text>
+                <Text style={styles.ligneTexte}>{moyenPaiement}</Text>
+              </>
+            ) : null}
           </View>
         </View>
 
-        <View style={styles.tableau}>
-          <View style={[styles.ligneTableauEntete, { backgroundColor: teinteClaire(entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT) }]}>
-            <Text style={styles.colDesignation}>Désignation</Text>
-            <Text style={styles.colQuantite}>Qté</Text>
-            <Text style={styles.colPrixUnitaire}>Prix unit.</Text>
-            <Text style={styles.colTVA}>TVA</Text>
-            <Text style={styles.colTotal}>Total HT</Text>
-          </View>
-          {lignes.map((ligne, index) => (
-            <View key={index} style={styles.ligneTableau}>
-              <Text style={styles.colDesignation}>{ligne.designation}</Text>
-              <Text style={styles.colQuantite}>{ligne.quantite}</Text>
-              <Text style={styles.colPrixUnitaire}>{formaterFCFA(ligne.prixUnitaire)}</Text>
-              <Text style={styles.colTVA}>{entreprise.assujettiTVA ? `${ligne.tauxTVA}%` : "N/A"}</Text>
-              <Text style={styles.colTotal}>{formaterFCFA(Math.round(ligne.quantite * ligne.prixUnitaire))}</Text>
+        {lignes ? (
+          <>
+            <View style={styles.tableau}>
+              <View style={[styles.ligneTableauEntete, { backgroundColor: teinteClaire(accent) }]}>
+                <Text style={styles.colDesignation}>Désignation</Text>
+                <Text style={styles.colQuantite}>Qté</Text>
+                <Text style={styles.colPrixUnitaire}>Prix unit.</Text>
+                <Text style={styles.colTVA}>TVA</Text>
+                <Text style={styles.colTotal}>Total HT</Text>
+              </View>
+              {lignes.map((ligne, index) => (
+                <View key={index} style={styles.ligneTableau}>
+                  <Text style={styles.colDesignation}>{ligne.designation}</Text>
+                  <Text style={styles.colQuantite}>{ligne.quantite}</Text>
+                  <Text style={styles.colPrixUnitaire}>{formaterFCFA(ligne.prixUnitaire)}</Text>
+                  <Text style={styles.colTVA}>{entreprise.assujettiTVA ? `${ligne.tauxTVA}%` : "N/A"}</Text>
+                  <Text style={styles.colTotal}>{formaterFCFA(Math.round(ligne.quantite * ligne.prixUnitaire))}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
 
-        <View style={styles.blocTotaux}>
-          <View style={styles.ligneTotal}>
-            <Text>Total HT</Text>
-            <Text>{formaterFCFA(montantHT)}</Text>
+            <View style={styles.blocTotaux}>
+              <View style={styles.ligneTotal}>
+                <Text>Total HT</Text>
+                <Text>{formaterFCFA(montantHT ?? 0)}</Text>
+              </View>
+              <View style={styles.ligneTotal}>
+                <Text>{entreprise.assujettiTVA ? "TVA" : "TVA non applicable"}</Text>
+                <Text>{entreprise.assujettiTVA ? formaterFCFA(montantTVA ?? 0) : "—"}</Text>
+              </View>
+              <View style={styles.ligneTotalFinal}>
+                <Text>Total TTC</Text>
+                <Text>{formaterFCFA(montantTTC)}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <View style={styles.blocMontantUnique}>
+            <Text style={styles.libelleMontantUnique}>Montant de l&apos;acompte</Text>
+            <Text style={[styles.valeurMontantUnique, { color: accent }]}>{formaterFCFA(montantTTC)}</Text>
+            {montantRestant != null && montantRestant !== montantTTC ? (
+              <Text style={styles.detailMontantUnique}>Montant restant à appliquer : {formaterFCFA(montantRestant)}</Text>
+            ) : null}
           </View>
-          <View style={styles.ligneTotal}>
-            <Text>{entreprise.assujettiTVA ? "TVA" : "TVA non applicable"}</Text>
-            <Text>{entreprise.assujettiTVA ? formaterFCFA(montantTVA) : "—"}</Text>
-          </View>
-          <View style={styles.ligneTotalFinal}>
-            <Text>Total TTC</Text>
-            <Text>{formaterFCFA(montantTTC)}</Text>
-          </View>
-        </View>
+        )}
 
-        <Text style={styles.piedDePage} fixed>
-          {entreprise.nom}
-          {entreprise.niu ? ` — NIU ${entreprise.niu}` : ""}
-          {entreprise.rccm ? ` — RCCM ${entreprise.rccm}` : ""} — Document généré par Vertex One
-        </Text>
+        <View style={styles.piedDePage} fixed>
+          <View style={[styles.piedDePageTrait, { backgroundColor: accent }]} />
+          <View style={styles.piedDePageContenu}>
+            <View>
+              <Text style={styles.piedDePageEntreprise}>{entreprise.nom}</Text>
+              <Text style={styles.piedDePageDetails}>{[coordonnees, mentionsLegales].filter(Boolean).join(" — ")}</Text>
+            </View>
+            <Text style={styles.piedDePagePage} render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
+          </View>
+          <Text style={styles.piedDePageMention}>Document généré par Vertex One</Text>
+        </View>
       </Page>
     </Document>
   );

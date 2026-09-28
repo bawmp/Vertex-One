@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc } from "drizzle-orm";
-import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2 } from "lucide-react";
+import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2, Download } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, paiement, avoirFacture, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -12,6 +12,7 @@ import { recupererTableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   STATUT_DEVIS,
   STATUT_FACTURE,
@@ -225,6 +226,16 @@ export default async function PageFacturation() {
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{formaterFCFA(bc.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? bc.statut)}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("Télécharger le PDF")}
+                      title={t("Télécharger le PDF")}
+                      render={<a href={`/app/facturation/bons-commande/${bc.id}/pdf`} target="_blank" rel="noopener noreferrer" />}
+                      nativeButton={false}
+                    >
+                      <Download aria-hidden />
+                    </Button>
                     {bc.statut === "BROUILLON" && peutCreer ? <BoutonConvertirBCV bonCommandeVenteId={bc.id} /> : null}
                   </div>
                 </div>
@@ -300,6 +311,16 @@ export default async function PageFacturation() {
                   <div className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{formaterFCFA(rv.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? rv.statut)}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("Télécharger le PDF")}
+                      title={t("Télécharger le PDF")}
+                      render={<a href={`/app/facturation/recus-vente/${rv.id}/pdf`} target="_blank" rel="noopener noreferrer" />}
+                      nativeButton={false}
+                    >
+                      <Download aria-hidden />
+                    </Button>
                     {rv.statut === "EMISE" && peutModifier ? <BoutonAnnulerRecuVente recuVenteId={rv.id} /> : null}
                   </div>
                 </div>
@@ -339,6 +360,16 @@ export default async function PageFacturation() {
                         {fa.statut !== "EMISE" ? " restant" : ""}
                       </span>
                       <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? fa.statut)}</Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("Télécharger le PDF")}
+                        title={t("Télécharger le PDF")}
+                        render={<a href={`/app/facturation/acomptes/${fa.id}/pdf`} target="_blank" rel="noopener noreferrer" />}
+                        nativeButton={false}
+                      >
+                        <Download aria-hidden />
+                      </Button>
                     </div>
                   </div>
                   {peutCreer && (fa.statut === "EMISE" || fa.statut === "PAYEE") ? (

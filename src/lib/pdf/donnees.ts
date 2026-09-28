@@ -1,9 +1,31 @@
 import { eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { devis, ligneDevis, facture, ligneFacture, contact, compteClient, entreprise } from "@/db/schema";
+import {
+  devis,
+  ligneDevis,
+  facture,
+  ligneFacture,
+  bonCommandeVente,
+  ligneBonCommandeVente,
+  recuVente,
+  ligneRecuVente,
+  factureAcompte,
+  contact,
+  compteClient,
+  entreprise,
+} from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
 import { urlTelechargementDocument } from "@/lib/documents/stockage";
+
+/** Libellé français fixe, indépendant de la langue de l'interface — voir CLAUDE.md, i18n (les PDF restent en français). */
+const LIBELLE_MOYEN_PAIEMENT: Record<string, string> = {
+  orange_money: "Orange Money",
+  mtn_momo: "MTN MoMo",
+  especes: "Espèces",
+  virement: "Virement",
+  manuel: "Autre",
+};
 
 export type ClientPourPDF = { nom: string; societeCliente: string | null; niu: string | null; telephone: string; email: string | null };
 
@@ -115,4 +137,70 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
   ]);
 
   return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
+}
+
+/**
+ * Bon de commande, Reçu de vente, Facture d'acompte (2026-09-28) — pas de lien
+ * public envoyé au client pour ces trois documents (contrairement au devis et
+ * à la facture) : uniquement un téléchargement depuis l'application, donc
+ * toujours avec un utilisateur connecté et sa portée FACTURATION.
+ */
+export async function recupererBonCommandeVentePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, bonCommandeVenteId: string) {
+  const [bc] = await tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.id, bonCommandeVenteId));
+  if (!bc) return null;
+
+  const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
+  if (visibles !== "TOUT" && (!bc.assigneAId || !visibles.includes(bc.assigneAId))) return null;
+  const client = await construireClientPourPDF(tx, bc.contactId, bc.compteId);
+  if (!client) return null;
+
+  const [lignes, [monEntreprise]] = await Promise.all([
+    tx.select().from(ligneBonCommandeVente).where(eq(ligneBonCommandeVente.bonCommandeVenteId, bonCommandeVenteId)),
+    tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+  ]);
+
+  return { bonCommandeVente: bc, lignes, client, entreprise: await avecLogo(monEntreprise) };
+}
+
+export async function recupererRecuVentePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, recuVenteId: string) {
+  const [rv] = await tx.select().from(recuVente).where(eq(recuVente.id, recuVenteId));
+  if (!rv) return null;
+
+  const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
+  if (visibles !== "TOUT" && (!rv.assigneAId || !visibles.includes(rv.assigneAId))) return null;
+  const client = await construireClientPourPDF(tx, rv.contactId, rv.compteId);
+  if (!client) return null;
+
+  const [lignes, [monEntreprise]] = await Promise.all([
+    tx.select().from(ligneRecuVente).where(eq(ligneRecuVente.recuVenteId, recuVenteId)),
+    tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+  ]);
+
+  return {
+    recuVente: rv,
+    lignes,
+    client,
+    entreprise: await avecLogo(monEntreprise),
+    moyenPaiementLibelle: LIBELLE_MOYEN_PAIEMENT[rv.moyenPaiement] ?? rv.moyenPaiement,
+  };
+}
+
+/** Pas de table de lignes pour une Facture d'acompte : montant forfaitaire, voir src/db/schema.ts. */
+export async function recupererFactureAcomptePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, factureAcompteId: string) {
+  const [fa] = await tx.select().from(factureAcompte).where(eq(factureAcompte.id, factureAcompteId));
+  if (!fa) return null;
+
+  const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
+  if (visibles !== "TOUT" && (!fa.assigneAId || !visibles.includes(fa.assigneAId))) return null;
+  const client = await construireClientPourPDF(tx, fa.contactId, fa.compteId);
+  if (!client) return null;
+
+  const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+
+  return {
+    factureAcompte: fa,
+    client,
+    entreprise: await avecLogo(monEntreprise),
+    moyenPaiementLibelle: fa.moyenPaiement ? (LIBELLE_MOYEN_PAIEMENT[fa.moyenPaiement] ?? fa.moyenPaiement) : null,
+  };
 }
