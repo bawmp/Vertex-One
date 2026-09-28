@@ -12,6 +12,7 @@ import { STATUT_FACTURE_FOURNISSEUR, STATUT_BON_COMMANDE_ACHAT } from "@/lib/lib
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { NombreAnime } from "@/components/nombre-anime";
 import { FormulaireNouvelleDepense } from "./formulaire-nouvelle-depense";
 import { BoutonMarquerPayee } from "./bouton-marquer-payee";
 import { BoutonAnnulerFacture } from "./bouton-annuler-facture";
@@ -145,9 +146,11 @@ export default async function PageAchats() {
         ) : null}
       </div>
 
-      <Card className="w-fit px-4 py-3">
+      <Card className="w-fit animate-in fade-in slide-in-from-bottom-2 px-4 py-3 duration-500 fill-mode-both">
         <p className="text-sm text-muted-foreground">Dépenses ce mois-ci</p>
-        <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(donnees.totalDuMois)}</p>
+        <p className="text-2xl font-semibold tracking-tight">
+          <NombreAnime valeur={donnees.totalDuMois} suffixe=" FCFA" />
+        </p>
       </Card>
 
       <div id="bons-de-commande" className="flex flex-col gap-3">
@@ -163,10 +166,14 @@ export default async function PageAchats() {
 
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.bonsCommande.map((bc) => {
+            {donnees.bonsCommande.map((bc, index) => {
               const info = STATUT_BON_COMMANDE_ACHAT[bc.statut];
               return (
-                <div key={bc.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div
+                  key={bc.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+                >
                   <div className="min-w-0">
                     <p className="truncate font-medium">
                       {bc.numero} — {bc.fournisseurNom}
@@ -202,10 +209,14 @@ export default async function PageAchats() {
 
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.facturesFournisseur.map((f) => {
+            {donnees.facturesFournisseur.map((f, index) => {
               const info = STATUT_FACTURE_FOURNISSEUR[f.statut];
               return (
-                <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div
+                  key={f.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+                >
                   <div className="min-w-0">
                     <p className="truncate font-medium">
                       {f.numero} — {f.fournisseurNom}
@@ -244,8 +255,12 @@ export default async function PageAchats() {
 
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.depenses.map((d) => (
-              <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            {donnees.depenses.map((d, index) => (
+              <div
+                key={d.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">{d.libelle}</p>
                   <p className="text-xs text-muted-foreground">
@@ -269,8 +284,12 @@ export default async function PageAchats() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.paiementsEffectues.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            {donnees.paiementsEffectues.map((p, index) => (
+              <div
+                key={p.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {p.numeroFacture} — {p.fournisseurNom}
@@ -297,8 +316,12 @@ export default async function PageAchats() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.avoirsFournisseur.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            {donnees.avoirsFournisseur.map((a, index) => (
+              <div
+                key={a.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {a.numeroFacture} — {a.fournisseurNom}
@@ -319,8 +342,12 @@ export default async function PageAchats() {
         <h2 className="text-sm font-medium text-muted-foreground">Fournisseurs</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {donnees.fournisseurs.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+            {donnees.fournisseurs.map((f, index) => (
+              <div
+                key={f.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+              >
                 <span className="font-medium">{f.nom}</span>
                 <span className="text-muted-foreground">{f.telephone}</span>
               </div>

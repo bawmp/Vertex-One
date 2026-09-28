@@ -113,13 +113,20 @@ export function ListeContrats({
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {contrats.map((c) => {
+        {contrats.map((c, index) => {
           const info = LIBELLE_STATUT[c.statut] ?? { libelle: c.statut, variante: "neutral" as const };
           const peutRenvoyer = !c.signature || c.signature.statut === "REFUSE" || c.signature.statut === "EXPIRE";
           return (
             <div key={c.id} className="flex flex-col">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <p className="flex min-w-0 items-center gap-1.5 truncate">
+              <div
+                className="group/ligne relative flex animate-in fade-in flex-wrap items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <p className="flex min-w-0 items-center gap-1.5 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                   <FileSignature className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                   <span className="truncate">{c.titre}</span>
                   {c.renouvellementAuto ? <RefreshCw className="size-3 shrink-0 text-muted-foreground" aria-hidden /> : null}

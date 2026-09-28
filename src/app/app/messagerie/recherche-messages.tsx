@@ -59,7 +59,7 @@ export function RechercheMessages({ nomsCanaux }: { nomsCanaux: Record<string, s
       </div>
 
       {resultats ? (
-        <div role="region" aria-label={t("Résultats de la recherche")} className="flex max-h-80 flex-col overflow-y-auto rounded-lg border border-border bg-card">
+        <div role="region" aria-label={t("Résultats de la recherche")} className="flex max-h-80 animate-in flex-col overflow-y-auto rounded-lg border border-border bg-card fade-in slide-in-from-top-1 duration-200 fill-mode-both">
           {resultats.length === 0 ? (
             <p className="p-3 text-sm text-muted-foreground">{t("Aucun message ne correspond.")}</p>
           ) : (
@@ -68,14 +68,18 @@ export function RechercheMessages({ nomsCanaux }: { nomsCanaux: Record<string, s
                 key={r.messageId}
                 href={`/app/messagerie?canal=${r.canalId}&message=${r.parentId ?? r.messageId}`}
                 onClick={() => setSaisie("")} // referme les résultats : le message s'ouvre dans la conversation
-                className="flex flex-col gap-0.5 border-b border-border px-3 py-2 text-sm last:border-0 hover:bg-muted"
+                className="group/ligne relative flex flex-col gap-0.5 overflow-hidden border-b border-border px-3 py-2 text-sm transition-colors duration-150 last:border-0 hover:bg-muted"
               >
-                <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">
                   <span className="truncate font-medium text-foreground">{nomsCanaux[r.canalId] ?? t("Canal")}</span>
                   <span className="shrink-0">{date(r.creeLe, t.locale)}</span>
                 </span>
-                <span className="text-xs text-muted-foreground">{r.auteurNom}</span>
-                <span className="break-words">{r.extrait}</span>
+                <span className="text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">{r.auteurNom}</span>
+                <span className="break-words transition-transform duration-150 group-hover/ligne:translate-x-1">{r.extrait}</span>
               </Link>
             ))
           )}

@@ -72,7 +72,7 @@ export default async function PageAnnonces() {
       {peutCreer ? <FormulaireAnnonce /> : null}
 
       <div className="flex flex-col gap-3">
-        {annonces.map((a) => (
+        {annonces.map((a, index) => (
           <LigneAnnonce
             key={a.id}
             id={a.id}
@@ -82,6 +82,7 @@ export default async function PageAnnonces() {
             epinglee={a.epinglee}
             pieces={piecesParAnnonce[a.id] ?? []}
             peutGerer={peutGerer}
+            index={index}
           />
         ))}
         {annonces.length === 0 ? <p className="text-sm text-muted-foreground">{t("Aucune annonce pour le moment.")}</p> : null}

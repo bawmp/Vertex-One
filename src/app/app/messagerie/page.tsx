@@ -132,16 +132,21 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
   const peutEcrire = peut(utilisateurConnecte, "MESSAGERIE", "CREER");
   const idsMembres = new Set(membres.map((m) => m.id));
 
-  const lienCanal = (c: { id: string; nom: string; type: string }, Icone: typeof Hash) => {
+  const lienCanal = (c: { id: string; nom: string; type: string }, Icone: typeof Hash, index: number) => {
     const actif = choisi?.id === c.id;
     return (
       <Link
         key={c.id}
         href={`/app/messagerie?canal=${c.id}`}
         aria-current={actif ? "page" : undefined}
-        className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${actif ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"}`}
+        style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+        className={`group/ligne relative flex animate-in fade-in items-center justify-between gap-2 overflow-hidden rounded-lg px-2.5 py-2 text-sm fill-mode-both duration-300 ${actif ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"}`}
       >
-        <span className="flex min-w-0 items-center gap-2">
+        <span
+          aria-hidden
+          className={`absolute inset-y-0 left-0 w-0.5 rounded-full bg-primary transition-transform duration-150 ${actif ? "scale-y-100" : "scale-y-0 group-hover/ligne:scale-y-100"}`}
+        />
+        <span className="flex min-w-0 items-center gap-2 transition-transform duration-150 group-hover/ligne:translate-x-1">
           <Icone className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <span className="truncate">{c.nom}</span>
         </span>
@@ -164,7 +169,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
           <div className="flex flex-col gap-1">
             <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Canaux")}</p>
             <nav aria-label={t("Canaux")} className="flex flex-col gap-0.5">
-              {canaux.map((c) => lienCanal(c, c.type === "PROJET" ? FolderKanban : c.type === "EQUIPE" ? Users : Hash))}
+              {canaux.map((c, index) => lienCanal(c, c.type === "PROJET" ? FolderKanban : c.type === "EQUIPE" ? Users : Hash, index))}
             </nav>
             {peutEcrire ? <FormulaireNouveauCanal /> : null}
           </div>
@@ -172,7 +177,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
           <div className="flex flex-col gap-1">
             <p className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("Groupes privés")}</p>
             <nav aria-label={t("Groupes privés")} className="flex flex-col gap-0.5">
-              {groupes.map((c) => lienCanal(c, Lock))}
+              {groupes.map((c, index) => lienCanal(c, Lock, index))}
             </nav>
             {peutEcrire ? <FormulaireNouveauGroupe collegues={collegues.map((c) => ({ id: c.id, nom: c.nom }))} /> : null}
           </div>

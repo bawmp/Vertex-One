@@ -3,6 +3,7 @@ import { Users, Truck, Wallet2, TrendingUp, PiggyBank, FolderKanban, Landmark } 
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { NombreAnime } from "@/components/nombre-anime";
 import { STATUT_PROJET } from "@/lib/libelles";
 import type { TableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
 import { traduire, interpoler } from "@/lib/i18n/traduire";
@@ -39,7 +40,7 @@ export function TableauDeBord({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -53,18 +54,22 @@ export function TableauDeBord({
           </CardHeader>
           <CardContent className="flex items-end justify-between border-t pt-3">
             <div>
-              <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(totalImpayeClient)}</p>
+              <p className="text-2xl font-semibold tracking-tight">
+                <NombreAnime valeur={totalImpayeClient} suffixe=" FCFA" locale={t.locale} />
+              </p>
               <p className="text-xs text-muted-foreground">{t("Actuel")}</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-medium text-destructive">{formaterFCFA(totalEnRetardClient)}</p>
+              <p className="text-lg font-medium text-destructive">
+                <NombreAnime valeur={totalEnRetardClient} suffixe=" FCFA" locale={t.locale} />
+              </p>
               <p className="text-xs text-muted-foreground">{t("En retard")}</p>
             </div>
           </CardContent>
         </Card>
 
         {donnees.facturesFournisseur !== null ? (
-          <Card>
+          <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
@@ -80,11 +85,15 @@ export function TableauDeBord({
             </CardHeader>
             <CardContent className="flex items-end justify-between border-t pt-3">
               <div>
-                <p className="text-2xl font-semibold tracking-tight">{formaterFCFA(totalImpayeFournisseur)}</p>
+                <p className="text-2xl font-semibold tracking-tight">
+                  <NombreAnime valeur={totalImpayeFournisseur} suffixe=" FCFA" locale={t.locale} />
+                </p>
                 <p className="text-xs text-muted-foreground">{t("Actuel")}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-medium text-destructive">{formaterFCFA(totalEnRetardFournisseur)}</p>
+                <p className="text-lg font-medium text-destructive">
+                  <NombreAnime valeur={totalEnRetardFournisseur} suffixe=" FCFA" locale={t.locale} />
+                </p>
                 <p className="text-xs text-muted-foreground">{t("En retard")}</p>
               </div>
             </CardContent>
@@ -94,7 +103,7 @@ export function TableauDeBord({
 
       {donnees.financier ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
+          <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
             <CardHeader>
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Wallet2 className="size-4" aria-hidden />
@@ -116,12 +125,14 @@ export function TableauDeBord({
               </div>
               <div className="mt-1 flex justify-between border-t pt-1.5 font-medium">
                 <span>{t("Espèces aujourd'hui (=)")}</span>
-                <span className="tabular-nums">{formaterFCFA(donnees.financier.especesCloture)}</span>
+                <span className="tabular-nums">
+                  <NombreAnime valeur={donnees.financier.especesCloture} suffixe=" FCFA" locale={t.locale} />
+                </span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
             <CardHeader>
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <TrendingUp className="size-4" aria-hidden />
@@ -131,11 +142,15 @@ export function TableauDeBord({
             <CardContent className="flex flex-col gap-2 border-t pt-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t("Revenu total")}</span>
-                <span className="text-lg font-semibold tabular-nums text-emerald-600">{formaterFCFA(donnees.financier.totalProduits)}</span>
+                <span className="text-lg font-semibold tabular-nums text-emerald-600">
+                  <NombreAnime valeur={donnees.financier.totalProduits} suffixe=" FCFA" locale={t.locale} />
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t("Total des dépenses")}</span>
-                <span className="text-lg font-semibold tabular-nums text-destructive">{formaterFCFA(donnees.financier.totalCharges)}</span>
+                <span className="text-lg font-semibold tabular-nums text-destructive">
+                  <NombreAnime valeur={donnees.financier.totalCharges} suffixe=" FCFA" locale={t.locale} />
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">{t("* Montants hors taxes, cumul de l'exercice en cours.")}</p>
             </CardContent>
@@ -151,10 +166,10 @@ export function TableauDeBord({
                 <PiggyBank className="size-4" aria-hidden />
                 {t("Dépenses principales")}
               </h2>
-              <Card className="p-0">
+              <Card className="animate-in fade-in slide-in-from-bottom-2 p-0 duration-500 delay-300 fill-mode-both">
                 <div className="flex flex-col divide-y divide-border">
                   {donnees.depensesPrincipales.map((d) => (
-                    <div key={d.libelle} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                    <div key={d.libelle} className="flex items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-muted/40">
                       <span className="truncate">{d.libelle}</span>
                       <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.total)}</span>
                     </div>
@@ -172,13 +187,18 @@ export function TableauDeBord({
               <FolderKanban className="size-4" aria-hidden />
               {t("Projets")}
             </h2>
-            <Card className="p-0">
+            <Card className="animate-in fade-in slide-in-from-bottom-2 p-0 duration-500 delay-300 fill-mode-both">
               <div className="flex flex-col divide-y divide-border">
                 {donnees.projetsWatchlist.map((p) => {
                   const info = STATUT_PROJET[p.statut];
                   return (
-                    <Link key={p.id} href={`/app/projets/${p.id}`} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm hover:bg-muted/50">
-                      <span className="truncate">{p.titre}</span>
+                    <Link
+                      key={p.id}
+                      href={`/app/projets/${p.id}`}
+                      className="group/ligne relative flex items-center justify-between gap-2 overflow-hidden px-4 py-2.5 text-sm hover:bg-muted/50"
+                    >
+                      <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                      <span className="truncate transition-transform duration-150 group-hover/ligne:translate-x-1">{p.titre}</span>
                       <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     </Link>
                   );
@@ -196,7 +216,7 @@ export function TableauDeBord({
                 <Landmark className="size-4" aria-hidden />
                 {t("Banque")}
               </h2>
-              <Card>
+              <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
                 <CardContent className="flex flex-col items-start gap-2">
                   <p className="text-sm text-muted-foreground">
                     {t("Importez un relevé bancaire (CSV) pour rapprocher vos paiements — aucune connexion bancaire automatique n'est configurée pour l'instant.")}

@@ -23,7 +23,7 @@ export function FormulaireNouveauCanal() {
   }
 
   return (
-    <form action={action} className="flex flex-col gap-2 rounded-lg border border-border p-2">
+    <form action={action} className="flex animate-in flex-col gap-2 rounded-lg border border-border p-2 fade-in slide-in-from-top-1 duration-200 fill-mode-both">
       <Input name="nom" placeholder={t("ex : Annonces, Idées…")} required minLength={2} maxLength={60} autoFocus aria-label={t("Nom du canal")} />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>

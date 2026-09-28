@@ -72,9 +72,15 @@ export default async function PageBudgets() {
         <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {budgets.map((b) => (
-              <Link key={b.id} href={`/app/comptabilite/budgets/${b.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60">
-                <span className="font-medium">{b.nom}</span>
+            {budgets.map((b, index) => (
+              <Link
+                key={b.id}
+                href={`/app/comptabilite/budgets/${b.id}`}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
+              >
+                <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{b.nom}</span>
                 <span className="text-xs text-muted-foreground">
                   {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(b.dateDebut)} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(b.dateFin)}
                 </span>

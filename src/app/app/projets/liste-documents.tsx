@@ -37,10 +37,17 @@ export function ListeDocuments({
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {documents.map((d) => (
+        {documents.map((d, index) => (
           <div key={d.id} className="flex flex-col">
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-              <p className="flex min-w-0 items-center gap-1.5 truncate">
+            <div
+              className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+            >
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+              />
+              <p className="flex min-w-0 items-center gap-1.5 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                 {sensible(d.categorie) ? <ShieldAlert className="size-3.5 shrink-0 text-amber-600" aria-hidden /> : null}
                 <span className="truncate">{d.nom}</span>
               </p>

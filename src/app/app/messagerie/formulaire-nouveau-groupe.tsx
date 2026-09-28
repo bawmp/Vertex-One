@@ -25,13 +25,13 @@ export function FormulaireNouveauGroupe({ collegues }: { collegues: Pick<Collegu
   }
 
   return (
-    <form action={action} className="flex flex-col gap-2 rounded-lg border border-border p-2">
+    <form action={action} className="flex animate-in flex-col gap-2 rounded-lg border border-border p-2 fade-in slide-in-from-top-1 duration-200 fill-mode-both">
       <Input name="nom" placeholder={t("Nom du groupe")} required minLength={2} maxLength={60} autoFocus aria-label={t("Nom du groupe")} />
       <fieldset className="flex max-h-44 flex-col gap-0.5 overflow-y-auto">
         <legend className="mb-1 text-xs text-muted-foreground">{t("Inviter (visible de ses seuls membres)")}</legend>
         {collegues.length === 0 ? <p className="text-xs text-muted-foreground">{t("Aucun collègue à inviter pour l'instant.")}</p> : null}
         {collegues.map((c) => (
-          <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted">
+          <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm transition-colors hover:bg-muted">
             <input type="checkbox" name="membres" value={c.id} className="size-4 accent-primary" />
             <span className="truncate">{c.nom}</span>
           </label>

@@ -80,7 +80,7 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
         {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(leBudget.dateDebut)} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(leBudget.dateFin)}
       </p>
 
-      <Card className="overflow-x-auto p-0">
+      <Card className="animate-in fade-in slide-in-from-bottom-2 overflow-x-auto p-0 duration-500 fill-mode-both">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
@@ -94,7 +94,7 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
             {lignes.map((l) => {
               const depassement = l.classe === 7 ? l.realise < l.montant : l.realise > l.montant;
               return (
-                <tr key={l.id}>
+                <tr key={l.id} className="transition-colors duration-150 hover:bg-muted/40">
                   <td className="px-4 py-2">
                     <span className="text-xs text-muted-foreground">{l.numero}</span> {l.libelle}
                   </td>

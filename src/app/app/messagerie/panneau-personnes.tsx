@@ -55,9 +55,13 @@ export function PanneauPersonnes({ collegues: initiaux, dmParCollegue, canalActi
             key={c.id}
             href={dm ? `/app/messagerie?canal=${dm.canalId}` : `/app/messagerie?dm=${c.id}`}
             aria-current={actif ? "page" : undefined}
-            className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${actif ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"}`}
+            className={`group/ligne relative flex items-center justify-between gap-2 overflow-hidden rounded-lg px-2.5 py-2 text-sm transition-colors duration-150 ${actif ? "bg-primary/10 font-medium text-primary" : "hover:bg-muted"}`}
           >
-            <span className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden
+              className={`absolute inset-y-0 left-0 w-0.5 rounded-full bg-primary transition-transform duration-150 ${actif ? "scale-y-100" : "scale-y-0 group-hover/ligne:scale-y-100"}`}
+            />
+            <span className="flex min-w-0 items-center gap-2 transition-transform duration-150 group-hover/ligne:translate-x-1">
               <span className={`size-2.5 shrink-0 rounded-full ${c.enLigne ? "bg-emerald-500" : "bg-muted-foreground/30"}`} role="img" aria-label={c.enLigne ? t("En ligne") : t("Hors ligne")} />
               <span className="truncate">{c.nom}</span>
             </span>

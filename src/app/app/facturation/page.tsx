@@ -139,15 +139,17 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {devisVisibles.map((d) => {
+            {devisVisibles.map((d, index) => {
               const info = STATUT_DEVIS[d.statut];
               return (
                 <Link
                   key={d.id}
                   href={`/app/facturation/devis/${d.id}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
                 >
-                  <span className="min-w-0 truncate">
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                  <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <span className="font-medium">{d.numero}</span>
                     <span className="text-muted-foreground"> — {nomParClientId[d.id]}</span>
                   </span>
@@ -170,15 +172,17 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {facturesVisibles.map((f) => {
+            {facturesVisibles.map((f, index) => {
               const info = STATUT_FACTURE[f.statut];
               return (
                 <Link
                   key={f.id}
                   href={`/app/facturation/factures/${f.id}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
                 >
-                  <span className="min-w-0 truncate">
+                  <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                  <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <span className="font-medium">{f.numero}</span>
                     <span className="text-muted-foreground"> — {nomParClientId[f.id]}</span>
                   </span>
@@ -203,10 +207,14 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {bonsCommandeVisibles.map((bc) => {
+            {bonsCommandeVisibles.map((bc, index) => {
               const info = STATUT_BON_COMMANDE_VENTE[bc.statut];
               return (
-                <div key={bc.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={bc.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in flex-col gap-2 px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
                     <span className="min-w-0 truncate">
                       <span className="font-medium">{bc.numero}</span>
@@ -236,11 +244,15 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {facturesRecurrentesVisibles.map((fr) => {
+            {facturesRecurrentesVisibles.map((fr, index) => {
               const infoStatut = STATUT_FACTURE_RECURRENTE[fr.statut];
               const infoFrequence = FREQUENCE_FACTURE_RECURRENTE[fr.frequence];
               return (
-                <div key={fr.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={fr.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in flex-col gap-2 px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
                     <span className="min-w-0 truncate">
                       <span className="font-medium">{fr.libelle}</span>
@@ -270,10 +282,14 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {recusVenteVisibles.map((rv) => {
+            {recusVenteVisibles.map((rv, index) => {
               const info = STATUT_RECU_VENTE[rv.statut];
               return (
-                <div key={rv.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={rv.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in flex-col gap-2 px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
                     <span className="min-w-0 truncate">
                       <span className="font-medium">{rv.numero}</span>
@@ -301,10 +317,14 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {facturesAcompteVisibles.map((fa) => {
+            {facturesAcompteVisibles.map((fa, index) => {
               const info = STATUT_FACTURE_ACOMPTE[fa.statut];
               return (
-                <div key={fa.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm">
+                <div
+                  key={fa.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in flex-col gap-2 px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+                >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
                       <span className="min-w-0 truncate">
@@ -346,13 +366,15 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {paiementsVisibles.map((p) => (
+            {paiementsVisibles.map((p, index) => (
               <Link
                 key={p.id}
                 href={`/app/facturation/factures/${p.factureId}`}
-                className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
               >
-                <span className="min-w-0 truncate">
+                <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                   <span className="font-medium">{p.numeroFacture}</span>
                   <span className="text-muted-foreground"> — {nomParClientId[p.factureId]}</span>
                 </span>
@@ -375,13 +397,15 @@ export default async function PageFacturation() {
         </h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {avoirsVisibles.map((a) => (
+            {avoirsVisibles.map((a, index) => (
               <Link
                 key={a.id}
                 href={`/app/facturation/factures/${a.factureId}`}
-                className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
               >
-                <span className="min-w-0 truncate">
+                <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
                   <span className="font-medium">{a.numeroFacture}</span>
                   <span className="text-muted-foreground"> — {nomParClientId[a.factureId]} · {a.motif}</span>
                 </span>

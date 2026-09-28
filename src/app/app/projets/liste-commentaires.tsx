@@ -16,8 +16,12 @@ export async function ListeCommentaires({
   return (
     <Card>
       <CardContent className="flex flex-col divide-y divide-border p-0">
-        {commentaires.map((c) => (
-          <div key={c.id} className="flex flex-col gap-0.5 px-4 py-3 first:pt-4 last:pb-4">
+        {commentaires.map((c, index) => (
+          <div
+            key={c.id}
+            className="flex animate-in fade-in flex-col gap-0.5 px-4 py-3 fill-mode-both duration-300 first:pt-4 last:pb-4"
+            style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">{auteursParId[c.auteurId] ?? t("Utilisateur")}</p>
               <p className="shrink-0 text-xs text-muted-foreground">

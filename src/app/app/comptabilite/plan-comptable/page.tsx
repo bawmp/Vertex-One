@@ -94,10 +94,10 @@ export default async function PagePlanComptable() {
         .map((classe) => (
           <div key={classe} className="flex flex-col gap-2">
             <h2 className="text-sm font-medium text-muted-foreground">{LIBELLE_CLASSE[classe] ?? `Classe ${classe}`}</h2>
-            <Card className="p-0">
+            <Card className="animate-in fade-in slide-in-from-bottom-1 p-0 duration-300 fill-mode-both">
               <div className="flex flex-col divide-y divide-border">
                 {(comptesParClasse.get(classe) ?? []).map((c) => (
-                  <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/40">
                     <span className="min-w-0 truncate">
                       <span className="font-mono text-xs text-muted-foreground">{c.numero}</span>
                       <span className="ml-2">{c.libelle}</span>

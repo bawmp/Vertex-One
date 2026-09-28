@@ -11,6 +11,7 @@ import { calculerBalance, calculerCompteDeResultat, calculerBilan } from "@/lib/
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { NombreAnime } from "@/components/nombre-anime";
 import { FormulaireVerrouillage } from "./formulaire-verrouillage";
 
 export default async function PageComptabilite() {
@@ -99,7 +100,7 @@ export default async function PageComptabilite() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <CardTitle>Compte de résultat</CardTitle>
           </CardHeader>
@@ -114,23 +115,29 @@ export default async function PageComptabilite() {
             </div>
             <div className="mt-1 flex justify-between border-t border-border pt-1 font-medium">
               <span>Résultat net</span>
-              <span>{formaterFCFA(compteDeResultat.resultatNet)}</span>
+              <span>
+                <NombreAnime valeur={compteDeResultat.resultatNet} suffixe=" FCFA" />
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
             <CardTitle>Bilan</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total actif</span>
-              <span>{formaterFCFA(bilan.totalActif)}</span>
+              <span>
+                <NombreAnime valeur={bilan.totalActif} suffixe=" FCFA" />
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total passif</span>
-              <span>{formaterFCFA(bilan.totalPassif)}</span>
+              <span>
+                <NombreAnime valeur={bilan.totalPassif} suffixe=" FCFA" />
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -141,7 +148,7 @@ export default async function PageComptabilite() {
         {dernieresEcritures.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune écriture pour le moment.</p>
         ) : (
-          <Card className="overflow-x-auto p-0">
+          <Card className="animate-in fade-in slide-in-from-bottom-2 overflow-x-auto p-0 duration-500 delay-200 fill-mode-both">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
@@ -154,7 +161,7 @@ export default async function PageComptabilite() {
               </thead>
               <tbody className="divide-y divide-border">
                 {dernieresEcritures.map((e) => (
-                  <tr key={e.id}>
+                  <tr key={e.id} className="transition-colors duration-150 hover:bg-muted/40">
                     <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
                       {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" }).format(e.dateEcriture)}
                     </td>

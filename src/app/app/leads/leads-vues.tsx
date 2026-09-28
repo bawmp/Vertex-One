@@ -34,11 +34,22 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {leadsFiltres.map((l) => {
+          {leadsFiltres.map((l, index) => {
             const info = STATUT_LEAD[l.statut];
             return (
-              <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <Link href={`/app/leads/${l.id}`} className="flex min-w-0 flex-1 flex-col gap-0.5 hover:underline">
+              <div
+                key={l.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <Link
+                  href={`/app/leads/${l.id}`}
+                  className="flex min-w-0 flex-1 flex-col gap-0.5 transition-transform duration-150 group-hover/ligne:translate-x-1"
+                >
                   <span className="truncate font-medium">{l.nom}</span>
                   <span className="flex items-center gap-3 text-xs text-muted-foreground">
                     {l.societeCliente ? (

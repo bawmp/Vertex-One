@@ -59,12 +59,12 @@ export function FormulaireAnnonce() {
           {fichiers.length > 0 ? (
             <ul className="flex flex-wrap gap-2" aria-label={t("Pièces jointes de l'annonce")}>
               {fichiers.map((f, i) => (
-                <li key={`${f.name}-${i}`} className="flex max-w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm">
+                <li key={`${f.name}-${i}`} className="flex max-w-full animate-in items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm fade-in slide-in-from-bottom-1 duration-200 fill-mode-both">
                   <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <span className="min-w-0 truncate">{f.name}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">{formaterTaille(f.size)}</span>
                   <button type="button" onClick={() => synchroniser(fichiers.filter((_, j) => j !== i))} aria-label={`Retirer ${f.name}`}>
-                    <X className="size-3.5 text-muted-foreground hover:text-destructive" aria-hidden />
+                    <X className="size-3.5 text-muted-foreground transition-colors hover:text-destructive" aria-hidden />
                   </button>
                 </li>
               ))}

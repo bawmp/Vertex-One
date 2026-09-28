@@ -65,7 +65,7 @@ export default async function PageMesTaches() {
       {mesTaches.length > 0 ? (
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {mesTaches.map((t) => {
+            {mesTaches.map((t, index) => {
               const leProjet = projetsParId[t.projetId];
               const leDossier = leProjet ? dossiersParId[leProjet.dossierId] : undefined;
               return (
@@ -82,6 +82,7 @@ export default async function PageMesTaches() {
                     assigneNom="Vous"
                     echeance={t.echeance}
                     peutModifier
+                    index={index}
                   />
                 </div>
               );

@@ -103,7 +103,7 @@ export function Compositeur({
   return (
     <div className="relative flex flex-col gap-1.5 border-t border-border p-3">
       {suggestions.length > 0 ? (
-        <ul role="listbox" aria-label={t("Personnes à mentionner")} className="absolute bottom-full left-3 z-20 mb-1 w-64 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
+        <ul role="listbox" aria-label={t("Personnes à mentionner")} className="absolute bottom-full left-3 z-20 mb-1 w-64 animate-in overflow-hidden rounded-lg border border-border bg-popover shadow-md fade-in slide-in-from-bottom-1 duration-150 fill-mode-both">
           {suggestions.map((s, i) => (
             <li key={s.id} role="option" aria-selected={i === indexSuggestion}>
               <button
@@ -112,7 +112,7 @@ export function Compositeur({
                   e.preventDefault(); // garde le focus dans le champ de saisie
                   choisirSuggestion(s);
                 }}
-                className={`w-full truncate px-3 py-1.5 text-left text-sm ${i === indexSuggestion ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                className={`w-full truncate px-3 py-1.5 text-left text-sm transition-colors duration-150 ${i === indexSuggestion ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
               >
                 @{s.nom}
               </button>
@@ -123,12 +123,12 @@ export function Compositeur({
 
       {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
       {fichier ? (
-        <div className="flex w-fit max-w-full items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm">
+        <div className="flex w-fit max-w-full animate-in items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm fade-in slide-in-from-bottom-1 duration-200 fill-mode-both">
           <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <span className="min-w-0 truncate">{fichier.name}</span>
           <span className="shrink-0 text-xs text-muted-foreground">{formaterTaille(fichier.size)}</span>
           <button type="button" onClick={retirerFichier} aria-label={t("Retirer la pièce jointe")}>
-            <X className="size-3.5 text-muted-foreground hover:text-destructive" aria-hidden />
+            <X className="size-3.5 text-muted-foreground transition-colors hover:text-destructive" aria-hidden />
           </button>
         </div>
       ) : null}

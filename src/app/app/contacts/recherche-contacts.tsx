@@ -26,9 +26,18 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {filtres.map((c) => (
-            <Link key={c.id} href={`/app/contacts/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-              <span className="min-w-0 truncate font-medium">{c.nom}</span>
+          {filtres.map((c, index) => (
+            <Link
+              key={c.id}
+              href={`/app/contacts/${c.id}`}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+            >
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+              />
+              <span className="min-w-0 truncate font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{c.nom}</span>
               <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
                 {c.compteNom ? (
                   <span className="flex items-center gap-1">

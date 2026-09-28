@@ -145,11 +145,16 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {projets.map((p) => {
+          {projets.map((p, index) => {
             const info = STATUT_PROJET[p.statut];
             return (
-              <Link key={p.id} href={`/app/projets/${p.id}`}>
-                <Card className="h-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_6px_rgba(0,0,0,0.05),0_16px_32px_-16px_rgba(0,0,0,0.14)]">
+              <Link
+                key={p.id}
+                href={`/app/projets/${p.id}`}
+                className="animate-in fade-in slide-in-from-bottom-1 fill-mode-both duration-300"
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              >
+                <Card interactive className="h-full">
                   <CardContent className="flex flex-col gap-1.5">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-medium">{p.titre}</p>

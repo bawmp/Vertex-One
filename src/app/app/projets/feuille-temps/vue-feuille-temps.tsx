@@ -154,7 +154,7 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
               </tr>
             ) : (
               lignes.map((ligne) => (
-                <tr key={ligne} className="border-b last:border-0">
+                <tr key={ligne} className="border-b transition-colors last:border-0 hover:bg-muted/30">
                   <td className="max-w-48 truncate px-3 py-2">{ligne}</td>
                   {jours.map((j, i) => {
                     const h = heuresPour(ligne, j);

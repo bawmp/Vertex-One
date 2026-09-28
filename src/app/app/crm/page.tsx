@@ -10,6 +10,7 @@ import { STATUT_DEAL } from "@/lib/libelles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { NombreAnime } from "@/components/nombre-anime";
 import { FormulaireTacheCrm } from "./formulaire-tache-crm";
 import { FormulaireReunionCrm } from "./formulaire-reunion-crm";
 import { LigneTacheCrm } from "./ligne-tache-crm";
@@ -145,7 +146,7 @@ export default async function PageAccueilCrm() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
@@ -153,10 +154,12 @@ export default async function PageAccueilCrm() {
               </span>
               <CardDescription>{t("Mes Deals ouverts")}</CardDescription>
             </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalDealsOuverts}</CardTitle>
+            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+              <NombreAnime valeur={donnees.totalDealsOuverts} />
+            </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
@@ -164,10 +167,12 @@ export default async function PageAccueilCrm() {
               </span>
               <CardDescription>{t("Mes Deals non touchés")}</CardDescription>
             </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalDealsNonTouches}</CardTitle>
+            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+              <NombreAnime valeur={donnees.totalDealsNonTouches} />
+            </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -175,10 +180,12 @@ export default async function PageAccueilCrm() {
               </span>
               <CardDescription>{t("Mes appels aujourd'hui")}</CardDescription>
             </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.appelsAujourdhui}</CardTitle>
+            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+              <NombreAnime valeur={donnees.appelsAujourdhui} />
+            </CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
@@ -186,7 +193,9 @@ export default async function PageAccueilCrm() {
               </span>
               <CardDescription>{t("Mes prospects")}</CardDescription>
             </div>
-            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">{donnees.totalProspects}</CardTitle>
+            <CardTitle className="mt-2 text-3xl font-semibold tracking-tight">
+              <NombreAnime valeur={donnees.totalProspects} />
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -217,9 +226,10 @@ export default async function PageAccueilCrm() {
                 </tr>
               </thead>
               <tbody>
-                {donnees.tachesBrutes.map((t) => (
+                {donnees.tachesBrutes.map((t, index) => (
                   <LigneTacheCrm
                     key={t.id}
+                    index={index}
                     id={t.id}
                     objet={t.objet}
                     statut={t.statut}
@@ -265,8 +275,12 @@ export default async function PageAccueilCrm() {
                 </tr>
               </thead>
               <tbody>
-                {donnees.reunionsBrutes.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0">
+                {donnees.reunionsBrutes.map((r, index) => (
+                  <tr
+                    key={r.id}
+                    style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                    className="animate-in fade-in border-b duration-300 fill-mode-both transition-colors hover:bg-muted/50 last:border-0"
+                  >
                     <td className="px-4 py-2.5">{r.titre}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">
                       {new Intl.DateTimeFormat(t.locale, { dateStyle: "short", timeStyle: "short" }).format(r.dateDebut)}
@@ -294,8 +308,12 @@ export default async function PageAccueilCrm() {
           <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Prospects d'aujourd'hui")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {donnees.prospectsAujourdhui.map((l) => (
-                <div key={l.id} className="px-4 py-2.5 text-sm text-muted-foreground">
+              {donnees.prospectsAujourdhui.map((l, index) => (
+                <div
+                  key={l.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="animate-in fade-in px-4 py-2.5 text-sm text-muted-foreground duration-300 fill-mode-both"
+                >
                   {new Intl.DateTimeFormat(t.locale, { timeStyle: "short" }).format(l.creeLe)}
                 </div>
               ))}
@@ -310,8 +328,12 @@ export default async function PageAccueilCrm() {
           <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Mes Deals en clôture ce mois-ci")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {donnees.dealsClotureCeMois.map((d) => (
-                <div key={d.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              {donnees.dealsClotureCeMois.map((d, index) => (
+                <div
+                  key={d.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="animate-in fade-in flex items-center justify-between px-4 py-2.5 text-sm duration-300 fill-mode-both"
+                >
                   <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montant)}</span>
                   <Badge variant={STATUT_DEAL[d.statut]?.variante ?? "neutral"}>{t(STATUT_DEAL[d.statut]?.libelle ?? d.statut)}</Badge>
                 </div>
@@ -331,11 +353,15 @@ export default async function PageAccueilCrm() {
         </h2>
         <Card>
           <CardContent className="flex flex-col gap-2.5">
-            {donnees.pipelineParEtape.map((p) => {
+            {donnees.pipelineParEtape.map((p, index) => {
               const info = STATUT_DEAL[p.statut];
               const part = totalPipeline > 0 ? (p.montant / totalPipeline) * 100 : 0;
               return (
-                <div key={p.statut} className="flex flex-col gap-1">
+                <div
+                  key={p.statut}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="flex animate-in flex-col fade-in gap-1 duration-300 fill-mode-both"
+                >
                   <div className="flex items-center justify-between text-sm">
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? p.statut)}</Badge>
                     <span className="tabular-nums font-medium text-foreground">

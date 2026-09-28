@@ -116,12 +116,20 @@ export default async function PageFeuilleTemps() {
         {entrees.length > 0 ? (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {entrees.map((e) => {
+              {entrees.map((e, index) => {
                 const leProjet = projetsParId[e.projetId];
                 const leDossier = leProjet ? dossiersParId[leProjet.dossierId] : undefined;
                 return (
-                  <div key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <div className="min-w-0">
+                  <div
+                    key={e.id}
+                    className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+                    style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                    />
+                    <div className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1">
                       {leProjet ? (
                         <Link href={`/app/projets/${leProjet.id}`} className="block truncate font-medium hover:underline">
                           {leDossier?.titre} → {leProjet.titre}

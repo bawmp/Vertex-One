@@ -180,11 +180,20 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
             {deals.length > 0 ? (
               <Card className="p-0">
                 <div className="flex flex-col divide-y divide-border">
-                  {deals.map((d) => {
+                  {deals.map((d, index) => {
                     const info = STATUT_DEAL[d.statut];
                     return (
-                      <Link key={d.id} href={`/app/deals/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                        <span className="truncate font-medium">{d.titre}</span>
+                      <Link
+                        key={d.id}
+                        href={`/app/deals/${d.id}`}
+                        style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                        className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                      >
+                        <span
+                          aria-hidden
+                          className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                        />
+                        <span className="truncate font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{d.titre}</span>
                         <div className="flex shrink-0 items-center gap-2">
                           <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(d.montant)} FCFA</span>
                           <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>

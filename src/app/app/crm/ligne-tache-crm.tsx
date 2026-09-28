@@ -12,6 +12,7 @@ type StatutTacheCrm = "NON_COMMENCEE" | "EN_COURS" | "TERMINEE" | "DIFFEREE";
 
 export function LigneTacheCrm({
   id,
+  index = 0,
   objet,
   statut,
   priorite,
@@ -20,6 +21,7 @@ export function LigneTacheCrm({
   nomContact,
 }: {
   id: string;
+  index?: number;
   objet: string;
   statut: StatutTacheCrm;
   priorite: string;
@@ -32,7 +34,10 @@ export function LigneTacheCrm({
   const infoPriorite = PRIORITE_TACHE_CRM[priorite];
 
   return (
-    <tr className="border-b last:border-0">
+    <tr
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+      className="animate-in fade-in border-b duration-300 fill-mode-both transition-colors hover:bg-muted/50 last:border-0"
+    >
       <td className="px-4 py-2.5">{objet}</td>
       <td className="px-4 py-2.5 text-muted-foreground">
         {dateEcheance ? new Intl.DateTimeFormat(t.locale, { dateStyle: "short" }).format(dateEcheance) : "—"}

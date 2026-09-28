@@ -66,7 +66,7 @@ export function VueDocumentsFinanciers({
         ))}
       </div>
 
-      <Card className="p-0">
+      <Card className="animate-in fade-in slide-in-from-bottom-2 p-0 duration-500 fill-mode-both">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -80,12 +80,16 @@ export function VueDocumentsFinanciers({
               </tr>
             </thead>
             <tbody>
-              {documentsFiltres.map((d) => {
+              {documentsFiltres.map((d, index) => {
                 const typeRattachement = d.factureId ? "facture" : d.paiementId ? "paiement" : "aucun";
                 const idRattachement = d.factureId ?? d.paiementId ?? "";
                 return (
                   <>
-                    <tr key={d.id} className="border-b last:border-0">
+                    <tr
+                      key={d.id}
+                      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                      className="animate-in fade-in border-b fill-mode-both duration-300 transition-colors hover:bg-muted/30 last:border-0"
+                    >
                       <td className="px-4 py-2.5">
                         <Link
                           href={`/app/comptabilite/documents/${d.id}`}

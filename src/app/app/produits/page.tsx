@@ -41,9 +41,14 @@ export default async function PageProduits() {
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {produits.map((p) => (
-            <div key={p.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
-              <Link href={`/app/produits/${p.id}`} className="flex min-w-0 items-start gap-3 hover:opacity-80">
+          {produits.map((p, index) => (
+            <div
+              key={p.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="group/ligne relative flex animate-in fade-in items-start justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+            >
+              <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+              <Link href={`/app/produits/${p.id}`} className="flex min-w-0 items-start gap-3 transition-transform duration-150 group-hover/ligne:translate-x-1">
                 {p.imageCleStockage ? (
                   // eslint-disable-next-line @next/next/no-img-element -- l'URL passe par une route de redirection signée.
                   <img src={`/app/produits/${p.id}/image`} alt="" className="size-9 shrink-0 rounded-md border object-cover" />

@@ -131,7 +131,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
         {taches.length > 0 ? (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {taches.map((t) => (
+              {taches.map((t, index) => (
                 <LigneTache
                   key={t.id}
                   id={t.id}
@@ -140,6 +140,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
                   assigneNom={utilisateursParId[t.assigneAId] ?? "—"}
                   echeance={t.echeance}
                   peutModifier={peutModifier}
+                  index={index}
                 />
               ))}
             </div>
@@ -184,7 +185,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
         {entreesTemps.length > 0 ? (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {entreesTemps.map((e) => (
+              {entreesTemps.map((e, index) => (
                 <LigneEntreeTemps
                   key={e.id}
                   id={e.id}
@@ -196,6 +197,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
                   note={e.note}
                   tacheTitre={e.tacheId ? (taches.find((t) => t.id === e.tacheId)?.titre ?? null) : null}
                   peutModifier={peutModifier}
+                  index={index}
                 />
               ))}
             </div>

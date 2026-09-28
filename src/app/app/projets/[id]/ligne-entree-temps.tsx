@@ -18,6 +18,7 @@ export function LigneEntreeTemps({
   note,
   tacheTitre,
   peutModifier,
+  index = 0,
 }: {
   id: string;
   date: Date;
@@ -28,22 +29,32 @@ export function LigneEntreeTemps({
   note: string | null;
   tacheTitre: string | null;
   peutModifier: boolean;
+  index?: number;
 }) {
   const t = useT();
   const [enCours, startTransition] = useTransition();
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 text-sm">
-      <Clock className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="truncate">
-          {note || tacheTitre || t("Heures travaillées")}
-          {tacheTitre && note ? <span className="text-muted-foreground"> — {tacheTitre}</span> : null}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(date)} — {dureeHeures}h
-          {facturable ? ` × ${new Intl.NumberFormat(t.locale).format(tauxHoraire)} FCFA` : t(" (non facturable)")}
-        </p>
+    <div
+      className="group/ligne relative flex animate-in fade-in items-center gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+      />
+      <div className="flex min-w-0 flex-1 items-center gap-3 transition-transform duration-150 group-hover/ligne:translate-x-1">
+        <Clock className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="truncate">
+            {note || tacheTitre || t("Heures travaillées")}
+            {tacheTitre && note ? <span className="text-muted-foreground"> — {tacheTitre}</span> : null}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(date)} — {dureeHeures}h
+            {facturable ? ` × ${new Intl.NumberFormat(t.locale).format(tauxHoraire)} FCFA` : t(" (non facturable)")}
+          </p>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {facturee ? (

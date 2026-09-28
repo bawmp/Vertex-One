@@ -39,9 +39,18 @@ export default async function PageFicheCompte({ params }: { params: Promise<{ id
         <h2 className="text-sm font-medium text-muted-foreground">{t("Contacts")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {contacts.map((c) => (
-              <Link key={c.id} href={`/app/contacts/${c.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                <span className="font-medium">
+            {contacts.map((c, index) => (
+              <Link
+                key={c.id}
+                href={`/app/contacts/${c.id}`}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">
                   {c.nom}
                   {c.fonction ? <span className="ml-1.5 text-xs text-muted-foreground">— {c.fonction}</span> : null}
                 </span>

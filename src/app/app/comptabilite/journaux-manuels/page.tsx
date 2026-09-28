@@ -83,8 +83,12 @@ export default async function PageJournauxManuels() {
         <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {journaux.map((j) => (
-              <div key={j.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            {journaux.map((j, index) => (
+              <div
+                key={j.id}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="flex animate-in fade-in items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/40"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {j.numero} — {j.libelle}
