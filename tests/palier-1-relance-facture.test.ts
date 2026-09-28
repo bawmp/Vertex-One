@@ -6,15 +6,17 @@ import { marquerFacturesEnRetard } from "@/lib/facturation/relance";
 
 /**
  * Vérifie la mécanique de relance (docs/palier-1-*, section 6, étape 6)
- * contre la vraie base et le vrai client Resend. La livraison réelle à une
- * adresse quelconque a été vérifiée manuellement une fois (voir CLAUDE.md,
- * section Resend) — ce test utilise volontairement une adresse @*.test pour
- * ne pas envoyer un email réel à chaque exécution de la suite ; Resend
- * refuse ces adresses tant qu'aucun domaine n'est vérifié
- * (validation_error 403), ce qui est le comportement attendu ici : le test
- * vérifie que cet échec est bien remonté proprement, pas silencieusement
- * avalé, et que la facture passe bien en EN_RETARD indépendamment du
- * résultat de l'envoi.
+ * contre la vraie base et le vrai client Resend. Depuis la vérification du
+ * domaine vertexone.cm sur Resend (2026-09-19), l'expéditeur n'est plus le
+ * bac à sable onboarding@resend.dev (qui refusait toute adresse hors
+ * propriétaire du compte) mais notifications@vertexone.cm — Resend accepte
+ * alors l'envoi vers n'importe quelle adresse syntaxiquement valide, y
+ * compris une adresse @*.test qui n'existe pas réellement (l'API de Resend
+ * ne vérifie pas l'existence du domaine destinataire à l'acceptation, un
+ * éventuel rejet interviendrait plus tard, de façon asynchrone, hors du
+ * périmètre de ce test). Bug réel trouvé en exécutant ce test après la
+ * vérification du domaine : l'ancienne assertion (échec attendu) ne
+ * correspondait plus à la réalité — voir CLAUDE.md, section Resend.
  */
 describe("Palier 1 — relance des factures en retard", () => {
   let entrepriseId: string;
@@ -80,11 +82,12 @@ describe("Palier 1 — relance des factures en retard", () => {
     const relanceEmail = resultats.find((r) => r.canal === "email");
     expect(relanceEmail).toBeDefined();
     expect(relanceEmail?.numero).toBe("FAC-TEST-RELANCE-000001");
-    // Échec attendu (domaine non vérifié sur Resend) — voir CLAUDE.md. Ce
-    // qui compte ici : l'appel réel a eu lieu et l'échec est bien remonté,
-    // pas avalé silencieusement.
-    expect(relanceEmail?.envoye).toBe(false);
-    expect(relanceEmail?.erreur).toMatch(/own email address|validation_error|RESEND_API_KEY/i);
+    // Succès attendu : notifications@vertexone.cm (domaine vérifié) peut
+    // envoyer à n'importe quelle adresse syntaxiquement valide, y compris
+    // une adresse @*.test qui n'existe pas réellement — voir le commentaire
+    // en tête de fichier.
+    expect(relanceEmail?.envoye).toBe(true);
+    expect(relanceEmail?.erreur).toBeUndefined();
 
     const relanceWhatsapp = resultats.find((r) => r.canal === "whatsapp");
     expect(relanceWhatsapp?.envoye).toBe(false);
