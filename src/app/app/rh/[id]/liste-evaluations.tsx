@@ -10,8 +10,12 @@ export function ListeEvaluations({ evaluations }: { evaluations: Evaluation[] })
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {evaluations.map((e) => (
-          <div key={e.id} className="flex flex-col gap-1 px-4 py-2.5 text-sm">
+        {evaluations.map((e, index) => (
+          <div
+            key={e.id}
+            style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+            className="flex animate-in fade-in slide-in-from-bottom-1 flex-col gap-1 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+          >
             <div className="flex items-center justify-between">
               <p className="font-medium">{e.periode}</p>
               <span className="text-xs text-muted-foreground">

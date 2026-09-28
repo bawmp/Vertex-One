@@ -14,6 +14,7 @@ import { rapportEntreprise, type RapportEntreprise } from "@/lib/rh/rapports";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NombreAnime } from "@/components/nombre-anime";
 import { traiterDemandeConge } from "@/lib/actions/rh";
 import { traiterDemandeDepart } from "@/lib/actions/depart";
 
@@ -164,8 +165,12 @@ export default async function PageRH() {
           </h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {demandesEnAttente.map((d) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              {demandesEnAttente.map((d, index) => (
+                <div
+                  key={d.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+                >
                   <div>
                     <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? "Employé"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -200,8 +205,12 @@ export default async function PageRH() {
           </h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {departsEnAttente.map((d) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              {departsEnAttente.map((d, index) => (
+                <div
+                  key={d.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+                >
                   <div>
                     <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? "Employé"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -232,8 +241,12 @@ export default async function PageRH() {
           <h2 className="text-sm font-medium text-muted-foreground">Activité de l&apos;équipe (tâches terminées ce mois-ci)</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {activite.map((a) => (
-                <div key={a.utilisateurId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              {activite.map((a, index) => (
+                <div
+                  key={a.utilisateurId}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between px-4 py-2.5 text-sm duration-300 fill-mode-both"
+                >
                   <span>{a.nomComplet}</span>
                   <Badge variant="neutral">{a.tachesTerminees} tâche(s)</Badge>
                 </div>
@@ -248,13 +261,15 @@ export default async function PageRH() {
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">Aperçu</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Briefcase className="size-3.5" aria-hidden />
                   Dossiers actifs
                 </p>
-                <p className="text-xl font-semibold">{rapport.dossiersActifs}</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={rapport.dossiersActifs} />
+                </p>
                 {Object.keys(rapport.repartitionContrats).length > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     {Object.entries(rapport.repartitionContrats)
@@ -264,19 +279,21 @@ export default async function PageRH() {
                 ) : null}
               </CardContent>
             </Card>
-            <Link href="/app/rh/tickets">
-              <Card className="h-full transition-colors hover:bg-muted/50">
+            <Link href="/app/rh/tickets" className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
+              <Card interactive className="h-full">
                 <CardContent className="flex flex-col gap-1">
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Ticket className="size-3.5" aria-hidden />
                     Tickets ouverts
                   </p>
-                  <p className="text-xl font-semibold">{ticketsOuverts}</p>
+                  <p className="text-xl font-semibold">
+                    <NombreAnime valeur={ticketsOuverts} />
+                  </p>
                 </CardContent>
               </Card>
             </Link>
             {utilisateurConnecte.role === "ADMIN" ? (
-              <Card>
+              <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
                 <CardContent className="flex flex-col gap-1">
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Wallet className="size-3.5" aria-hidden />
@@ -287,14 +304,16 @@ export default async function PageRH() {
               </Card>
             ) : null}
             {rapport.dernierSondage ? (
-              <Link href="/app/rh/sondages">
-                <Card className="h-full transition-colors hover:bg-muted/50">
+              <Link href="/app/rh/sondages" className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
+                <Card interactive className="h-full">
                   <CardContent className="flex flex-col gap-1">
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Smile className="size-3.5" aria-hidden />
                       Dernier sondage — {rapport.dernierSondage.titre}
                     </p>
-                    <p className="text-xl font-semibold">{rapport.dernierSondage.tauxParticipation}% de participation</p>
+                    <p className="text-xl font-semibold">
+                      <NombreAnime valeur={rapport.dernierSondage.tauxParticipation} suffixe="% de participation" />
+                    </p>
                   </CardContent>
                 </Card>
               </Link>
@@ -315,10 +334,19 @@ export default async function PageRH() {
         ) : (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {dossiers.map((d) => (
-                <Link key={d.id} href={`/app/rh/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                  <span className="font-medium">{d.nomComplet}</span>
-                  <span className="text-xs text-muted-foreground">{d.poste}</span>
+              {dossiers.map((d, index) => (
+                <Link
+                  key={d.id}
+                  href={`/app/rh/${d.id}`}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                  />
+                  <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{d.nomComplet}</span>
+                  <span className="text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">{d.poste}</span>
                 </Link>
               ))}
               {dossiers.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">Aucun dossier RH pour le moment.</p> : null}

@@ -10,6 +10,7 @@ import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { rapportPersonnel, rapportEquipe, rapportEntreprise } from "@/lib/rh/rapports";
 import { Card, CardContent } from "@/components/ui/card";
+import { NombreAnime } from "@/components/nombre-anime";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 const LIBELLE_STATUT_TICKET: Record<string, string> = { OUVERT: "Ouvert", EN_COURS: "En cours", RESOLU: "Résolu", FERME: "Fermé" };
@@ -82,28 +83,36 @@ export default async function PageRapportsRH() {
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">Mes données</h2>
           <div className="grid gap-3 sm:grid-cols-4">
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Solde de congés</p>
-                <p className="text-xl font-semibold">{personnel.soldeConges} j.</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={personnel.soldeConges} suffixe=" j." />
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Congé payé pris ({new Date().getFullYear()})</p>
-                <p className="text-xl font-semibold">{personnel.congesPrisAnnee} j.</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={personnel.congesPrisAnnee} suffixe=" j." />
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Régularisations en attente</p>
-                <p className="text-xl font-semibold">{personnel.regularisationsEnAttente}</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={personnel.regularisationsEnAttente} />
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Mes tickets ouverts</p>
-                <p className="text-xl font-semibold">{personnel.ticketsOuverts}</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={personnel.ticketsOuverts} />
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -115,10 +124,19 @@ export default async function PageRapportsRH() {
           <h2 className="text-sm font-medium text-muted-foreground">Équipe</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {equipe.map((e) => (
-                <Link key={e.dossierRHId} href={`/app/rh/${e.dossierRHId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                  <span className="font-medium">{e.nomComplet}</span>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {equipe.map((e, index) => (
+                <Link
+                  key={e.dossierRHId}
+                  href={`/app/rh/${e.dossierRHId}`}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                  />
+                  <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{e.nomComplet}</span>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <span>{e.soldeConges} j. de solde</span>
                     {e.demandesCongeEnAttente > 0 ? <span className="text-amber-600 dark:text-amber-400">{e.demandesCongeEnAttente} demande(s) en attente</span> : null}
                     <span>{e.presentAujourdhui ? "Présent aujourd'hui" : "Pas encore pointé"}</span>
@@ -134,14 +152,16 @@ export default async function PageRapportsRH() {
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">Entreprise</h2>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Dossiers actifs</p>
-                <p className="text-xl font-semibold">{entrepriseRapport.dossiersActifs}</p>
+                <p className="text-xl font-semibold">
+                  <NombreAnime valeur={entrepriseRapport.dossiersActifs} />
+                </p>
                 {entrepriseRapport.dossiersPartis > 0 ? <p className="text-xs text-muted-foreground">{entrepriseRapport.dossiersPartis} parti(s)</p> : null}
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Répartition des contrats</p>
                 <div className="flex flex-wrap gap-x-3 text-sm">
@@ -153,7 +173,7 @@ export default async function PageRapportsRH() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">Masse salariale (base, mensuelle)</p>
                 <p className="text-xl font-semibold">{new Intl.NumberFormat("fr-FR").format(entrepriseRapport.masseSalariale)} FCFA</p>
@@ -161,7 +181,7 @@ export default async function PageRapportsRH() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
             <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Tickets d&apos;assistance RH</p>
               <div className="flex flex-wrap gap-x-3 text-sm">
@@ -176,7 +196,7 @@ export default async function PageRapportsRH() {
           </Card>
 
           {entrepriseRapport.dernierSondage ? (
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
               <CardContent className="flex flex-col gap-2">
                 <p className="text-xs text-muted-foreground">Dernier sondage fermé — {entrepriseRapport.dernierSondage.titre}</p>
                 <p className="text-sm">Taux de participation : {entrepriseRapport.dernierSondage.tauxParticipation}%</p>

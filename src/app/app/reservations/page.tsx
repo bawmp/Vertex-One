@@ -111,8 +111,12 @@ export default async function PageReservations() {
         )
       ) : (
         <div className="flex flex-col gap-3">
-          {donnees.reservations.map((r) => (
-            <Card key={r.id}>
+          {donnees.reservations.map((r, index) => (
+            <Card
+              key={r.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+            >
               <CardContent className="flex items-center justify-between gap-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">

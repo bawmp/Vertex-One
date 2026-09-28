@@ -68,8 +68,12 @@ export default async function PageShifts() {
       <FormulaireNouveauShift />
 
       <div className="flex flex-col gap-3">
-        {shifts.map((s) => (
-          <Card key={s.id} className={s.actif ? undefined : "opacity-60"}>
+        {shifts.map((s, index) => (
+          <Card
+            key={s.id}
+            style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+            className={`animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both ${s.actif ? "" : "opacity-60"}`}
+          >
             <CardContent className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="font-medium">{s.nom}</p>

@@ -91,11 +91,16 @@ function VueGroupe({ nomGroupe, filiales }: { nomGroupe: string; filiales: Filia
       </div>
 
       <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
-        {filiales.map((f) => {
+        {filiales.map((f, index) => {
           const libelle = LIBELLE_STATUT[f.statutAbonnement] ?? { texte: f.statutAbonnement, variant: "brand" as const };
           return (
-            <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-              <p className="font-medium">{f.nom}</p>
+            <div
+              key={f.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+            >
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+              <p className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{f.nom}</p>
               <Badge variant={libelle.variant}>{libelle.texte}</Badge>
             </div>
           );

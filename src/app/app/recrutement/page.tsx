@@ -107,8 +107,12 @@ export default async function PageRecrutement() {
         )
       ) : (
         <div className="flex flex-col gap-3">
-          {donnees.candidatures.map((c) => (
-            <Card key={c.id}>
+          {donnees.candidatures.map((c, index) => (
+            <Card
+              key={c.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+            >
               <CardContent className="flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>

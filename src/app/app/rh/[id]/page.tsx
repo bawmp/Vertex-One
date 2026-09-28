@@ -213,7 +213,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardContent className="flex flex-col gap-3">
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div>

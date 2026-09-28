@@ -19,8 +19,12 @@ export function ListeDocumentsRH({ documents, dossierRHId, peutSupprimer }: { do
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {documents.map((d) => (
-          <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+        {documents.map((d, index) => (
+          <div
+            key={d.id}
+            style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+            className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0">

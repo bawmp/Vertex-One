@@ -16,7 +16,7 @@ export type MembreEquipe = { id: string; nomComplet: string; email: string; role
 
 const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
 
-function LigneMembre({ membre }: { membre: MembreEquipe }) {
+function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number }) {
   const t = useT();
   const tous = modulesRestreignables(membre.role);
   const initiales = membre.modulesAutorises ?? tous;
@@ -37,8 +37,12 @@ function LigneMembre({ membre }: { membre: MembreEquipe }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3 text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+      className="group/ligne relative flex animate-in fade-in flex-col gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+    >
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+      <div className="flex flex-wrap items-center justify-between gap-3 transition-transform duration-150 group-hover/ligne:translate-x-1">
         <div className="min-w-0">
           <p className="truncate font-medium">{membre.nomComplet}</p>
           <p className="truncate text-muted-foreground">{membre.email}</p>
@@ -79,8 +83,8 @@ export function MembresEquipe({ membres }: { membres: MembreEquipe[] }) {
       <p className="mb-2 text-xs text-muted-foreground">{t("Choisissez les modules que chaque Manager ou Employé peut utiliser. Ses droits à l'intérieur d'un module restent ceux de son rôle.")}</p>
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {membres.map((m) => (
-            <LigneMembre key={m.id} membre={m} />
+          {membres.map((m, index) => (
+            <LigneMembre key={m.id} membre={m} index={index} />
           ))}
           {membres.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun Manager ni Employé pour le moment.")}</p> : null}
         </div>

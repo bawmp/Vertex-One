@@ -42,7 +42,7 @@ export default async function PageInfosLegales() {
       <p className="mt-1 mb-6 text-muted-foreground">
         {t("Le NIU est obligatoire avant d'émettre le moindre devis — c'est la mention la plus surveillée par la DGI.")}
       </p>
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle>{t("Nom de l'entreprise")}</CardTitle>
           <CardDescription>{t("Affiché partout dans l'application et sur vos documents.")}</CardDescription>
@@ -52,7 +52,7 @@ export default async function PageInfosLegales() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
+      <Card className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
         <CardHeader>
           <CardTitle>{t("Identification de l'entreprise")}</CardTitle>
           <CardDescription>{t("Utilisée sur tous les devis et factures émis.")}</CardDescription>
@@ -62,7 +62,7 @@ export default async function PageInfosLegales() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
+      <Card className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
         <CardHeader>
           <CardTitle>{t("Groupe d'entreprises")}</CardTitle>
           <CardDescription>{t("Relie cette entreprise à d'autres filiales du même propriétaire — vue d'ensemble uniquement, aucune donnée partagée.")}</CardDescription>

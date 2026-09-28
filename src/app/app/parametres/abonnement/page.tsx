@@ -55,7 +55,7 @@ export default async function PageAbonnement() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("Abonnement")}</h1>
       </div>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {t("Vertex One — 50 000 FCFA/mois")}
@@ -76,14 +76,19 @@ export default async function PageAbonnement() {
         ) : null}
       </Card>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Historique des paiements")}</h2>
         {statut.paiements.length > 0 ? (
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {statut.paiements.map((p) => (
-                <div key={p.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <div>
+              {statut.paiements.map((p, index) => (
+                <div
+                  key={p.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+                >
+                  <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                  <div className="transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <p className="font-medium">{formaterFCFA(p.montant)}</p>
                     <p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(p.creeLe)}</p>
                   </div>

@@ -43,8 +43,12 @@ export default async function PageJournalOneVault() {
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {journal.map((l) => (
-            <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          {journal.map((l, index) => (
+            <div
+              key={l.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+            >
               <div className="min-w-0">
                 <p className="truncate font-medium">{l.secretTitre ?? "(secret supprimé définitivement)"}</p>
                 <p className="text-xs text-muted-foreground">{l.utilisateurNom ?? "Utilisateur inconnu"}</p>

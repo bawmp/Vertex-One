@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { creerService, renommerService, archiverService } from "@/lib/actions/service";
 import { useT } from "@/lib/i18n/contexte";
 
-function LigneService({ service }: { service: { id: string; nom: string } }) {
+function LigneService({ service, index }: { service: { id: string; nom: string }; index: number }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(renommerService, null);
   const [enEdition, setEnEdition] = useState(false);
@@ -31,8 +31,12 @@ function LigneService({ service }: { service: { id: string; nom: string } }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-      <p className="font-medium">{service.nom}</p>
+    <div
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+      className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+    >
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+      <p className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{service.nom}</p>
       <div className="flex items-center gap-1">
         <Button type="button" variant="ghost" size="icon-sm" aria-label={t("Renommer")} onClick={() => setEnEdition(true)}>
           <Pencil aria-hidden />
@@ -87,8 +91,8 @@ export function GestionServices({ services }: { services: { id: string; nom: str
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {services.map((s) => (
-            <LigneService key={s.id} service={s} />
+          {services.map((s, index) => (
+            <LigneService key={s.id} service={s} index={index} />
           ))}
           {services.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun département pour le moment.")}</p>

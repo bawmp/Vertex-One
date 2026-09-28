@@ -37,8 +37,8 @@ export default async function PageCorbeilleOneVault() {
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {secrets.map((s) => (
-            <LigneCorbeille key={s.id} secret={s} peutGerer={peutGerer} />
+          {secrets.map((s, index) => (
+            <LigneCorbeille key={s.id} secret={s} peutGerer={peutGerer} index={index} />
           ))}
           {secrets.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">La corbeille est vide.</p> : null}
         </div>

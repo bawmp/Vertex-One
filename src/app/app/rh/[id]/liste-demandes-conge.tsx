@@ -36,10 +36,14 @@ export function ListeDemandesConge({
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {demandes.map((d) => {
+        {demandes.map((d, index) => {
           const info = LIBELLE_STATUT[d.statut] ?? { libelle: d.statut, variante: "neutral" as const };
           return (
-            <div key={d.id} className="flex flex-col gap-1.5 px-4 py-2.5 text-sm">
+            <div
+              key={d.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="flex animate-in fade-in slide-in-from-bottom-1 flex-col gap-1.5 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+            >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">
                   {LIBELLE_TYPE[d.type] ?? d.type} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.dateDebut)} au{" "}

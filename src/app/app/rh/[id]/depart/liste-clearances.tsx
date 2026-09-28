@@ -13,10 +13,14 @@ export function ListeClearances({ clearances, utilisateurId, peutSupprimer }: { 
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {clearances.map((c) => {
+        {clearances.map((c, index) => {
           const peutValider = !c.complete && (c.responsableId === utilisateurId || peutSupprimer);
           return (
-            <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+            <div
+              key={c.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
+            >
               <div className="flex items-center gap-2">
                 {c.complete ? <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden /> : <Circle className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
                 <div>

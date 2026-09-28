@@ -26,7 +26,7 @@ export function SelecteurModules({ role, valeurs, onChange, name }: { role: Role
       </div>
       <div className="grid gap-1.5 sm:grid-cols-2">
         {modules.map((m) => (
-          <label key={m} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm has-checked:border-primary/40 has-checked:bg-primary/5">
+          <label key={m} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50 has-checked:border-primary/40 has-checked:bg-primary/5">
             <input
               type="checkbox"
               name={name}

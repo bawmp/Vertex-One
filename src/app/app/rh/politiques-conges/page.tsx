@@ -73,10 +73,14 @@ export default async function PagePolitiquesConges() {
       <FormulaireNouvellePolitique />
 
       <div className="flex flex-col gap-3">
-        {politiques.map((p) => {
+        {politiques.map((p, index) => {
           const sesPaliers = paliers.filter((pal) => pal.politiqueCongeId === p.id).sort((a, b) => a.anneesAncienneteMin - b.anneesAncienneteMin);
           return (
-            <Card key={p.id} className={p.actif ? undefined : "opacity-60"}>
+            <Card
+              key={p.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              className={`animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both ${p.actif ? "" : "opacity-60"}`}
+            >
               <CardContent className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">

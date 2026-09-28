@@ -9,12 +9,15 @@ import { restaurerSecret, supprimerDefinitivement } from "@/lib/actions/one-vaul
 
 type Secret = { id: string; titre: string; partage: boolean; supprimeLe: Date | null };
 
-export function LigneCorbeille({ secret, peutGerer }: { secret: Secret; peutGerer: boolean }) {
+export function LigneCorbeille({ secret, peutGerer, index = 0 }: { secret: Secret; peutGerer: boolean; index?: number }) {
   const [restaurationEnCours, demarrerRestauration] = useTransition();
   const [suppressionEnCours, demarrerSuppression] = useTransition();
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
+    <div
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+      className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-3 fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <p className="truncate font-medium">{secret.titre}</p>

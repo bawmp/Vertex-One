@@ -71,13 +71,17 @@ export default async function PageStaffReservations() {
       </p>
 
       <div className="flex flex-col gap-4">
-        {utilisateurs.map((u) => {
+        {utilisateurs.map((u, index) => {
           const intervenant = intervenantParUtilisateurId.get(u.id);
           const actif = intervenant?.actif ?? false;
           const mesDisponibilites = intervenant ? disponibilites.filter((d) => d.intervenantId === intervenant.id) : [];
 
           return (
-            <Card key={u.id}>
+            <Card
+              key={u.id}
+              style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+            >
               <CardContent className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium">{u.nomComplet}</p>

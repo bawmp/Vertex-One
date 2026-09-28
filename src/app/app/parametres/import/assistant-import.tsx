@@ -106,7 +106,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
   return (
     <div className="flex flex-col gap-4">
       {etape === "choix" ? (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both">
           <CardContent className="flex flex-col gap-4">
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1 text-sm font-medium">{t("1. Que voulez-vous importer ?")}</legend>
@@ -162,7 +162,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
       ) : null}
 
       {etape === "colonnes" && apercu ? (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both">
           <CardContent className="flex flex-col gap-4">
             <div>
               <h2 className="text-sm font-medium">{t("3. Associer les colonnes — {type}", { type: t(def.libelle) })}</h2>
@@ -242,7 +242,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
       ) : null}
 
       {etape === "simulation" && rapport ? (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both">
           <CardContent className="flex flex-col gap-4">
             <h2 className="text-sm font-medium">{t("4. Résultat de la simulation — rien n'a encore été enregistré")}</h2>
             <ResumeRapport rapport={rapport} conditionnel />
@@ -264,7 +264,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
       ) : null}
 
       {etape === "termine" && rapport ? (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both">
           <CardContent className="flex flex-col gap-4">
             <h2 className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="size-4" aria-hidden />

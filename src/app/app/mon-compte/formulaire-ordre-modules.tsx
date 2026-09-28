@@ -34,7 +34,7 @@ export function FormulaireOrdreModules({ libellesInitiaux }: { libellesInitiaux:
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{traduireGroupe(cle, t)}</p>
           <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {elements.map((libelle, index) => (
-              <div key={libelle} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <div key={libelle} className="flex items-center justify-between gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/50">
                 <span>{traduireNav(libelle, t)}</span>
                 <div className="flex items-center gap-1">
                   {enCours ? <Spinner className="size-3.5" /> : null}

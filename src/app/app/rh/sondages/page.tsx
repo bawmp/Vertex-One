@@ -84,11 +84,20 @@ export default async function PageSondages() {
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
-          {sondages.map((s) => {
+          {sondages.map((s, index) => {
             const info = LIBELLE_STATUT[s.statut] ?? { libelle: s.statut, variante: "neutral" as const };
             return (
-              <Link key={s.id} href={`/app/rh/sondages/${s.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                <span className="font-medium">{s.titre}</span>
+              <Link
+                key={s.id}
+                href={`/app/rh/sondages/${s.id}`}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{s.titre}</span>
                 <div className="flex items-center gap-2">
                   {s.statut === "OUVERT" && idsRepondus.has(s.id) ? <Badge variant="neutral">Déjà répondu</Badge> : null}
                   <Badge variant={info.variante}>{info.libelle}</Badge>

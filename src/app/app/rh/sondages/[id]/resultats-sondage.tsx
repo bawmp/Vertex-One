@@ -6,10 +6,14 @@ type Question = { id: string; libelle: string; type: "NPS" | "ETOILES" | "TEXTE"
 export function ResultatsSondage({ questions }: { questions: Question[] }) {
   return (
     <div className="flex flex-col gap-3">
-      {questions.map((q) => {
+      {questions.map((q, index) => {
         const resultat = calculerResultatsQuestion(q.type, q.valeurs);
         return (
-          <Card key={q.id} className="p-4">
+          <Card
+            key={q.id}
+            style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+            className="animate-in fade-in slide-in-from-bottom-1 p-4 duration-300 fill-mode-both"
+          >
             <p className="mb-2 text-sm font-medium">{q.libelle}</p>
             {resultat.type === "TEXTE" ? (
               resultat.reponses.length === 0 ? (

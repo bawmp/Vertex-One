@@ -61,9 +61,17 @@ export default async function PageOneForm() {
 
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {donnees.formulaires.map((f) => (
-                <div key={f.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <Link href={`/app/one-form/${f.id}`} className="min-w-0 flex-1 hover:underline">
+              {donnees.formulaires.map((f, index) => (
+                <div
+                  key={f.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in slide-in-from-bottom-1 flex-wrap items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                  />
+                  <Link href={`/app/one-form/${f.id}`} className="min-w-0 flex-1 transition-transform duration-150 group-hover/ligne:translate-x-1 hover:underline">
                     <p className="truncate font-medium">{f.titre}</p>
                     <p className="text-xs text-muted-foreground">Créé le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(f.creeLe)}</p>
                   </Link>

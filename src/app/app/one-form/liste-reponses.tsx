@@ -19,7 +19,7 @@ export function ListeReponses({ champs, reponses }: { champs: Champ[]; reponses:
   return (
     <Card className="p-0">
       <div className="flex flex-col divide-y divide-border">
-        {reponses.map((r) => {
+        {reponses.map((r, index) => {
           const ouvert = ouvertId === r.id;
           const apercu = champs
             .map((c) => r.valeurs[c.id])
@@ -29,9 +29,14 @@ export function ListeReponses({ champs, reponses }: { champs: Champ[]; reponses:
               <button
                 type="button"
                 onClick={() => setOuvertId(ouvert ? null : r.id)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-muted/50"
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                className="group/ligne relative flex w-full animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 overflow-hidden px-4 py-3 text-left text-sm fill-mode-both duration-300 hover:bg-muted/50"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
+                />
+                <div className="flex min-w-0 items-center gap-2 transition-transform duration-150 group-hover/ligne:translate-x-1">
                   {ouvert ? <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden /> : <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
                   <span className="truncate">{apercu ?? (Object.keys(r.fichiers).length > 0 ? "Fichier reçu" : "—")}</span>
                 </div>

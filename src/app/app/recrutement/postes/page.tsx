@@ -53,8 +53,8 @@ export default async function PagePostesOuverts() {
       <FormulaireNouveauPoste />
 
       <div className="flex flex-col gap-3">
-        {donnees.postes.map((p) => (
-          <CartePoste key={p.id} poste={{ id: p.id, titre: p.titre, description: p.description, lieu: p.lieu, typeContrat: p.typeContrat, actif: p.actif }} />
+        {donnees.postes.map((p, index) => (
+          <CartePoste key={p.id} poste={{ id: p.id, titre: p.titre, description: p.description, lieu: p.lieu, typeContrat: p.typeContrat, actif: p.actif }} index={index} />
         ))}
         {donnees.postes.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucun poste pour le moment.</p> : null}
       </div>

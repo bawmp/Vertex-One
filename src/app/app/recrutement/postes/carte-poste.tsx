@@ -15,7 +15,7 @@ import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
 
 export type PosteAffiche = { id: string; titre: string; description: string | null; lieu: string | null; typeContrat: string | null; actif: boolean };
 
-export function CartePoste({ poste }: { poste: PosteAffiche }) {
+export function CartePoste({ poste, index = 0 }: { poste: PosteAffiche; index?: number }) {
   const [edition, setEdition] = useState(false);
   const [enCours, startTransition] = useTransition();
   const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
@@ -73,7 +73,10 @@ export function CartePoste({ poste }: { poste: PosteAffiche }) {
   }
 
   return (
-    <Card className={poste.actif ? undefined : "opacity-70"}>
+    <Card
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className={`animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both ${poste.actif ? "" : "opacity-70"}`}
+    >
       <CardContent className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">

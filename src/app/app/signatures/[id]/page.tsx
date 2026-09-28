@@ -72,7 +72,11 @@ export default async function PageCertificatSignature({ params }: { params: Prom
 
           <div className="flex flex-col divide-y divide-border rounded-md border border-border">
             {certificat.signataires.map((s, i) => (
-              <div key={i} className="flex flex-col gap-2 p-3 text-sm">
+              <div
+                key={i}
+                style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
+                className="flex animate-in fade-in slide-in-from-bottom-1 flex-col gap-2 p-3 text-sm fill-mode-both duration-300"
+              >
                 <div className="flex items-center justify-between">
                   <p className="font-medium">
                     {s.nom} — {s.telephone}

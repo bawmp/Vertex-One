@@ -124,7 +124,10 @@ export function ListeChamps({ formulaireId, champsInitiaux, peutModifier }: { fo
     <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
       {champs.map((champ, index) => (
         <div key={champ.id}>
-        <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+        <div
+          style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+          className="flex animate-in fade-in items-center justify-between gap-3 px-3 py-2 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+        >
           <div className="flex items-center gap-2">
             <span className="font-medium">{champ.libelle}</span>
             <Badge variant="neutral">{LIBELLE_TYPE[champ.type] ?? champ.type}</Badge>

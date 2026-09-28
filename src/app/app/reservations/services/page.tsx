@@ -59,8 +59,12 @@ export default async function PageServicesReservables() {
       <FormulaireNouveauService />
 
       <div className="flex flex-col gap-3">
-        {donnees.services.map((s) => (
-          <Card key={s.id} className={s.actif ? undefined : "opacity-60"}>
+        {donnees.services.map((s, index) => (
+          <Card
+            key={s.id}
+            style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+            className={`animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both ${s.actif ? "" : "opacity-60"}`}
+          >
             <CardContent className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <p className="font-medium">{s.nom}</p>

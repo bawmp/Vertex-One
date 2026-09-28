@@ -53,22 +53,33 @@ export default async function PageEquipe() {
         <p className="text-muted-foreground">{t("Inviter un nouveau collaborateur (Manager ou Employé).")}</p>
       </div>
 
-      <FormulaireInvitation collegues={collegues} />
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+        <FormulaireInvitation collegues={collegues} />
+      </div>
 
-      <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE" }))} />
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
+        <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE" }))} />
+      </div>
 
-      <GestionServices services={services} />
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
+        <GestionServices services={services} />
+      </div>
 
-      <div>
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Invitations")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
-            {invitations.map((inv) => {
+            {invitations.map((inv, index) => {
               const estUtilisee = Boolean(inv.utiliseeLe);
               const estExpiree = !estUtilisee && inv.expireLe < new Date();
               return (
-                <div key={inv.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <div className="min-w-0">
+                <div
+                  key={inv.id}
+                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+                >
+                  <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
+                  <div className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1">
                     <p className="truncate font-medium">{inv.email}</p>
                     <p className="text-muted-foreground">
                       {inv.roleProposee}

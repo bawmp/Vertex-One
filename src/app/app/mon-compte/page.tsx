@@ -29,7 +29,7 @@ export default async function PageMonCompte() {
         <h1 className="text-2xl font-semibold tracking-tight">{t.monCompte.titre}</h1>
       </div>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle>{t.monCompte.preferences}</CardTitle>
         </CardHeader>
@@ -38,7 +38,7 @@ export default async function PageMonCompte() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
         <CardContent>
           <FormulaireOrdreModules libellesInitiaux={ordreInitial} />
         </CardContent>

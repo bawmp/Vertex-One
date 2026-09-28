@@ -74,7 +74,7 @@ export default async function PageMonEspace() {
         <h1 className="text-2xl font-semibold tracking-tight">Espace personnel</h1>
       </div>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <BarChart3 className="size-4" aria-hidden /> Tableau de bord sensible
@@ -97,7 +97,7 @@ export default async function PageMonEspace() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">
               <span className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export default async function PageMonEspace() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">
               <span className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export default async function PageMonEspace() {
       </div>
 
       {annoncesEpinglees.length > 0 ? (
-        <Card>
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Megaphone className="size-4" aria-hidden /> Annonces épinglées
@@ -162,7 +162,7 @@ export default async function PageMonEspace() {
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MessageSquare className="size-4" aria-hidden /> Messagerie
@@ -175,7 +175,7 @@ export default async function PageMonEspace() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
         <CardHeader>
           <CardTitle className="text-base">Notes personnelles</CardTitle>
         </CardHeader>

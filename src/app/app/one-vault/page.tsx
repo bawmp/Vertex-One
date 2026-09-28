@@ -68,8 +68,8 @@ export default async function PageOneVault() {
 
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
-              {secrets.map((s) => (
-                <LigneSecret key={s.id} secret={s} peutModifier={peutGerer} />
+              {secrets.map((s, index) => (
+                <LigneSecret key={s.id} secret={s} peutModifier={peutGerer} index={index} />
               ))}
               {secrets.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun secret pour le moment.</p> : null}
             </div>

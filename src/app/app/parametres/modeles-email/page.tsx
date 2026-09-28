@@ -44,13 +44,17 @@ export default async function PageModelesEmail() {
         </div>
       </div>
 
-      <FormulaireModeleEmail type="ENVOI_DEVIS" titre="Envoi d'un devis" objet={modeleDevis.objet} corps={modeleDevis.corps} />
-      <FormulaireModeleEmail
-        type="ENVOI_FACTURE"
-        titre="Envoi d'une facture"
-        objet={modeleFacture.objet}
-        corps={modeleFacture.corps}
-      />
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+        <FormulaireModeleEmail type="ENVOI_DEVIS" titre="Envoi d'un devis" objet={modeleDevis.objet} corps={modeleDevis.corps} />
+      </div>
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
+        <FormulaireModeleEmail
+          type="ENVOI_FACTURE"
+          titre="Envoi d'une facture"
+          objet={modeleFacture.objet}
+          corps={modeleFacture.corps}
+        />
+      </div>
     </div>
   );
 }

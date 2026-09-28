@@ -10,7 +10,7 @@ import { revelerSecret } from "@/lib/actions/one-vault";
 
 type Secret = { id: string; titre: string; identifiant: string | null; url: string | null; partage: boolean };
 
-export function LigneSecret({ secret, peutModifier }: { secret: Secret; peutModifier: boolean }) {
+export function LigneSecret({ secret, peutModifier, index = 0 }: { secret: Secret; peutModifier: boolean; index?: number }) {
   const [motDePasse, setMotDePasse] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
@@ -36,7 +36,10 @@ export function LigneSecret({ secret, peutModifier }: { secret: Secret; peutModi
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3">
+    <div
+      style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+      className="flex animate-in fade-in slide-in-from-bottom-1 flex-col gap-2 px-4 py-3 fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

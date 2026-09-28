@@ -44,7 +44,7 @@ export default async function PageParametres() {
         <h1 className="text-2xl font-semibold tracking-tight">{dico.pages.parametres.titre}</h1>
       </div>
 
-      <Card>
+      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle>{monEntreprise?.nom}</CardTitle>
         </CardHeader>
@@ -59,7 +59,7 @@ export default async function PageParametres() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Personnalisation")}</h2>
         <Card>
           <CardContent className="flex flex-col gap-4">
