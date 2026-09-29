@@ -17,6 +17,7 @@ import { envoyerEmail } from "@/lib/email/client";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
+import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -195,15 +196,17 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
       entreprise: donnees.entreprise.nom,
     };
 
+    const sujet = interpoler(modele.objet, variables);
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
-      subject: interpoler(modele.objet, variables),
+      subject: sujet,
       html: corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
     });
 
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
+    await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: donnees.devis.contactId, auteurId: utilisateurConnecte.utilisateurId, sujet });
     await tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, devisId));
     return { envoye: true };
   });

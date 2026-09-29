@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerContact } from "@/lib/actions/contact";
 import { useT } from "@/lib/i18n/contexte";
+import { ChampPersonnaliseInput, type ChampContactDef } from "../champ-personnalise-input";
 
-export function FormulaireNouveauContact({ comptes }: { comptes: { id: string; nom: string }[] }) {
+export function FormulaireNouveauContact({ comptes, champsPersonnalises = [] }: { comptes: { id: string; nom: string }[]; champsPersonnalises?: ChampContactDef[] }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerContact, null);
 
@@ -59,6 +60,14 @@ export function FormulaireNouveauContact({ comptes }: { comptes: { id: string; n
             <Label htmlFor="notes">{t("Notes")}</Label>
             <Textarea id="notes" name="notes" rows={3} />
           </div>
+
+          {champsPersonnalises.length > 0 ? (
+            <div className="flex flex-col gap-4 border-t pt-4">
+              {champsPersonnalises.map((champ) => (
+                <ChampPersonnaliseInput key={champ.id} champ={champ} />
+              ))}
+            </div>
+          ) : null}
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

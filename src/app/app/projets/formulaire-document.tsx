@@ -13,11 +13,16 @@ import { useT } from "@/lib/i18n/contexte";
 export function FormulaireDocument({
   dossierId,
   projetId,
+  contactId,
   consentementManquant,
   autoriserSensible = true,
 }: {
   dossierId?: string;
   projetId?: string;
+  // Upload direct depuis la fiche Contact, sans passer par un Dossier (2026-09-29) — voir
+  // src/app/app/contacts/[id]/page.tsx. Jamais combiné à dossierId : le serveur dérive de toute façon le contact
+  // depuis le Dossier quand il est fourni (voir ajouterDocument, src/lib/actions/document.ts).
+  contactId?: string;
   consentementManquant: boolean;
   // Un document autonome (ni Dossier ni Projet, échange du 2026-09-08) n'a
   // aucun responsable de dossier auquel rattacher la restriction de
@@ -34,6 +39,7 @@ export function FormulaireDocument({
     <form action={action} className="flex flex-col gap-3 rounded-lg border p-4">
       {dossierId ? <input type="hidden" name="dossierId" value={dossierId} /> : null}
       {projetId ? <input type="hidden" name="projetId" value={projetId} /> : null}
+      {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
       <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
         <div className="flex flex-col gap-1">

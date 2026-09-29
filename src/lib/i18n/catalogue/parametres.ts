@@ -143,4 +143,33 @@ export const PARAMETRES: Record<string, string> = {
   "À noter": "Please note",
   "Lignes refusées (ligne 1 = en-têtes du fichier)": "Refused rows (row 1 = file headers)",
   "Vous n'avez pas le droit d'importer des données.": "You are not allowed to import data.",
+
+  // Champs personnalisés (Contact)
+  "Champs personnalisés (Contact)": "Custom fields (Contact)",
+  "Ajoutez vos propres champs à la fiche Contact — ils apparaissent pour tous vos collaborateurs, propres à votre entreprise.":
+    "Add your own fields to the Contact record — they appear for all your team members, specific to your company.",
+  "Vos champs": "Your fields",
+  "Nouveau champ": "New field",
+  Libellé: "Label",
+  "ex : Destination, Passeport/CNI…": "e.g. Destination, Passport/ID number…",
+  "Type de champ": "Field type",
+  "Options (une par ligne)": "Options (one per line)",
+  "Une option par ligne": "One option per line",
+  "Champ obligatoire": "Required field",
+  Obligatoire: "Required",
+  Monter: "Move up",
+  Descendre: "Move down",
+  Modifier: "Edit",
+  'Supprimer le champ "{libelle}" ? Les valeurs déjà saisies sur vos Contacts seront perdues.':
+    'Delete the "{libelle}" field? Values already entered on your Contacts will be lost.',
+  "Aucun champ personnalisé pour le moment.": "No custom fields yet.",
+  "Texte court": "Short text",
+  "Texte long": "Long text",
+  Nombre: "Number",
+  "Case à cocher": "Checkbox",
+  "Liste déroulante": "Dropdown list",
+  "Le libellé est requis.": "The label is required.",
+  "Seul l'Administrateur peut créer un champ personnalisé.": "Only the Administrator can create a custom field.",
+  "Seul l'Administrateur peut modifier un champ personnalisé.": "Only the Administrator can edit a custom field.",
+  "Indiquez au moins une option pour une liste déroulante.": "Provide at least one option for a dropdown list.",
 };

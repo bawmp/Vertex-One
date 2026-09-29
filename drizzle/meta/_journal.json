@@ -743,6 +743,27 @@
       "when": 1790550761000,
       "tag": "0105_demo_compteur_utilisations",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1790620381000,
+      "tag": "0106_contact_champs_personnalises",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1790700000000,
+      "tag": "0107_document_contact_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1790700001000,
+      "tag": "0108_interaction_auteur_id_nullable",
+      "breakpoints": true
     }
   ]
 }

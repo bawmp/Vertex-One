@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { document, journalAccesDocument, dossier, projet, categorieDocument } from "@/db/schema";
+import { document, journalAccesDocument, dossier, projet, contact, categorieDocument } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -16,6 +16,7 @@ import { getT } from "@/lib/i18n/langue";
 const schemaDocument = z.object({
   dossierId: z.string().nullable(),
   projetId: z.string().nullable(),
+  contactId: z.string().nullable(),
   categorie: z.enum(categorieDocument.enumValues),
 });
 
@@ -32,6 +33,7 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
   const analyse = schemaDocument.safeParse({
     dossierId: (formData.get("dossierId") as string) || null,
     projetId: (formData.get("projetId") as string) || null,
+    contactId: (formData.get("contactId") as string) || null,
     categorie: formData.get("categorie") || "GENERAL",
   });
   if (!analyse.success) {
@@ -62,22 +64,40 @@ export async function ajouterDocument(_etat: EtatDocument, formData: FormData): 
     return { erreur: erreur ?? t("Échec du téléversement.") };
   }
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.insert(document).values({
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Un document rattaché à un Dossier hérite toujours du contact de ce dossier (jamais une valeur du
+    // formulaire) — pour rester retrouvable depuis la fiche Contact sans changer le flux d'upload existant.
+    // Sans dossierId, le contactId soumis (upload direct depuis la fiche Contact) est revérifié en base,
+    // jamais fait confiance tel quel.
+    let contactIdEffectif: string | null = null;
+    if (dossierId) {
+      const [leDossier] = await tx.select({ contactId: dossier.contactId }).from(dossier).where(eq(dossier.id, dossierId));
+      contactIdEffectif = leDossier?.contactId ?? null;
+    } else if (analyse.data.contactId) {
+      const [leContact] = await tx.select({ id: contact.id }).from(contact).where(eq(contact.id, analyse.data.contactId));
+      if (!leContact) return { erreur: t("Contact introuvable.") };
+      contactIdEffectif = leContact.id;
+    }
+
+    await tx.insert(document).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
       dossierId,
       projetId,
+      contactId: contactIdEffectif,
       categorie,
       nom: fichier.name,
       cleStockage,
       typeMime: fichier.type || "application/octet-stream",
       tailleOctets: fichier.size,
       televerseParId: utilisateurConnecte.utilisateurId,
-    })
-  );
+    });
+    return null;
+  });
+  if (resultat?.erreur) return resultat;
 
   if (dossierId) revalidatePath(`/app/projets/dossiers/${dossierId}`);
   if (projetId) revalidatePath(`/app/projets/${projetId}`);
+  if (analyse.data.contactId) revalidatePath(`/app/contacts/${analyse.data.contactId}`);
   revalidatePath("/app/documents");
   return null;
 }

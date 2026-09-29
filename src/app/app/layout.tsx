@@ -1,7 +1,7 @@
 import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, KeyRound, Upload } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, KeyRound, Upload, SlidersHorizontal } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -274,6 +274,7 @@ const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }
   { libelle: m("Entreprise"), href: "/app/parametres/entreprise", Icone: Building2 },
   { libelle: m("Équipe"), href: "/app/parametres/equipe", Icone: Users },
   { libelle: m("Modèles d'email"), href: "/app/parametres/modeles-email", Icone: Mail },
+  { libelle: m("Champs personnalisés (Contact)"), href: "/app/parametres/champs-contact", Icone: SlidersHorizontal },
   { libelle: m("Importer des données"), href: "/app/parametres/import", Icone: Upload },
   { libelle: m("Abonnement"), href: "/app/parametres/abonnement", Icone: CreditCard },
 ];

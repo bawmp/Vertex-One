@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, contact, deal, facture } from "@/db/schema";
+import { entreprise, utilisateur, contact, deal, facture, interaction } from "@/db/schema";
 import { marquerFacturesEnRetard } from "@/lib/facturation/relance";
 
 /**
@@ -66,6 +66,9 @@ describe("Palier 1 — relance des factures en retard", () => {
   }, 30_000);
 
   afterAll(async () => {
+    // marquerFacturesEnRetard() journalise désormais l'email de relance comme interaction (2026-09-29,
+    // voir src/lib/crm/journaliser-email.ts) — à effacer avant contact, sinon la contrainte de clé étrangère bloque.
+    await avecEntreprise(entrepriseId, (tx) => tx.delete(interaction).where(eq(interaction.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId)));

@@ -5,6 +5,7 @@ import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 
 export type ResultatRelance = {
   factureId: string;
@@ -63,6 +64,9 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
         nomEntreprise: monEntreprise.nom,
       });
       const { envoye, erreur } = await envoyerEmail({ to: leContact.email, subject, html });
+      if (envoye) {
+        await journaliserEmailEnvoye(tx, { entrepriseId, contactId: leContact.id, auteurId: null, sujet: subject });
+      }
       resultats.push({ factureId: f.id, numero: f.numero, canal: "email", envoye, erreur });
     }
 

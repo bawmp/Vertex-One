@@ -21,6 +21,7 @@ import {
   echapper,
 } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
+import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 
 /**
  * Actions du CLIENT depuis son lien public (devis/facture) — aucune session : la
@@ -102,6 +103,7 @@ export async function repondreDevisPublic(
       clientNom: leContact?.nom ?? "Le client",
       clientEmail: leContact?.email ?? null,
       entrepriseNom: monEntreprise?.nom ?? "",
+      contactId: leDevis.contactId,
     };
 
     if (decision === "REFUSER") {
@@ -168,12 +170,21 @@ export async function repondreDevisPublic(
   // Le client garde de quoi payer plus tard : le lien de sa facture lui est aussi envoyé par email.
   const emailClient = contexte.clientEmail;
   if (emailClient) {
+    const sujetFacture = `Votre facture ${resultat.numeroFacture} — ${contexte.entrepriseNom}`;
     after(() =>
       envoyerEmail({
         to: emailClient,
-        subject: `Votre facture ${resultat.numeroFacture} — ${contexte.entrepriseNom}`,
+        subject: sujetFacture,
         html: `<p>Bonjour ${echapper(contexte.clientNom)},</p><p>Merci d'avoir accepté le devis ${echapper(contexte.numero)}. Votre facture ${echapper(resultat.numeroFacture)} (${contexte.montant}) est disponible : vous pouvez la régler maintenant ou plus tard depuis ce lien.</p><p><a href="${lienFacture}">Consulter et payer ma facture</a></p><p>${echapper(contexte.entrepriseNom)}</p>`,
-      }).catch(() => undefined),
+      })
+        .then((r) => {
+          if (r.envoye) {
+            return avecEntreprise(lien.entrepriseId, (tx) =>
+              journaliserEmailEnvoye(tx, { entrepriseId: lien.entrepriseId, contactId: contexte.contactId, auteurId: null, sujet: sujetFacture }),
+            );
+          }
+        })
+        .catch(() => undefined),
     );
   }
 

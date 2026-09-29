@@ -644,6 +644,79 @@ export const contact = pgTable(
   ]
 ).enableRLS();
 
+// Champs personnalisés du Contact (2026-09-29) — chaque entreprise définit ses
+// propres champs additionnels sur sa fiche Contact (ex. agence d'immigration :
+// Destination, Passeport/CNI, Honoraires...), plutôt que de coder ces champs
+// en dur dans `contact` : Vertex One reste un produit générique, un champ
+// propre à un métier ne doit pas polluer la fiche Contact des autres
+// entreprises clientes. Même patron EAV que `champFormulaire`/
+// `valeurChampReponse` (One Form, plus haut dans ce fichier) — type distinct
+// de `typeChampFormulaire` volontairement (pas de réutilisation) pour ne pas
+// coupler deux fonctionnalités indépendantes. Le type d'un champ est immuable
+// après création (voir src/lib/actions/champ-personnalise-contact.ts) — le
+// changer casserait l'interprétation des valeurs déjà enregistrées.
+export const typeChampContact = pgEnum("type_champ_contact", [
+  "TEXTE_COURT",
+  "TEXTE_LONG",
+  "NOMBRE",
+  "DATE",
+  "EMAIL",
+  "TELEPHONE",
+  "CASE_A_COCHER",
+  "LISTE_DEROULANTE",
+]);
+
+export const contactChampPersonnalise = pgTable(
+  "contact_champ_personnalise",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    libelle: text("libelle").notNull(), // saisi par l'Administrateur, jamais traduit (donnée du tenant)
+    type: typeChampContact("type").notNull(),
+    obligatoire: boolean("obligatoire").notNull().default(false),
+    options: json("options").$type<string[]>(), // uniquement pour LISTE_DEROULANTE
+    ordre: integer("ordre").notNull().default(0),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("contact_champ_personnalise_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const contactChampValeur = pgTable(
+  "contact_champ_valeur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
+    champId: text("champ_id")
+      .notNull()
+      .references(() => contactChampPersonnalise.id),
+    valeur: text("valeur").notNull(), // un champ vide n'a simplement pas de ligne
+  },
+  (table) => [
+    index("contact_champ_valeur_entreprise_idx").on(table.entrepriseId),
+    index("contact_champ_valeur_contact_idx").on(table.contactId),
+    uniqueIndex("contact_champ_valeur_contact_champ_unique").on(table.contactId, table.champId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const deal = pgTable(
   "deal",
   {
@@ -805,9 +878,9 @@ export const interaction = pgTable(
       .references(() => contact.id),
     type: text("type").notNull(), // "appel" | "whatsapp" | "email" | "rendez-vous" | "note"
     contenu: text("contenu").notNull(),
-    auteurId: text("auteur_id")
-      .notNull()
-      .references(() => utilisateur.id),
+    // Nullable (2026-09-29) : un email envoyé automatiquement (relance de facture, confirmation après acceptation
+    // publique d'un devis) n'a pas d'utilisateur humain déclencheur — voir journaliserEmailEnvoye(), src/lib/crm/journaliser-email.ts.
+    auteurId: text("auteur_id").references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -1973,6 +2046,10 @@ export const document = pgTable(
       .references(() => entreprise.id),
     dossierId: text("dossier_id").references(() => dossier.id),
     projetId: text("projet_id").references(() => projet.id),
+    // Nullable, dérivé automatiquement de dossierId à l'insertion quand présent (2026-09-29, voir ajouterDocument,
+    // src/lib/actions/document.ts) — rend un document retrouvable directement depuis la fiche Contact, sans
+    // dépendre du Dossier optionnel (module Projets/Dossiers) pour la visibilité inter-modules (CRM ↔ Books).
+    contactId: text("contact_id").references(() => contact.id),
     categorie: categorieDocument("categorie").notNull().default("GENERAL"),
     nom: text("nom").notNull(),
     // Chemin de l'objet dans Cloudflare R2 — voir src/lib/documents/stockage.ts.
@@ -1988,6 +2065,7 @@ export const document = pgTable(
     index("document_entreprise_idx").on(table.entrepriseId),
     index("document_dossier_idx").on(table.dossierId),
     index("document_projet_idx").on(table.projetId),
+    index("document_contact_idx").on(table.contactId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

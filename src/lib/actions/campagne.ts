@@ -12,6 +12,7 @@ import { disponibleAddon } from "@/lib/plans";
 import { resoudreSegment, type Segment } from "@/lib/marketing/segments";
 import { envoyerEmail } from "@/lib/email/client";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
+import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 
 const schemaCampagne = z.object({
   nom: z.string().trim().min(2, "Le nom est requis."),
@@ -93,7 +94,10 @@ export async function envoyerCampagne(campagneId: string): Promise<EtatEnvoiCamp
       if (laCampagne.canal === "EMAIL") {
         if (!contact.email) continue;
         const { envoye } = await envoyerEmail({ to: contact.email, subject: laCampagne.nom, html: `<p>${laCampagne.contenu.replace(/\n/g, "</p><p>")}</p>` });
-        if (envoye) envoyes++;
+        if (envoye) {
+          envoyes++;
+          await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: contact.id, auteurId: utilisateurConnecte.utilisateurId, sujet: laCampagne.nom });
+        }
       } else {
         const { envoye } = await envoyerWhatsApp(contact.telephone, laCampagne.contenu);
         if (envoye) envoyes++;

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
 import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { contact, compteClient, interaction, dossier, deal, entreprise } from "@/db/schema";
+import { contact, compteClient, interaction, dossier, deal, entreprise, contactChampValeur, document } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -16,8 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
 import { BoutonInviterPortail } from "./bouton-inviter-portail";
+import { EditeurChampsPersonnalises } from "./editeur-champs-personnalises";
+import { ListeDocuments } from "../../projets/liste-documents";
+import { FormulaireDocument } from "../../projets/formulaire-document";
 import { creerDossier } from "@/lib/actions/dossier";
 import { genererEtEnregistrerLienVisio, modifierNotesContact } from "@/lib/actions/contact";
+import { listerChampsPersonnalisesContact } from "@/lib/actions/champ-personnalise-contact";
 import { getT } from "@/lib/i18n/langue";
 
 const ICONE_INTERACTION: Record<string, typeof Phone> = {
@@ -41,12 +45,15 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     if (!ligne) return null;
     if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return null;
 
-    const [compte, interactions, dossierExistant, deals, [monEntreprise]] = await Promise.all([
+    const [compte, interactions, dossierExistant, deals, [monEntreprise], champsPersonnalises, valeursPersonnalisees, documents] = await Promise.all([
       ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
       tx.select().from(interaction).where(eq(interaction.contactId, id)).orderBy(desc(interaction.creeLe)),
       tx.select({ id: dossier.id }).from(dossier).where(eq(dossier.contactId, id)),
       tx.select().from(deal).where(eq(deal.contactId, id)).orderBy(desc(deal.creeLe)),
       tx.select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+      listerChampsPersonnalisesContact(utilisateurConnecte.entrepriseId, tx),
+      tx.select().from(contactChampValeur).where(eq(contactChampValeur.contactId, id)),
+      tx.select().from(document).where(eq(document.contactId, id)).orderBy(desc(document.creeLe)),
     ]);
 
     return {
@@ -56,12 +63,17 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       dossierExistant: dossierExistant[0] ?? null,
       deals,
       dossiersDisponibles: disponible(monEntreprise, "DOSSIERS"),
+      signatureDisponible: disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE"),
       secteurProfil: monEntreprise?.secteurProfil ?? "generique",
+      champsPersonnalises,
+      valeursPersonnalisees,
+      documents,
     };
   });
 
   if (!donnees) notFound();
-  const { fiche, compte, interactions, dossierExistant, deals, dossiersDisponibles, secteurProfil } = donnees;
+  const { fiche, compte, interactions, dossierExistant, deals, dossiersDisponibles, signatureDisponible, secteurProfil, champsPersonnalises, valeursPersonnalisees, documents } = donnees;
+  const mapValeurs = Object.fromEntries(valeursPersonnalisees.map((v) => [v.champId, v.valeur]));
   const vocabDossier = libelleDossier(secteurProfil);
   const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
   const modifierNotesAction = modifierNotesContact.bind(null, fiche.id);
@@ -174,6 +186,42 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
               )}
             </CardContent>
           </Card>
+
+          {champsPersonnalises.length > 0 ? (
+            <Card>
+              <CardContent>
+                <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Informations complémentaires")}</h2>
+                {peutModifier ? (
+                  <EditeurChampsPersonnalises
+                    contactId={fiche.id}
+                    champs={champsPersonnalises.map((c) => ({ id: c.id, libelle: c.libelle, type: c.type, obligatoire: c.obligatoire, options: c.options }))}
+                    valeurs={mapValeurs}
+                  />
+                ) : (
+                  <dl className="flex flex-col gap-2 text-sm">
+                    {champsPersonnalises.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between gap-2">
+                        <dt className="text-muted-foreground">{c.libelle}</dt>
+                        <dd className="font-medium">{mapValeurs[c.id] === "oui" && c.type === "CASE_A_COCHER" ? t("Oui") : mapValeurs[c.id] || "—"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {peut(utilisateurConnecte, "DOCUMENTS", "VOIR") ? (
+            <div className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium text-muted-foreground">{t("Documents")}</h2>
+              <ListeDocuments
+                documents={documents}
+                peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+                peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && signatureDisponible}
+              />
+              {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? <FormulaireDocument contactId={fiche.id} consentementManquant={false} autoriserSensible={false} /> : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-3">
             <h2 className="text-sm font-medium text-muted-foreground">{t("Deals")}</h2>
