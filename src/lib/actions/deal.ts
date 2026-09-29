@@ -1,11 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { deal, contact, statutDeal } from "@/db/schema";
+import { deal, contact, statutDeal, dealContact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { enregistrerCreationDeal, changerStatutDealEtHistoriser } from "@/lib/crm/historique";
@@ -90,4 +90,52 @@ export async function changerStatutDeal(dealId: string, statut: (typeof statutDe
   revalidatePath(`/app/deals/${dealId}`);
   revalidatePath("/app/deals");
   revalidatePath("/app"); // pipeline commercial affiché au tableau de bord
+}
+
+/**
+ * Contact supplémentaire d'un Deal (2026-09-29) — deal.contactId reste le contact principal, inchangé ; cette
+ * action n'ajoute qu'une liaison secondaire (ex. un couple sur un même dossier d'immigration). Le contact
+ * principal ne peut pas être ajouté une seconde fois comme secondaire (message clair plutôt qu'une erreur de
+ * contrainte SQL brute) ; un doublon d'ajout est de toute façon bloqué par l'index unique (deal_contact_deal_contact_unique).
+ */
+export async function ajouterContactSupplementaireDeal(dealId: string, _etat: EtatDeal, formData: FormData): Promise<EtatDeal> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier ce deal.") };
+  }
+
+  const contactId = (formData.get("contactId") as string) || "";
+  if (!contactId) return { erreur: t("Sélectionnez un contact.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [leDeal] = await tx.select({ contactId: deal.contactId }).from(deal).where(eq(deal.id, dealId));
+    if (!leDeal) return { erreur: t("Deal introuvable.") };
+    if (leDeal.contactId === contactId) return { erreur: t("Ce contact est déjà le contact principal de ce deal.") };
+
+    const [leContact] = await tx.select({ id: contact.id }).from(contact).where(eq(contact.id, contactId));
+    if (!leContact) return { erreur: t("Contact introuvable.") };
+
+    await tx.insert(dealContact).values({ entrepriseId: utilisateurConnecte.entrepriseId, dealId, contactId }).onConflictDoNothing();
+    return null;
+  });
+  if (resultat?.erreur) return resultat;
+
+  revalidatePath(`/app/deals/${dealId}`);
+  revalidatePath(`/app/contacts/${contactId}`);
+  return null;
+}
+
+export async function retirerContactSupplementaireDeal(dealId: string, contactId: string): Promise<void> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.delete(dealContact).where(and(eq(dealContact.dealId, dealId), eq(dealContact.contactId, contactId)))
+  );
+
+  revalidatePath(`/app/deals/${dealId}`);
+  revalidatePath(`/app/contacts/${contactId}`);
 }

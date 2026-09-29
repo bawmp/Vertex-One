@@ -57,6 +57,9 @@ export const MESSAGES: Record<string, string> = {
   "L'objet ne peut pas être vide.": "The subject cannot be empty.",
   "Le message ne peut pas être vide.": "The message cannot be empty.",
   "Vous n'avez pas le droit de créer un deal.": "You are not allowed to create a deal.",
+  "Vous n'avez pas le droit de modifier ce deal.": "You are not allowed to edit this deal.",
+  "Deal introuvable.": "Deal not found.",
+  "Ce contact est déjà le contact principal de ce deal.": "This contact is already the deal's primary contact.",
 
   // Annonces
   "Seuls les Managers et l'Administrateur peuvent publier une annonce.": "Only Managers and the Administrator can publish an announcement.",

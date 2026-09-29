@@ -3,13 +3,14 @@ import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
 import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { contact, compteClient, interaction, dossier, deal, entreprise, contactChampValeur, document } from "@/db/schema";
+import { contact, compteClient, interaction, dossier, deal, dealContact, entreprise, contactChampValeur, document, devis, facture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { libelleDossier } from "@/lib/vocabulaire";
-import { STATUT_DEAL } from "@/lib/libelles";
+import { STATUT_DEAL, STATUT_DEVIS, STATUT_FACTURE } from "@/lib/libelles";
+import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,16 +46,30 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     if (!ligne) return null;
     if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return null;
 
-    const [compte, interactions, dossierExistant, deals, [monEntreprise], champsPersonnalises, valeursPersonnalisees, documents] = await Promise.all([
-      ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
-      tx.select().from(interaction).where(eq(interaction.contactId, id)).orderBy(desc(interaction.creeLe)),
-      tx.select({ id: dossier.id }).from(dossier).where(eq(dossier.contactId, id)),
-      tx.select().from(deal).where(eq(deal.contactId, id)).orderBy(desc(deal.creeLe)),
-      tx.select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
-      listerChampsPersonnalisesContact(utilisateurConnecte.entrepriseId, tx),
-      tx.select().from(contactChampValeur).where(eq(contactChampValeur.contactId, id)),
-      tx.select().from(document).where(eq(document.contactId, id)).orderBy(desc(document.creeLe)),
-    ]);
+    const [compte, interactions, dossierExistant, dealsPrincipal, dealsSecondaires, [monEntreprise], champsPersonnalises, valeursPersonnalisees, documents, devisListe, facturesListe, visiblesFacturation] =
+      await Promise.all([
+        ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
+        tx.select().from(interaction).where(eq(interaction.contactId, id)).orderBy(desc(interaction.creeLe)),
+        tx.select({ id: dossier.id }).from(dossier).where(eq(dossier.contactId, id)),
+        tx.select().from(deal).where(eq(deal.contactId, id)),
+        // Un contact « secondaire » d'un deal (voir dealContact, ex. un couple sur un même dossier d'immigration)
+        // doit aussi retrouver ce deal sur sa propre fiche, pas seulement le contact principal.
+        tx.select({ deal }).from(dealContact).innerJoin(deal, eq(dealContact.dealId, deal.id)).where(eq(dealContact.contactId, id)),
+        tx.select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+        listerChampsPersonnalisesContact(utilisateurConnecte.entrepriseId, tx),
+        tx.select().from(contactChampValeur).where(eq(contactChampValeur.contactId, id)),
+        tx.select().from(document).where(eq(document.contactId, id)).orderBy(desc(document.creeLe)),
+        tx.select().from(devis).where(eq(devis.contactId, id)).orderBy(desc(devis.creeLe)),
+        tx.select().from(facture).where(eq(facture.contactId, id)).orderBy(desc(facture.dateEmission)),
+        idsVisibles(tx, utilisateurConnecte, "FACTURATION"),
+      ]);
+
+    const dealsParId = new Map(dealsPrincipal.map((d) => [d.id, d]));
+    for (const { deal: d } of dealsSecondaires) dealsParId.set(d.id, d);
+    const deals = [...dealsParId.values()].sort((a, b) => b.creeLe.getTime() - a.creeLe.getTime());
+
+    const filtreFacturation = <T extends { assigneAId: string }>(lignes: T[]) =>
+      visiblesFacturation === "TOUT" ? lignes : lignes.filter((l) => visiblesFacturation.includes(l.assigneAId));
 
     return {
       fiche: ligne,
@@ -68,11 +83,27 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       champsPersonnalises,
       valeursPersonnalisees,
       documents,
+      devisListe: filtreFacturation(devisListe),
+      facturesListe: filtreFacturation(facturesListe),
     };
   });
 
   if (!donnees) notFound();
-  const { fiche, compte, interactions, dossierExistant, deals, dossiersDisponibles, signatureDisponible, secteurProfil, champsPersonnalises, valeursPersonnalisees, documents } = donnees;
+  const {
+    fiche,
+    compte,
+    interactions,
+    dossierExistant,
+    deals,
+    dossiersDisponibles,
+    signatureDisponible,
+    secteurProfil,
+    champsPersonnalises,
+    valeursPersonnalisees,
+    documents,
+    devisListe,
+    facturesListe,
+  } = donnees;
   const mapValeurs = Object.fromEntries(valeursPersonnalisees.map((v) => [v.champId, v.valeur]));
   const vocabDossier = libelleDossier(secteurProfil);
   const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
@@ -255,6 +286,58 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
               <p className="text-sm text-muted-foreground">{t("Aucun deal pour le moment.")}</p>
             )}
           </div>
+
+          {peut(utilisateurConnecte, "FACTURATION", "VOIR") ? (
+            <>
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-medium text-muted-foreground">{t("Devis")}</h2>
+                {devisListe.length > 0 ? (
+                  <Card className="p-0">
+                    <div className="flex flex-col divide-y divide-border">
+                      {devisListe.map((d) => {
+                        const infoDevis = STATUT_DEVIS[d.statut];
+                        return (
+                          <Link key={d.id} href={`/app/facturation/devis/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                            <span className="font-medium">{d.numero}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
+                              <Badge variant={infoDevis?.variante ?? "neutral"}>{t(infoDevis?.libelle ?? d.statut)}</Badge>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("Aucun devis.")}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-medium text-muted-foreground">{t("Factures")}</h2>
+                {facturesListe.length > 0 ? (
+                  <Card className="p-0">
+                    <div className="flex flex-col divide-y divide-border">
+                      {facturesListe.map((f) => {
+                        const infoFacture = STATUT_FACTURE[f.statut];
+                        return (
+                          <Link key={f.id} href={`/app/facturation/factures/${f.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                            <span className="font-medium">{f.numero}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
+                              <Badge variant={infoFacture?.variante ?? "neutral"}>{t(infoFacture?.libelle ?? f.statut)}</Badge>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("Aucune facture.")}</p>
+                )}
+              </div>
+            </>
+          ) : null}
 
           {peutModifier ? <FormulaireInteraction contactId={fiche.id} /> : null}
         </div>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
 import { Building2, Phone, ArrowRightCircle, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { deal, contact, compteClient, devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, historiqueStatutDeal, utilisateur } from "@/db/schema";
+import { deal, contact, compteClient, devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, historiqueStatutDeal, utilisateur, dealContact } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChangeurStatutDeal } from "./changeur-statut-deal";
+import { ContactsSupplementaires } from "./contacts-supplementaires";
 import { BoutonConvertirBCV } from "./bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "./boutons-facture-recurrente";
 import { BoutonAnnulerRecuVente } from "./bouton-annuler-recu-vente";
@@ -40,28 +41,35 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
     if (!ligne) return null;
     if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return null;
 
-    const [[leContact], compte, devisListe, facturesListe, bonsCommandeListe, facturesRecurrentesListe, recusVenteListe, facturesAcompteListe, historique] = await Promise.all([
-      tx.select().from(contact).where(eq(contact.id, ligne.contactId)),
-      ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
-      tx.select().from(devis).where(eq(devis.dealId, id)).orderBy(desc(devis.creeLe)),
-      tx.select().from(facture).where(eq(facture.dealId, id)).orderBy(desc(facture.dateEmission)),
-      tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.dealId, id)).orderBy(desc(bonCommandeVente.dateCommande)),
-      tx.select().from(factureRecurrente).where(eq(factureRecurrente.dealId, id)).orderBy(desc(factureRecurrente.creeLe)),
-      tx.select().from(recuVente).where(eq(recuVente.dealId, id)).orderBy(desc(recuVente.dateEmission)),
-      tx.select().from(factureAcompte).where(eq(factureAcompte.dealId, id)).orderBy(desc(factureAcompte.creeLe)),
-      tx
-        .select({
-          id: historiqueStatutDeal.id,
-          ancienStatut: historiqueStatutDeal.ancienStatut,
-          nouveauStatut: historiqueStatutDeal.nouveauStatut,
-          modifieLe: historiqueStatutDeal.modifieLe,
-          auteur: utilisateur.nomComplet,
-        })
-        .from(historiqueStatutDeal)
-        .innerJoin(utilisateur, eq(historiqueStatutDeal.modifieParId, utilisateur.id))
-        .where(eq(historiqueStatutDeal.dealId, id))
-        .orderBy(desc(historiqueStatutDeal.modifieLe)),
-    ]);
+    const [[leContact], compte, devisListe, facturesListe, bonsCommandeListe, facturesRecurrentesListe, recusVenteListe, facturesAcompteListe, historique, contactsSecondaires, tousLesContacts] =
+      await Promise.all([
+        tx.select().from(contact).where(eq(contact.id, ligne.contactId)),
+        ligne.compteId ? tx.select().from(compteClient).where(eq(compteClient.id, ligne.compteId)) : Promise.resolve([null]),
+        tx.select().from(devis).where(eq(devis.dealId, id)).orderBy(desc(devis.creeLe)),
+        tx.select().from(facture).where(eq(facture.dealId, id)).orderBy(desc(facture.dateEmission)),
+        tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.dealId, id)).orderBy(desc(bonCommandeVente.dateCommande)),
+        tx.select().from(factureRecurrente).where(eq(factureRecurrente.dealId, id)).orderBy(desc(factureRecurrente.creeLe)),
+        tx.select().from(recuVente).where(eq(recuVente.dealId, id)).orderBy(desc(recuVente.dateEmission)),
+        tx.select().from(factureAcompte).where(eq(factureAcompte.dealId, id)).orderBy(desc(factureAcompte.creeLe)),
+        tx
+          .select({
+            id: historiqueStatutDeal.id,
+            ancienStatut: historiqueStatutDeal.ancienStatut,
+            nouveauStatut: historiqueStatutDeal.nouveauStatut,
+            modifieLe: historiqueStatutDeal.modifieLe,
+            auteur: utilisateur.nomComplet,
+          })
+          .from(historiqueStatutDeal)
+          .innerJoin(utilisateur, eq(historiqueStatutDeal.modifieParId, utilisateur.id))
+          .where(eq(historiqueStatutDeal.dealId, id))
+          .orderBy(desc(historiqueStatutDeal.modifieLe)),
+        tx
+          .select({ id: contact.id, nom: contact.nom })
+          .from(dealContact)
+          .innerJoin(contact, eq(dealContact.contactId, contact.id))
+          .where(eq(dealContact.dealId, id)),
+        tx.select({ id: contact.id, nom: contact.nom }).from(contact),
+      ]);
 
     return {
       fiche: ligne,
@@ -74,6 +82,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
       recusVenteListe,
       facturesAcompteListe,
       historique,
+      contactsSecondaires,
+      contactsDisponibles: tousLesContacts.filter((c) => c.id !== ligne.contactId && !contactsSecondaires.some((cs) => cs.id === c.id)),
     };
   });
 
@@ -89,6 +99,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
     recusVenteListe,
     facturesAcompteListe,
     historique,
+    contactsSecondaires,
+    contactsDisponibles,
   } = donnees;
   const info = STATUT_DEAL[fiche.statut];
   const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
@@ -330,44 +342,48 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
           )}
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
-          {historique.length > 0 ? (
-            <Card className="lg:sticky lg:top-6">
-              <CardContent className="flex flex-col divide-y divide-border p-0">
-                {historique.map((h) => {
-                  const infoAncien = h.ancienStatut ? STATUT_DEAL[h.ancienStatut] : null;
-                  const infoNouveau = STATUT_DEAL[h.nouveauStatut];
-                  return (
-                    <div key={h.id} className="flex gap-3 px-4 py-3 first:pt-4 last:pb-4">
-                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                        <ArrowRightCircle className="size-3.5" aria-hidden />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-muted-foreground">
-                          {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(h.modifieLe)}
-                        </p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm">
-                          {infoAncien ? (
-                            <>
-                              <Badge variant={infoAncien.variante}>{t(infoAncien.libelle)}</Badge>
-                              <span className="text-muted-foreground">→</span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">{t("Créé —")}</span>
-                          )}
-                          <Badge variant={infoNouveau?.variante ?? "neutral"}>{t(infoNouveau?.libelle ?? h.nouveauStatut)}</Badge>
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{t("par {auteur}", { auteur: h.auteur })}</p>
+        <div className="flex flex-col gap-6">
+          <ContactsSupplementaires dealId={fiche.id} contactsSecondaires={contactsSecondaires} contactsDisponibles={contactsDisponibles} peutModifier={peutModifier} />
+
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
+            {historique.length > 0 ? (
+              <Card className="lg:sticky lg:top-6">
+                <CardContent className="flex flex-col divide-y divide-border p-0">
+                  {historique.map((h) => {
+                    const infoAncien = h.ancienStatut ? STATUT_DEAL[h.ancienStatut] : null;
+                    const infoNouveau = STATUT_DEAL[h.nouveauStatut];
+                    return (
+                      <div key={h.id} className="flex gap-3 px-4 py-3 first:pt-4 last:pb-4">
+                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                          <ArrowRightCircle className="size-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-muted-foreground">
+                            {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(h.modifieLe)}
+                          </p>
+                          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm">
+                            {infoAncien ? (
+                              <>
+                                <Badge variant={infoAncien.variante}>{t(infoAncien.libelle)}</Badge>
+                                <span className="text-muted-foreground">→</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">{t("Créé —")}</span>
+                            )}
+                            <Badge variant={infoNouveau?.variante ?? "neutral"}>{t(infoNouveau?.libelle ?? h.nouveauStatut)}</Badge>
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{t("par {auteur}", { auteur: h.auteur })}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ) : (
-            <p className="text-sm text-muted-foreground">{t("Aucune activité pour le moment.")}</p>
-          )}
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("Aucune activité pour le moment.")}</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -753,6 +753,38 @@ export const deal = pgTable(
   ]
 ).enableRLS();
 
+// Contacts supplémentaires d'un Deal (2026-09-29) — deal.contactId reste le contact principal, obligatoire,
+// inchangé (tout le code existant qui en dépend continue de fonctionner sans modification : création,
+// listes/Kanban, segments marketing, automatisations). Cette table ne fait qu'AJOUTER des contacts secondaires,
+// pour le cas réel d'un dossier concernant plusieurs personnes (ex. un couple sur un même dossier d'immigration)
+// — jamais un remplacement du contact principal. Même patron que membreCanal (One Chat) pour la relation
+// many-to-many.
+export const dealContact = pgTable(
+  "deal_contact",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dealId: text("deal_id")
+      .notNull()
+      .references(() => deal.id),
+    contactId: text("contact_id")
+      .notNull()
+      .references(() => contact.id),
+  },
+  (table) => [
+    index("deal_contact_entreprise_idx").on(table.entrepriseId),
+    index("deal_contact_deal_idx").on(table.dealId),
+    uniqueIndex("deal_contact_deal_contact_unique").on(table.dealId, table.contactId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Timeline du pipeline (inspirée du timeline de Deal dans Zoho CRM) —
 // remplace historiqueStatutProspect, maintenant attachée au Deal plutôt
 // qu'au Contact : c'est le Deal qui porte une étape de pipeline.
