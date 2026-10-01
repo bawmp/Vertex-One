@@ -3,6 +3,9 @@ import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "@/db/client";
 import * as schema from "@/db/schema";
+import { envoyerEmail } from "@/lib/email/client";
+import { gabaritReinitialisationMotDePasse } from "@/lib/email/gabarits";
+import { urlBase } from "@/lib/client-documents/liens";
 
 // Better-Auth gère session/cookies/CSRF/hachage — mappé sur notre table
 // utilisateur existante plutôt que de laisser Better-Auth créer son propre
@@ -27,6 +30,21 @@ export const auth = betterAuth({
     // chemin de création de compte, nos propres Server Actions
     // (src/lib/actions), qui insèrent directement utilisateur+account.
     disableSignUp: true,
+    // Récupération d'accès (2026-10-01) — jamais de lien envoyé à un compte désactivé (départ, voir
+    // src/lib/actions/depart.ts) : pas de contournement silencieux de l'offboarding par ce chemin. Better-Auth
+    // renvoie de toute façon le même message de succès à l'appelant que l'email existe ou non (anti-énumération
+    // déjà gérée par le framework, voir node_modules/better-auth/dist/api/routes/password.mjs) — ce garde-fou ne
+    // change que si l'email part réellement, jamais la réponse donnée au client.
+    sendResetPassword: async ({ user, token }) => {
+      if ((user as { statut?: string }).statut !== "ACTIF") return;
+      const { subject, html } = gabaritReinitialisationMotDePasse({
+        nomClient: user.name,
+        url: `${urlBase()}/reinitialiser-mot-de-passe?token=${token}`,
+      });
+      await envoyerEmail({ to: user.email, subject, html });
+    },
+    // Un mot de passe réinitialisé invalide les sessions existantes — cohérent avec "accès perdu ou compromis".
+    revokeSessionsOnPasswordReset: true,
   },
   user: {
     // Champs "core" Better-Auth mappés sur nos colonnes françaises — email et

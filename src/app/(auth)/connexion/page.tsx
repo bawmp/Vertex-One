@@ -53,7 +53,12 @@ export default function PageConnexion() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="motDePasse">{t("Mot de passe")}</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="motDePasse">{t("Mot de passe")}</Label>
+              <Link href="/mot-de-passe-oublie" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                {t("Mot de passe oublié ?")}
+              </Link>
+            </div>
             <Input id="motDePasse" name="motDePasse" type="password" required />
           </div>
 

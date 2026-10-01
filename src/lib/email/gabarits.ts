@@ -6,6 +6,23 @@ import type { EvenementAbonnement } from "@/lib/abonnement/etat";
  * réel n'en a pas exprimé le besoin (voir esprit général du projet : ne
  * pas construire au-delà de ce qui est demandé).
  */
+/**
+ * Lien à durée limitée (1h, géré par Better-Auth) pour redéfinir son mot de passe — déclenché soit par
+ * l'intéressé lui-même (/mot-de-passe-oublie), soit par un Administrateur ("Renvoyer un accès", Équipe). Voir
+ * sendResetPassword dans src/lib/auth.ts : jamais envoyé à un compte désactivé.
+ */
+export function gabaritReinitialisationMotDePasse({ nomClient, url }: { nomClient: string; url: string }): { subject: string; html: string } {
+  return {
+    subject: "Réinitialisation de votre mot de passe Vertex One",
+    html: `
+      <p>Bonjour ${nomClient},</p>
+      <p>Une demande de réinitialisation de mot de passe a été faite pour votre compte Vertex One.</p>
+      <p><a href="${url}">Choisir un nouveau mot de passe</a></p>
+      <p>Ce lien expire dans une heure. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
+    `.trim(),
+  };
+}
+
 export function gabaritRelanceFacture({
   nomClient,
   numeroFacture,

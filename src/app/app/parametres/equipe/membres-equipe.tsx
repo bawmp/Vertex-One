@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { definirModulesUtilisateur } from "@/lib/actions/acces-modules";
+import { renvoyerAccesCollegue } from "@/lib/actions/invitation";
 import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
 
 
-export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null };
+export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null; statut: "ACTIF" | "DESACTIVE" };
 
 const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
 
@@ -25,7 +26,11 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
   const [enCours, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
+  const [enCoursAcces, startTransitionAcces] = useTransition();
+  const [messageAcces, setMessageAcces] = useState<{ texte: string; erreur: boolean } | null>(null);
+
   const restreint = membre.modulesAutorises !== null;
+  const desactive = membre.statut === "DESACTIVE";
 
   function enregistrer() {
     setErreur(null);
@@ -33,6 +38,15 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
       const resultat = await definirModulesUtilisateur(membre.id, valeurs);
       if (resultat?.erreur) setErreur(resultat.erreur);
       else setOuvert(false);
+    });
+  }
+
+  function renvoyerAcces() {
+    setMessageAcces(null);
+    startTransitionAcces(async () => {
+      const resultat = await renvoyerAccesCollegue(membre.id);
+      if (resultat?.erreur) setMessageAcces({ texte: resultat.erreur, erreur: true });
+      else setMessageAcces({ texte: resultat?.succes ?? "", erreur: false });
     });
   }
 
@@ -48,14 +62,20 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
           <p className="truncate text-muted-foreground">{membre.email}</p>
         </div>
         <div className="flex items-center gap-2">
+          {desactive ? <Badge variant="danger">{t("Désactivé")}</Badge> : null}
           <Badge variant="neutral">{LIBELLE_ROLE[membre.role]}</Badge>
           <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : t("Tous les modules")}</Badge>
+          <Button type="button" variant="ghost" size="xs" disabled={enCoursAcces} onClick={renvoyerAcces}>
+            {enCoursAcces ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
+            {desactive ? t("Réactiver et renvoyer un accès") : t("Renvoyer un accès")}
+          </Button>
           <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert((v) => !v)}>
             <KeyRound data-icon="inline-start" aria-hidden />
             {t("Accès")}
           </Button>
         </div>
       </div>
+      {messageAcces ? <p className={`text-xs ${messageAcces.erreur ? "text-destructive" : "text-emerald-700 dark:text-emerald-400"}`}>{messageAcces.texte}</p> : null}
       {ouvert ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <SelecteurModules role={membre.role} valeurs={valeurs} onChange={setValeurs} />

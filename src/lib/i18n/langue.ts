@@ -1,21 +1,24 @@
 import "server-only";
 import { cache } from "react";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { recupererUtilisateurConnecte, type Langue } from "@/lib/session";
 import { traducteur, type Traducteur } from "./catalogue";
 
 import { COOKIE_LANGUE } from "./cookie-langue";
 
 /**
- * Langue d'un visiteur sans compte (site vitrine, connexion, pages envoyées à un client) : son choix mémorisé dans un
- * cookie, sinon la langue de son navigateur, sinon le français. Aucune base de données consultée.
+ * Langue d'un visiteur sans compte (site vitrine, connexion, pages envoyées à un client) : son choix mémorisé dans
+ * un cookie, sinon le français — jamais la langue du navigateur (corrigé le 2026-10-01 : de nombreux téléphones
+ * vendus au Cameroun ont l'anglais comme langue système même chez des utilisateurs francophones, ce qui faisait
+ * basculer tout le site vitrine en anglais sans que le visiteur ait rien demandé, particulièrement visible sur
+ * mobile où le sélecteur de langue est moins visible que sur bureau — bug réel constaté en testant depuis un
+ * profil mobile). Le français reste "la langue source du produit" (voir CLAUDE.md) : un visiteur voit toujours le
+ * français par défaut, l'anglais n'arrive que par un choix explicite via le sélecteur. Aucune base de données
+ * consultée.
  */
 export async function langueVisiteur(): Promise<Langue> {
   const choix = (await cookies()).get(COOKIE_LANGUE)?.value;
-  if (choix === "fr" || choix === "en") return choix;
-  const navigateur = (await headers()).get("accept-language") ?? "";
-  // Le premier code de langue de l'en-tête (le plus préféré) : « en-US,en;q=0.9,fr;q=0.8 » → en.
-  return navigateur.trim().toLowerCase().startsWith("en") ? "en" : "fr";
+  return choix === "en" ? "en" : "fr";
 }
 
 /**

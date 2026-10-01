@@ -4,6 +4,7 @@ import { z } from "zod";
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { generateRandomString, hashPassword } from "better-auth/crypto";
 import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { db, avecEntreprise } from "@/db/client";
@@ -223,4 +224,45 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
   });
 
   redirect(invitationValide.roleProposee === "CLIENT" ? "/portail" : "/app");
+}
+
+export type EtatRenvoiAcces = { erreur?: string; succes?: string } | null;
+
+/**
+ * Récupération d'accès (2026-10-01) — pour un collaborateur déjà existant qui a perdu son mot de passe ou son
+ * accès à l'email d'origine, contrairement à creerInvitation()/accepterInvitation() qui ne savent créer qu'un
+ * compte entièrement nouveau (et échoueraient de toute façon sur l'email déjà pris, voir contientContrainteEmailUnique
+ * ci-dessus). Réutilise le même mécanisme que la réinitialisation en libre-service (sendResetPassword,
+ * src/lib/auth.ts) plutôt qu'un système de jeton séparé : réactive le compte si besoin, puis déclenche l'envoi —
+ * auth.api.requestPasswordReset() verra alors statut === "ACTIF" et enverra réellement l'email.
+ */
+export async function renvoyerAccesCollegue(utilisateurId: string): Promise<EtatRenvoiAcces> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) {
+    return { erreur: t("Vous n'avez pas le droit de renvoyer un accès.") };
+  }
+
+  const email = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // "utilisateur" reste en RLS permissive (comptes consultés par Better-Auth avant toute session) — jamais une
+    // confiance aveugle dans l'id reçu, filtre explicite par entrepriseId comme partout ailleurs dans ce fichier.
+    const [cible] = await tx
+      .select({ email: utilisateur.email, statut: utilisateur.statut })
+      .from(utilisateur)
+      .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!cible) return null;
+
+    if (cible.statut === "DESACTIVE") {
+      await tx.update(utilisateur).set({ statut: "ACTIF" }).where(eq(utilisateur.id, utilisateurId));
+    }
+    return cible.email;
+  });
+
+  if (!email) return { erreur: t("Collaborateur introuvable.") };
+
+  await auth.api.requestPasswordReset({ body: { email } });
+
+  revalidatePath("/app/parametres/equipe");
+  return { succes: t("Lien envoyé.") };
 }

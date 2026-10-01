@@ -92,6 +92,11 @@ export const PARAMETRES: Record<string, string> = {
   "Choisissez les modules que chaque Manager ou Employé peut utiliser. Ses droits à l'intérieur d'un module restent ceux de son rôle.":
     "Choose the modules each Manager or Employee can use. Their rights inside a module remain those of their role.",
   "Aucun Manager ni Employé pour le moment.": "No Managers or Employees yet.",
+  Désactivé: "Deactivated",
+  "Renvoyer un accès": "Resend access",
+  "Réactiver et renvoyer un accès": "Reactivate and resend access",
+  "Vous n'avez pas le droit de renvoyer un accès.": "You are not allowed to resend access.",
+  "Lien envoyé.": "Link sent.",
   "Vous n'avez pas le droit d'inviter de nouveaux collaborateurs.": "You are not allowed to invite new team members.",
   "Inviter un nouveau collaborateur (Manager ou Employé).": "Invite a new team member (Manager or Employee).",
   Invitations: "Invitations",

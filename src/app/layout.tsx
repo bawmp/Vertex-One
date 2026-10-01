@@ -51,11 +51,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Toujours la langue du VISITEUR (cookie, sinon navigateur) — jamais la préférence de compte ici, même connecté
-  // (2026-09-23, bug réel corrigé : un visiteur connecté qui changeait de langue sur le site vitrine ou /connexion
-  // voyait le cookie posé mais le contenu rester dans la langue de son compte, <html lang> ne pouvant être fixé
-  // qu'une seule fois au tout premier niveau). /app et /portail imposent ensuite leur propre LangueProvider
-  // (préférence de compte) plus bas dans l'arbre — voir src/app/app/layout.tsx et src/app/portail/layout.tsx.
+  // Toujours la langue du VISITEUR (cookie, sinon français — jamais le navigateur depuis le 2026-10-01, voir
+  // src/lib/i18n/langue.ts) — jamais la préférence de compte ici, même connecté (2026-09-23, bug réel corrigé :
+  // un visiteur connecté qui changeait de langue sur le site vitrine ou /connexion voyait le cookie posé mais le
+  // contenu rester dans la langue de son compte, <html lang> ne pouvant être fixé qu'une seule fois au tout
+  // premier niveau). /app et /portail imposent ensuite leur propre LangueProvider (préférence de compte) plus
+  // bas dans l'arbre — voir src/app/app/layout.tsx et src/app/portail/layout.tsx.
   const langue = await langueVisiteur();
   return (
     <html

@@ -37,11 +37,13 @@ export default async function PageEquipe() {
       // rôle système à 4 niveaux).
       tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.role, "CLIENT")),
       tx.select({ id: service.id, nom: service.nom }).from(service),
-      // Manager/Employé actifs de l'entreprise — filtre entrepriseId explicite (utilisateur reste en RLS permissive).
+      // Manager/Employé de l'entreprise — filtre entrepriseId explicite (utilisateur reste en RLS permissive).
+      // Inclut les comptes désactivés (départ, voir src/lib/actions/depart.ts) : sinon un Administrateur ne peut
+      // jamais retrouver un compte désactivé par erreur pour le réactiver (voir renvoyerAccesCollegue).
       tx
-        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises })
+        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises, statut: utilisateur.statut })
         .from(utilisateur)
-        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE"]), eq(utilisateur.statut, "ACTIF")))
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE"]), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
         .orderBy(utilisateur.nomComplet),
     ])
   );
@@ -58,7 +60,7 @@ export default async function PageEquipe() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
-        <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE" }))} />
+        <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE", statut: m.statut as "ACTIF" | "DESACTIVE" }))} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
