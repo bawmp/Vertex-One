@@ -30,7 +30,7 @@ export default async function PageAPropos() {
       <Reveal>
         <h1 className="text-4xl font-semibold tracking-tight">{t("Pourquoi Vertex One")}</h1>
         <p className="mt-6 text-lg text-muted-foreground">
-          {t("Les entreprises de services camerounaises font aujourd'hui un choix difficile : des logiciels internationaux puissants mais pensés pour d'autres réalités — facturés en devise étrangère, sans Mobile Money, sans conformité SYSCOHADA — ou des solutions locales plus simples mais qui n'offrent pas la même largeur fonctionnelle. Vertex One est construit pour ne plus avoir à choisir : la même couverture qu'une grande suite internationale, mais pensée Mobile Money-first, en français, conforme à la réglementation locale.")}
+          {t("Les entreprises de services africaines font aujourd'hui un choix difficile : des logiciels internationaux puissants mais pensés pour d'autres réalités — facturés en devise étrangère, sans Mobile Money, sans conformité SYSCOHADA — ou des solutions locales plus simples mais qui n'offrent pas la même largeur fonctionnelle. Vertex One est construit pour ne plus avoir à choisir : la même couverture qu'une grande suite internationale, mais pensée Mobile Money-first, en français, conforme à la réglementation locale.")}
         </p>
       </Reveal>
 
