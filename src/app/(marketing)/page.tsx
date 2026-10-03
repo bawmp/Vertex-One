@@ -107,7 +107,7 @@ export default async function PageAccueil() {
               {t("Essai gratuit {jours} jours — sans carte bancaire", { jours: DUREE_ESSAI_JOURS })}
             </Badge>
             <Badge variant="brand" className="bg-white/10 text-white ring-white/20">
-              {t("Pensé pour les équipes de 1 à 15 personnes")}
+              {t("Pensé pour les équipes de 1 à 100 personnes")}
             </Badge>
           </div>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">

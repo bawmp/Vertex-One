@@ -47,8 +47,8 @@ export const VITRINE: Record<string, string> = {
   "Paiement — Mobile Money, sans compte côté client": "Payment — Mobile Money, no account needed on the client side",
   "Dossier client — documents et suivi centralisés": "Client file — documents and tracking centralized",
   "Pour qui": "Who it is for",
-  "Toute entreprise de services de moins d'une quinzaine de personnes, quel que soit son secteur — le vocabulaire de l'application s'adapte au vôtre.":
-    "Any service business of fewer than about fifteen people, whatever its sector — the application's vocabulary adapts to yours.",
+  "Toute entreprise de services de 1 à 100 personnes, quel que soit son secteur — le vocabulaire de l'application s'adapte au vôtre.":
+    "Any service business of 1 to 100 people, whatever its sector — the application's vocabulary adapts to yours.",
   "Vous possédez plusieurs entreprises ?": "Do you own several companies?",
   "Reliez-les en groupe pour voir toutes vos filiales d'un coup d'œil — chacune garde sa propre connexion, ses propres données et son propre abonnement.":
     "Link them in a group to see all your subsidiaries at a glance — each keeps its own login, its own data and its own subscription.",
@@ -103,7 +103,7 @@ export const VITRINE: Record<string, string> = {
   "Sans coût d'implémentation": "No implementation cost",
   "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique.": "No integrator to pay to get started, unlike the implementation of a typical large international software package.",
   "Essai gratuit {jours} jours — sans carte bancaire": "{jours}-day free trial — no credit card",
-  "Pensé pour les équipes de 1 à 15 personnes": "Built for teams of 1 to 15 people",
+  "Pensé pour les équipes de 1 à 100 personnes": "Built for teams of 1 to 100 people",
   "La suite de gestion tout-en-un pour les entreprises de services au Cameroun": "The all-in-one management suite for service businesses in Cameroon",
   "One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.":
     "One CRM, One Books, One People, One Projects, One Bookings and more — the same functional breadth as a large international software, designed Mobile Money-first, in French, without the implementation costs.",

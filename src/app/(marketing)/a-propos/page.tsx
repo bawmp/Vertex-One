@@ -49,7 +49,7 @@ export default async function PageAPropos() {
       <Reveal>
         <h2 className="mt-16 text-2xl font-semibold tracking-tight">{t("Pour qui")}</h2>
         <p className="mt-3 text-muted-foreground">
-          {t("Toute entreprise de services de moins d'une quinzaine de personnes, quel que soit son secteur — le vocabulaire de l'application s'adapte au vôtre.")}
+          {t("Toute entreprise de services de 1 à 100 personnes, quel que soit son secteur — le vocabulaire de l'application s'adapte au vôtre.")}
         </p>
       </Reveal>
       <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
