@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTVisiteur();
   return metadonneesSite({
     titre: `${t("À propos")} — Vertex One`,
-    description: t("Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun et conforme OHADA/SYSCOHADA."),
+    description: t("Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services en Afrique et conforme OHADA/SYSCOHADA."),
     chemin: "/a-propos",
   });
 }

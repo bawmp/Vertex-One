@@ -22,7 +22,7 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
 
         <div className="relative flex flex-col gap-3">
           <p className="text-2xl font-medium leading-snug">
-            {t("La suite de gestion pensée pour les entreprises de services au Cameroun.")}
+            {t("La suite de gestion pensée pour les entreprises de services en Afrique.")}
           </p>
           <p className="text-marque-bleu-100/90">
             {t("CRM, devis, facturation et paiement Mobile Money — sans les frais d'implémentation d'un grand logiciel international.")}

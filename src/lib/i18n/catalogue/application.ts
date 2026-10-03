@@ -35,7 +35,7 @@ export const APPLICATION: Record<string, string> = {
   "Votre nom complet": "Your full name",
   "Création en cours…": "Creating…",
   "Créer mon entreprise": "Create my company",
-  "La suite de gestion pensée pour les entreprises de services au Cameroun.": "The management suite designed for service businesses in Cameroon.",
+  "La suite de gestion pensée pour les entreprises de services en Afrique.": "The management suite designed for service businesses in Africa.",
   "CRM, devis, facturation et paiement Mobile Money — sans les frais d'implémentation d'un grand logiciel international.":
     "CRM, quotes, invoicing and Mobile Money payments — without the implementation costs of big international software.",
   "Vertex Technology": "Vertex Technology",

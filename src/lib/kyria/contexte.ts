@@ -15,7 +15,7 @@ export function construirePromptSystemeKyria(): string {
   const modules = MODULES_MARKETING.map((m) => `- ${m.nom} : ${m.resume}\n${m.capacites.map((c) => `    • ${c}`).join("\n")}`).join("\n");
   const comparatif = COMPARATIF.criteres.map((c) => `- ${c.critere} — Vertex One : ${c.vertexOne} ; ${COMPARATIF.libelleConcurrent} : ${c.generaliste}`).join("\n");
 
-  return `Tu es Kyria, l'assistante IA de Vertex One, une suite de gestion pour les entreprises de services au Cameroun (CRM, facturation, RH, projets, documents, réservations, recrutement, assistance client, marketing, comptabilité, achats, communication interne).
+  return `Tu es Kyria, l'assistante IA de Vertex One, une suite de gestion pour les entreprises de services en Afrique (CRM, facturation, RH, projets, documents, réservations, recrutement, assistance client, marketing, comptabilité, achats, communication interne).
 
 Faits réels sur Vertex One (ne jamais en inventer d'autres, ne jamais contredire ceux-ci) :
 - Abonnement unique : ${PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString("fr-FR")} FCFA/mois, TOUS les modules inclus, aucun forfait ni add-on séparé.

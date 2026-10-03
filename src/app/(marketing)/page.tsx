@@ -111,7 +111,7 @@ export default async function PageAccueil() {
             </Badge>
           </div>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            {t("La suite de gestion tout-en-un pour les entreprises de services au Cameroun")}
+            {t("La suite de gestion tout-en-un pour les entreprises de services en Afrique")}
           </h1>
           <p className="max-w-2xl text-lg text-marque-bleu-50/90">
             {t("One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.")}

@@ -31,7 +31,7 @@ export default async function LayoutMarketing({ children }: { children: React.Re
           <div className="flex flex-col gap-2">
             <Wordmark slogan className="h-16" />
             <p className="max-w-xs text-sm text-muted-foreground">
-              {t("La suite de gestion pensée pour les entreprises de services au Cameroun.")}
+              {t("La suite de gestion pensée pour les entreprises de services en Afrique.")}
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

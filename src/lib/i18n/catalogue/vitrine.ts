@@ -22,8 +22,8 @@ export const VITRINE: Record<string, string> = {
   "Commencer mon essai gratuit": "Start my free trial",
 
   // À propos
-  "Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services au Cameroun et conforme OHADA/SYSCOHADA.":
-    "Why Vertex One exists, and for whom — a management suite designed for service businesses in Cameroon, OHADA/SYSCOHADA-compliant.",
+  "Pourquoi Vertex One existe, et pour qui — une suite de gestion pensée pour les entreprises de services en Afrique et conforme OHADA/SYSCOHADA.":
+    "Why Vertex One exists, and for whom — a management suite designed for service businesses in Africa, OHADA/SYSCOHADA-compliant.",
   Agences: "Agencies",
   "Communication, conseil, événementiel — pipeline commercial et facturation au même endroit.": "Communications, consulting, events — sales pipeline and invoicing in one place.",
   Artisans: "Craftspeople",
@@ -104,7 +104,7 @@ export const VITRINE: Record<string, string> = {
   "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique.": "No integrator to pay to get started, unlike the implementation of a typical large international software package.",
   "Essai gratuit {jours} jours — sans carte bancaire": "{jours}-day free trial — no credit card",
   "Pensé pour les équipes de 1 à 100 personnes": "Built for teams of 1 to 100 people",
-  "La suite de gestion tout-en-un pour les entreprises de services au Cameroun": "The all-in-one management suite for service businesses in Cameroon",
+  "La suite de gestion tout-en-un pour les entreprises de services en Afrique": "The all-in-one management suite for service businesses in Africa",
   "One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.":
     "One CRM, One Books, One People, One Projects, One Bookings and more — the same functional breadth as a large international software, designed Mobile Money-first, in French, without the implementation costs.",
   "Un seul prix,": "One price,",
