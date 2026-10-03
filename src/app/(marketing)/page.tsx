@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import {
   ArrowRight,
@@ -58,6 +59,19 @@ function DonneesStructurees() {
   };
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(donnees) }} />;
 }
+
+/** Ordre d'affichage des catégories de modules sur l'accueil uniquement — /modules garde la liste complète à plat. */
+const CATEGORIES_MODULES = [m("Gestion commerciale"), m("Gestion financière"), m("Gestion d'équipe"), m("Gestion opérationnelle"), m("Communication & documents")];
+
+/** Captures d'écran réelles d'un tenant de démonstration (données entièrement fictives) — voir scripts/capturer-demo-marketing.ts (supprimé après usage, seules les images restent dans public/images/marketing/). */
+const CAPTURES_DEMO = [
+  { fichier: "demo-tableau-de-bord.png", legende: m("Tableau de bord — vue d'ensemble de l'activité") },
+  { fichier: "demo-prospect.png", legende: m("Pipeline commercial — suivi des prospects") },
+  { fichier: "demo-devis.png", legende: m("Devis — envoyé, accepté en un clic par le client") },
+  { fichier: "demo-facture.png", legende: m("Facture — numérotée et prête à être payée") },
+  { fichier: "demo-paiement.png", legende: m("Paiement — Mobile Money, sans compte côté client") },
+  { fichier: "demo-dossier-client.png", legende: m("Dossier client — documents et suivi centralisés") },
+];
 
 const ATOUTS = [
   { icone: Smartphone, titre: m("Mobile Money natif"), classeFond: "bg-blue-500", description: m("Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients.") },
@@ -140,21 +154,28 @@ export default async function PageAccueil() {
             </p>
           </div>
         </Reveal>
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULES_MARKETING.map((module, index) => (
-            <Reveal key={module.slug} delai={index * 60}>
-              <Link href={`/modules/${module.slug}`}>
-                <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
-                  <CardContent className="flex flex-col gap-3">
-                    <span className={`flex size-11 items-center justify-center rounded-xl ${module.classeFond} text-white`}>
-                      <module.icone className="size-5.5" aria-hidden />
-                    </span>
-                    <h3 className="font-semibold">{t(module.nom)}</h3>
-                    <p className="text-sm text-muted-foreground">{t(module.resume)}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </Reveal>
+        <div className="mt-12 flex flex-col gap-10">
+          {CATEGORIES_MODULES.map((categorie) => (
+            <div key={categorie}>
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t(categorie)}</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {MODULES_MARKETING.filter((module) => module.categorie === categorie).map((module, index) => (
+                  <Reveal key={module.slug} delai={index * 60}>
+                    <Link href={`/modules/${module.slug}`}>
+                      <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
+                        <CardContent className="flex flex-col gap-3">
+                          <span className={`flex size-11 items-center justify-center rounded-xl ${module.classeFond} text-white`}>
+                            <module.icone className="size-5.5" aria-hidden />
+                          </span>
+                          <h4 className="font-semibold">{t(module.nom)}</h4>
+                          <p className="text-sm text-muted-foreground">{t(module.resume)}</p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <div className="mt-8 text-center">
@@ -237,9 +258,20 @@ export default async function PageAccueil() {
         <Reveal className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
           <Rocket className="size-8 text-primary" aria-hidden />
           <h2 className="text-2xl font-semibold tracking-tight">{t("En cours de lancement au Cameroun")}</h2>
+          <p className="font-medium text-foreground">
+            {t("Vertex One est né d'un besoin réel : notre propre agence, Vertex Technology, cherchait un outil pour gérer ses prospects, ses devis, ses factures et son équipe. Nous l'avons construit pour nous-mêmes avant de le proposer à d'autres entreprises de services — c'est la meilleure preuve que le produit fonctionne vraiment au quotidien.")}
+          </p>
           <p className="text-muted-foreground">
             {t("Vertex One est un produit jeune — nous préférons vous le dire plutôt que d'inventer des témoignages. Le code est réel, testé, et prêt à gérer votre activité dès aujourd'hui. Essayez-le gratuitement pendant {jours} jours et faites-vous votre propre avis.", { jours: DUREE_ESSAI_JOURS })}
           </p>
+        </Reveal>
+        <Reveal delai={80} className="mx-auto mt-12 grid max-w-5xl grid-cols-2 gap-4 px-6 sm:grid-cols-3">
+          {CAPTURES_DEMO.map((capture) => (
+            <figure key={capture.fichier} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <Image src={`/images/marketing/${capture.fichier}`} alt={t(capture.legende)} width={480} height={300} className="h-auto w-full object-cover" />
+              <figcaption className="px-3 py-2 text-xs font-medium text-muted-foreground">{t(capture.legende)}</figcaption>
+            </figure>
+          ))}
         </Reveal>
       </section>
 

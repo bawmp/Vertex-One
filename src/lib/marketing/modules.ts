@@ -30,6 +30,8 @@ export type ModuleMarketing = {
   slug: string;
   nom: string;
   resume: string;
+  /** Regroupement fonctionnel affiché sur l'accueil uniquement (/modules garde la liste complète à plat) — voir CATEGORIES_MODULES dans page.tsx pour l'ordre d'affichage. */
+  categorie: string;
   icone: LucideIcon;
   /**
    * Fond coloré de la puce d'icône (site vitrine uniquement — jamais utilisé
@@ -47,6 +49,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "crm",
     nom: m("One CRM"),
     resume: m("Prospects, opportunités et pipeline commercial, du premier contact à la facture."),
+    categorie: m("Gestion commerciale"),
     icone: Handshake,
     classeFond: "bg-blue-500",
     capacites: [
@@ -60,6 +63,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "books",
     nom: m("One Books"),
     resume: m("Facturation, achats et comptabilité SYSCOHADA dans un seul module — du devis au paiement Mobile Money."),
+    categorie: m("Gestion financière"),
     icone: Receipt,
     classeFond: "bg-amber-500",
     capacites: [
@@ -83,6 +87,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "rh",
     nom: m("One People"),
     resume: m("Dossiers employés, congés, pointage et suivi d'activité — hors paie."),
+    categorie: m("Gestion d'équipe"),
     icone: Users,
     classeFond: "bg-purple-500",
     capacites: [
@@ -98,6 +103,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "recrutement",
     nom: m("One Recruit"),
     resume: m("Postes ouverts, candidatures et conversion directe en compte employé."),
+    categorie: m("Gestion d'équipe"),
     icone: Briefcase,
     classeFond: "bg-pink-500",
     capacites: [
@@ -113,6 +119,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "assistance-client",
     nom: m("One Desk"),
     resume: m("Tickets clients par catégorie, avec assignation et suivi de résolution."),
+    categorie: m("Gestion opérationnelle"),
     icone: LifeBuoy,
     classeFond: "bg-cyan-500",
     capacites: [
@@ -125,6 +132,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "reservations",
     nom: m("One Bookings"),
     resume: m("Prise de rendez-vous en ligne, services, disponibilités et intervenants."),
+    categorie: m("Gestion opérationnelle"),
     icone: CalendarCheck,
     classeFond: "bg-rose-500",
     capacites: [
@@ -138,6 +146,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "projets",
     nom: m("One Projects"),
     resume: m("Dossiers clients permanents et projets bornés, avec feuille de temps."),
+    categorie: m("Gestion opérationnelle"),
     icone: FolderKanban,
     classeFond: "bg-indigo-500",
     capacites: [
@@ -151,6 +160,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "documents-signatures",
     nom: m("One Docs & Sign"),
     resume: m("Stockage classé par sensibilité et signature électronique avec preuve."),
+    categorie: m("Communication & documents"),
     icone: FileSignature,
     classeFond: "bg-violet-500",
     capacites: [
@@ -165,6 +175,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "marketing",
     nom: m("One Marketing"),
     resume: m("Campagnes email, pages d'atterrissage et relances automatiques — WhatsApp bientôt."),
+    categorie: m("Communication & documents"),
     icone: Megaphone,
     classeFond: "bg-fuchsia-500",
     capacites: [
@@ -177,6 +188,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "one-form",
     nom: m("One Form"),
     resume: m("Formulaires personnalisés à publier via un lien public, réponses centralisées."),
+    categorie: m("Communication & documents"),
     icone: ClipboardList,
     classeFond: "bg-lime-500",
     capacites: [
@@ -195,6 +207,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "one-vault",
     nom: m("One Vault"),
     resume: m("Identifiants et notes sensibles chiffrés, privés ou partagés avec l'équipe."),
+    categorie: m("Communication & documents"),
     icone: KeyRound,
     classeFond: "bg-yellow-500",
     capacites: [
@@ -209,6 +222,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     slug: "communication-interne",
     nom: m("One Chat"),
     resume: m("Messagerie d'équipe : canaux, messages directs, groupes privés, fils et pièces jointes."),
+    categorie: m("Communication & documents"),
     icone: MessageSquare,
     classeFond: "bg-sky-500",
     capacites: [

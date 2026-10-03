@@ -26,7 +26,7 @@ export const COMPARATIF = {
   libelleConcurrent: m("Suites de gestion internationales généralistes"),
   criteres: [
     { critere: m("Paiement"), vertexOne: m("Mobile Money natif (Orange Money, MTN MoMo), facturé en FCFA"), generaliste: m("Carte bancaire internationale, facturé en devise étrangère") },
-    { critere: m("Mise en route"), vertexOne: m("Essai immédiat, aucun coût d'implémentation"), generaliste: m("Configuration en libre-service, ou implémentation confiée à un intégrateur (40 à 60 % du coût total selon la solution)") },
+    { critere: m("Mise en route"), vertexOne: m("Essai immédiat, aucun coût d'implémentation"), generaliste: m("Configuration en libre-service, ou implémentation confiée à un intégrateur, facturée en plus de l'abonnement selon la solution") },
     { critere: m("Modules inclus"), vertexOne: m("Un seul prix, tous les modules inclus"), generaliste: m("Chaque application ou module vendu séparément, ou par palier") },
     { critere: m("Langue & conformité locale"), vertexOne: m("Français, SYSCOHADA, prêt pour la facturation électronique 2026"), generaliste: m("Interface multilingue générique, rarement pensée pour le Cameroun") },
     { critere: m("Support"), vertexOne: m("Support humain local"), generaliste: m("Support centralisé, souvent en décalage horaire") },

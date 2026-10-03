@@ -12,7 +12,6 @@ export const VITRINE: Record<string, string> = {
   Tarifs: "Pricing",
   "Essai gratuit": "Free trial",
   "Voir la démo": "View the demo",
-  Kyria: "Kyria",
   Fermer: "Close",
   "© {annee} Vertex One — Fait au Cameroun.": "© {annee} Vertex One — Made in Cameroon.",
   "Essayer gratuitement": "Try it for free",
@@ -39,6 +38,14 @@ export const VITRINE: Record<string, string> = {
   "En cours de lancement": "Launching soon",
   "Vertex One est un produit jeune. Nous préférons vous le dire clairement plutôt que d'afficher de faux témoignages : le produit est réel, testé, et prêt à gérer votre activité dès aujourd'hui — essayez-le gratuitement et faites-vous votre propre avis.":
     "Vertex One is a young product. We would rather tell you plainly than show fake testimonials: the product is real, tested, and ready to run your business today — try it for free and make up your own mind.",
+  "Vertex One est né d'un besoin réel : notre propre agence, Vertex Technology, cherchait un outil pour gérer ses prospects, ses devis, ses factures et son équipe. Nous l'avons construit pour nous-mêmes avant de le proposer à d'autres entreprises de services — c'est la meilleure preuve que le produit fonctionne vraiment au quotidien.":
+    "Vertex One was born from a real need: our own agency, Vertex Technology, needed a tool to manage its prospects, quotes, invoices and team. We built it for ourselves before offering it to other service businesses — the best proof that the product truly works day to day.",
+  "Tableau de bord — vue d'ensemble de l'activité": "Dashboard — overview of your activity",
+  "Pipeline commercial — suivi des prospects": "Sales pipeline — tracking prospects",
+  "Devis — envoyé, accepté en un clic par le client": "Quote — sent, accepted in one click by the client",
+  "Facture — numérotée et prête à être payée": "Invoice — numbered and ready to be paid",
+  "Paiement — Mobile Money, sans compte côté client": "Payment — Mobile Money, no account needed on the client side",
+  "Dossier client — documents et suivi centralisés": "Client file — documents and tracking centralized",
   "Pour qui": "Who it is for",
   "Toute entreprise de services de moins d'une quinzaine de personnes, quel que soit son secteur — le vocabulaire de l'application s'adapte au vôtre.":
     "Any service business of fewer than about fifteen people, whatever its sector — the application's vocabulary adapts to yours.",
@@ -57,6 +64,7 @@ export const VITRINE: Record<string, string> = {
   "Nous répondons généralement sous 24 à 48 heures.": "We usually reply within 24 to 48 hours.",
 
   // Kyria
+  "Kyria, l'assistant IA de Vertex One": "Kyria, Vertex One's AI assistant",
   "Kyria réfléchit…": "Kyria is thinking…",
   "Posez votre question…": "Ask your question…",
   "Fermer Kyria": "Close Kyria",
@@ -64,6 +72,13 @@ export const VITRINE: Record<string, string> = {
   "Une question ? Demandez à Kyria": "A question? Ask Kyria",
   "Notre assistante IA répond en direct à vos questions sur Vertex One — tarifs, modules, essai gratuit — directement depuis la bulle en bas à droite de votre écran, à tout moment.":
     "Our AI assistant answers your questions about Vertex One live — pricing, modules, free trial — right from the bubble at the bottom right of your screen, at any time.",
+
+  // Catégories de modules (accueil uniquement)
+  "Gestion commerciale": "Sales management",
+  "Gestion financière": "Financial management",
+  "Gestion d'équipe": "Team management",
+  "Gestion opérationnelle": "Operations management",
+  "Communication & documents": "Communication & documents",
 
   // Modules (pages)
   "Tous les modules de Vertex One, tous inclus dans le même abonnement : One CRM, One Books, One People, One Projects, One Bookings, One Recruit et plus.":
@@ -121,7 +136,7 @@ export const VITRINE: Record<string, string> = {
   "Carte bancaire internationale, facturé en devise étrangère": "International bank card, billed in foreign currency",
   "Mise en route": "Getting started",
   "Essai immédiat, aucun coût d'implémentation": "Immediate trial, no implementation cost",
-  "Configuration en libre-service, ou implémentation confiée à un intégrateur (40 à 60 % du coût total selon la solution)": "Self-service setup, or implementation handled by an integrator (40 to 60% of the total cost depending on the solution)",
+  "Configuration en libre-service, ou implémentation confiée à un intégrateur, facturée en plus de l'abonnement selon la solution": "Self-service setup, or implementation handled by an integrator, billed on top of the subscription depending on the solution",
   "Modules inclus": "Modules included",
   "Un seul prix, tous les modules inclus": "One price, every module included",
   "Chaque application ou module vendu séparément, ou par palier": "Each application or module sold separately, or by tier",

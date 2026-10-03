@@ -948,6 +948,25 @@ Construit d'après la documentation officielle et le SDK JavaScript fourni : cr�
 
 **Idées, à la demande** : paiement direct sans redirection (`/no_redirect/payment`, USSD) ; retrait des fonds depuis l'application ; relecture au retour du client sur la page de facture ; un second prestataire de secours.
 
+## 56. vertexone.cm — idées de positionnement non construites — 2026-10-03
+
+Issues d'une analyse stratégique externe (consultant) sur l'ensemble de l'écosystème Vertex, reprises par
+l'utilisateur. La plupart des points actionnables ont été construits le même jour (renommage de Kyria,
+comparatif sans chiffre invérifiable, preuve d'usage interne + captures d'écran réelles du tenant démo "Atelier
+Kalyss" sur l'accueil, regroupement des 12 modules en 5 catégories sur l'accueil). Deux idées, volontairement
+non construites :
+
+- **Pages verticales par secteur** : des pages dédiées (« Vertex One pour les agences digitales », « ... pour
+  les cabinets de conseil », « ... pour les agences de voyage », « ... pour les cabinets comptables », « ... pour
+  les centres de formation », etc.), chacune reprenant le tronc commun mais avec un vocabulaire et des exemples
+  propres au secteur. À explorer une fois une base de clients plus large pour savoir quels secteurs méritent
+  vraiment leur propre page plutôt que la page `/a-propos` générique actuelle (qui couvre déjà Agences, Artisans,
+  Cabinets, Autre).
+- **Vertex Technology comme « maison technologique »** : présenter Vertex One, Kyria et les solutions digitales
+  comme trois produits d'une même entreprise technologique, plutôt que Vertex One seul. Déjà amorcé côté
+  `vertex-technology-site` (repositionnement homepage/nav autour de Vertex One et Kyria, voir son propre dépôt) ;
+  rien de spécifique à construire sur vertexone.cm pour l'instant — ce site reste focalisé sur son propre produit.
+
 ## Quand y revenir
 
 Ce fichier est une note vivante : à mettre à jour (ajouter/rayer une ligne) plutôt que d'ouvrir un nouveau document à chaque fois qu'un manque est identifié, jusqu'à ce qu'un vrai chantier soit lancé sur l'un de ces points.

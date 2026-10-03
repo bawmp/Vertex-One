@@ -70,7 +70,7 @@ export function KyriaChat() {
           <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4.5" aria-hidden />
-              <span className="font-semibold">{t("Kyria")}</span>
+              <span className="font-semibold">{t("Kyria, l'assistant IA de Vertex One")}</span>
             </div>
             <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/15" aria-label={t("Fermer")} onClick={() => setOuvert(false)}>
               <X aria-hidden />
