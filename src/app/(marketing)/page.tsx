@@ -102,9 +102,14 @@ export default async function PageAccueil() {
           className="animate-flotter-lentement-inverse pointer-events-none absolute -right-24 top-1/3 size-96 rounded-full bg-marque-bleu-300/25 blur-3xl"
         />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
-          <Badge variant="brand" className="animate-pulse bg-white/10 text-white ring-white/20">
-            {t("Essai gratuit {jours} jours — sans carte bancaire", { jours: DUREE_ESSAI_JOURS })}
-          </Badge>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="brand" className="animate-pulse bg-white/10 text-white ring-white/20">
+              {t("Essai gratuit {jours} jours — sans carte bancaire", { jours: DUREE_ESSAI_JOURS })}
+            </Badge>
+            <Badge variant="brand" className="bg-white/10 text-white ring-white/20">
+              {t("Pensé pour les équipes de 1 à 15 personnes")}
+            </Badge>
+          </div>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
             {t("La suite de gestion tout-en-un pour les entreprises de services au Cameroun")}
           </h1>

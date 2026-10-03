@@ -58,8 +58,10 @@ export const VITRINE: Record<string, string> = {
   "Nous revenons vers vous rapidement.": "We will get back to you shortly.",
   "Entreprise (optionnel)": "Company (optional)",
   "Une question sur Vertex One ? Écrivez-nous.": "A question about Vertex One? Write to us.",
-  "Parlons-en": "Let's talk",
-  "Une question avant de vous lancer, ou besoin d'aide pour votre entreprise ? Écrivez-nous.": "A question before you start, or need help for your business? Write to us.",
+  "Vous souhaitez essayer Vertex One ?": "Want to try Vertex One?",
+  "Créez votre compte en quelques minutes — {jours} jours d'essai gratuit, sans carte bancaire.": "Create your account in minutes — {jours}-day free trial, no credit card required.",
+  "Créer mon compte": "Create my account",
+  "Besoin d'aide avant de commencer ?": "Need help before you start?",
   "Envoyer un message": "Send a message",
   "Nous répondons généralement sous 24 à 48 heures.": "We usually reply within 24 to 48 hours.",
 
@@ -101,6 +103,7 @@ export const VITRINE: Record<string, string> = {
   "Sans coût d'implémentation": "No implementation cost",
   "Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique.": "No integrator to pay to get started, unlike the implementation of a typical large international software package.",
   "Essai gratuit {jours} jours — sans carte bancaire": "{jours}-day free trial — no credit card",
+  "Pensé pour les équipes de 1 à 15 personnes": "Built for teams of 1 to 15 people",
   "La suite de gestion tout-en-un pour les entreprises de services au Cameroun": "The all-in-one management suite for service businesses in Cameroon",
   "One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.":
     "One CRM, One Books, One People, One Projects, One Bookings and more — the same functional breadth as a large international software, designed Mobile Money-first, in French, without the implementation costs.",
