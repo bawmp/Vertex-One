@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChangeurStatutDeal } from "./changeur-statut-deal";
+import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
 import { ContactsSupplementaires } from "./contacts-supplementaires";
 import { BoutonConvertirBCV } from "./bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "./boutons-facture-recurrente";
@@ -178,6 +179,8 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
       </div>
 
       {peutModifier ? <ChangeurStatutDeal dealId={fiche.id} statutActuel={fiche.statut} /> : null}
+
+      {peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? <BoutonSupprimerCrm type="deal" id={fiche.id} nom={fiche.titre} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-3">

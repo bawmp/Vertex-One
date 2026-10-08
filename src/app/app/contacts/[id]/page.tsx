@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
 import { FormulaireMessageClient } from "./formulaire-message-client";
+import { BoutonEcrireAuClient } from "./bouton-ecrire-au-client";
+import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
 import { BoutonInviterPortail } from "./bouton-inviter-portail";
 import { EditeurChampsPersonnalises } from "./editeur-champs-personnalises";
 import { ListeDocuments } from "../../projets/liste-documents";
@@ -202,6 +204,13 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
           ) : null}
         </div>
       </div>
+
+      {peutModifier || peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? (
+        <div className="flex flex-wrap items-start gap-2">
+          {peutModifier ? <BoutonEcrireAuClient aUnEmail={!!fiche.email} /> : null}
+          {peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? <BoutonSupprimerCrm type="contact" id={fiche.id} nom={fiche.nom} /> : null}
+        </div>
+      ) : null}
 
       {utilisateurConnecte.role === "ADMIN" ? (
         <div className="flex flex-wrap gap-2">

@@ -41,7 +41,7 @@ export function FormulaireMessageClient({
   }
 
   return (
-    <details className="group rounded-lg border">
+    <details id="ecrire-au-client" className="group rounded-lg border">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-medium">
         <Mail className="size-4" aria-hidden />
         {t("Écrire à {nom}", { nom: nomContact })}

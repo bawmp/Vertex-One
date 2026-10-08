@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { ChangeurStatutLead } from "./changeur-statut-lead";
+import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
 import { convertirLeadAction, modifierNotesLead } from "@/lib/actions/lead";
 import { getT } from "@/lib/i18n/langue";
 
@@ -78,6 +79,8 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
       </div>
 
       {peutModifier && !fiche.convertiLe ? <ChangeurStatutLead leadId={fiche.id} statutActuel={fiche.statut} /> : null}
+
+      {peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? <BoutonSupprimerCrm type="lead" id={fiche.id} nom={fiche.nom} /> : null}
 
       <Card>
         <CardContent>
