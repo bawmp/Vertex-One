@@ -4,8 +4,11 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
-import { document, journalAccesDocument, demandeSuppressionDocument, dossier, projet, contact, categorieDocument } from "@/db/schema";
+import { document, journalAccesDocument, demandeSuppressionDocument, dossier, projet, contact, categorieDocument, utilisateur } from "@/db/schema";
+import { envoyerEmail } from "@/lib/email/client";
+import { gabaritDemandeSuppressionDocument } from "@/lib/email/gabarits";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -271,7 +274,8 @@ export async function demanderSuppressionDocument(documentId: string, motif: str
   if (!peut(utilisateurConnecte, "DOCUMENTS", "VOIR")) return { erreur: t("Vous n'avez pas le droit de demander la suppression d'un document.") };
 
   const motifPropre = motif.trim().slice(0, 500);
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx): Promise<EtatDemandeSuppression & { document?: typeof document.$inferSelect }> => {
+  type Notification = { demandeur: string; emailsAdmins: string[] };
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx): Promise<EtatDemandeSuppression & { document?: typeof document.$inferSelect; notification?: Notification }> => {
     const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
     if (!leDocument || !(await peutAccederAuDocument(tx, utilisateurConnecte, leDocument))) return { erreur: t("Document introuvable.") };
 
@@ -291,11 +295,45 @@ export async function demanderSuppressionDocument(documentId: string, motif: str
       demandeParId: utilisateurConnecte.utilisateurId,
       motif: motifPropre || null,
     });
-    return { ok: true, document: leDocument };
+
+    // Destinataires de l'avertissement : les Administrateurs actifs de CETTE entreprise (filtre explicite, la table
+    // utilisateur étant en RLS permissive), jamais le demandeur lui-même.
+    const [moi] = await tx.select({ nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.id, utilisateurConnecte.utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+    const admins = await tx
+      .select({ email: utilisateur.email })
+      .from(utilisateur)
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.role, "ADMIN"), eq(utilisateur.statut, "ACTIF")));
+    const emailsAdmins = admins.map((a) => a.email);
+    const notification: Notification = { demandeur: moi?.nomComplet ?? "—", emailsAdmins: utilisateurConnecte.role === "ADMIN" ? [] : emailsAdmins };
+    return { ok: true, document: leDocument, notification };
   });
   if (resultat.erreur || !resultat.document) return { erreur: resultat.erreur ?? t("Document introuvable.") };
 
   revaliderDocument(resultat.document);
+
+  // Après la réponse : l'envoi (Resend) ne doit jamais faire attendre la personne qui vient de faire sa demande, et un
+  // échec d'envoi ne défait pas la demande (l'administrateur la retrouve de toute façon sur le document).
+  const { document: doc, notification } = resultat;
+  if (notification && notification.emailsAdmins.length > 0) {
+    const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+    const lien = estCategorieSensible(doc.categorie) && doc.contactId ? `${base}/app/contacts/${doc.contactId}` : `${base}/app/documents`;
+    const { subject, html } = gabaritDemandeSuppressionDocument({
+      demandeur: notification.demandeur,
+      documentNom: estCategorieSensible(doc.categorie) ? null : doc.nom,
+      motif: motifPropre || null,
+      lien,
+    });
+    after(async () => {
+      for (const adresse of notification.emailsAdmins) {
+        try {
+          const { envoye, erreur } = await envoyerEmail({ to: adresse, subject, html });
+          if (!envoye) console.error(`[document] échec d'envoi de l'alerte de suppression à ${adresse} :`, erreur);
+        } catch (erreur) {
+          console.error("[document] erreur lors de l'alerte de suppression :", erreur instanceof Error ? erreur.message : erreur);
+        }
+      }
+    });
+  }
   return { ok: true };
 }
 

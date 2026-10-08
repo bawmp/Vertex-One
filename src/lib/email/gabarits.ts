@@ -144,3 +144,34 @@ export function gabaritAbonnement({
     `.trim(),
   };
 }
+
+/**
+ * Prévient un Administrateur qu'une suppression de document a été demandée (2026-10-08). Tout texte saisi par un
+ * utilisateur (nom, motif, nom du document) est échappé. Un document sensible n'est jamais nommé dans l'email
+ * (`documentNom` vaut alors null) : le nom d'un fichier privé ne doit pas voyager par messagerie.
+ */
+export function gabaritDemandeSuppressionDocument({
+  demandeur,
+  documentNom,
+  motif,
+  lien,
+}: {
+  demandeur: string;
+  documentNom: string | null;
+  motif: string | null;
+  lien: string;
+}): { subject: string; html: string } {
+  const echapper = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const cible = documentNom ? `le document <strong>${echapper(documentNom)}</strong>` : "une pièce privée";
+  return {
+    subject: "Demande de suppression d'un document à valider",
+    html: `
+      <p>Bonjour,</p>
+      <p><strong>${echapper(demandeur)}</strong> demande la suppression de ${cible}.</p>
+      ${motif ? `<p>Motif indiqué : « ${echapper(motif)} »</p>` : ""}
+      <p>Rien n'est supprimé tant que vous n'avez pas validé.</p>
+      <p><a href="${lien}">Examiner la demande</a></p>
+      <p>Cordialement,<br>L'équipe Vertex One</p>
+    `.trim(),
+  };
+}
