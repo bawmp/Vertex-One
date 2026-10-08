@@ -16,6 +16,7 @@ import { lireObjetStockage } from "@/lib/documents/stockage";
 import { calculerEmpreinteDocument } from "@/lib/signature/empreinte";
 import { genererCodeVerification, hacherCodeVerification, verifierCodeVerification } from "@/lib/signature/otp";
 import { envoyerEmail } from "@/lib/email/client";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { envoyerCopieSignee, notifierRefusSignature } from "@/lib/signature/finalisation";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
@@ -127,7 +128,7 @@ export async function creerDemandeSignature(_etat: EtatDemandeSignature, formDat
     const { envoye, erreur } = await envoyerEmail({
       to: email,
       subject: `Signature demandée : ${nomDocument}`,
-      html: `<p>Bonjour ${nom},</p><p>Vous êtes invité(e) à signer le document « ${nomDocument} ».</p><p><a href="${lienSignature}">Consulter et signer le document</a></p>`,
+      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + `<p>Bonjour ${nom},</p><p>Vous êtes invité(e) à signer le document « ${nomDocument} ».</p><p><a href="${lienSignature}">Consulter et signer le document</a></p>`,
       attachments: [{ filename: nomDocument, content: contenu }],
     });
     if (!envoye) {

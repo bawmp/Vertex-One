@@ -11,6 +11,7 @@ import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
 import { resoudreSegment, type Segment } from "@/lib/marketing/segments";
 import { envoyerEmail } from "@/lib/email/client";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 
@@ -90,10 +91,11 @@ export async function envoyerCampagne(campagneId: string): Promise<EtatEnvoiCamp
     }
 
     let envoyes = 0;
+    const enteteLogo = await enteteLogoEmail(utilisateurConnecte.entrepriseId);
     for (const contact of contacts) {
       if (laCampagne.canal === "EMAIL") {
         if (!contact.email) continue;
-        const { envoye } = await envoyerEmail({ to: contact.email, subject: laCampagne.nom, html: `<p>${laCampagne.contenu.replace(/\n/g, "</p><p>")}</p>` });
+        const { envoye } = await envoyerEmail({ to: contact.email, subject: laCampagne.nom, html: enteteLogo + `<p>${laCampagne.contenu.replace(/\n/g, "</p><p>")}</p>` });
         if (envoye) {
           envoyes++;
           await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: contact.id, auteurId: utilisateurConnecte.utilisateurId, sujet: laCampagne.nom });

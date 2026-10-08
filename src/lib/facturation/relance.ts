@@ -3,6 +3,7 @@ import type { TransactionDrizzle } from "@/db/client";
 import { facture, contact, entreprise } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
@@ -50,6 +51,7 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
   const contactParId = new Map(contactsTrouves.map((c) => [c.id, c]));
 
   const resultats: ResultatRelance[] = [];
+  const enteteLogo = await enteteLogoEmail(entrepriseId);
 
   for (const f of enRetard) {
     const leContact = f.contactId ? contactParId.get(f.contactId) : undefined;
@@ -63,7 +65,7 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
         dateEcheance: f.dateEcheance,
         nomEntreprise: monEntreprise.nom,
       });
-      const { envoye, erreur } = await envoyerEmail({ to: leContact.email, subject, html });
+      const { envoye, erreur } = await envoyerEmail({ to: leContact.email, subject, html: enteteLogo + html });
       if (envoye) {
         await journaliserEmailEnvoye(tx, { entrepriseId, contactId: leContact.id, auteurId: null, sujet: subject });
       }

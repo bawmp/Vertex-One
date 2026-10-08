@@ -14,6 +14,7 @@ import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { recupererDevisPourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
@@ -200,7 +201,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: sujet,
-      html: corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
+      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
     });
 

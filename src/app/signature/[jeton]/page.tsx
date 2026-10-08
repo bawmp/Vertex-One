@@ -3,6 +3,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { signataire, demandeSignature, document } from "@/db/schema";
 import { FormulaireSignature } from "./formulaire-signature";
 import { LogoEntreprise } from "@/components/logo-entreprise";
+import { identiteVisuellePublique } from "@/lib/email/logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -28,6 +29,9 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
       })
     : null;
   const ligne = leSignataire && nomDocument ? { signataire: leSignataire, nomDocument } : null;
+  // Le signataire voit l'identité de l'entreprise qui lui demande de signer (logo + nom), jamais celle de Vertex One.
+  // Lue avec l'entrepriseId de la ligne du signataire (jamais une valeur du navigateur) ; sans jeton valide : logo par défaut.
+  const identite = leSignataire ? await identiteVisuellePublique(leSignataire.entrepriseId) : null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4">
@@ -40,7 +44,7 @@ export default async function PageSignature({ params }: { params: Promise<{ jeto
         className="pointer-events-none absolute -left-16 bottom-0 size-72 rounded-full bg-marque-bleu-300/20 blur-3xl"
       />
 
-      <LogoEntreprise taille="hero" className="relative" />
+      <LogoEntreprise taille="hero" className="relative" entrepriseId={leSignataire?.entrepriseId} logoCleStockage={identite?.logoCleStockage ?? null} nomEntreprise={identite?.nom} />
 
       {!ligne ? (
         <p className="relative text-marque-bleu-100/90">Ce lien de signature est invalide.</p>

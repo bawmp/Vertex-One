@@ -11,6 +11,7 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { recupererFacturePourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
@@ -185,7 +186,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: sujet,
-      html: corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueFacture(jetonClient)}">Consulter, accepter et régler cette facture en ligne</a></p>`,
+      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueFacture(jetonClient)}">Consulter, accepter et régler cette facture en ligne</a></p>`,
       attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
     });
 

@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { invitation } from "@/db/schema";
 import { FormulaireAcceptation } from "./formulaire-acceptation";
 import { LogoEntreprise } from "@/components/logo-entreprise";
+import { identiteVisuellePublique } from "@/lib/email/logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function PageAcceptationInvitation({ params }: { params: Promise<{ jeton: string }> }) {
@@ -12,6 +13,8 @@ export default async function PageAcceptationInvitation({ params }: { params: Pr
     .select()
     .from(invitation)
     .where(and(eq(invitation.jeton, jeton), isNull(invitation.utiliseeLe), gt(invitation.expireLe, new Date())));
+  // La personne invitée voit le logo de l'entreprise qui l'invite (lu avec l'entrepriseId de l'invitation).
+  const identite = invitationValide ? await identiteVisuellePublique(invitationValide.entrepriseId) : null;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-4">
@@ -24,7 +27,7 @@ export default async function PageAcceptationInvitation({ params }: { params: Pr
         className="pointer-events-none absolute -left-16 bottom-0 size-72 rounded-full bg-marque-bleu-300/20 blur-3xl"
       />
 
-      <LogoEntreprise taille="hero" className="relative" />
+      <LogoEntreprise taille="hero" className="relative" entrepriseId={invitationValide?.entrepriseId} logoCleStockage={identite?.logoCleStockage ?? null} nomEntreprise={identite?.nom} />
 
       {!invitationValide ? (
         <p className="relative text-marque-bleu-100/90">Ce lien d&apos;invitation est invalide ou a expiré.</p>
