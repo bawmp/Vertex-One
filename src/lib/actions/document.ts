@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
-import { document, journalAccesDocument, demandeSuppressionDocument, dossier, projet, contact, categorieDocument, utilisateur } from "@/db/schema";
+import { document, journalAccesDocument, demandeSuppressionDocument, demandeSignature, dossier, projet, contact, categorieDocument, utilisateur } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritDemandeSuppressionDocument } from "@/lib/email/gabarits";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -257,6 +257,84 @@ export async function effacerDocument(documentId: string) {
   if (!resultat) return;
   await effacerObjetStockage(resultat.cleStockage);
   revaliderDocument(resultat);
+}
+
+export type EtatRemplacement = { erreur?: string; remplace?: true } | null;
+
+/**
+ * Remplacer le fichier d'un document existant (One Docs) : le document garde son identifiant, sa catégorie, son
+ * rattachement et son auteur ; le fichier, son nom, son type et sa taille sont ceux du nouveau fichier. L'ancien
+ * fichier est effacé de R2 une fois le remplacement validé en base.
+ *
+ * Droits : l'auteur du document, ou quiconque a le droit de modification des Documents — à condition d'avoir accès au
+ * document (mêmes règles de sensibilité et de portée que pour le consulter). Un document déjà soumis à signature n'est
+ * JAMAIS remplaçable : la signature porte sur l'empreinte du fichier d'origine, le remplacer fausserait la preuve.
+ * Vérifications faites AVANT d'envoyer quoi que ce soit vers R2 ; si l'enregistrement échoue ensuite, le nouveau fichier
+ * est retiré (aucun orphelin).
+ */
+export async function remplacerDocument(documentId: string, _etat: EtatRemplacement, formData: FormData): Promise<EtatRemplacement> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "DOCUMENTS", "VOIR")) return { erreur: t("Vous n'avez pas le droit de remplacer ce document.") };
+
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: t("Sélectionnez un fichier.") };
+
+  const verifier = (tx: TransactionDrizzle, leDocument: typeof document.$inferSelect | undefined) =>
+    (async (): Promise<string | null> => {
+      if (!leDocument || !(await peutAccederAuDocument(tx, utilisateurConnecte, leDocument))) return t("Document introuvable.");
+      if (leDocument.televerseParId !== utilisateurConnecte.utilisateurId && !peut(utilisateurConnecte, "DOCUMENTS", "MODIFIER")) {
+        return t("Vous n'avez pas le droit de remplacer ce document.");
+      }
+      const [signature] = await tx.select({ id: demandeSignature.id }).from(demandeSignature).where(eq(demandeSignature.documentId, leDocument.id));
+      if (signature) return t("Ce document a été soumis à signature : le remplacer fausserait la preuve de signature. Ajoutez le nouveau fichier comme un nouveau document.");
+      return null;
+    })();
+
+  // 1. Droits et conditions, avant tout envoi vers le stockage.
+  const refus = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
+    return verifier(tx, leDocument);
+  });
+  if (refus) return { erreur: refus };
+
+  // 2. Envoi du nouveau fichier.
+  const contenu = Buffer.from(await fichier.arrayBuffer());
+  const typeMime = fichier.type || "application/octet-stream";
+  const { televerse, cleStockage, erreur } = await televerserVersR2({ entrepriseId: utilisateurConnecte.entrepriseId, nomFichier: fichier.name, typeMime, contenu });
+  if (!televerse) return { erreur: erreur ?? t("Échec du téléversement.") };
+
+  // 3. Bascule en base (conditions revérifiées : le document a pu changer entre-temps).
+  let ancienneCle: string | null = null;
+  let documentRemplace: typeof document.$inferSelect | null = null;
+  let echec: string | null = null;
+  try {
+    await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+      const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));
+      const refusTardif = await verifier(tx, leDocument);
+      if (refusTardif || !leDocument) {
+        echec = refusTardif ?? t("Document introuvable.");
+        return;
+      }
+      await tx.update(document).set({ nom: fichier.name, cleStockage, typeMime, tailleOctets: fichier.size }).where(eq(document.id, documentId));
+      await tx.insert(journalAccesDocument).values({ entrepriseId: utilisateurConnecte.entrepriseId, documentId, utilisateurId: utilisateurConnecte.utilisateurId, action: "remplacement" });
+      ancienneCle = leDocument.cleStockage;
+      documentRemplace = leDocument;
+    });
+  } catch (erreurBase) {
+    console.error("[document] remplacement impossible :", erreurBase instanceof Error ? erreurBase.message : erreurBase);
+    echec = t("Échec de l'enregistrement du remplacement.");
+  }
+
+  if (echec || !documentRemplace) {
+    await effacerObjetStockage(cleStockage); // le nouveau fichier n'a pas été adopté : on ne le laisse pas en orphelin
+    return { erreur: echec ?? t("Échec de l'enregistrement du remplacement.") };
+  }
+
+  if (ancienneCle) await effacerObjetStockage(ancienneCle);
+  revaliderDocument(documentRemplace);
+  return { remplace: true };
 }
 
 export type EtatDemandeSuppression = { erreur?: string; ok?: true };

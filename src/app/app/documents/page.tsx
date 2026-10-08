@@ -8,7 +8,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { dossiersVisibles, projetsVisibles, idsVisibles } from "@/lib/portee";
-import { peutVoirDocumentSensible, estCategorieSensible, estDocumentPriveContact } from "@/lib/documents/acces";
+import { peutVoirDocumentSensible, estCategorieSensible, estDocumentPriveContact, peutSupprimerDocument } from "@/lib/documents/acces";
+import { ActionsDocument } from "./actions-document";
 import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
 import { DemandesSuppression } from "./demandes-suppression";
 import { Card } from "@/components/ui/card";
@@ -102,6 +103,8 @@ export default async function PageDocuments() {
 
   const { documents, dossiersParId, projetsParId, demandes } = donnees;
   const peutCreer = peut(utilisateurConnecte, "DOCUMENTS", "CREER");
+  const peutVoir = peut(utilisateurConnecte, "DOCUMENTS", "VOIR");
+  const droitSuppressionGenerale = peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER");
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -158,6 +161,14 @@ export default async function PageDocuments() {
                   >
                     <Download className="size-4" aria-hidden />
                   </a>
+                  <ActionsDocument
+                    documentId={d.id}
+                    nom={d.nom}
+                    peutSupprimerDirect={peutSupprimerDocument(utilisateurConnecte.utilisateurId, d.televerseParId, droitSuppressionGenerale)}
+                    peutDemander={peutVoir && !peutSupprimerDocument(utilisateurConnecte.utilisateurId, d.televerseParId, droitSuppressionGenerale)}
+                    peutRemplacer={peutVoir && (d.televerseParId === utilisateurConnecte.utilisateurId || peut(utilisateurConnecte, "DOCUMENTS", "MODIFIER"))}
+                    demandeEnAttente={!!demandes[d.id]}
+                  />
                 </div>
               </div>
             );

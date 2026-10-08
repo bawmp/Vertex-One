@@ -86,6 +86,13 @@ export const APPLICATION: Record<string, string> = {
     "Files attached to a file or a project are uploaded from their own page. A file that concerns neither (a blank contract, a template…) is uploaded directly here — it can never be classified as a sensitive document, since there is no file to attach that restriction to.",
   "Aucun document pour le moment.": "No documents yet.",
   "Autres documents de vente": "Other sales documents",
+  "Remplacer « {nom} » par ce nouveau fichier ? L'ancien fichier sera définitivement supprimé.": "Replace “{nom}” with this new file? The old file will be permanently deleted.",
+  "Remplacer le fichier": "Replace the file",
+  "Document remplacé.": "Document replaced.",
+  "Vous n'avez pas le droit de remplacer ce document.": "You are not allowed to replace this document.",
+  "Ce document a été soumis à signature : le remplacer fausserait la preuve de signature. Ajoutez le nouveau fichier comme un nouveau document.":
+    "This document has been submitted for signature: replacing it would invalidate the signature proof. Add the new file as a new document.",
+  "Échec de l'enregistrement du remplacement.": "Could not save the replacement.",
   "Supprimer définitivement « {nom} » ? Cette action est irréversible.": "Permanently delete “{nom}”? This cannot be undone.",
   "Supprimer le lead": "Delete lead",
   "Supprimer le contact": "Delete contact",
