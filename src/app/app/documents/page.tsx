@@ -8,7 +8,9 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { dossiersVisibles, projetsVisibles, idsVisibles } from "@/lib/portee";
-import { peutVoirDocumentSensible, estCategorieSensible } from "@/lib/documents/acces";
+import { peutVoirDocumentSensible, estCategorieSensible, estDocumentPriveContact } from "@/lib/documents/acces";
+import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
+import { DemandesSuppression } from "./demandes-suppression";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireDocument } from "../projets/formulaire-document";
@@ -50,6 +52,8 @@ export default async function PageDocuments() {
 
     const tousLesDocuments = await tx.select().from(document).where(eq(document.entrepriseId, utilisateurConnecte.entrepriseId));
     const visibles = tousLesDocuments.filter((d) => {
+      // Pièce privée d'un client (déposée depuis sa fiche One CRM) : propre à One CRM, jamais listée ici.
+      if (estDocumentPriveContact(d)) return false;
       if (d.dossierId) return idsDossiers === "TOUT" || idsDossiers.includes(d.dossierId);
       if (d.projetId) return idsProjets === "TOUT" || idsProjets.includes(d.projetId);
       return idsTeleverseurs === "TOUT" || idsTeleverseurs.includes(d.televerseParId);
@@ -82,7 +86,9 @@ export default async function PageDocuments() {
       return peutVoirDocumentSensible(utilisateurConnecte, d.categorie, responsableId ?? null);
     });
 
-    return { documents: documentsAutorises, dossiersParId, projetsParId };
+    const demandes = await demandesSuppressionEnAttente(tx, utilisateurConnecte.entrepriseId, documentsAutorises.map((d) => d.id), peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER"));
+
+    return { documents: documentsAutorises, dossiersParId, projetsParId, demandes };
   });
 
   if (!donnees) {
@@ -94,7 +100,7 @@ export default async function PageDocuments() {
     );
   }
 
-  const { documents, dossiersParId, projetsParId } = donnees;
+  const { documents, dossiersParId, projetsParId, demandes } = donnees;
   const peutCreer = peut(utilisateurConnecte, "DOCUMENTS", "CREER");
 
   return (
@@ -107,6 +113,9 @@ export default async function PageDocuments() {
         {t("Les fichiers rattachés à un dossier ou un projet se déposent depuis leur propre fiche. Un fichier qui ne concerne aucun des deux (un contrat vierge, un modèle...) se dépose directement ici — jamais catégorisable en pièce sensible, faute de dossier auquel rattacher cette restriction.")}
       </p>
       {peutCreer ? <FormulaireDocument consentementManquant={false} autoriserSensible={false} /> : null}
+      {peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER") ? (
+        <DemandesSuppression demandes={documents.filter((d) => demandes[d.id]).map((d) => ({ ...demandes[d.id], documentNom: d.nom }))} />
+      ) : null}
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">

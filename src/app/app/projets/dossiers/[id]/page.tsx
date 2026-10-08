@@ -23,6 +23,7 @@ import { FormulaireCommentaire } from "../../formulaire-commentaire";
 import { ListeCommentaires } from "../../liste-commentaires";
 import { FormulaireDocument } from "../../formulaire-document";
 import { ListeDocuments } from "../../liste-documents";
+import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDetailDossier({ params }: { params: Promise<{ id: string }> }) {
@@ -72,6 +73,8 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       (d) => !estCategorieSensible(d.categorie) || peutVoirDocumentSensible(utilisateurConnecte, d.categorie, leDossier.responsableId)
     );
 
+    const demandesSuppression = await demandesSuppressionEnAttente(tx, utilisateurConnecte.entrepriseId, documentsVisibles.map((d) => d.id), peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER"));
+
     return {
       monEntreprise,
       leDossier,
@@ -79,13 +82,14 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
       projets,
       commentaires,
       documents: documentsVisibles,
+      demandesSuppression,
       contrats: contratsAvecSignature,
       auteursParId: Object.fromEntries(auteurs.map((a) => [a.id, a.nomComplet])),
     };
   });
 
   if (!donnees) notFound();
-  const { monEntreprise, leDossier, leContact, projets, commentaires, documents, contrats, auteursParId } = donnees;
+  const { demandesSuppression, monEntreprise, leDossier, leContact, projets, commentaires, documents, contrats, auteursParId } = donnees;
 
   const vocabDossier = libelleDossier(monEntreprise.secteurProfil);
   const vocabProjet = libelleProjet(monEntreprise.secteurProfil);
@@ -198,6 +202,10 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
           documents={documents}
           peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
           peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
+          utilisateurId={utilisateurConnecte.utilisateurId}
+          peutDemander
+          peutTraiter={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+          demandes={demandesSuppression}
         />
         {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? (
           <FormulaireDocument dossierId={leDossier.id} consentementManquant={!leDossier.consentementDonneesLe} />

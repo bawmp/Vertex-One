@@ -16,6 +16,7 @@ export function FormulaireDocument({
   contactId,
   consentementManquant,
   autoriserSensible = true,
+  attesterConsentement = false,
 }: {
   dossierId?: string;
   projetId?: string;
@@ -29,11 +30,14 @@ export function FormulaireDocument({
   // sensibilité (voir src/lib/documents/acces.ts) — jamais catégorisable en
   // sensible, imposé ici plutôt que rejeté silencieusement côté serveur.
   autoriserSensible?: boolean;
+  // Dépôt depuis la fiche One CRM, sans Dossier : il n'y a pas de consentement enregistré sur un Dossier, donc le
+  // déposant doit attester lui-même que le client a consenti (exigé et consigné au journal par le serveur).
+  attesterConsentement?: boolean;
 }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(ajouterDocument, null);
   const [categorie, setCategorie] = useState("GENERAL");
-  const sensible = categorie === "PIECE_IDENTITE" || categorie === "DONNEES_SANTE";
+  const sensible = categorie === "PIECE_IDENTITE" || categorie === "DONNEES_SANTE" || categorie === "AUTRE_SENSIBLE";
 
   return (
     <form action={action} className="flex flex-col gap-3 rounded-lg border p-4">
@@ -65,6 +69,16 @@ export function FormulaireDocument({
         <p className="text-sm text-amber-700 dark:text-amber-400">
           {t("Le consentement du client pour l'enregistrement de ses données sensibles n'a pas encore été renseigné sur ce dossier.")}
         </p>
+      ) : null}
+
+      {sensible && attesterConsentement ? (
+        <div className="flex flex-col gap-1">
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="consentement" required className="mt-0.5" />
+            <span>{t("Je confirme que le client a donné son consentement pour l'enregistrement de cette pièce.")}</span>
+          </label>
+          <p className="text-xs text-muted-foreground">{t("Cette pièce reste privée : visible uniquement de l'administrateur et du responsable de ce contact, jamais dans One Books.")}</p>
+        </div>
       ) : null}
 
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}

@@ -26,6 +26,7 @@ import { FormulaireCommentaire } from "../formulaire-commentaire";
 import { ListeCommentaires } from "../liste-commentaires";
 import { FormulaireDocument } from "../formulaire-document";
 import { ListeDocuments } from "../liste-documents";
+import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
 import { ajouterCommentaireProjet } from "@/lib/actions/projet";
 import { getT } from "@/lib/i18n/langue";
 
@@ -67,6 +68,8 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       (d) => !estCategorieSensible(d.categorie) || peutVoirDocumentSensible(utilisateurConnecte, d.categorie, responsableDossierId)
     );
 
+    const demandesSuppression = await demandesSuppressionEnAttente(tx, utilisateurConnecte.entrepriseId, documentsVisibles.map((d) => d.id), peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER"));
+
     return {
       monEntreprise,
       leProjet,
@@ -75,6 +78,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       entreesTemps,
       commentaires,
       documents: documentsVisibles,
+      demandesSuppression,
       auteursParId: Object.fromEntries(idsAuteurs.map((idAuteur) => [idAuteur, utilisateursParId[idAuteur]])),
       utilisateursParId,
       collegues: tousLesUtilisateurs,
@@ -83,7 +87,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
   });
 
   if (!donnees) notFound();
-  const { monEntreprise, leProjet, leDossier, taches, entreesTemps, commentaires, documents, auteursParId, utilisateursParId, collegues, minuteurActif } = donnees;
+  const { demandesSuppression, monEntreprise, leProjet, leDossier, taches, entreesTemps, commentaires, documents, auteursParId, utilisateursParId, collegues, minuteurActif } = donnees;
 
   const vocab = libelleProjet(monEntreprise.secteurProfil);
   const info = STATUT_PROJET[leProjet.statut];
@@ -213,6 +217,10 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
           documents={documents}
           peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
           peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
+          utilisateurId={utilisateurConnecte.utilisateurId}
+          peutDemander
+          peutTraiter={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+          demandes={demandesSuppression}
         />
         {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? (
           <FormulaireDocument projetId={leProjet.id} consentementManquant={!leDossier?.consentementDonneesLe} />

@@ -2140,6 +2140,41 @@ export const journalAccesDocument = pgTable(
   ]
 ).enableRLS();
 
+// Demande de suppression d'un document par quelqu'un qui ne l'a pas ajouté (2026-10-08) : la suppression n'est
+// effective qu'après validation de l'Administrateur, qui voit QUI l'a demandée. `documentId` n'est volontairement
+// pas une clé étrangère (le document disparaît à l'approbation, la trace de la demande doit rester) ; `documentNom`
+// en garde le nom. statut : EN_ATTENTE | APPROUVEE | REFUSEE | SANS_OBJET (document supprimé autrement).
+export const demandeSuppressionDocument = pgTable(
+  "demande_suppression_document",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    documentId: text("document_id").notNull(),
+    documentNom: text("document_nom").notNull(),
+    demandeParId: text("demande_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    motif: text("motif"),
+    statut: text("statut").notNull().default("EN_ATTENTE"),
+    traiteParId: text("traite_par_id").references(() => utilisateur.id),
+    traiteLe: timestamp("traite_le"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("demande_suppression_document_entreprise_idx").on(table.entrepriseId),
+    index("demande_suppression_document_document_idx").on(table.documentId),
+    // Une seule demande en attente par document.
+    uniqueIndex("demande_suppression_document_attente_unique").on(table.documentId).where(sql`${table.statut} = 'EN_ATTENTE'`),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const annonce = pgTable(
   "annonce",
   {

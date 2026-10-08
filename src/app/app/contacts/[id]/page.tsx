@@ -1,15 +1,15 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { contact, compteClient, interaction, dossier, deal, dealContact, entreprise, contactChampValeur, document, devis, facture } from "@/db/schema";
+import { contact, compteClient, interaction, dossier, deal, dealContact, entreprise, contactChampValeur, document, devis, facture, bonCommandeVente, recuVente, factureAcompte, factureRecurrente } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { libelleDossier } from "@/lib/vocabulaire";
-import { STATUT_DEAL, STATUT_DEVIS, STATUT_FACTURE } from "@/lib/libelles";
+import { STATUT_DEAL, STATUT_DEVIS, STATUT_FACTURE, STATUT_BON_COMMANDE_VENTE, STATUT_RECU_VENTE, STATUT_FACTURE_ACOMPTE, STATUT_FACTURE_RECURRENTE } from "@/lib/libelles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,10 @@ import { FormulaireDocument } from "../../projets/formulaire-document";
 import { creerDossier } from "@/lib/actions/dossier";
 import { genererEtEnregistrerLienVisio, modifierNotesContact } from "@/lib/actions/contact";
 import { listerChampsPersonnalisesContact } from "@/lib/actions/champ-personnalise-contact";
+import { estCategorieSensible, peutVoirDocumentSensible } from "@/lib/documents/acces";
+import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
 import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const ICONE_INTERACTION: Record<string, typeof Phone> = {
   appel: Phone,
@@ -68,8 +71,33 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     for (const { deal: d } of dealsSecondaires) dealsParId.set(d.id, d);
     const deals = [...dealsParId.values()].sort((a, b) => b.creeLe.getTime() - a.creeLe.getTime());
 
+    // Pièces sensibles (identité, santé…) : réservées à l'Administrateur et au responsable — du Dossier si la pièce en
+    // a un, sinon du contact. Un document sensible ne s'affiche donc jamais à quelqu'un qui voit seulement la fiche.
+    const idsDossiersDocuments = [...new Set(documents.map((d) => d.dossierId).filter((id): id is string => !!id))];
+    const dossiersDocuments = idsDossiersDocuments.length > 0 ? await tx.select({ id: dossier.id, responsableId: dossier.responsableId }).from(dossier).where(inArray(dossier.id, idsDossiersDocuments)) : [];
+    const responsableParDossier = Object.fromEntries(dossiersDocuments.map((d) => [d.id, d.responsableId]));
+    const documentsVisibles = documents.filter(
+      (d) => !estCategorieSensible(d.categorie) || peutVoirDocumentSensible(utilisateurConnecte, d.categorie, d.dossierId ? (responsableParDossier[d.dossierId] ?? null) : ligne.assigneAId)
+    );
+    const demandesSuppression = await demandesSuppressionEnAttente(tx, utilisateurConnecte.entrepriseId, documentsVisibles.map((d) => d.id), peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER"));
+
     const filtreFacturation = <T extends { assigneAId: string }>(lignes: T[]) =>
       visiblesFacturation === "TOUT" ? lignes : lignes.filter((l) => visiblesFacturation.includes(l.assigneAId));
+
+    // Tout ce qui est enregistré dans One Books pour ce client apparaît ici : devis et factures ci-dessus, et les
+    // autres documents de vente ci-dessous. Même portée Facturation que les devis/factures (jamais celle du CRM).
+    const [bonsCommande, recus, acomptes, recurrentes] = await Promise.all([
+      tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.contactId, id)).orderBy(desc(bonCommandeVente.creeLe)),
+      tx.select().from(recuVente).where(eq(recuVente.contactId, id)).orderBy(desc(recuVente.creeLe)),
+      tx.select().from(factureAcompte).where(eq(factureAcompte.contactId, id)).orderBy(desc(factureAcompte.creeLe)),
+      tx.select().from(factureRecurrente).where(eq(factureRecurrente.contactId, id)).orderBy(desc(factureRecurrente.creeLe)),
+    ]);
+    const autresVentes = [
+      ...filtreFacturation(bonsCommande).map((x) => ({ cle: `bc-${x.id}`, type: m("Bon de commande"), titre: x.numero, lien: `/app/facturation/bons-commande/${x.id}`, montant: x.montantTTC, statut: STATUT_BON_COMMANDE_VENTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(recus).map((x) => ({ cle: `rv-${x.id}`, type: m("Reçu de vente"), titre: x.numero, lien: `/app/facturation/recus-vente/${x.id}`, montant: x.montantTTC, statut: STATUT_RECU_VENTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(acomptes).map((x) => ({ cle: `fa-${x.id}`, type: m("Facture d'acompte"), titre: x.numero, lien: `/app/facturation/acomptes/${x.id}`, montant: x.montant, statut: STATUT_FACTURE_ACOMPTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(recurrentes).map((x) => ({ cle: `fr-${x.id}`, type: m("Facture récurrente"), titre: x.libelle, lien: null as string | null, montant: x.montantTTC, statut: STATUT_FACTURE_RECURRENTE[x.statut], statutBrut: x.statut })),
+    ];
 
     return {
       fiche: ligne,
@@ -82,7 +110,9 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       secteurProfil: monEntreprise?.secteurProfil ?? "generique",
       champsPersonnalises,
       valeursPersonnalisees,
-      documents,
+      documents: documentsVisibles,
+      demandesSuppression,
+      autresVentes,
       devisListe: filtreFacturation(devisListe),
       facturesListe: filtreFacturation(facturesListe),
     };
@@ -101,6 +131,8 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     champsPersonnalises,
     valeursPersonnalisees,
     documents,
+    demandesSuppression,
+    autresVentes,
     devisListe,
     facturesListe,
   } = donnees;
@@ -249,8 +281,21 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                 documents={documents}
                 peutSupprimer={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
                 peutDemanderSignature={peut(utilisateurConnecte, "SIGNATURE", "CREER") && signatureDisponible}
+                utilisateurId={utilisateurConnecte.utilisateurId}
+                peutDemander
+                peutTraiter={peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER")}
+                demandes={demandesSuppression}
               />
-              {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? <FormulaireDocument contactId={fiche.id} consentementManquant={false} autoriserSensible={false} /> : null}
+              {peut(utilisateurConnecte, "DOCUMENTS", "CREER") ? (
+                // Pièces privées du client (identité, santé…) : propres à One CRM, jamais visibles dans One Books ni dans le
+                // module Documents ; déposables seulement par l'Administrateur et le responsable du contact.
+                <FormulaireDocument
+                  contactId={fiche.id}
+                  consentementManquant={false}
+                  autoriserSensible={peutVoirDocumentSensible(utilisateurConnecte, "PIECE_IDENTITE", fiche.assigneAId)}
+                  attesterConsentement
+                />
+              ) : null}
             </div>
           ) : null}
 
@@ -336,6 +381,39 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                   <p className="text-sm text-muted-foreground">{t("Aucune facture.")}</p>
                 )}
               </div>
+
+              {autresVentes.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  <h2 className="text-sm font-medium text-muted-foreground">{t("Autres documents de vente")}</h2>
+                  <Card className="p-0">
+                    <div className="flex flex-col divide-y divide-border">
+                      {autresVentes.map((v) => {
+                        const contenu = (
+                          <>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Badge variant="neutral">{t(v.type)}</Badge>
+                              <span className="truncate font-medium">{v.titre}</span>
+                            </span>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{formaterFCFA(v.montant)}</span>
+                              <Badge variant={v.statut?.variante ?? "neutral"}>{t(v.statut?.libelle ?? v.statutBrut)}</Badge>
+                            </div>
+                          </>
+                        );
+                        return v.lien ? (
+                          <Link key={v.cle} href={v.lien} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                            {contenu}
+                          </Link>
+                        ) : (
+                          <div key={v.cle} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                            {contenu}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
             </>
           ) : null}
 
