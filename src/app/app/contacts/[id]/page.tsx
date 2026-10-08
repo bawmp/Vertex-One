@@ -93,9 +93,9 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       tx.select().from(factureRecurrente).where(eq(factureRecurrente.contactId, id)).orderBy(desc(factureRecurrente.creeLe)),
     ]);
     const autresVentes = [
-      ...filtreFacturation(bonsCommande).map((x) => ({ cle: `bc-${x.id}`, type: m("Bon de commande"), titre: x.numero, lien: `/app/facturation/bons-commande/${x.id}`, montant: x.montantTTC, statut: STATUT_BON_COMMANDE_VENTE[x.statut], statutBrut: x.statut })),
-      ...filtreFacturation(recus).map((x) => ({ cle: `rv-${x.id}`, type: m("Reçu de vente"), titre: x.numero, lien: `/app/facturation/recus-vente/${x.id}`, montant: x.montantTTC, statut: STATUT_RECU_VENTE[x.statut], statutBrut: x.statut })),
-      ...filtreFacturation(acomptes).map((x) => ({ cle: `fa-${x.id}`, type: m("Facture d'acompte"), titre: x.numero, lien: `/app/facturation/acomptes/${x.id}`, montant: x.montant, statut: STATUT_FACTURE_ACOMPTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(bonsCommande).map((x) => ({ cle: `bc-${x.id}`, type: m("Bon de commande"), titre: x.numero, lien: `/app/facturation/bons-commande/${x.id}/pdf`, montant: x.montantTTC, statut: STATUT_BON_COMMANDE_VENTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(recus).map((x) => ({ cle: `rv-${x.id}`, type: m("Reçu de vente"), titre: x.numero, lien: `/app/facturation/recus-vente/${x.id}/pdf`, montant: x.montantTTC, statut: STATUT_RECU_VENTE[x.statut], statutBrut: x.statut })),
+      ...filtreFacturation(acomptes).map((x) => ({ cle: `fa-${x.id}`, type: m("Facture d'acompte"), titre: x.numero, lien: `/app/facturation/acomptes/${x.id}/pdf`, montant: x.montant, statut: STATUT_FACTURE_ACOMPTE[x.statut], statutBrut: x.statut })),
       ...filtreFacturation(recurrentes).map((x) => ({ cle: `fr-${x.id}`, type: m("Facture récurrente"), titre: x.libelle, lien: null as string | null, montant: x.montantTTC, statut: STATUT_FACTURE_RECURRENTE[x.statut], statutBrut: x.statut })),
     ];
 
@@ -401,9 +401,10 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                           </>
                         );
                         return v.lien ? (
-                          <Link key={v.cle} href={v.lien} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                          // Ces documents n'ont pas de page de détail, seulement leur PDF : lien ordinaire, nouvel onglet.
+                          <a key={v.cle} href={v.lien} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
                             {contenu}
-                          </Link>
+                          </a>
                         ) : (
                           <div key={v.cle} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                             {contenu}
