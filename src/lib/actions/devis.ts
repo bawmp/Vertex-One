@@ -15,6 +15,7 @@ import { recupererDevisPourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
+import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
@@ -203,6 +204,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
       subject: sujet,
       html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
       attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
+      ...(await expediteurDe(tx, utilisateurConnecte)),
     });
 
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };

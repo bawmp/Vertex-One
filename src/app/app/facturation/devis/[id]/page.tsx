@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATUT_DEVIS } from "@/lib/libelles";
 import { accepterDevis } from "@/lib/actions/devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
+import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 import { getT } from "@/lib/i18n/langue";
@@ -124,7 +125,8 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         </Link>
       ) : peutModifier ? (
         <div className="flex gap-2">
-          {leDevis.statut === "BROUILLON" ? (
+          {/* Un devis déjà envoyé peut être renvoyé (client qui ne l'a pas reçu, relance) : le bouton reste disponible. */}
+          {leDevis.statut === "BROUILLON" || leDevis.statut === "ENVOYE" ? (
             <FormulaireEnvoiDevis
               devisId={leDevis.id}
               peutPersonnaliserModele={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")}
@@ -139,6 +141,10 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
             </form>
           ) : null}
         </div>
+      ) : null}
+
+      {peutModifier && leProspect ? (
+        <FormulaireMessageClient contactId={leProspect.id} nomContact={leProspect.nom} emailContact={leProspect.email} devisId={leDevis.id} />
       ) : null}
     </div>
   );

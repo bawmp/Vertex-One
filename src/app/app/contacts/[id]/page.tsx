@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
+import { FormulaireMessageClient } from "./formulaire-message-client";
 import { BoutonInviterPortail } from "./bouton-inviter-portail";
 import { EditeurChampsPersonnalises } from "./editeur-champs-personnalises";
 import { ListeDocuments } from "../../projets/liste-documents";
@@ -418,6 +419,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
             </>
           ) : null}
 
+          {peutModifier ? <FormulaireMessageClient contactId={fiche.id} nomContact={fiche.nom} emailContact={fiche.email} /> : null}
           {peutModifier ? <FormulaireInteraction contactId={fiche.id} /> : null}
         </div>
 

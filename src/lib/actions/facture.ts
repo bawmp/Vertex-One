@@ -12,6 +12,7 @@ import { recupererFacturePourPDF } from "@/lib/pdf/donnees";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
+import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
@@ -188,6 +189,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
       subject: sujet,
       html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueFacture(jetonClient)}">Consulter, accepter et régler cette facture en ligne</a></p>`,
       attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
+      ...(await expediteurDe(tx, utilisateurConnecte)),
     });
 
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };

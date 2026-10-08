@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { FileSignature, PenTool, RefreshCw } from "lucide-react";
+import { FileSignature, PenTool, RefreshCw, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { resilierContrat } from "@/lib/actions/contrat";
 import { creerDemandeSignature } from "@/lib/actions/signature";
+import { envoyerContratParEmail } from "@/lib/actions/email-client";
 import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -90,21 +91,58 @@ function BadgeSignature({ signature }: { signature: Signature }) {
   return <Badge variant="info">{t("En attente de signature")}</Badge>;
 }
 
+/** Envoi simple par email d'un document du dossier au client, sans demande de signature (voir envoyerContratParEmail). */
+function FormulaireEnvoiContratParEmail({ contratId, documents, client }: { contratId: string; documents: { id: string; nom: string }[]; client: ClientParDefaut | null }) {
+  const t = useT();
+  const [etat, action, enCours] = useActionState(envoyerContratParEmail.bind(null, contratId), null);
+
+  if (!client?.email) return <p className="text-sm text-muted-foreground">{t("Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM).")}</p>;
+  if (documents.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("Ajoutez d'abord le document du contrat (PDF) dans la section Documents de ce dossier, puis envoyez-le par email.")}</p>;
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`doc-email-${contratId}`}>{t("Document à envoyer à {email}", { email: client.email })}</Label>
+        <Select id={`doc-email-${contratId}`} name="documentId" required>
+          {documents.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.nom}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {etat?.erreur ? <p role="alert" className="text-sm text-destructive">{etat.erreur}</p> : null}
+      {etat?.envoye ? <p className="text-sm text-emerald-700">{t("Email envoyé avec succès.")}</p> : null}
+      <Button type="submit" size="sm" disabled={enCours} className="w-fit">
+        {enCours ? <Spinner /> : <Mail data-icon="inline-start" aria-hidden />}
+        {enCours ? t("Envoi en cours…") : t("Envoyer par email")}
+      </Button>
+    </form>
+  );
+}
+
 export function ListeContrats({
   contrats,
   peutModifier,
   peutEnvoyer = false,
   documents = [],
+  documentsEmail = [],
+  peutEnvoyerEmail = false,
   client = null,
 }: {
   contrats: Contrat[];
   peutModifier: boolean;
   peutEnvoyer?: boolean;
   documents?: { id: string; nom: string }[];
+  documentsEmail?: { id: string; nom: string }[];
+  peutEnvoyerEmail?: boolean;
   client?: ClientParDefaut | null;
 }) {
   const t = useT();
   const [enEnvoi, setEnEnvoi] = useState<string | null>(null);
+  const [enEmail, setEnEmail] = useState<string | null>(null);
 
   if (contrats.length === 0) {
     return <p className="text-sm text-muted-foreground">{t("Aucun contrat pour le moment.")}</p>;
@@ -150,6 +188,12 @@ export function ListeContrats({
                       {c.signature ? t("Renvoyer à signer") : t("Envoyer à signer")}
                     </Button>
                   ) : null}
+                  {peutEnvoyerEmail ? (
+                    <Button variant="ghost" size="xs" onClick={() => setEnEmail(enEmail === c.id ? null : c.id)}>
+                      <Mail data-icon="inline-start" aria-hidden />
+                      {t("Envoyer par email")}
+                    </Button>
+                  ) : null}
                   {peutModifier && c.statut === "ACTIF" ? (
                     <Button
                       variant="ghost"
@@ -166,6 +210,11 @@ export function ListeContrats({
               {enEnvoi === c.id ? (
                 <div className="border-t border-border bg-muted/30 px-4 py-3">
                   <FormulaireEnvoiContrat contratId={c.id} documents={documents} client={client} />
+                </div>
+              ) : null}
+              {enEmail === c.id ? (
+                <div className="border-t border-border bg-muted/30 px-4 py-3">
+                  <FormulaireEnvoiContratParEmail contratId={c.id} documents={documentsEmail} client={client} />
                 </div>
               ) : null}
             </div>

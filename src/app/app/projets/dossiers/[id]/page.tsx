@@ -223,6 +223,9 @@ export default async function PageDetailDossier({ params }: { params: Promise<{ 
             peutModifier={peut(utilisateurConnecte, "CONTRATS", "MODIFIER")}
             peutEnvoyer={peut(utilisateurConnecte, "SIGNATURE", "CREER") && disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")}
             documents={documents.map((d) => ({ id: d.id, nom: d.nom }))}
+            // Par email : uniquement les documents ordinaires (jamais une pièce d'identité ou de santé) ; le serveur revérifie.
+            documentsEmail={documents.filter((d) => d.categorie === "GENERAL").map((d) => ({ id: d.id, nom: d.nom }))}
+            peutEnvoyerEmail={peut(utilisateurConnecte, "CONTRATS", "MODIFIER")}
             client={leContact ? { nom: leContact.nom, telephone: leContact.telephone, email: leContact.email } : null}
           />
         </div>

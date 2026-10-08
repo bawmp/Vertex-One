@@ -23,6 +23,7 @@ import {
   STATUT_FACTURE_ACOMPTE,
 } from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
+import { BoutonEnvoiDocumentVente } from "./bouton-envoi-document-vente";
 import { TableauDeBord } from "./tableau-de-bord";
 import { BoutonConvertirBCV } from "../deals/[id]/bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "../deals/[id]/boutons-facture-recurrente";
@@ -236,6 +237,7 @@ export default async function PageFacturation() {
                     >
                       <Download aria-hidden />
                     </Button>
+                    {peutModifier ? <BoutonEnvoiDocumentVente type="BON_COMMANDE" documentId={bc.id} /> : null}
                     {bc.statut === "BROUILLON" && peutCreer ? <BoutonConvertirBCV bonCommandeVenteId={bc.id} /> : null}
                   </div>
                 </div>
@@ -321,6 +323,7 @@ export default async function PageFacturation() {
                     >
                       <Download aria-hidden />
                     </Button>
+                    {peutModifier ? <BoutonEnvoiDocumentVente type="RECU_VENTE" documentId={rv.id} /> : null}
                     {rv.statut === "EMISE" && peutModifier ? <BoutonAnnulerRecuVente recuVenteId={rv.id} /> : null}
                   </div>
                 </div>
@@ -370,6 +373,7 @@ export default async function PageFacturation() {
                       >
                         <Download aria-hidden />
                       </Button>
+                      {peutModifier ? <BoutonEnvoiDocumentVente type="FACTURE_ACOMPTE" documentId={fa.id} /> : null}
                     </div>
                   </div>
                   {peutCreer && (fa.statut === "EMISE" || fa.statut === "PAYEE") ? (

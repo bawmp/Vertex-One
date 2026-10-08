@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATUT_FACTURE } from "@/lib/libelles";
 import { marquerFacturePayee, annulerFacture } from "@/lib/actions/facture";
 import { FormulaireEnvoiFacture } from "./formulaire-envoi-facture";
+import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
 import { BoutonPaiementEnLigne } from "./bouton-paiement-en-ligne";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
@@ -88,6 +89,10 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           factureId={laFacture.id}
           peutPersonnaliserModele={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")}
         />
+      ) : null}
+
+      {peutModifier && leProspect ? (
+        <FormulaireMessageClient contactId={leProspect.id} nomContact={leProspect.nom} emailContact={leProspect.email} factureId={laFacture.id} />
       ) : null}
 
       <EncartLienClient url={urlPubliqueFacture(jetonClient)} resume={resumeReponse} />
