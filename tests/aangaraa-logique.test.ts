@@ -6,7 +6,7 @@ describe("Aangaraa Pay — statuts et modes de paiement", () => {
   test("SUCCESSFUL est le seul succès ; lien expiré, annulé ou refusé = échec de la tentative ; tout texte inconnu n'en est jamais un", () => {
     expect(mapperStatut("SUCCESSFUL")).toBe("ACCEPTED");
     expect(mapperStatut("successful")).toBe("ACCEPTED");
-    for (const echec of ["FAILED", "CANCELLED", "EXPIRED"]) expect(mapperStatut(echec), echec).toBe("REFUSED");
+    for (const echec of ["FAILED", "CANCELLED", "CANCELED", "canceled", "EXPIRED", "REJECTED", "declined"]) expect(mapperStatut(echec), echec).toBe("REFUSED");
     expect(mapperStatut("PENDING")).toBe("PENDING");
     for (const autre of ["SUCCESS", "OK", "PAID", "", undefined, null, 200, {}]) expect(mapperStatut(autre), String(autre)).toBe("INCONNU");
   });

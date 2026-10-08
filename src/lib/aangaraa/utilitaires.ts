@@ -16,7 +16,10 @@ export function mapperStatut(statut: unknown): StatutPaiement {
       return "ACCEPTED";
     case "FAILED":
     case "CANCELLED":
+    case "CANCELED": // une seule L : c'est l'écriture que renvoie réellement Aangaraa Pay (constaté le 2026-10-08)
     case "EXPIRED":
+    case "REJECTED":
+    case "DECLINED":
       return "REFUSED";
     case "PENDING":
       return "PENDING";
