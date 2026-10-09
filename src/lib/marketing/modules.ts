@@ -57,6 +57,9 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)"),
       m("Tâches et réunions rattachées directement à une opportunité"),
       m("Conversion en un clic d'une opportunité gagnée vers un devis puis une facture — aucune ressaisie"),
+      m("Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel"),
+      m("Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux"),
+      m("Les demandes reçues sur votre site web deviennent automatiquement des prospects, grâce à une clé d'API (Paramètres → Intégrations)"),
     ],
   },
   {

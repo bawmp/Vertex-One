@@ -8,6 +8,9 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Each opportunity is assigned to a specific person, with visibility depending on scope (the whole team, their team, or only their own)",
   "Tâches et réunions rattachées directement à une opportunité": "Tasks and meetings attached directly to an opportunity",
   "Conversion en un clic d'une opportunité gagnée vers un devis puis une facture — aucune ressaisie": "One-click conversion of a won opportunity into a quote and then an invoice — no re-entry",
+  "Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel": "Import of your data from Asana, Zoho or an Excel/CSV file, with a dry run before the real import",
+  "Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux": "Export of your data as CSV and transfer from one Vertex One workspace to another, with no cross access between them",
+  "Les demandes reçues sur votre site web deviennent automatiquement des prospects, grâce à une clé d'API (Paramètres → Intégrations)": "Requests received on your website automatically become leads, using an API key (Settings → Integrations)",
 
   // One Books
   "Facturation, achats et comptabilité SYSCOHADA dans un seul module — du devis au paiement Mobile Money.": "Invoicing, purchasing and SYSCOHADA accounting in a single module — from quote to Mobile Money payment.",
