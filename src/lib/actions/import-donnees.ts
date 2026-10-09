@@ -25,6 +25,10 @@ const FONCTIONNALITE: Record<TypeImport, Fonctionnalite | null> = {
   DEVIS: "FACTURATION",
   FACTURES: "FACTURATION",
   NOTES: null,
+  LEADS: "CRM",
+  DEALS: "CRM",
+  CHAMPS_CONTACT: null,
+  MODELES_EMAIL: null,
 };
 
 function typeValide(brut: FormDataEntryValue | null): TypeImport | null {
@@ -119,6 +123,10 @@ function revalidatePaths(type: TypeImport) {
     DEVIS: ["/app/facturation", "/app/contacts"],
     FACTURES: ["/app/facturation", "/app/contacts"],
     NOTES: ["/app/mon-espace"],
+    LEADS: ["/app/leads"],
+    DEALS: ["/app/deals", "/app/contacts"],
+    CHAMPS_CONTACT: ["/app/parametres/champs-contact", "/app/contacts"],
+    MODELES_EMAIL: ["/app/parametres/modeles-email"],
   };
   for (const chemin of chemins[type]) revalidatePath(chemin);
 }

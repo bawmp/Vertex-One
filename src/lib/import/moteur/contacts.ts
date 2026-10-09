@@ -23,9 +23,11 @@ export async function importerContacts(ctx: ContexteImport, lignes: LigneImport[
   const { tx, entrepriseId } = ctx;
   const rapport = nouveauRapport();
 
-  const existants = await tx.select({ email: contact.email, telephone: contact.telephone }).from(contact).where(eq(contact.entrepriseId, entrepriseId));
+  const existants = await tx.select({ nom: contact.nom, email: contact.email, telephone: contact.telephone }).from(contact).where(eq(contact.entrepriseId, entrepriseId));
   const emailsVus = new Set(existants.map((c) => (c.email ?? "").toLowerCase()).filter(Boolean));
   const telephonesVus = new Set(existants.map((c) => chiffresTelephone(c.telephone)).filter(Boolean));
+  // Un contact sans email ni téléphone ne peut être reconnu que par son nom : sans cela, rejouer un fichier le recréerait à chaque fois.
+  const nomsSansCoordonnees = new Set(existants.filter((c) => !c.email && !chiffresTelephone(c.telephone)).map((c) => normaliser(c.nom)));
 
   type Prepare = { numero: number; nom: string; societe: string; niu: string; email: string | null; telephone: string; fonction: string | null; notes: string | null; assigneAId: string };
   const aCreer: Prepare[] = [];
@@ -47,12 +49,14 @@ export async function importerContacts(ctx: ContexteImport, lignes: LigneImport[
     const telBrut = (v.telephone ?? "").trim();
     const tel = chiffresTelephone(telBrut);
 
-    if ((email && emailsVus.has(email)) || (tel && telephonesVus.has(tel))) {
+    const sansCoordonnees = !email && !tel;
+    if ((email && emailsVus.has(email)) || (tel && telephonesVus.has(tel)) || (sansCoordonnees && nomsSansCoordonnees.has(normaliser(nom)))) {
       rapport.ignores++; // déjà dans l'application, ou déjà vu plus haut dans ce fichier
       continue;
     }
     if (email) emailsVus.add(email);
     if (tel) telephonesVus.add(tel);
+    if (sansCoordonnees) nomsSansCoordonnees.add(normaliser(nom));
     if (!telBrut) sansTelephone++;
 
     aCreer.push({

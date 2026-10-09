@@ -2,7 +2,7 @@ import type { Module } from "@/lib/permissions";
 import { normaliser } from "./valeurs";
 import { m } from "@/lib/i18n/catalogue";
 
-export const TYPES_IMPORT = ["CONTACTS", "PRODUITS", "PROJETS_TACHES", "DEVIS", "FACTURES", "NOTES"] as const;
+export const TYPES_IMPORT = ["CONTACTS", "LEADS", "DEALS", "PRODUITS", "PROJETS_TACHES", "DEVIS", "FACTURES", "NOTES", "CHAMPS_CONTACT", "MODELES_EMAIL"] as const;
 export type TypeImport = (typeof TYPES_IMPORT)[number];
 
 export type ChampImport = {
@@ -138,6 +138,81 @@ export const DEFINITIONS: Record<TypeImport, DefinitionImport> = {
       { cle: "date", libelle: m("Date"), alias: ["created time", "created at", "date", "created", "date de creation", "modified time"] },
     ],
   },
+  LEADS: {
+    type: "LEADS",
+    libelle: m("Leads (prospects)"),
+    description: m("Un lead par ligne. Un lead déjà présent (même email ou même téléphone) est ignoré. Pour reprendre les données d'un autre espace Vertex One, importez le fichier exporté depuis cet espace : les colonnes sont reconnues d'elles-mêmes."),
+    module: "CRM",
+    adminSeulement: false,
+    conseils: [
+      { source: m("Un autre espace Vertex One"), texte: m("Paramètres → Exporter mes données → Leads, puis importez le fichier ici.") },
+      { source: m("Zoho CRM"), texte: m("Module Leads → Exporter les leads.") },
+      { source: m("Autre application"), texte: m("Un CSV ou Excel avec au minimum le nom et un téléphone ou un email.") },
+    ],
+    champs: [
+      { cle: "prenom", libelle: m("Prénom"), alias: ["first name", "prenom", "firstname", "given name"] },
+      { cle: "nom", libelle: m("Nom"), obligatoire: true, alias: ["last name", "nom", "name", "full name", "lead name", "nom complet", "contact name", "lastname"] },
+      { cle: "societe", libelle: m("Société"), alias: ["company", "company name", "societe", "entreprise", "organisation", "account name"] },
+      { cle: "email", libelle: m("Email"), alias: ["email", "e mail", "emailid", "email id", "courriel", "adresse email"] },
+      { cle: "telephone", libelle: m("Téléphone"), alias: ["phone", "telephone", "tel", "mobile", "whatsapp", "numero de telephone", "work phone"] },
+      { cle: "statut", libelle: m("Statut"), alias: ["lead status", "status", "statut", "etat", "statut du lead"] },
+      { cle: "notes", libelle: m("Notes"), alias: ["description", "notes", "note", "remarques", "commentaires", "comments"] },
+      { cle: "proprietaire", libelle: m("Responsable (email ou nom)"), alias: ["lead owner", "owner", "proprietaire", "responsable", "assigne a", "assigned to"] },
+    ],
+  },
+  DEALS: {
+    type: "DEALS",
+    libelle: m("Deals (opportunités)"),
+    description: m("Un deal par ligne, rattaché à son contact (retrouvé par email, téléphone ou nom ; créé s'il n'existe pas). Un deal déjà présent sous le même titre pour le même contact est ignoré."),
+    module: "CRM",
+    adminSeulement: false,
+    conseils: [
+      { source: m("Un autre espace Vertex One"), texte: m("Paramètres → Exporter mes données → Deals, puis importez le fichier ici. Importez d'abord les contacts.") },
+      { source: m("Zoho CRM"), texte: m("Module Deals (Potentials) → Exporter les deals.") },
+      { source: m("Autre application"), texte: m("Un CSV ou Excel avec le titre du deal et le nom du contact.") },
+    ],
+    champs: [
+      { cle: "titre", libelle: m("Titre du deal"), obligatoire: true, alias: ["deal name", "titre", "nom du deal", "title", "opportunity name", "potential name", "nom de l opportunite", "name"] },
+      { cle: "contact", libelle: m("Contact (nom)"), obligatoire: true, alias: ["contact name", "contact", "nom du contact", "client", "customer name", "account name", "company"] },
+      { cle: "contactEmail", libelle: m("Contact (email)"), alias: ["contact email", "email", "email du contact", "courriel du contact"] },
+      { cle: "contactTelephone", libelle: m("Contact (téléphone)"), alias: ["contact phone", "phone", "telephone du contact", "mobile"] },
+      { cle: "montant", libelle: m("Montant (FCFA)"), alias: ["amount", "montant", "deal amount", "value", "valeur", "expected revenue", "montant estime"] },
+      { cle: "statut", libelle: m("Étape"), alias: ["stage", "etape", "deal stage", "statut", "status", "phase"] },
+      { cle: "dateCloture", libelle: m("Clôture estimée"), alias: ["closing date", "close date", "date de cloture", "cloture estimee", "expected close date", "date de cloture estimee"] },
+      { cle: "proprietaire", libelle: m("Responsable (email ou nom)"), alias: ["deal owner", "owner", "proprietaire", "responsable", "assigne a", "assigned to"] },
+    ],
+  },
+  CHAMPS_CONTACT: {
+    type: "CHAMPS_CONTACT",
+    libelle: m("Champs personnalisés du contact"),
+    description: m("La structure de la fiche contact d'un autre espace : un champ par ligne. Un champ déjà présent sous le même nom est ignoré. Seuls les champs sont repris, pas les valeurs saisies sur les contacts."),
+    module: "PARAMETRES",
+    adminSeulement: true,
+    conseils: [
+      { source: m("Un autre espace Vertex One"), texte: m("Paramètres → Exporter mes données → Champs personnalisés, puis importez le fichier ici.") },
+    ],
+    champs: [
+      { cle: "libelle", libelle: m("Nom du champ"), obligatoire: true, alias: ["label", "libelle", "nom", "field name", "nom du champ", "champ"] },
+      { cle: "type", libelle: m("Type de champ"), alias: ["type", "field type", "type de champ"] },
+      { cle: "obligatoire", libelle: m("Obligatoire"), alias: ["required", "obligatoire", "mandatory"] },
+      { cle: "options", libelle: m("Choix (liste déroulante)"), alias: ["options", "choices", "choix", "valeurs", "liste"] },
+    ],
+  },
+  MODELES_EMAIL: {
+    type: "MODELES_EMAIL",
+    libelle: m("Modèles d'email"),
+    description: m("Les textes d'envoi des devis et des factures d'un autre espace. Un modèle déjà personnalisé dans cet espace n'est jamais écrasé."),
+    module: "PARAMETRES",
+    adminSeulement: true,
+    conseils: [
+      { source: m("Un autre espace Vertex One"), texte: m("Paramètres → Exporter mes données → Modèles d'email, puis importez le fichier ici.") },
+    ],
+    champs: [
+      { cle: "type", libelle: m("Modèle"), obligatoire: true, alias: ["type", "template", "modele", "nom du modele", "template type"] },
+      { cle: "objet", libelle: m("Objet"), obligatoire: true, alias: ["subject", "objet", "sujet"] },
+      { cle: "corps", libelle: m("Corps du message"), obligatoire: true, alias: ["body", "corps", "message", "contenu", "texte"] },
+    ],
+  },
 };
 
 const CHAMPS_DOCUMENT_COMMUNS: ChampImport[] = [
@@ -176,7 +251,8 @@ export function proposerCorrespondance(entetes: string[], champs: ChampImport[])
   const utilises = new Set<string>();
   const correspondance: Record<string, string> = {};
   for (const champ of champs) {
-    for (const alias of champ.alias) {
+    // Le libellé du champ compte aussi : un fichier exporté par Vertex One porte exactement ces en-têtes et se relit seul.
+    for (const alias of [...champ.alias, champ.libelle]) {
       const entete = parNormalise.get(normaliser(alias)); // l'alias aussi : « item tax % » s'écrit « item tax » une fois normalisé
       if (entete && !utilises.has(entete)) {
         correspondance[champ.cle] = entete;

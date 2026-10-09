@@ -3,8 +3,12 @@ import type { UtilisateurConnecte } from "@/lib/session";
 import { idsVisibles } from "@/lib/portee";
 import { DEFINITIONS, type TypeImport } from "../definitions";
 import { chargerEquipe, type ContexteImport, type LigneImport, type OptionsImport, type Rapport } from "./commun";
+import { importerChampsContact } from "./champs-contact";
 import { importerContacts } from "./contacts";
+import { importerDeals } from "./deals";
 import { importerDocuments } from "./documents";
+import { importerLeads } from "./leads";
+import { importerModelesEmail } from "./modeles-email";
 import { importerNotes } from "./notes";
 import { importerProduits } from "./produits";
 import { importerProjetsEtTaches } from "./projets-taches";
@@ -26,7 +30,8 @@ export function appliquerCorrespondance(lignes: Record<string, string>[], corres
   const resultat: LigneImport[] = [];
   lignes.forEach((ligne, i) => {
     const v: Record<string, string> = {};
-    for (const [cle, entete] of Object.entries(correspondance)) v[cle] = (ligne[entete] ?? "").trim();
+    // L'apostrophe qui protège une cellule de l'export contre l'injection de formule (voir src/lib/export/csv.ts) est retirée.
+    for (const [cle, entete] of Object.entries(correspondance)) v[cle] = (ligne[entete] ?? "").trim().replace(/^'(?=[=+\-@])/, "");
     if (Object.values(v).some((valeur) => valeur !== "")) resultat.push({ numero: i + 2, v }); // ligne 1 = en-têtes
   });
   return resultat;
@@ -62,6 +67,14 @@ export async function executerImport(
       return importerDocuments(ctx, "FACTURES", lignes);
     case "NOTES":
       return importerNotes(ctx, lignes);
+    case "LEADS":
+      return importerLeads(ctx, lignes);
+    case "DEALS":
+      return importerDeals(ctx, lignes);
+    case "CHAMPS_CONTACT":
+      return importerChampsContact(ctx, lignes);
+    case "MODELES_EMAIL":
+      return importerModelesEmail(ctx, lignes);
   }
 }
 

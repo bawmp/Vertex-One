@@ -424,6 +424,32 @@ export const cleApiEntreprise = pgTable(
   ]
 ).enableRLS();
 
+// Journal des exports de données (2026-10-09) : qui a téléchargé quoi, quand, et combien de lignes. Un export complet
+// des clients d'une entreprise est une opération sensible : elle laisse toujours une trace, jamais le contenu exporté.
+export const journalExportDonnees = pgTable(
+  "journal_export_donnees",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    type: text("type").notNull(), // CONTACTS | LEADS | DEALS | PRODUITS | DEVIS | FACTURES | CHAMPS_CONTACT | MODELES_EMAIL
+    nombreLignes: integer("nombre_lignes").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("journal_export_donnees_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Tables internes Better-Auth (session, compte, vérification) — champs
 // gardés aux noms natifs Better-Auth (anglais) pour éviter tout mapping
 // "fields" superflu (source d'erreurs, voir CLAUDE.md) ; seule la table

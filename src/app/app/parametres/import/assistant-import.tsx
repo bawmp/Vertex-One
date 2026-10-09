@@ -30,6 +30,10 @@ const LIENS_APRES_IMPORT: Record<string, { href: string; libelle: string }> = {
   DEVIS: { href: "/app/facturation", libelle: m("Voir la facturation") },
   FACTURES: { href: "/app/facturation", libelle: m("Voir la facturation") },
   NOTES: { href: "/app/mon-espace", libelle: m("Voir mon espace personnel") },
+  LEADS: { href: "/app/leads", libelle: m("Voir les leads") },
+  DEALS: { href: "/app/deals", libelle: m("Voir les deals") },
+  CHAMPS_CONTACT: { href: "/app/parametres/champs-contact", libelle: m("Voir les champs personnalisés") },
+  MODELES_EMAIL: { href: "/app/parametres/modeles-email", libelle: m("Voir les modèles d'email") },
 };
 
 export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clients: { id: string; nom: string }[] }) {

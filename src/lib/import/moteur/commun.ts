@@ -111,3 +111,9 @@ export function chiffresTelephone(tel: string | null | undefined): string {
 }
 
 export const TELEPHONE_ABSENT = "Non renseigné";
+
+/** Un « responsable » de fichier est un email ou un nom : retrouvé dans l'équipe, sinon la personne qui importe. */
+export function resoudreResponsableDeFichier(ctx: ContexteImport, valeur: string | undefined): string {
+  const v = (valeur ?? "").trim();
+  return v.includes("@") ? resoudreResponsable(ctx, v, undefined) : resoudreResponsable(ctx, undefined, v);
+}
