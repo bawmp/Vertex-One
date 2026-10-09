@@ -147,6 +147,42 @@ describe("POST /api/externe/leads — base réelle", () => {
     expect(envoyerEmail).toHaveBeenCalledTimes(1); // pas de seconde alerte pour un doublon
   });
 
+  test("mise à jour d'un lead existant : complète sans jamais écraser une saisie humaine, et ne s'empile pas", async () => {
+    const base = { telephone: "+237690555666", reference: "whatsapp-237690555666", source: "Site Vertex Technology" };
+    const premier = await (await appel({ ...base, nom: "Prospect WhatsApp +237690555666", message: "Premier message : Bonjour" })).json();
+
+    // Sans l'indicateur, rien ne change.
+    await appel({ ...base, nom: "Linda", email: "linda@exemple.test", message: "ignoré" });
+    let [l] = (await leadsDe(entrepriseA)).filter((x) => x.id === premier.id);
+    expect(l.nom).toBe("Prospect WhatsApp +237690555666");
+    expect(l.email).toBeNull();
+
+    // Avec l'indicateur : le nom provisoire est remplacé, l'email vide renseigné, le bloc de mise à jour ajouté.
+    const r = await appel({ ...base, nom: "Linda", email: "linda@exemple.test", societe: "Boutique Linda", message: "Nom : Linda\nVille : Yaoundé", miseAJour: true });
+    expect(await r.json()).toEqual({ id: premier.id, doublon: true });
+    [l] = (await leadsDe(entrepriseA)).filter((x) => x.id === premier.id);
+    expect(l.nom).toBe("Linda");
+    expect(l.email).toBe("linda@exemple.test");
+    expect(l.societeCliente).toBe("Boutique Linda");
+    expect(l.notes).toContain("Premier message : Bonjour");
+    expect(l.notes).toContain("Ville : Yaoundé");
+
+    // Un nouvel appel réécrit le bloc (une seule version) et ne touche ni le nom ni l'email déjà renseignés.
+    await appel({ ...base, nom: "Autre Nom", email: "autre@exemple.test", message: "Nom : Linda\nVille : Yaoundé\nBesoin : site web", miseAJour: true });
+    [l] = (await leadsDe(entrepriseA)).filter((x) => x.id === premier.id);
+    expect(l.nom).toBe("Linda");
+    expect(l.email).toBe("linda@exemple.test");
+    expect(l.notes?.match(/— Mise à jour —/g)).toHaveLength(1);
+    expect(l.notes).toContain("Besoin : site web");
+    expect(l.notes).not.toContain("Ville : Yaoundé\n\n");
+
+    // Un lead modifié à la main n'est pas écrasé.
+    await avecEntreprise(entrepriseA, (tx) => tx.update(lead).set({ nom: "Linda Mbella (client)" }).where(eq(lead.id, premier.id)));
+    await appel({ ...base, nom: "Linda", message: "Nom : Linda", miseAJour: true });
+    [l] = (await leadsDe(entrepriseA)).filter((x) => x.id === premier.id);
+    expect(l.nom).toBe("Linda Mbella (client)");
+  });
+
   test("l'entreprise est toujours celle de la clé : un entrepriseId glissé dans le corps est ignoré", async () => {
     const r = await appel({ nom: "Pirate", telephone: "+237600000000", entrepriseId: entrepriseA }, cleB);
     expect(r.status).toBe(201);
