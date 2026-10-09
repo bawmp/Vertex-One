@@ -380,6 +380,50 @@ export const invitation = pgTable(
   ]
 ).enableRLS();
 
+// Clés d'API d'une entreprise (2026-10-09) — permettent à un site externe de l'entreprise (ex. Global Mobility) de lui
+// créer des leads, sans compte ni session. La clé en clair n'est JAMAIS conservée : seule son empreinte SHA-256 l'est,
+// et la clé n'est montrée qu'une fois, à sa création. Révocable à tout moment. Lecture anonyme par empreinte (le point
+// d'entrée n'a pas de session et doit retrouver l'entreprise à partir de la clé seule), même modèle que `invitation`
+// (jeton) : lecture permissive uniquement quand `app.entreprise_id` n'est pas positionné, jamais en écriture.
+export const cleApiEntreprise = pgTable(
+  "cle_api_entreprise",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(), // libellé donné par l'Administrateur, ex. « Site Global Mobility »
+    prefixe: text("prefixe").notNull(), // premiers caractères, pour reconnaître la clé dans la liste sans la révéler
+    empreinte: text("empreinte").notNull().unique(), // SHA-256 hexadécimal de la clé
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    dernierUsageLe: timestamp("dernier_usage_le"),
+    revoqueeLe: timestamp("revoquee_le"),
+  },
+  (table) => [
+    index("cle_api_entreprise_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise_lecture", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
+    }),
+    pgPolicy("isolation_entreprise_ecriture", {
+      for: "insert",
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_modification", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_suppression", {
+      for: "delete",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Tables internes Better-Auth (session, compte, vérification) — champs
 // gardés aux noms natifs Better-Auth (anglais) pour éviter tout mapping
 // "fields" superflu (source d'erreurs, voir CLAUDE.md) ; seule la table
@@ -572,11 +616,17 @@ export const lead = pgTable(
     convertiLe: timestamp("converti_le"),
     contactConvertiId: text("contact_converti_id"),
     dealConvertiId: text("deal_converti_id"),
+    // Lead reçu d'un site externe via l'API (2026-10-09, cle_api_entreprise) : `sourceExterne` dit d'où il vient
+    // (ex. « Site Global Mobility »), `referenceExterne` est l'identifiant de la demande chez l'émetteur — il sert à
+    // ne jamais créer deux fois le même lead si l'émetteur renvoie sa requête.
+    sourceExterne: text("source_externe"),
+    referenceExterne: text("reference_externe"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
     index("lead_entreprise_idx").on(table.entrepriseId),
     index("lead_assigne_a_idx").on(table.assigneAId),
+    uniqueIndex("lead_reference_externe_unique").on(table.entrepriseId, table.sourceExterne, table.referenceExterne).where(sql`${table.referenceExterne} IS NOT NULL`),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

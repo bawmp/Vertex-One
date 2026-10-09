@@ -10,6 +10,7 @@ export type VocabulaireEntree = { singulier: string; pluriel: string };
 export const VOCABULAIRE_DOSSIER: Record<string, VocabulaireEntree> = {
   artisan: { singulier: m("Fiche client"), pluriel: m("Fiches clients") },
   cabinet: { singulier: m("Dossier"), pluriel: m("Dossiers") },
+  immigration: { singulier: m("Dossier"), pluriel: m("Dossiers") },
   agence: { singulier: m("Compte client"), pluriel: m("Comptes clients") },
   generique: { singulier: m("Dossier"), pluriel: m("Dossiers") },
 };
@@ -17,6 +18,7 @@ export const VOCABULAIRE_DOSSIER: Record<string, VocabulaireEntree> = {
 export const VOCABULAIRE_PROJET: Record<string, VocabulaireEntree> = {
   artisan: { singulier: m("Chantier"), pluriel: m("Chantiers") },
   cabinet: { singulier: m("Mission"), pluriel: m("Missions") },
+  immigration: { singulier: m("Démarche"), pluriel: m("Démarches") },
   agence: { singulier: m("Projet"), pluriel: m("Projets") },
   generique: { singulier: m("Projet"), pluriel: m("Projets") },
 };

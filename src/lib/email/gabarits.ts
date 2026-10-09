@@ -175,3 +175,21 @@ export function gabaritDemandeSuppressionDocument({
     `.trim(),
   };
 }
+
+/**
+ * Alerte à l'Administrateur : un nouveau lead est arrivé d'un site externe (API). Tout texte reçu de l'extérieur (nom,
+ * message, source) est échappé : il vient d'un visiteur anonyme.
+ */
+export function gabaritNouveauLeadExterne({ nom, source, message, lien }: { nom: string; source: string; message: string | null; lien: string }): { subject: string; html: string } {
+  const echapper = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  return {
+    subject: `Nouvelle demande — ${nom}`,
+    html: `
+      <p>Bonjour,</p>
+      <p>Une nouvelle demande vient d'arriver depuis <strong>${echapper(source)}</strong> : <strong>${echapper(nom)}</strong>.</p>
+      ${message ? `<p>Message : « ${echapper(message)} »</p>` : ""}
+      <p><a href="${lien}">Ouvrir le lead dans le CRM</a></p>
+      <p>Cordialement,<br>L'équipe Vertex One</p>
+    `.trim(),
+  };
+}

@@ -276,6 +276,7 @@ const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }
   { libelle: m("Modèles d'email"), href: "/app/parametres/modeles-email", Icone: Mail },
   { libelle: m("Champs personnalisés (Contact)"), href: "/app/parametres/champs-contact", Icone: SlidersHorizontal },
   { libelle: m("Importer des données"), href: "/app/parametres/import", Icone: Upload },
+  { libelle: m("Intégrations"), href: "/app/parametres/integrations", Icone: KeyRound },
   { libelle: m("Abonnement"), href: "/app/parametres/abonnement", Icone: CreditCard },
 ];
 

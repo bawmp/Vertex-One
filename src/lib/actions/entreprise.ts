@@ -5,17 +5,18 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { hashPassword } from "better-auth/crypto";
 import { createLocalAccountIssuer } from "@better-auth/core/db";
-import { db } from "@/db/client";
+import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, compte } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
+import { semerChampsDuProfil } from "@/lib/profils/immigration";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
 const schemaInscription = z.object({
   nomEntreprise: z.string().trim().min(2, m("Le nom de l'entreprise est trop court.")),
-  secteurProfil: z.enum(["agence", "artisan", "cabinet", "generique"]),
+  secteurProfil: z.enum(["agence", "artisan", "cabinet", "immigration", "generique"]),
   nomComplet: z.string().trim().min(2, m("Le nom complet est trop court.")),
   email: z.email(m("Adresse email invalide.")),
   motDePasse: z.string().min(8, m("Le mot de passe doit contenir au moins 8 caractères.")),
@@ -94,6 +95,14 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
       return { erreur: t("Cette adresse email est déjà utilisée.") };
     }
     throw erreur;
+  }
+
+  // Champs de départ propres au profil choisi (ex. immigration). Un échec ici ne doit jamais empêcher la création du
+  // compte : l'administrateur peut toujours les ajouter lui-même dans Paramètres.
+  try {
+    await avecEntreprise(idEntreprise, (tx) => semerChampsDuProfil(tx, idEntreprise, secteurProfil));
+  } catch (erreurSemis) {
+    console.error("[inscription] champs de départ du profil non créés :", erreurSemis instanceof Error ? erreurSemis.message : erreurSemis);
   }
 
   // Palier 3, section 6 — même provisionnement chat qu'à l'activation d'une

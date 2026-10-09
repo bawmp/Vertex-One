@@ -34,6 +34,7 @@ export default function PageInscription() {
               <option value="agence">{t("Agence")}</option>
               <option value="artisan">{t("Artisan")}</option>
               <option value="cabinet">{t("Cabinet")}</option>
+              <option value="immigration">{t("Immigration et mobilité internationale")}</option>
               <option value="generique">{t("Autre")}</option>
             </Select>
           </div>
