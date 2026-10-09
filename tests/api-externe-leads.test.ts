@@ -180,6 +180,23 @@ describe("POST /api/externe/leads — base réelle", () => {
     expect(html).toContain("&lt;img");
   });
 
+  test("un espace suspendu n'accepte plus de leads (402) ; réactivé, il en accepte de nouveau", async () => {
+    const statut = (valeur: string) => db.update(entreprise).set({ statutAbonnement: valeur }).where(eq(entreprise.id, entrepriseA));
+    const avant = (await leadsDe(entrepriseA)).length;
+    try {
+      await statut("suspendu");
+      const r = await appel({ nom: "Pendant la suspension", reference: "suspendu-1" });
+      expect(r.status).toBe(402);
+      expect((await r.json()).erreur).toMatch(/suspendu/i);
+      expect(await leadsDe(entrepriseA)).toHaveLength(avant); // rien n'a été créé
+      expect(envoyerEmail).not.toHaveBeenCalled();
+    } finally {
+      await statut("essai");
+    }
+    const apres = await appel({ nom: "Après réactivation", reference: "suspendu-2" });
+    expect(apres.status).toBe(201);
+  });
+
   test("au-delà de 30 appels par minute et par clé : 429 ; une autre clé n'est pas touchée", async () => {
     // On remplit directement le compteur de la clé A (30 appels déjà faits) au lieu de 31 allers-retours vers la base.
     for (let i = 0; i < 30; i++) expect(autoriserAppel(idCleA)).toBe(true);

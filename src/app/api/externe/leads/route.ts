@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { cleApiEntreprise } from "@/db/schema";
+import { cleApiEntreprise, entreprise } from "@/db/schema";
 import { empreinteCle, formeCleValide, lireCleDepuisEnTete } from "@/lib/api-externe/cle";
 import { creerLeadExterne, schemaLeadExterne } from "@/lib/api-externe/lead";
 import { autoriserAppel } from "@/lib/api-externe/limite";
@@ -33,6 +33,14 @@ export async function POST(requete: Request) {
   // Lecture anonyme par empreinte (politique RLS permissive hors session), puis tout le reste sous la RLS de l'entreprise.
   const [ligneCle] = await db.select().from(cleApiEntreprise).where(eq(cleApiEntreprise.empreinte, empreinteCle(cle)));
   if (!ligneCle || ligneCle.revoqueeLe) return reponse({ erreur: "Clé d'API invalide." }, 401);
+
+  // Un espace dont l'abonnement est suspendu n'a plus accès à son CRM (voir src/app/app/layout.tsx) : ses leads ne sont
+  // donc pas acceptés non plus. Réponse 402 explicite — le site émetteur la journalise sans la réessayer — plutôt que
+  // de remplir en silence un CRM que personne ne peut ouvrir. `entreprise` n'a pas de RLS (lecture directe, comme partout).
+  const [ent] = await db.select({ statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, ligneCle.entrepriseId));
+  if (!ent || ent.statutAbonnement === "suspendu") {
+    return reponse({ erreur: "Abonnement suspendu : les demandes ne sont plus acceptées. Réactivez l'abonnement dans Vertex One." }, 402);
+  }
 
   if (!autoriserAppel(ligneCle.id)) return reponse({ erreur: "Trop de requêtes, réessayez dans une minute." }, 429);
 
