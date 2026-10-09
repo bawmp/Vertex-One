@@ -76,7 +76,7 @@ const CAPTURES_DEMO = [
 const ATOUTS = [
   { icone: Smartphone, titre: m("Mobile Money natif"), classeFond: "bg-blue-500", description: m("Orange Money et MTN MoMo intégrés — pas une carte bancaire étrangère à faire accepter à vos clients.") },
   { icone: MessageCircle, titre: m("WhatsApp bientôt"), classeFond: "bg-emerald-500", description: m("Signatures, relances et notifications partent par email dès maintenant ; l'envoi par WhatsApp, le canal que vos clients utilisent tous les jours, arrive dans une prochaine mise à jour.") },
-  { icone: Landmark, titre: m("Conforme au Cameroun"), classeFond: "bg-amber-500", description: m("SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup.") },
+  { icone: Landmark, titre: m("Conforme en Afrique"), classeFond: "bg-amber-500", description: m("SYSCOHADA, prêt pour la facturation électronique 2026 — pensé pour la réglementation locale, pas adapté après coup.") },
   { icone: HandCoins, titre: m("Sans coût d'implémentation"), classeFond: "bg-rose-500", description: m("Aucun intégrateur à payer pour démarrer, contrairement à l'implémentation d'un grand progiciel international classique.") },
 ];
 
@@ -209,7 +209,7 @@ export default async function PageAccueil() {
         <div className="mx-auto max-w-6xl px-6">
           <Reveal>
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight">{t("Pensé pour le Cameroun, pas adapté après coup")}</h2>
+              <h2 className="text-3xl font-semibold tracking-tight">{t("Pensé pour l'Afrique, pas adapté après coup")}</h2>
             </div>
           </Reveal>
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -262,7 +262,7 @@ export default async function PageAccueil() {
       <section className="bg-muted/30 py-20">
         <Reveal className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 text-center">
           <Rocket className="size-8 text-primary" aria-hidden />
-          <h2 className="text-2xl font-semibold tracking-tight">{t("En cours de lancement au Cameroun")}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">{t("En cours de lancement en Afrique")}</h2>
           <p className="font-medium text-foreground">
             {t("Vertex One est né d'un besoin réel : notre propre agence, Vertex Technology, cherchait un outil pour gérer ses prospects, ses devis, ses factures et son équipe. Nous l'avons construit pour nous-mêmes avant de le proposer à d'autres entreprises de services — c'est la meilleure preuve que le produit fonctionne vraiment au quotidien.")}
           </p>

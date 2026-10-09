@@ -31,9 +31,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(URL_SITE),
   title: { default: "Vertex One — Suite de gestion pour entreprises de services", template: "%s" },
   description:
-    "La suite de gestion tout-en-un pour les entreprises de services : CRM, facturation, RH, projets et plus, avec Mobile Money natif et conformité OHADA/SYSCOHADA — pensée pour le Cameroun et les pays de la zone OHADA.",
+    "La suite de gestion tout-en-un pour les entreprises de services : CRM, facturation, RH, projets et plus, avec Mobile Money natif et conformité OHADA/SYSCOHADA — pensée pour l'Afrique et les pays de la zone OHADA.",
   keywords: [
-    "logiciel de gestion Cameroun",
+    "logiciel de gestion Afrique",
     "CRM Afrique",
     "facturation Mobile Money",
     "logiciel OHADA",

@@ -43,7 +43,7 @@ export default async function LayoutMarketing({ children }: { children: React.Re
           </nav>
         </div>
         <div className="border-t border-border px-6 py-4 text-center text-xs text-muted-foreground">
-          {t("© {annee} Vertex One — Fait au Cameroun.", { annee: new Date().getFullYear() })}
+          {t("© {annee} Vertex One — Fait en Afrique.", { annee: new Date().getFullYear() })}
         </div>
       </footer>
       <KyriaChat />
