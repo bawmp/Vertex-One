@@ -6,6 +6,7 @@ import { facture } from "@/db/schema";
 import { chargerDevisParJeton } from "@/lib/client-documents/chargement";
 import { obtenirOuCreerLien } from "@/lib/client-documents/liens";
 import { CadreDocumentClient, LignesDocumentClient } from "@/components/document-client";
+import { EtapesClient } from "@/components/formulaire/parcours-client";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ReponseDevis } from "./reponse-devis";
@@ -43,6 +44,8 @@ export default async function PageDevisClient({ params }: { params: Promise<{ je
 
   return (
     <CadreDocumentClient entrepriseId={entrepriseId} logoCleStockage={entreprise.logoCleStockage} nomEntreprise={entreprise.nom}>
+      <EtapesClient etapes={["Consulter", "Répondre", "Facture"]} active={devis.statut === "ACCEPTE" ? 2 : devis.statut === "REFUSE" ? 3 : 1} />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Devis</p>

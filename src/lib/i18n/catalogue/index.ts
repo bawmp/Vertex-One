@@ -15,6 +15,7 @@ import { MENU } from "./menu";
 import { MESSAGES } from "./messages";
 import { VITRINE } from "./vitrine";
 import { VITRINE_MODULES } from "./vitrine-modules";
+import { FORMULAIRES } from "./formulaires";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -30,4 +31,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...MESSAGES,
   ...VITRINE,
   ...VITRINE_MODULES,
+  ...FORMULAIRES,
 };

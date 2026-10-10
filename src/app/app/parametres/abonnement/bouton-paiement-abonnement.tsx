@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CreditCard, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { Champ } from "@/components/formulaire/champ";
+import { ChoixCartes } from "@/components/formulaire/choix-cartes";
+import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, EcranPaiementReussi, RecapMontant } from "@/components/formulaire/ecrans-paiement";
 import { declencherPaiementAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -129,59 +131,85 @@ export function BoutonPaiementAbonnement() {
 
   if (etape === "confirme") {
     return (
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <CheckCircle2 className="size-6 text-primary" aria-hidden />
-        <p className="text-sm font-medium">{t("Paiement confirmé — votre abonnement est actif.")}</p>
-        <p className="text-xs text-muted-foreground">{t("Redirection vers l'application…")}</p>
+      <div className="w-full max-w-md">
+        <EcranPaiementReussi titre={t("Paiement confirmé — votre abonnement est actif.")} texte={t("Redirection vers l'application…")} />
       </div>
     );
   }
 
   if (etape === "en_attente") {
     return (
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
-        <p className="text-sm font-medium">{t("Vérifiez votre téléphone et validez la demande de paiement.")}</p>
-        <p className="text-xs text-muted-foreground">{t("Nous attendons la confirmation…")}</p>
+      <div className="w-full max-w-md">
+        <EcranAttentePaiement
+          titre={t("Vérifiez votre téléphone et validez la demande de paiement.")}
+          texte={t("Nous attendons la confirmation…")}
+          etapes={[t("Demande envoyée"), t("Validez sur votre téléphone"), t("Confirmation de votre paiement")]}
+          etapeActive={1}
+          libelleTemps={t("Temps écoulé :")}
+        />
       </div>
     );
   }
 
   if (etape === "echec") {
     return (
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <XCircle className="size-6 text-destructive" aria-hidden />
-        <p className="text-sm font-medium">{erreur ?? t("Le paiement n'a pas abouti.")}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => setEtape("formulaire")}>
-          {t("Réessayer")}
-        </Button>
+      <div className="w-full max-w-md">
+        <EcranPaiementEchoue titre={erreur ?? t("Le paiement n'a pas abouti.")} texte={t("Rien n'est débité sans votre validation. Vous pouvez réessayer.")}>
+          <Button type="button" variant="outline" onClick={() => setEtape("formulaire")}>
+            {t("Réessayer")}
+          </Button>
+        </EcranPaiementEchoue>
       </div>
     );
   }
 
+  const chiffres = telephone.replace(/\D/g, "");
+  const telephoneValide = chiffres.length >= 9;
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <Input
+    <form
+      onSubmit={(evenement) => {
+        evenement.preventDefault();
+        if (telephoneValide && !enCours) payer();
+      }}
+      className="flex w-full max-w-md animate-in flex-col gap-5 text-left duration-500 fade-in slide-in-from-bottom-2"
+    >
+      <RecapMontant etiquette={t("Abonnement Vertex One")} designation={t("Un mois, toutes les fonctionnalités")} montant="50 000 FCFA" />
+
+      <ChoixCartes
+        etiquette={t("Opérateur Mobile Money")}
+        valeur={operateur}
+        onChange={(v) => setOperateur(v as Operateur)}
+        desactive={enCours}
+        options={[
+          { valeur: "MTN_Cameroon", libelle: "MTN Mobile Money", pastille: "#ffcc00" },
+          { valeur: "Orange_Cameroon", libelle: "Orange Money", pastille: "#ff7900" },
+        ]}
+      />
+
+      <Champ
+        label={t("Numéro Mobile Money")}
+        name="telephone"
         type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        icone={Smartphone}
+        prefixe="+237"
+        placeholder={t("ex : 690 11 12 22")}
         value={telephone}
         onChange={(e) => setTelephone(e.target.value)}
-        placeholder={t("Numéro Mobile Money (ex : 690 11 12 22)")}
         disabled={enCours}
-        className="max-w-xs"
+        valide={telephoneValide}
+        erreur={erreur}
+        aide={t("Une demande de validation sera envoyée sur ce numéro.")}
       />
-      <div className="flex gap-2">
-        <Button type="button" variant={operateur === "MTN_Cameroon" ? "default" : "outline"} size="sm" onClick={() => setOperateur("MTN_Cameroon")} disabled={enCours}>
-          MTN Mobile Money
-        </Button>
-        <Button type="button" variant={operateur === "Orange_Cameroon" ? "default" : "outline"} size="sm" onClick={() => setOperateur("Orange_Cameroon")} disabled={enCours}>
-          Orange Money
-        </Button>
-      </div>
-      <Button type="button" onClick={payer} disabled={enCours || !telephone}>
+
+      <Button type="submit" size="lg" disabled={enCours || !telephoneValide} className="h-12 w-full text-base">
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
         {t("Régler mon abonnement (50 000 FCFA)")}
       </Button>
-      {erreur ? <p className="text-xs text-destructive">{erreur}</p> : null}
-    </div>
+
+      <BandeauPaiementSecurise libelle={t("Paiement sécurisé")} moyens={["MTN Mobile Money", "Orange Money"]} />
+    </form>
   );
 }

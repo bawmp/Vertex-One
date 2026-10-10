@@ -15,7 +15,7 @@ export function CadreDocumentClient({ entrepriseId, logoCleStockage, nomEntrepri
       <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-marque-orange/25 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -left-16 bottom-0 size-72 rounded-full bg-marque-bleu-300/20 blur-3xl" />
       <LogoEntreprise taille="bandeau" entrepriseId={entrepriseId} logoCleStockage={logoCleStockage} nomEntreprise={nomEntreprise} className="relative" />
-      <div className="relative flex w-full max-w-2xl flex-col gap-4 rounded-xl bg-background p-5 text-foreground shadow-lg sm:p-6">{children}</div>
+      <div className="relative flex w-full max-w-2xl animate-in flex-col gap-5 rounded-3xl bg-background p-5 text-foreground shadow-2xl shadow-black/20 duration-700 fade-in slide-in-from-bottom-4 sm:p-8">{children}</div>
     </div>
   );
 }

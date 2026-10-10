@@ -486,3 +486,78 @@
   .demarrage-barre { animation: none; opacity: 1; }
   .demarrage-barre span { animation: none; }
 }
+
+/*
+ * Animations des parcours de paiement et des formulaires (2026-10-10) — voir src/components/formulaire/*.
+ * Additif : aucun token existant n'est redéfini. Chaque mouvement a son équivalent « sans mouvement »
+ * pour les personnes qui ont demandé de réduire les animations.
+ */
+@keyframes onde-paiement {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.animate-onde-paiement {
+  animation: onde-paiement 2.6s ease-out infinite;
+}
+@keyframes trace-cercle {
+  from { stroke-dashoffset: 151; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes trace-coche {
+  from { stroke-dashoffset: 36; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-trace-cercle {
+  stroke-dasharray: 151;
+  animation: trace-cercle 0.6s ease-out 0.05s both;
+}
+.animate-trace-coche {
+  stroke-dasharray: 36;
+  animation: trace-coche 0.4s ease-out 0.55s both;
+}
+@keyframes secousse {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.animate-secousse {
+  animation: secousse 0.45s ease-in-out;
+}
+@keyframes confetti-chute {
+  0% { transform: translateY(-8px) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(110px) rotate(260deg); opacity: 0; }
+}
+.animate-confetti {
+  animation: confetti-chute 1.6s ease-out both;
+}
+@keyframes progression-indeterminee {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.animate-progression-indeterminee {
+  animation: progression-indeterminee 1.6s ease-in-out infinite;
+}
+@keyframes apparition-etape {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-apparition-etape {
+  animation: apparition-etape 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-onde-paiement,
+  .animate-secousse,
+  .animate-confetti,
+  .animate-progression-indeterminee,
+  .animate-apparition-etape {
+    animation: none;
+  }
+  .animate-trace-cercle,
+  .animate-trace-coche {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

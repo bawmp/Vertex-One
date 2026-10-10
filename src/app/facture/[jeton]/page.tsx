@@ -5,6 +5,9 @@ import { CadreDocumentClient, LignesDocumentClient } from "@/components/document
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ReponseFacture } from "./reponse-facture";
+import { EtapesClient } from "@/components/formulaire/parcours-client";
+import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
+import { formaterFCFA } from "@/lib/facturation/calcul";
 
 const formatDate = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(d);
 
@@ -32,6 +35,8 @@ export default async function PageFactureClient({ params, searchParams }: { para
 
   return (
     <CadreDocumentClient entrepriseId={entrepriseId} logoCleStockage={entreprise.logoCleStockage} nomEntreprise={entreprise.nom}>
+      <EtapesClient etapes={["Consulter", "Répondre", "Régler"]} active={payee ? 3 : facture.reponseClient === "ACCEPTEE" ? 2 : 1} />
+
       {apres === "devis" && !payee ? (
         <div className="flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -63,11 +68,11 @@ export default async function PageFactureClient({ params, searchParams }: { para
       </Link>
 
       {payee ? (
-        <p className="rounded-lg bg-emerald-50 p-4 text-sm font-medium text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">Cette facture est réglée. Merci !</p>
+        <EcranPaiementReussi titre="Cette facture est réglée. Merci !" texte={`Un reçu vous a été envoyé par ${entreprise.nom}.`} />
       ) : annulee ? (
         <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">Cette facture a été annulée : il n&apos;y a rien à régler.</p>
       ) : (
-        <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} />
+        <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} montant={formaterFCFA(facture.montantTTC)} numero={facture.numero} />
       )}
     </CadreDocumentClient>
   );
