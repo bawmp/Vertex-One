@@ -8,6 +8,9 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Each opportunity is assigned to a specific person, with visibility depending on scope (the whole team, their team, or only their own)",
   "Tâches et réunions rattachées directement à une opportunité": "Tasks and meetings attached directly to an opportunity",
   "Conversion en un clic d'une opportunité gagnée vers un devis puis une facture — aucune ressaisie": "One-click conversion of a won opportunity into a quote and then an invoice — no re-entry",
+  "Écrire à un client depuis sa fiche : l'email part réellement, au nom de l'entreprise, et reste dans l'historique du contact": "Write to a client from their record: the email is really sent, in the company's name, and stays in the contact's history",
+  "Suppression d'un lead, d'un contact ou d'un deal réservée à l'Administrateur, avec confirmation": "Deleting a lead, a contact or a deal is reserved to the Administrator, with confirmation",
+  "Profil « immigration et mobilité internationale » : champs de contact prêts à l'emploi pour suivre les dossiers de visa": "\"Immigration and international mobility\" profile: ready-made contact fields to track visa files",
   "Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel": "Import of your data from Asana, Zoho or an Excel/CSV file, with a dry run before the real import",
   "Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux": "Export of your data as CSV and transfer from one Vertex One workspace to another, with no cross access between them",
   "Les demandes reçues sur votre site web deviennent automatiquement des prospects, grâce à une clé d'API (Paramètres → Intégrations)": "Requests received on your website automatically become leads, using an API key (Settings → Integrations)",
@@ -26,6 +29,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien":
     "On their invoice, the client accepts or disputes it (reason required), then pays right away or later from the same link",
   "Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email": "Each client response is time-stamped, with their IP address, and the team is notified by email",
+  "Pages client guidées : une frise « consulter, répondre, régler », de grands boutons faciles à toucher et un suivi animé de la validation sur le téléphone": "Guided client pages: a \"review, respond, pay\" progress bar, large touch-friendly buttons and an animated follow-up of the approval on the phone",
+  "Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients": "Your logo and identity on quotes, invoices, emails and the pages sent to your clients",
   "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur": "Purchasing: supplier records and purchase orders, directly convertible into a supplier invoice",
   "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique":
     "Tracking of overdue supplier invoices, separate from tracking client unpaid invoices; an invoice is marked paid or cancelled while keeping its history",
@@ -69,6 +74,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Prix et durée figés au moment de la réservation — une modification ultérieure du service ne change rien aux rendez-vous déjà pris":
     "Price and duration locked at booking time — a later change to the service does not affect appointments already made",
   "Page de réservation publique, partageable directement avec vos clients": "Public booking page, shareable directly with your clients",
+  "Réservation guidée en cinq étapes (service, personne, date, créneau, coordonnées), avec les créneaux libres affichés en direct": "Guided booking in five steps (service, person, date, time slot, details), with free slots shown live",
 
   // One Projects
   "Dossiers clients permanents et projets bornés, avec feuille de temps.": "Permanent client files and time-bound projects, with a timesheet.",
@@ -85,6 +91,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Signature électronique avec empreinte du document au moment de l'envoi": "Electronic signature with a fingerprint of the document at the time of sending",
   "Code de vérification envoyé par email, adresse IP, appareil et consentement capturés dans un certificat d'audit consultable":
     "Verification code sent by email, IP address, device and consent captured in a viewable audit certificate",
+  "Supprimer ou remplacer un document depuis One Docs, avec confirmation": "Delete or replace a document from One Docs, with confirmation",
   "Envoi d'un contrat au client depuis son dossier : il lit le document, le signe ou le refuse en indiquant pourquoi":
     "Sending a contract to the client from their file: they read the document, sign it or decline it with a reason",
   "À la signature, le contrat signé et son certificat horodaté (date et heure de Yaoundé) sont rangés directement dans le dossier du client et envoyés à l'Administrateur et au signataire":

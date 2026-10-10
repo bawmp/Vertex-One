@@ -117,6 +117,14 @@ Aangaraa Pay remplace CamPay, lui-même arrivé le même jour à la place de Cin
 - **À vérifier avec une vraie clé (non fait au 2026-09-21)** : l'adresse du site où s'ouvre la page de paiement (le lien renvoyé est relatif ; `AANGARAA_PAY_URL_PAGE`), la forme exacte de la réponse de `/aangaraa_check_status` et de la charge de notification, la politique de rappel du prestataire, l'existence d'un bac à sable.
 - Tests : `tests/aangaraa-logique.test.ts` (purs) et `tests/aangaraa-confirmation.test.ts` (base réelle, seul l'appel réseau simulé). Pas encore : paiement direct sans redirection (`/no_redirect/payment`), retrait des fonds depuis l'application, relecture au retour du client (aujourd'hui seule la notification confirme).
 
+## Documentation et site vitrine : chaque fonctionnalité suit (2026-10-10)
+
+Toute fonctionnalité visible par un client est (1) ajoutée à `docs/fonctionnalites-recentes.md` (mode d'emploi + repères de code), (2) reflétée sur le site vitrine : une capacité de plus dans `src/lib/marketing/modules.ts` avec sa traduction anglaise dans `src/lib/i18n/catalogue/vitrine-modules.ts` (le test `tests/i18n-catalogue.test.ts` détecte un oubli), sans rien promettre qui n'existe pas. Dans les textes publics, dire « Afrique », pas « Cameroun ».
+
+## Formulaires et paiements — boîte à outils (2026-10-10)
+
+Tout nouveau formulaire utilise `src/components/formulaire/` (`Champ` à libellé flottant, `ChampZone`, `ChampSelect`, `ChoixCartes`, `CadreFormulaire`/`SectionFormulaire`, `ecrans-paiement.tsx`, `parcours-client.tsx`, `code-verification.tsx`, `force-mot-de-passe.tsx`) plutôt que des `Input`/`Label` nus. **Conserver les `id`, les `name` et le texte des boutons** d'un formulaire existant : les tests Playwright (`#nom`, `button:has-text("Créer le devis")`…) et les Server Actions en dépendent. Les animations sont des classes de `globals.css` qui s'éteignent avec `prefers-reduced-motion` ; pas de nouvelle bibliothèque d'animation. Une couleur de marque tierce (MTN, Orange) est le seul hexadécimal toléré, en style en ligne commenté.
+
 ## Règles métier — sans exception
 
 - Une facture n'est jamais supprimée, quel que soit le rôle — seule une annulation (`AvoirFacture`) est possible.
