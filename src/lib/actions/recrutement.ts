@@ -4,6 +4,7 @@ import { z } from "zod";
 import { and, count, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { entreprise, parametreRecrutement, posteOuvert, candidature } from "@/db/schema";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
@@ -12,6 +13,9 @@ import { peut } from "@/lib/permissions";
 import { effacerObjetStockage } from "@/lib/documents/stockage";
 import { idsVisibles } from "@/lib/portee";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
+import { changerStatutEtPreparerEmail } from "@/lib/recrutement/notification";
+import { envoyerEmail } from "@/lib/email/client";
+import { enteteLogoEmail } from "@/lib/email/logo";
 import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
 
 const CHEMIN = "/app/recrutement";
@@ -48,6 +52,7 @@ export async function configurerParametresRecrutement(_etat: EtatRecrutementConf
   }
 
   const analyse = schemaParametres.safeParse({ slug: formData.get("slug"), titre: formData.get("titre"), texte: formData.get("texte") || "", avantages: formData.get("avantages") || "" });
+  const notifierCandidats = formData.get("notifierCandidats") === "on";
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
@@ -63,9 +68,9 @@ export async function configurerParametresRecrutement(_etat: EtatRecrutementConf
 
     try {
       if (existant) {
-        await tx.update(parametreRecrutement).set({ slug, titre, texte: texte || null, avantages: avantages.length > 0 ? avantages : null }).where(eq(parametreRecrutement.id, existant.id));
+        await tx.update(parametreRecrutement).set({ slug, titre, texte: texte || null, avantages: avantages.length > 0 ? avantages : null, notifierCandidats }).where(eq(parametreRecrutement.id, existant.id));
       } else {
-        await tx.insert(parametreRecrutement).values({ entrepriseId: utilisateurConnecte.entrepriseId, slug, titre, texte: texte || undefined, avantages: avantages.length > 0 ? avantages : undefined });
+        await tx.insert(parametreRecrutement).values({ entrepriseId: utilisateurConnecte.entrepriseId, slug, titre, texte: texte || undefined, avantages: avantages.length > 0 ? avantages : undefined, notifierCandidats });
       }
     } catch {
       return { erreur: "Ce lien est déjà utilisé — choisissez-en un autre." };
@@ -220,16 +225,37 @@ async function candidatureDansLaPortee(tx: TransactionDrizzle, utilisateurConnec
  * l'exécution avant tout UPDATE (même garde que changerStatutTicket(),
  * jamais fait confiance à une valeur castée côté client).
  */
-export async function changerStatutCandidature(candidatureId: string, statut: (typeof STATUTS_VALIDES)[number]) {
+export async function changerStatutCandidature(candidatureId: string, statut: (typeof STATUTS_VALIDES)[number], options: { prevenir?: boolean } = {}) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!STATUTS_VALIDES.includes(statut)) return;
   if (!peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return;
-    await tx.update(candidature).set({ statut }).where(eq(candidature.id, candidatureId));
+  // Le candidat est prévenu par email à chaque changement de statut (sauf annulation/rétablissement, qui passent
+  // `prevenir: false`, et sauf réglage coupé par l'entreprise) — voir src/lib/recrutement/notification.ts.
+  const email = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
+    return changerStatutEtPreparerEmail(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      utilisateurId: utilisateurConnecte.utilisateurId,
+      candidatureId,
+      statut,
+      prevenir: options.prevenir ?? true,
+    });
   });
+
+  // Envoi APRÈS la réponse : l'employé ne l'attend jamais, et un échec d'envoi ne défait pas le changement de statut.
+  if (email) {
+    const entete = await enteteLogoEmail(utilisateurConnecte.entrepriseId);
+    after(async () => {
+      try {
+        const resultat = await envoyerEmail({ to: email.to, subject: email.subject, html: entete + email.html, nomExpediteur: email.nomExpediteur, replyTo: email.replyTo });
+        if (!resultat.envoye) console.error(`[recrutement] email de statut non envoyé : ${resultat.erreur}`);
+      } catch (erreur) {
+        console.error("[recrutement] email de statut non envoyé :", erreur instanceof Error ? erreur.message : erreur);
+      }
+    });
+  }
 
   revalidatePath(CHEMIN);
 }

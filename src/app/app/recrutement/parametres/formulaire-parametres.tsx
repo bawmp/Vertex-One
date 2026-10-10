@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { configurerParametresRecrutement } from "@/lib/actions/recrutement";
 
-type Params = { slug: string; titre: string; texte: string | null; avantages: string[] | null } | null;
+type Params = { slug: string; titre: string; texte: string | null; avantages: string[] | null; notifierCandidats: boolean } | null;
 
 export function FormulaireParametresRecrutement({ params }: { params: Params }) {
   const [etat, action, enCours] = useActionState(configurerParametresRecrutement, null);
@@ -44,6 +44,14 @@ export function FormulaireParametresRecrutement({ params }: { params: Params }) 
             />
             <p className="text-xs text-muted-foreground">Affichés en cartes colorées sur votre page. Sans atout saisi, cette section n&apos;apparaît pas.</p>
           </div>
+
+          <label htmlFor="notifierCandidats" className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 text-sm">
+            <input type="checkbox" id="notifierCandidats" name="notifierCandidats" defaultChecked={params?.notifierCandidats ?? true} className="mt-0.5 size-4 shrink-0 accent-primary" />
+            <span>
+              <span className="font-medium">Prévenir les candidats par email</span>
+              <span className="block text-muted-foreground">À chaque changement de statut de leur candidature (en examen, entretien, offre, embauche, rejet), le candidat reçoit un email au nom de votre entreprise, s&apos;il a laissé son adresse.</span>
+            </span>
+          </label>
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

@@ -4233,6 +4233,8 @@ export const parametreRecrutement = pgTable(
     // inventées : sans saisie, la section n'apparaît pas.
     avantages: json("avantages").$type<string[]>(),
     publie: boolean("publie").notNull().default(false),
+    // Le candidat est prévenu par email à chaque changement de statut (2026-10-11) ; l'Administrateur peut le couper.
+    notifierCandidats: boolean("notifier_candidats").notNull().default(true),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [

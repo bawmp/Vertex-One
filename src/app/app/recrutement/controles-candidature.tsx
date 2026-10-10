@@ -70,6 +70,7 @@ export function ControlesCandidature({
               </option>
             ))}
           </Select>
+          <p className="max-w-52 text-xs text-muted-foreground">{coordonnees.email ? "Le candidat est prévenu par email à chaque changement." : "Pas d'adresse email : le candidat ne sera pas prévenu."}</p>
         </div>
         {peutReassigner ? (
           <div className="flex flex-col gap-1">
@@ -103,7 +104,7 @@ export function ControlesCandidature({
               className="text-muted-foreground"
               onClick={() => {
                 if (confirm("Annuler cette candidature ? Elle passera au statut « Rejetée » (vous pourrez la rétablir).")) {
-                  startTransition(() => changerStatutCandidature(candidatureId, "REJETEE"));
+                  startTransition(() => changerStatutCandidature(candidatureId, "REJETEE", { prevenir: false }));
                 }
               }}
             >
@@ -112,7 +113,7 @@ export function ControlesCandidature({
             </Button>
           ) : null}
           {peutModifier && statut === "REJETEE" ? (
-            <Button type="button" variant="ghost" size="xs" disabled={enCours} className="text-muted-foreground" onClick={() => startTransition(() => changerStatutCandidature(candidatureId, "RECUE"))}>
+            <Button type="button" variant="ghost" size="xs" disabled={enCours} className="text-muted-foreground" onClick={() => startTransition(() => changerStatutCandidature(candidatureId, "RECUE", { prevenir: false }))}>
               <RotateCcw data-icon="inline-start" aria-hidden />
               Rétablir
             </Button>

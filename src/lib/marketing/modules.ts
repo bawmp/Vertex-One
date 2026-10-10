@@ -121,6 +121,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Page carrières publique aux couleurs de l'entreprise, avec dépôt de candidature et CV"),
       m("Offres modifiables à tout moment, désactivables puis réactivables ; une offre qui a déjà reçu des candidatures se désactive au lieu de se supprimer"),
       m("Candidatures corrigeables, annulables (et rétablissables) ou supprimables avec effacement réel du CV"),
+      m("Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — réglage désactivable"),
     ],
   },
   {

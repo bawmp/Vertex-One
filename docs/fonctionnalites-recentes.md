@@ -78,6 +78,13 @@ où se trouve le code.
 - **Pas encore converti** : environ 120 formulaires (RH, comptabilité, projets, achats, recrutement…). La boîte à outils
   est prête, la conversion se fait module par module.
 
+## One Recruit : le candidat est prévenu à chaque changement de statut (2026-10-11)
+
+- **Quoi** : quand un recruteur change le statut d'une candidature (en examen, entretien, offre, embauche, rejet), le candidat reçoit un email au nom de l'entreprise ; sa réponse arrive au recruteur qui a fait le changement. Rien n'est envoyé si le statut ne change pas, si la candidature repasse à « Reçue », si le candidat n'a pas laissé d'adresse, ou à l'annulation et au rétablissement d'une candidature (boutons « Annuler » / « Rétablir »).
+- **Où** : Recrutement → liste des candidatures (la phrase sous le statut dit si le candidat sera prévenu) ; réglage « Prévenir les candidats par email » dans Recrutement → Paramètres, activé par défaut.
+- **À savoir** : l'envoi part après la réponse, jamais pendant la sauvegarde — un échec d'envoi ne défait pas le changement de statut. Les textes sont fixes et sobres (le rejet remercie sans donner de motif) ; leur personnalisation n'existe pas encore.
+- **Code** : `src/lib/recrutement/notification.ts`, `changerStatutCandidature()` dans `src/lib/actions/recrutement.ts`, colonne `parametre_recrutement.notifier_candidats` (migration `0113`), tests `tests/recrutement-notification.test.ts` (dont la fuite entre entreprises).
+
 ## Paiement Mobile Money — état au 2026-10-10
 
 - Le paiement direct (sans redirection) est branché pour l'abonnement et pour Global Mobility. La confirmation vient de
