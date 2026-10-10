@@ -799,6 +799,13 @@
       "when": 1790900000000,
       "tag": "0113_notification_candidats",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1790990000000,
+      "tag": "0114_modeles_email_candidature",
+      "breakpoints": true
     }
   ]
 }

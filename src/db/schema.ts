@@ -51,7 +51,16 @@ export const moyenPaiement = pgEnum("moyen_paiement", [
   "virement",
   "manuel",
 ]);
-export const typeModeleEmail = pgEnum("type_modele_email", ["ENVOI_DEVIS", "ENVOI_FACTURE"]);
+export const typeModeleEmail = pgEnum("type_modele_email", [
+  "ENVOI_DEVIS",
+  "ENVOI_FACTURE",
+  // One Recruit : email au candidat à chaque changement de statut de sa candidature (2026-10-11).
+  "CANDIDATURE_EN_EXAMEN",
+  "CANDIDATURE_ENTRETIEN",
+  "CANDIDATURE_OFFRE",
+  "CANDIDATURE_EMBAUCHE",
+  "CANDIDATURE_REJETEE",
+]);
 export const statutTentativePaiement = pgEnum("statut_tentative_paiement", ["EN_ATTENTE", "CONFIRME", "ECHEC"]);
 
 /**

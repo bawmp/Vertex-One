@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { candidature, entreprise, parametreRecrutement, posteOuvert, utilisateur } from "@/db/schema";
-import { changerStatutEtPreparerEmail, gabaritStatutCandidature, type StatutCandidature } from "@/lib/recrutement/notification";
+import { candidature, entreprise, modeleEmail, parametreRecrutement, posteOuvert, utilisateur } from "@/db/schema";
+import { changerStatutEtPreparerEmail, construireEmailStatut, typeModelePourStatut, type StatutCandidature } from "@/lib/recrutement/notification";
+import { modeleParDefaut, TYPES_MODELE_CANDIDATURE } from "@/lib/email/modeles";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
 const suffixe = Math.random().toString(36).slice(2, 8);
@@ -48,27 +49,41 @@ afterAll(async () => {
   await supprimerEntrepriseDeTest(nomB);
 }, 120_000);
 
-describe("Gabarit — email de changement de statut", () => {
-  test("chaque statut (sauf « Reçue ») produit un email qui nomme le poste et l'entreprise, et « Reçue » n'en produit aucun", () => {
+describe("Modèles d'email des candidatures", () => {
+  const vars = { candidat: "Awa", poste: "Comptable", entreprise: "Beau & Bon" };
+
+  test("chaque statut (sauf « Reçue ») a un modèle par défaut qui nomme le candidat, le poste et l'entreprise ; « Reçue » n'en a aucun", () => {
     for (const statut of ["EN_EXAMEN", "ENTRETIEN", "OFFRE", "EMBAUCHE", "REJETEE"] as const) {
-      const g = gabaritStatutCandidature({ nomCandidat: "Awa", titrePoste: "Comptable", nomEntreprise: "Beau & Bon", statut });
-      expect(g, statut).not.toBeNull();
-      expect(g!.subject, statut).toContain("Comptable");
-      expect(g!.html, statut).toContain("Bonjour Awa");
-      expect(g!.html, statut).toContain("Beau &amp; Bon");
+      const type = typeModelePourStatut(statut);
+      expect(type, statut).not.toBeNull();
+      const { subject, html } = construireEmailStatut(modeleParDefaut(type!), vars);
+      expect(subject, statut).toContain("Comptable");
+      expect(html, statut).toContain("Bonjour Awa");
+      expect(html, statut).toContain("Beau &amp; Bon");
     }
-    expect(gabaritStatutCandidature({ nomCandidat: "Awa", titrePoste: "Comptable", nomEntreprise: "X", statut: "RECUE" })).toBeNull();
+    expect(typeModelePourStatut("RECUE")).toBeNull();
+    expect(TYPES_MODELE_CANDIDATURE).toHaveLength(5);
   });
 
-  test("tout texte saisi par un utilisateur est échappé dans le HTML", () => {
-    const g = gabaritStatutCandidature({ nomCandidat: "<img src=x onerror=alert(1)>", titrePoste: "<script>x</script>", nomEntreprise: "<b>Ent</b>", statut: "ENTRETIEN" })!;
+  test("tout texte saisi par un utilisateur est échappé dans le HTML, y compris dans un modèle personnalisé", () => {
+    const g = construireEmailStatut({ objet: "Objet {{poste}}", corps: "Salut {{candidat}}, <i>{{poste}}</i> chez {{entreprise}}" }, { candidat: "<img src=x onerror=alert(1)>", poste: "<script>x</script>", entreprise: "<b>Ent</b>" });
     expect(g.html).not.toContain("<script>");
     expect(g.html).not.toContain("<img");
     expect(g.html).not.toContain("<b>Ent</b>");
+    expect(g.html).not.toContain("<i>"); // le HTML écrit dans le modèle lui-même est aussi neutralisé
   });
 
-  test("le rejet reste courtois : remerciement, pas de motif inventé", () => {
-    const g = gabaritStatutCandidature({ nomCandidat: "Awa", titrePoste: "Comptable", nomEntreprise: "Beau", statut: "REJETEE" })!;
+  test("l'objet tient sur une seule ligne (aucun saut de ligne dans un en-tête d'email)", () => {
+    const g = construireEmailStatut({ objet: "Ligne 1\r\nBcc: pirate@exemple.test", corps: "x" }, vars);
+    expect(g.subject).not.toMatch(/[\r\n]/);
+  });
+
+  test("une variable inconnue reste telle quelle plutôt que de disparaître", () => {
+    expect(construireEmailStatut({ objet: "{{inconnue}} {{poste}}", corps: "x" }, vars).subject).toBe("{{inconnue}} Comptable");
+  });
+
+  test("le rejet par défaut reste courtois : remerciement, pas de motif inventé", () => {
+    const g = construireEmailStatut(modeleParDefaut("CANDIDATURE_REJETEE"), vars);
     expect(g.html).toContain("Nous vous remercions");
     expect(g.html).not.toMatch(/insuffisant|incompétent|trop/i);
   });
@@ -121,6 +136,29 @@ describe("Changement de statut — email au candidat (base réelle)", () => {
     await avecEntreprise(entrepriseA, (tx) => tx.update(parametreRecrutement).set({ notifierCandidats: true }).where(eq(parametreRecrutement.entrepriseId, entrepriseA)));
     const id2 = await creerCandidature("Reactive", "re@exemple.test");
     expect(await changer(id2, "EN_EXAMEN")).not.toBeNull();
+  });
+
+  test("un modèle personnalisé par l'entreprise remplace le texte par défaut ; le supprimer rétablit le défaut", async () => {
+    await avecEntreprise(entrepriseA, (tx) =>
+      tx.insert(modeleEmail).values({ entrepriseId: entrepriseA, type: "CANDIDATURE_ENTRETIEN", objet: "Rendez-vous pour {{poste}}", corps: "Cher(e) {{candidat}}, passez nous voir chez {{entreprise}}." })
+    );
+    const id = await creerCandidature("Personnalise", "pe@exemple.test");
+    const email = await changer(id, "ENTRETIEN");
+    expect(email!.subject).toBe("Rendez-vous pour Comptable <b>senior</b>");
+    expect(email!.html).toContain("Cher(e) Personnalise, passez nous voir chez");
+
+    await avecEntreprise(entrepriseA, (tx) => tx.delete(modeleEmail).where(eq(modeleEmail.entrepriseId, entrepriseA)));
+    const id2 = await creerCandidature("Defaut", "de@exemple.test");
+    const email2 = await changer(id2, "ENTRETIEN");
+    expect(email2!.subject).toBe("Entretien pour le poste « Comptable <b>senior</b> »");
+  });
+
+  test("FUITE MULTI-TENANT : le modèle personnalisé d'une entreprise n'est jamais utilisé pour une autre", async () => {
+    await avecEntreprise(entrepriseB, (tx) => tx.insert(modeleEmail).values({ entrepriseId: entrepriseB, type: "CANDIDATURE_OFFRE", objet: "SECRET B", corps: "texte de B" }));
+    const id = await creerCandidature("Voisin", "vo@exemple.test");
+    const email = await changer(id, "OFFRE"); // candidature de A
+    expect(email!.subject).not.toContain("SECRET B");
+    expect(email!.html).not.toContain("texte de B");
   });
 
   test("FUITE MULTI-TENANT : une autre entreprise ne peut ni changer le statut ni déclencher un email pour une candidature qui n'est pas la sienne", async () => {

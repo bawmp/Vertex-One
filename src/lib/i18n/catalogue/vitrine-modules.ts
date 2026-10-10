@@ -60,7 +60,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Offres modifiables à tout moment, désactivables puis réactivables ; une offre qui a déjà reçu des candidatures se désactive au lieu de se supprimer":
     "Job offers editable at any time, deactivatable and reactivatable; an offer that has already received applications is deactivated rather than deleted",
   "Candidatures corrigeables, annulables (et rétablissables) ou supprimables avec effacement réel du CV": "Applications that can be corrected, cancelled (and restored) or deleted, with real erasure of the CV",
-  "Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — réglage désactivable": "The candidate is notified by email at every status change of their application (under review, interview, offer, hired, rejected), in your company's name — can be switched off",
+  "Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — textes personnalisables avec aperçu, envoi désactivable": "The candidate is notified by email at every status change of their application (under review, interview, offer, hired, rejected), in your company's name — customisable texts with a preview, can be switched off",
 
   // One Desk
   "Tickets clients par catégorie, avec assignation et suivi de résolution.": "Customer tickets by category, with assignment and resolution tracking.",

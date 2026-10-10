@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { modeleEmail, typeModeleEmail } from "@/db/schema";
@@ -54,4 +55,18 @@ export async function enregistrerModeleEmail(_etat: EtatModeleEmail, formData: F
 
   revalidatePath("/app/parametres/modeles-email");
   return { enregistre: true };
+}
+
+/**
+ * Supprime la version personnalisée d'un modèle : l'envoi retombe sur le texte par défaut codé dans
+ * src/lib/email/modeles.ts. Réservé à l'Administrateur, comme l'enregistrement.
+ */
+export async function reinitialiserModeleEmail(type: (typeof typeModeleEmail.enumValues)[number]): Promise<void> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) return;
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) return;
+  if (!typeModeleEmail.enumValues.includes(type)) return;
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(modeleEmail).where(and(eq(modeleEmail.entrepriseId, utilisateurConnecte.entrepriseId), eq(modeleEmail.type, type))));
+  revalidatePath("/app/parametres/modeles-email");
 }

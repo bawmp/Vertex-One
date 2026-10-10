@@ -10,6 +10,11 @@ type TypeModele = (typeof typeModeleEmail.enumValues)[number];
 export const LIBELLE_MODELE_EMAIL: Record<TypeModele, string> = {
   ENVOI_DEVIS: "Envoi de devis",
   ENVOI_FACTURE: "Envoi de facture",
+  CANDIDATURE_EN_EXAMEN: "Candidature en examen",
+  CANDIDATURE_ENTRETIEN: "Candidature entretien",
+  CANDIDATURE_OFFRE: "Candidature offre",
+  CANDIDATURE_EMBAUCHE: "Candidature embauche",
+  CANDIDATURE_REJETEE: "Candidature rejetée",
 };
 
 const TYPE_DEPUIS_TEXTE = new Map<string, TypeModele>(
@@ -20,7 +25,7 @@ const TYPE_DEPUIS_TEXTE = new Map<string, TypeModele>(
 );
 
 /**
- * Textes d'envoi des devis et des factures d'un autre espace. Un modèle DÉJÀ personnalisé dans cet espace n'est jamais écrasé
+ * Textes d'envoi des devis, des factures et des emails aux candidats d'un autre espace. Un modèle DÉJÀ personnalisé dans cet espace n'est jamais écrasé
  * (compté comme ignoré) : reprendre la structure d'un autre espace ne doit pas détruire un texte que l'on a soigné ici.
  */
 export async function importerModelesEmail(ctx: ContexteImport, lignes: LigneImport[]): Promise<Rapport> {
@@ -33,7 +38,7 @@ export async function importerModelesEmail(ctx: ContexteImport, lignes: LigneImp
   for (const { numero, v } of lignes) {
     const type = TYPE_DEPUIS_TEXTE.get(normaliser(v.type ?? ""));
     if (!type) {
-      erreur(rapport, numero, m("Modèle inconnu : « {valeur} » (attendu : Envoi de devis ou Envoi de facture)."), { valeur: (v.type ?? "").trim() });
+      erreur(rapport, numero, m("Modèle inconnu : « {valeur} » (attendu : un des types de la colonne « Type » d'un export de modèles d'email)."), { valeur: (v.type ?? "").trim() });
       continue;
     }
     const objet = (v.objet ?? "").trim();

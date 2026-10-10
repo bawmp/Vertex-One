@@ -11,6 +11,31 @@ export const VARIABLES_DISPONIBLES = [
   { cle: "entreprise", description: "Nom de l'entreprise émettrice" },
 ] as const;
 
+/** Variables des modèles envoyés aux candidats (One Recruit). */
+export const VARIABLES_CANDIDATURE = [
+  { cle: "candidat", description: "Nom du candidat" },
+  { cle: "poste", description: "Intitulé du poste visé" },
+  { cle: "entreprise", description: "Nom de l'entreprise" },
+] as const;
+
+/** Un modèle par statut de candidature qui déclenche un email (« Reçue » n'en déclenche aucun). */
+export const TYPES_MODELE_CANDIDATURE = ["CANDIDATURE_EN_EXAMEN", "CANDIDATURE_ENTRETIEN", "CANDIDATURE_OFFRE", "CANDIDATURE_EMBAUCHE", "CANDIDATURE_REJETEE"] as const satisfies readonly TypeModeleEmail[];
+
+export function estModeleCandidature(type: TypeModeleEmail): boolean {
+  return (TYPES_MODELE_CANDIDATURE as readonly string[]).includes(type);
+}
+
+export function variablesDuType(type: TypeModeleEmail) {
+  return estModeleCandidature(type) ? VARIABLES_CANDIDATURE : VARIABLES_DISPONIBLES;
+}
+
+/** Valeurs d'exemple pour l'aperçu d'un modèle dans les paramètres. */
+export function variablesExemple(type: TypeModeleEmail): Record<string, string> {
+  return estModeleCandidature(type)
+    ? { candidat: "Awa Nkolo", poste: "Comptable", entreprise: "Votre entreprise" }
+    : { client: "Awa Nkolo", numero: "DEV-2026-000042", montant: "150 000 FCFA", entreprise: "Votre entreprise" };
+}
+
 // Un modèle par défaut codé ici — pas en base — permet à toute entreprise
 // d'envoyer un devis/une facture dès aujourd'hui sans configuration
 // préalable ; recupererModele() ne s'en sert que si la ligne modele_email
@@ -25,6 +50,33 @@ const MODELES_PAR_DEFAUT: Record<TypeModeleEmail, { objet: string; corps: string
     objet: "Facture {{numero}} — {{entreprise}}",
     corps:
       "Bonjour {{client}},\n\nVeuillez trouver ci-joint la facture {{numero}} d'un montant de {{montant}}.\n\nCordialement,\n{{entreprise}}",
+  },
+  // Candidatures : le ton reste sobre et ne promet rien que l'entreprise n'a pas décidé. « Offre » annonce qu'une
+  // proposition va suivre, jamais ses conditions ; le rejet remercie sans donner de motif.
+  CANDIDATURE_EN_EXAMEN: {
+    objet: "Votre candidature « {{poste}} » est en cours d'examen",
+    corps:
+      "Bonjour {{candidat}},\n\nNous avons bien reçu votre candidature pour le poste « {{poste}} » et l'équipe de {{entreprise}} l'examine actuellement. Nous reviendrons vers vous dès que possible.\n\nCordialement,\n{{entreprise}}",
+  },
+  CANDIDATURE_ENTRETIEN: {
+    objet: "Entretien pour le poste « {{poste}} »",
+    corps:
+      "Bonjour {{candidat}},\n\nBonne nouvelle : votre profil a retenu l'attention de {{entreprise}} pour le poste « {{poste}} ». Nous vous contacterons très prochainement pour convenir d'un entretien.\n\nCordialement,\n{{entreprise}}",
+  },
+  CANDIDATURE_OFFRE: {
+    objet: "Suite de votre candidature « {{poste}} »",
+    corps:
+      "Bonjour {{candidat}},\n\nAprès les échanges menés, {{entreprise}} souhaite vous faire une proposition pour le poste « {{poste}} ». Nous vous contacterons très prochainement pour vous la présenter.\n\nCordialement,\n{{entreprise}}",
+  },
+  CANDIDATURE_EMBAUCHE: {
+    objet: "Bienvenue — poste « {{poste}} »",
+    corps:
+      "Bonjour {{candidat}},\n\nFélicitations ! {{entreprise}} est heureux de vous accueillir pour le poste « {{poste}} ». Nous vous contacterons très prochainement pour les prochaines étapes.\n\nCordialement,\n{{entreprise}}",
+  },
+  CANDIDATURE_REJETEE: {
+    objet: "Votre candidature « {{poste}} »",
+    corps:
+      "Bonjour {{candidat}},\n\nNous vous remercions de l'intérêt que vous avez porté au poste « {{poste}} » chez {{entreprise}}. Après un examen attentif, nous ne pouvons pas donner suite à votre candidature pour le moment. Nous vous souhaitons plein succès dans vos recherches.\n\nCordialement,\n{{entreprise}}",
   },
 };
 

@@ -184,6 +184,6 @@ export const IMPORT_DONNEES: Record<string, string> = {
   "{n} contact(s) absent(s) de votre CRM ont été créés pour recevoir leurs deals.": "{n} contact(s) missing from your CRM were created to receive their deals.",
   "{n} deal(s) sans montant : montant mis à 0, à compléter.": "{n} deal(s) without an amount: amount set to 0, to be completed.",
   "{n} lead(s) sans téléphone : « {absent} » a été inscrit, à compléter.": "{n} lead(s) without a phone number: “{absent}” was entered, to be completed.",
-  "Modèle inconnu : « {valeur} » (attendu : Envoi de devis ou Envoi de facture).": "Unknown template: “{valeur}” (expected: Quote sending or Invoice sending).",
+  "Modèle inconnu : « {valeur} » (attendu : un des types de la colonne « Type » d'un export de modèles d'email).": "Unknown template: “{valeur}” (expected: one of the types in the “Type” column of an email-template export).",
   "Objet ou corps du message manquant.": "Subject or message body missing.",
 };

@@ -1,52 +1,38 @@
 import { and, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { candidature, entreprise, parametreRecrutement, posteOuvert, utilisateur } from "@/db/schema";
-import { echapperHtml } from "@/lib/email/modeles";
+import { corpsVersHtml, interpoler, recupererModele, type TypeModeleEmail } from "@/lib/email/modeles";
 
 export type StatutCandidature = "RECUE" | "EN_EXAMEN" | "ENTRETIEN" | "OFFRE" | "EMBAUCHE" | "REJETEE";
 
-type Texte = { objet: (poste: string) => string; corps: (poste: string, entreprise: string) => string };
-
 /**
- * Ce que le candidat apprend à chaque étape. Le ton reste sobre et ne promet rien que l'entreprise n'a pas décidé :
- * « Offre » annonce qu'une proposition va suivre, jamais ses conditions. « Reçue » n'envoie rien (c'est l'état de départ,
- * et le statut que prend une candidature rétablie).
+ * Le modèle d'email de chaque statut. « Reçue » n'en a pas : c'est l'état de départ, et le statut que prend une
+ * candidature rétablie — aucun email n'est envoyé pour lui.
  */
-const TEXTES: Record<Exclude<StatutCandidature, "RECUE">, Texte> = {
-  EN_EXAMEN: {
-    objet: (poste) => `Votre candidature « ${poste} » est en cours d'examen`,
-    corps: (poste, ent) => `Nous avons bien reçu votre candidature pour le poste « ${poste} » et l'équipe de ${ent} l'examine actuellement. Nous reviendrons vers vous dès que possible.`,
-  },
-  ENTRETIEN: {
-    objet: (poste) => `Entretien pour le poste « ${poste} »`,
-    corps: (poste, ent) => `Bonne nouvelle : votre profil a retenu l'attention de ${ent} pour le poste « ${poste} ». Nous vous contacterons très prochainement pour convenir d'un entretien.`,
-  },
-  OFFRE: {
-    objet: (poste) => `Suite de votre candidature « ${poste} »`,
-    corps: (poste, ent) => `Après les échanges menés, ${ent} souhaite vous faire une proposition pour le poste « ${poste} ». Nous vous contacterons très prochainement pour vous la présenter.`,
-  },
-  EMBAUCHE: {
-    objet: (poste) => `Bienvenue — poste « ${poste} »`,
-    corps: (poste, ent) => `Félicitations ! ${ent} est heureux de vous accueillir pour le poste « ${poste} ». Nous vous contacterons très prochainement pour les prochaines étapes.`,
-  },
-  REJETEE: {
-    objet: (poste) => `Votre candidature « ${poste} »`,
-    corps: (poste, ent) =>
-      `Nous vous remercions de l'intérêt que vous avez porté au poste « ${poste} » chez ${ent}. Après un examen attentif, nous ne pouvons pas donner suite à votre candidature pour le moment. Nous vous souhaitons plein succès dans vos recherches.`,
-  },
+const MODELE_PAR_STATUT: Record<Exclude<StatutCandidature, "RECUE">, TypeModeleEmail> = {
+  EN_EXAMEN: "CANDIDATURE_EN_EXAMEN",
+  ENTRETIEN: "CANDIDATURE_ENTRETIEN",
+  OFFRE: "CANDIDATURE_OFFRE",
+  EMBAUCHE: "CANDIDATURE_EMBAUCHE",
+  REJETEE: "CANDIDATURE_REJETEE",
 };
+
+export function typeModelePourStatut(statut: StatutCandidature): TypeModeleEmail | null {
+  return statut === "RECUE" ? null : MODELE_PAR_STATUT[statut];
+}
 
 export type EmailCandidat = { to: string; subject: string; html: string; nomExpediteur: string; replyTo?: string };
 
-/** Gabarit pur (sans accès base) : tout texte venu d'un utilisateur — nom, poste, entreprise — est échappé. */
-export function gabaritStatutCandidature(params: { nomCandidat: string; titrePoste: string; nomEntreprise: string; statut: StatutCandidature }): { subject: string; html: string } | null {
-  if (params.statut === "RECUE") return null;
-  const texte = TEXTES[params.statut];
-  const poste = echapperHtml(params.titrePoste);
-  const ent = echapperHtml(params.nomEntreprise);
+/**
+ * Construit l'email à partir d'un modèle (par défaut ou personnalisé par l'entreprise). Les variables sont insérées
+ * dans le TEXTE brut, puis tout le texte est échappé en HTML : un nom de candidat ou un intitulé de poste contenant du
+ * HTML ne peut jamais s'afficher comme tel. L'objet est une seule ligne (jamais de saut de ligne dans un en-tête).
+ */
+export function construireEmailStatut(modele: { objet: string; corps: string }, variables: { candidat: string; poste: string; entreprise: string }): { subject: string; html: string } {
+  const valeurs = { candidat: variables.candidat, poste: variables.poste, entreprise: variables.entreprise };
   return {
-    subject: texte.objet(params.titrePoste).slice(0, 200),
-    html: `<p>Bonjour ${echapperHtml(params.nomCandidat)},</p><p>${texte.corps(poste, ent)}</p><p>Cordialement,<br>${ent}</p>`,
+    subject: interpoler(modele.objet, valeurs).replace(/\s*[\r\n]+\s*/g, " ").trim().slice(0, 200),
+    html: corpsVersHtml(interpoler(modele.corps, valeurs)),
   };
 }
 
@@ -71,7 +57,8 @@ export async function changerStatutEtPreparerEmail(
 
   await tx.update(candidature).set({ statut }).where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, entrepriseId)));
 
-  if (!prevenir || avant.statut === statut || statut === "RECUE" || !avant.email) return null;
+  const type = typeModelePourStatut(statut);
+  if (!prevenir || avant.statut === statut || !type || !avant.email) return null;
 
   const [reglage] = await tx.select({ notifier: parametreRecrutement.notifierCandidats }).from(parametreRecrutement).where(eq(parametreRecrutement.entrepriseId, entrepriseId));
   if (reglage && !reglage.notifier) return null;
@@ -81,8 +68,8 @@ export async function changerStatutEtPreparerEmail(
   // `utilisateur` est en RLS permissive : l'entreprise est filtrée explicitement.
   const [moi] = await tx.select({ email: utilisateur.email }).from(utilisateur).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
 
-  const gabarit = gabaritStatutCandidature({ nomCandidat: avant.nom, titrePoste: poste?.titre ?? "votre candidature", nomEntreprise: ent?.nom ?? "l'entreprise", statut });
-  if (!gabarit) return null;
+  const modele = await recupererModele(tx, entrepriseId, type);
+  const { subject, html } = construireEmailStatut(modele, { candidat: avant.nom, poste: poste?.titre ?? "votre candidature", entreprise: ent?.nom ?? "l'entreprise" });
 
-  return { to: avant.email, subject: gabarit.subject, html: gabarit.html, nomExpediteur: ent?.nom ?? "", replyTo: moi?.email };
+  return { to: avant.email, subject, html, nomExpediteur: ent?.nom ?? "", replyTo: moi?.email };
 }

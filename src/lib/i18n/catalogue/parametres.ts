@@ -111,8 +111,6 @@ export const PARAMETRES: Record<string, string> = {
   Message: "Message",
   "Modèle enregistré.": "Template saved.",
   "Seul un Administrateur peut modifier ces modèles.": "Only an Administrator can edit these templates.",
-  "Personnalisez le texte envoyé au client lorsqu'un devis ou une facture lui est transmis par email. Le PDF du document est toujours joint automatiquement.":
-    "Customize the text sent to the client when a quote or an invoice is emailed to them. The document PDF is always attached automatically.",
   "Variables disponibles :": "Available variables:",
 
   // Import de données
