@@ -35,6 +35,10 @@ export const APPLICATION: Record<string, string> = {
   "Votre nom complet": "Your full name",
   "Création en cours…": "Creating…",
   "Créer mon entreprise": "Create my company",
+  "Pas de panique": "No worries",
+  "Sécurité du compte": "Account security",
+  "Mot de passe mis à jour": "Password updated",
+  "Retour à la connexion…": "Back to sign in…",
   "Faites payer vos clients par Mobile Money.": "Get your customers to pay by Mobile Money.",
   "Un lien de paiement dans chaque facture : MTN, Orange ou carte, avec une confirmation de paiement rattachée à la facture.":
     "A payment link in every invoice: MTN, Orange or card, with the payment confirmation attached to the invoice.",

@@ -38,14 +38,17 @@ export default function PageMotDePasseOublie() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex flex-col gap-1.5">
+      <div className="flex animate-in flex-col gap-1.5 duration-500 fade-in slide-in-from-bottom-2">
+        <p className="text-sm font-semibold tracking-wide text-marque-orange-600 uppercase">{t("Pas de panique")}</p>
         <h1 className="text-3xl font-semibold tracking-tight">{t("Mot de passe oublié")}</h1>
         <p className="text-muted-foreground">{t("Indiquez votre email, nous vous enverrons un lien pour choisir un nouveau mot de passe.")}</p>
       </div>
 
       <form action={demanderReinitialisation} className="flex flex-col gap-4">
-        <Champ label={t("Email")} id="email" name="email" type="email" icone={Mail} autoComplete="email" inputMode="email" required autoFocus />
-        <Button type="submit" size="lg" disabled={enCours} className="h-12 w-full text-base">
+        <div className="animate-in duration-500 fade-in slide-in-from-bottom-2 delay-100 fill-mode-both">
+          <Champ label={t("Email")} id="email" name="email" type="email" icone={Mail} autoComplete="email" inputMode="email" required autoFocus />
+        </div>
+        <Button type="submit" size="lg" disabled={enCours} className="h-12 w-full animate-in text-base duration-500 fade-in slide-in-from-bottom-2 delay-200 fill-mode-both">
           {enCours ? <Spinner data-icon="inline-start" /> : <Send data-icon="inline-start" aria-hidden />}
           {enCours ? t("Envoi…") : t("Envoyer le lien")}
         </Button>
