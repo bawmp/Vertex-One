@@ -177,6 +177,21 @@ describe("Aangaraa Pay — abonnement à Vertex One", () => {
   }, 180_000);
 });
 
+describe("Aangaraa Pay — raison d'un échec d'abonnement", () => {
+  test("un paiement refusé enregistre la raison donnée par le prestataire, invisible pour une autre entreprise", async () => {
+    const [t] = await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idA, montant: 50000 }).returning({ id: tentativePaiementAbonnement.id }));
+    verifierTransaction.mockResolvedValue({ statut: "REFUSED", indisponible: false, referenceExterne: `abo_${t.id}`, montant: 50000, raisonEchec: "SOLDE_OU_COMPTE" });
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
+
+    const [chezA] = await avecEntreprise(idA, (tx) => tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, t.id)));
+    expect(chezA.statut).toBe("ECHEC");
+    expect(chezA.raisonEchec).toBe("SOLDE_OU_COMPTE");
+    // Test de fuite : l'entreprise B ne voit pas la tentative de A, donc pas sa raison non plus.
+    const chezB = await avecEntreprise(idB, (tx) => tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, t.id)));
+    expect(chezB).toHaveLength(0);
+  }, 180_000);
+});
+
 describe("Aangaraa Pay — isolation entre entreprises", () => {
   test("la confirmation d'une tentative de A ne touche jamais les factures de B", async () => {
     const avant = (await lireFacture(idB, factureB)).f.statut;

@@ -1,4 +1,4 @@
-import type { MoyenPaiementEnLigne, ResultatVerification, StatutPaiement } from "@/lib/paiement/types";
+import type { MoyenPaiementEnLigne, RaisonEchec, ResultatVerification, StatutPaiement } from "@/lib/paiement/types";
 
 /**
  * Logique pure du module Aangaraa Pay — isolée de src/lib/aangaraa/client.ts (qui importe "server-only") pour rester
@@ -26,6 +26,21 @@ export function mapperStatut(statut: unknown): StatutPaiement {
     default:
       return "INCONNU";
   }
+}
+
+/**
+ * Raison d'un échec. MTN renvoie `details.reason` (constaté le 2026-10-13 : « LOW_BALANCE_OR_PAYEE_LIMIT_REACHED_OR_NOT_ALLOWED »
+ * quand le solde MoMo du payeur est inférieur au montant — aucune invite n'est alors envoyée) ; Orange renseigne plutôt un
+ * message libre. Un texte inconnu donne « AUTRE » — jamais une explication inventée.
+ */
+export function analyserRaisonEchec(statutBrut: unknown, details: unknown, message: unknown): RaisonEchec {
+  const statut = typeof statutBrut === "string" ? statutBrut.toUpperCase() : "";
+  const d = details && typeof details === "object" ? (details as Record<string, unknown>) : {};
+  const texte = [d.reason, d.confirmtxnmessage, message].filter((v): v is string => typeof v === "string").join(" ").toUpperCase();
+  if (/LOW_BALANCE|NOT_ENOUGH|INSUFFICIENT|NOT_ALLOWED|PAYER_LIMIT|SOLDE/.test(texte)) return "SOLDE_OU_COMPTE";
+  if (statut === "EXPIRED" || /EXPIRE|TIMEOUT|TIMED OUT/.test(texte)) return "EXPIRE";
+  if (statut === "CANCELLED" || statut === "CANCELED" || statut === "REJECTED" || statut === "DECLINED" || /CANCEL|REJECT|DECLIN|REFUS/.test(texte)) return "ANNULE";
+  return "AUTRE";
 }
 
 /** Opérateur en toutes lettres (« Orange_Cameroon », « MTN_Cameroon », « CARTE ») → enum moyenPaiement existant, jamais une valeur ad hoc. */
@@ -80,8 +95,10 @@ export function analyserReponseStatut(corps: unknown): Omit<ResultatVerification
   const montant = Number(champ("amount"));
   const reference = champ("transaction_id");
   const operateur = champ("operator");
+  const statut = mapperStatut(champ("status"));
   return {
-    statut: mapperStatut(champ("status")),
+    statut,
+    ...(statut === "REFUSED" ? { raisonEchec: analyserRaisonEchec(champ("status"), champ("details"), champ("message")) } : {}),
     referenceExterne: typeof reference === "string" ? reference : undefined,
     montant: Number.isFinite(montant) ? Math.round(montant) : undefined,
     operateur: typeof operateur === "string" ? operateur : undefined,

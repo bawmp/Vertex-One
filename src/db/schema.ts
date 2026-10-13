@@ -1589,6 +1589,8 @@ export const tentativePaiementAbonnement = pgTable(
     // conservé pour une relecture active (voir relireEtConfirmerAbonnement() dans src/lib/paiement/confirmation.ts),
     // pas seulement une attente passive de la notification.
     payToken: text("pay_token"),
+    // Pourquoi le paiement a échoué (2026-10-13), tel que le prestataire le dit : "SOLDE_OU_COMPTE" | "EXPIRE" | "ANNULE" | "AUTRE".
+    raisonEchec: text("raison_echec"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     confirmeLe: timestamp("confirme_le"),
   },

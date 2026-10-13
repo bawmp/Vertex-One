@@ -10,6 +10,12 @@ export const PARAMETRES: Record<string, string> = {
   "Nous n'avons pas encore reçu de confirmation. Si vous avez validé le paiement sur votre téléphone, contactez-nous — sinon réessayez.":
     "We haven't received confirmation yet. If you approved the payment on your phone, contact us — otherwise try again.",
   "Le paiement n'a pas abouti.": "The payment did not go through.",
+  "Votre opérateur a refusé le paiement : solde Mobile Money insuffisant, ou compte non autorisé à payer. Vérifiez votre solde (par exemple en composant *126# pour MTN), puis réessayez.":
+    "Your operator declined the payment: insufficient Mobile Money balance, or an account not allowed to pay. Check your balance (for example by dialling *126# for MTN), then try again.",
+  "La demande de paiement a expiré avant d'être validée. Vous pouvez réessayer et la valider dès qu'elle arrive sur votre téléphone.":
+    "The payment request expired before it was approved. You can try again and approve it as soon as it reaches your phone.",
+  "Le paiement a été annulé ou refusé sur votre téléphone. Aucun montant n'a été débité. Vous pouvez réessayer.":
+    "The payment was cancelled or declined on your phone. Nothing was charged. You can try again.",
   Réessayer: "Try again",
   "Impossible de déclencher le paiement pour le moment.": "Unable to start the payment right now.",
   "Impossible de récupérer le statut de l'abonnement.": "Unable to retrieve the subscription status.",

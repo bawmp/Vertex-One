@@ -78,3 +78,20 @@ describe("Paiement — référence externe", () => {
     for (const r of ["abc123", "fac_", "abo_", "", undefined, null, "FAC_x", "xfac_abc"]) expect(lireReferenceExterne(r), String(r)).toBeNull();
   });
 });
+
+describe("raison d'un échec de paiement", () => {
+  test("reconnaît le refus MTN pour solde insuffisant (constaté en réel le 2026-10-13)", () => {
+    const r = analyserReponseStatut({ success: true, status: "FAILED", amount: 100, details: { reason: "LOW_BALANCE_OR_PAYEE_LIMIT_REACHED_OR_NOT_ALLOWED" } });
+    expect(r.statut).toBe("REFUSED");
+    expect(r.raisonEchec).toBe("SOLDE_OU_COMPTE");
+  });
+  test("distingue expiré, annulé et inconnu", () => {
+    expect(analyserReponseStatut({ status: "EXPIRED" }).raisonEchec).toBe("EXPIRE");
+    expect(analyserReponseStatut({ status: "CANCELED" }).raisonEchec).toBe("ANNULE");
+    expect(analyserReponseStatut({ status: "FAILED", details: { reason: "SOMETHING_NEW" } }).raisonEchec).toBe("AUTRE");
+  });
+  test("aucune raison pour un paiement réussi ou en attente", () => {
+    expect(analyserReponseStatut({ status: "SUCCESSFUL" }).raisonEchec).toBeUndefined();
+    expect(analyserReponseStatut({ status: "PENDING" }).raisonEchec).toBeUndefined();
+  });
+});

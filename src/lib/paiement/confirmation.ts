@@ -161,7 +161,7 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
     if (!tentative || tentative.statut === "CONFIRME") return;
 
     if (verification.statut === "REFUSED") {
-      await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC" }).where(eq(tentativePaiementAbonnement.id, idTentative));
+      await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementAbonnement.id, idTentative));
       const [monEntreprise] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
       if (monEntreprise) await notifierResultatPaiementAbonnement(tx, entrepriseId, monEntreprise.nom, false);
       return;

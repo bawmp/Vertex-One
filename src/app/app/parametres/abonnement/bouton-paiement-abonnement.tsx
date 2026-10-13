@@ -8,7 +8,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Champ } from "@/components/formulaire/champ";
 import { ChoixCartes } from "@/components/formulaire/choix-cartes";
 import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, EcranPaiementReussi, RecapMontant } from "@/components/formulaire/ecrans-paiement";
-import { declencherPaiementAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
+import { declencherPaiementAbonnement, lireRaisonEchecAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
+import { messageEchecPaiement } from "@/lib/aangaraa/messages-echec";
 import { useT } from "@/lib/i18n/contexte";
 
 const DELAI_REDIRECTION_MS = 1_800; // laisse le temps de lire "Paiement confirmé" avant de repartir vers l'application
@@ -47,6 +48,7 @@ export function BoutonPaiementAbonnement() {
   const [telephone, setTelephone] = useState("");
   const [operateur, setOperateur] = useState<Operateur>("Orange_Cameroon");
   const [erreur, setErreur] = useState<string | null>(null);
+  const [raisonEchec, setRaisonEchec] = useState<string | null>(null);
   const [etape, setEtape] = useState<Etape>("formulaire");
   const minuteurRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tentativeRef = useRef<{ id: string; depuis: number } | null>(null);
@@ -98,6 +100,7 @@ export function BoutonPaiementAbonnement() {
       }
       if (statut === "ECHEC") {
         tentativeRef.current = null;
+        setRaisonEchec(await lireRaisonEchecAbonnement(tentativeId));
         setEtape("echec");
         return;
       }
@@ -118,6 +121,7 @@ export function BoutonPaiementAbonnement() {
 
   function payer() {
     setErreur(null);
+    setRaisonEchec(null);
     startTransition(async () => {
       const resultat = await declencherPaiementAbonnement(telephone, operateur);
       if (resultat.erreur || !resultat.tentativeId) {
@@ -154,7 +158,7 @@ export function BoutonPaiementAbonnement() {
   if (etape === "echec") {
     return (
       <div className="w-full max-w-md">
-        <EcranPaiementEchoue titre={erreur ?? t("Le paiement n'a pas abouti.")} texte={t("Rien n'est débité sans votre validation. Vous pouvez réessayer.")}>
+        <EcranPaiementEchoue titre={erreur ?? t("Le paiement n'a pas abouti.")} texte={(messageEchecPaiement(raisonEchec) ? t(messageEchecPaiement(raisonEchec)!) + " " : "") + t("Rien n'est débité sans votre validation. Vous pouvez réessayer.")}>
           <Button type="button" variant="outline" onClick={() => setEtape("formulaire")}>
             {t("Réessayer")}
           </Button>

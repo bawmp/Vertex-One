@@ -91,6 +91,20 @@ export async function verifierStatutTentativeAbonnement(tentativeId: string): Pr
 }
 
 /**
+ * Raison de l'échec d'une tentative (solde insuffisant, expirée, annulée…), pour l'expliquer au client. Lecture
+ * scopée à l'entreprise connectée : une tentative d'une autre entreprise donne null, comme une tentative inconnue.
+ */
+export async function lireRaisonEchecAbonnement(tentativeId: string): Promise<string | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [tentative] = await tx.select({ raison: tentativePaiementAbonnement.raisonEchec }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentativeId));
+    return tentative?.raison ?? null;
+  });
+}
+
+/**
  * Reprise après rechargement de page (2026-09-23) : le sondage vit uniquement en état React côté client
  * (bouton-paiement-abonnement.tsx) — si l'onglet est déchargé pendant que le client bascule sur son téléphone
  * pour valider l'invite USSD (comportement réel constaté sur mobile : l'onglet en arrière-plan est parfois

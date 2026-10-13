@@ -1,5 +1,8 @@
 /** Types communs aux prestataires de paiement : la confirmation d'un paiement (confirmation.ts) ne dépend d'aucun prestataire. */
 
+/** Pourquoi un paiement a échoué, tel que le prestataire le dit : sert à expliquer l'échec au client, jamais à décider d'un statut. */
+export type RaisonEchec = "SOLDE_OU_COMPTE" | "EXPIRE" | "ANNULE" | "AUTRE";
+
 export type StatutPaiement = "ACCEPTED" | "REFUSED" | "PENDING" | "INCONNU";
 
 /** Modes de paiement enregistrés (enum `moyen_paiement` de la base). Un paiement par carte est rangé sous « virement » : même compte bancaire (512000). */
@@ -13,4 +16,6 @@ export type ResultatVerification = {
   referenceExterne?: string;
   montant?: number;
   operateur?: string;
+  /** Renseignée seulement quand `statut` vaut REFUSED. */
+  raisonEchec?: RaisonEchec;
 };
