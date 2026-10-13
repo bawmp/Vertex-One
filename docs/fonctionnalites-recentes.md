@@ -95,10 +95,12 @@ où se trouve le code.
 - **À savoir** : l'envoi part après la réponse, jamais pendant la sauvegarde — un échec d'envoi ne défait pas le changement de statut. Les textes par défaut sont sobres (le rejet remercie sans donner de motif) et **personnalisables** par entreprise dans Paramètres → Modèles d'email, section « Candidatures » : un modèle par statut, variables `{{candidat}}`, `{{poste}}`, `{{entreprise}}`, aperçu en direct avec des valeurs d'exemple, bouton « Rétablir le texte par défaut ». Le HTML saisi dans un modèle est neutralisé et l'objet reste sur une seule ligne.
 - **Code** : `src/lib/recrutement/notification.ts`, `changerStatutCandidature()` dans `src/lib/actions/recrutement.ts`, colonne `parametre_recrutement.notifier_candidats` (migration `0113`), cinq nouveaux types dans l'enum `type_modele_email` (migration `0114`), modèles par défaut dans `src/lib/email/modeles.ts`, tests `tests/recrutement-notification.test.ts` (dont la fuite entre entreprises).
 
-## Paiement Mobile Money — état au 2026-10-10
+## Paiement Mobile Money — état au 2026-10-13
 
 - Le paiement direct (sans redirection) est branché pour l'abonnement et pour Global Mobility. La confirmation vient de
   la relecture du statut chez Aangaraa Pay, jamais de la seule notification.
-- **Point ouvert** : le paiement direct renvoie encore une erreur 400 chez certains opérateurs et la demande de validation
-  MTN n'arrive pas ; réponse du support Aangaraa Pay attendue. Le lien hébergé de secours expose la clé d'application dans
-  le code de sa page : à trancher (garder, couper ou renouveler la clé).
+- **Vérifié en réel le 2026-10-13** (Orange et MTN) : le paiement direct fonctionne. L'erreur 400 du 2026-10-08 n'a pas pu
+  être reproduite (incident passager du prestataire), et « MTN n'envoie pas d'invite » venait d'un solde MoMo insuffisant :
+  MTN refuse aussitôt (`LOW_BALANCE_OR_PAYEE_LIMIT_REACHED_OR_NOT_ALLOWED`) quand le solde est inférieur au montant.
+- **Message d'échec précis** : le client voit « solde Mobile Money insuffisant », « demande expirée » ou « annulé sur votre
+  téléphone » au lieu d'un échec générique (colonne `raison_echec`, `src/lib/aangaraa/messages-echec.ts`).
