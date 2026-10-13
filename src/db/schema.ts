@@ -433,6 +433,68 @@ export const cleApiEntreprise = pgTable(
   ]
 ).enableRLS();
 
+// Pages Facebook reliées à une entreprise (2026-10-13) : les prospects des publicités à formulaire arrivent comme leads.
+// DEUX tables, pour ne jamais ouvrir en lecture anonyme celle qui porte le jeton : `connexion_facebook` (stricte, jeton
+// d'accès de la page CHIFFRÉ) et `routage_facebook_page` (carve-out : seulement « quelle entreprise possède cette page »,
+// lue sans session par le webhook de Meta, comme `invitation` ou `cle_api_entreprise`). Une page ne peut être reliée qu'à
+// UNE entreprise (index unique sur page_id).
+export const connexionFacebook = pgTable(
+  "connexion_facebook",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    pageId: text("page_id").notNull(),
+    pageNom: text("page_nom").notNull(),
+    jetonChiffre: text("jeton_chiffre").notNull(), // AES-256-GCM (src/lib/facebook/jetons.ts), jamais en clair ni renvoyé au navigateur
+    connecteParId: text("connecte_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    dernierLeadLe: timestamp("dernier_lead_le"),
+  },
+  (table) => [
+    uniqueIndex("connexion_facebook_page_unique").on(table.pageId),
+    index("connexion_facebook_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise_lecture", { for: "select", using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)` }),
+    pgPolicy("isolation_entreprise_ecriture", { for: "insert", withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)` }),
+    pgPolicy("isolation_entreprise_modification", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_suppression", { for: "delete", using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)` }),
+  ]
+).enableRLS();
+
+export const routageFacebookPage = pgTable(
+  "routage_facebook_page",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    pageId: text("page_id").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("routage_facebook_page_unique").on(table.pageId),
+    index("routage_facebook_page_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise_lecture", {
+      for: "select",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true) OR nullif(current_setting('app.entreprise_id', true), '') IS NULL`,
+    }),
+    pgPolicy("isolation_entreprise_ecriture", { for: "insert", withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)` }),
+    pgPolicy("isolation_entreprise_modification", {
+      for: "update",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+    pgPolicy("isolation_entreprise_suppression", { for: "delete", using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)` }),
+  ]
+).enableRLS();
+
 // Journal des exports de données (2026-10-09) : qui a téléchargé quoi, quand, et combien de lignes. Un export complet
 // des clients d'une entreprise est une opération sensible : elle laisse toujours une trace, jamais le contenu exporté.
 export const journalExportDonnees = pgTable(

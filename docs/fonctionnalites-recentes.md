@@ -5,6 +5,32 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Publicités Facebook : les prospects deviennent des leads (2026-10-13)
+
+- **Quoi** : l'Administrateur relie la page Facebook de son entreprise ; chaque prospect qui remplit le formulaire d'une
+  de ses publicités (Lead Ads) devient automatiquement un lead du CRM, assigné au premier administrateur, qui est prévenu
+  par email. Les réponses du formulaire sont conservées dans le message du lead ; un même prospect renvoyé par Meta ne crée
+  jamais de doublon (référence `facebook-<id>`, source « Facebook Ads »). Les messages Messenger viendront plus tard.
+- **Où** : Paramètres → Intégrations → « Publicités Facebook » (bouton « Relier ma page Facebook », liste des pages reliées,
+  « Déconnecter »). Administrateur seul.
+- **Comment ça marche** : connexion Facebook (OAuth) → choix de la page → Vertex One abonne la page aux événements
+  `leadgen` → Meta appelle `POST /api/facebook/webhook` à chaque prospect → l'entreprise est retrouvée par la PAGE.
+- **Sécurité** : le jeton de page est chiffré (AES-256-GCM, clé dérivée de `META_APP_SECRET`, jamais renvoyé au navigateur) ;
+  `connexion_facebook` (stricte, RLS + FORCE) et `routage_facebook_page` (lecture anonyme limitée à « page → entreprise »,
+  comme `invitation`) ; l'état OAuth est signé, daté et lié à l'utilisateur et à son navigateur ; chaque webhook est vérifié
+  par sa signature `X-Hub-Signature-256` ; une page ne peut être reliée qu'à UNE entreprise ; un espace suspendu ne reçoit rien.
+- **À configurer (une fois, côté Vertex Technology)** : une App Meta avec « Facebook Login » et le produit « Webhooks » (objet
+  Page, champ `leadgen`) ; dans Vercel : `META_APP_ID`, `META_APP_SECRET`, `FACEBOOK_WEBHOOK_VERIFY_TOKEN` ; URL de rappel du
+  webhook `https://vertexone.cm/api/facebook/webhook` ; URI de redirection OAuth `https://vertexone.cm/api/facebook/callback`.
+- **Limite importante** : les autorisations `leads_retrieval`, `pages_manage_metadata`, `pages_show_list` et
+  `pages_read_engagement` exigent la **vérification de l'application par Meta** (accès avancé, souvent la vérification de
+  l'entreprise) pour fonctionner avec des pages qui ne sont pas celles des administrateurs de l'App. Avant cela, seuls les
+  rôles de l'App (administrateurs, développeurs, testeurs) peuvent relier leurs pages. **Non vérifié en réel au 2026-10-13** :
+  seule la partie Vertex One est testée (Graph simulé, base réelle). Ne pas l'annoncer sur le site vitrine avant un essai réel.
+- **Code** : `src/lib/facebook/` (`jetons.ts`, `graph.ts`, `prospect.ts`, `traitement.ts`, `evenements.ts`),
+  `src/app/api/facebook/{webhook,callback}`, `src/lib/actions/facebook.ts`, `src/app/app/parametres/integrations/pages-facebook.tsx`,
+  migration `0116`, tests `tests/facebook-prospects.test.ts` (dont la fuite entre entreprises).
+
 ## Connexion et inscription : refonte animée (2026-10-13)
 
 - **Quoi** : panneau de marque avec diaporama automatique (3 messages, suspendu au survol), cartes de démonstration qui

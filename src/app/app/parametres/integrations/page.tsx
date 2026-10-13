@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
-import { cleApiEntreprise } from "@/db/schema";
+import { cleApiEntreprise, connexionFacebook } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { getT } from "@/lib/i18n/langue";
 import { GestionClesApi } from "./gestion-cles-api";
+import { PagesFacebook } from "./pages-facebook";
+import { facebookConfigure } from "@/lib/facebook/graph";
+import { listerPagesAChoisir } from "@/lib/actions/facebook";
 
-export default async function PageIntegrations() {
+export default async function PageIntegrations({ searchParams }: { searchParams: Promise<{ facebook?: string }> }) {
+  const { facebook } = await searchParams;
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -19,6 +23,14 @@ export default async function PageIntegrations() {
   const cles = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx.select().from(cleApiEntreprise).where(eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId)).orderBy(desc(cleApiEntreprise.creeLe))
   );
+  const pagesFacebook = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx
+      .select({ id: connexionFacebook.id, nom: connexionFacebook.pageNom, creeLe: connexionFacebook.creeLe, dernierLeadLe: connexionFacebook.dernierLeadLe })
+      .from(connexionFacebook)
+      .where(eq(connexionFacebook.entrepriseId, utilisateurConnecte.entrepriseId))
+      .orderBy(desc(connexionFacebook.creeLe))
+  );
+  const pagesAChoisir = facebook === "choisir" ? await listerPagesAChoisir() : [];
   const base = process.env.BETTER_AUTH_URL ?? "https://vertexone.cm";
 
   return (
@@ -29,6 +41,13 @@ export default async function PageIntegrations() {
           {t("Reliez un site web à votre CRM : chaque demande reçue devient automatiquement un lead, assigné au premier administrateur.")}
         </p>
       </div>
+
+      <PagesFacebook
+        configure={facebookConfigure()}
+        pages={pagesFacebook.map((p) => ({ id: p.id, nom: p.nom, creeLe: p.creeLe.toISOString(), dernierLeadLe: p.dernierLeadLe?.toISOString() ?? null }))}
+        pagesAChoisir={pagesAChoisir}
+        retour={facebook && facebook !== "choisir" ? facebook : null}
+      />
 
       <GestionClesApi
         cles={cles.map((c) => ({
