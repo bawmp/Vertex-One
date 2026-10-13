@@ -76,7 +76,7 @@ test("lead → conversion Contact/Deal → devis → facture (numérotation) →
 
   await page.goto("/inscription");
   await page.fill("#nomEntreprise", "TEST E2E Palier 1");
-  await page.selectOption("#secteurProfil", "agence");
+  await page.getByRole("radio", { name: "Agence" }).click(); // cartes de choix (boîte à outils des formulaires), plus une liste déroulante
   await page.fill("#nomComplet", "Admin E2E");
   await page.fill("#email", emailAdmin);
   await page.fill("#motDePasse", motDePasse);

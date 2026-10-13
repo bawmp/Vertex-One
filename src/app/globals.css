@@ -561,3 +561,59 @@
     stroke-dashoffset: 0;
   }
 }
+
+/*
+ * Pages de connexion et d'inscription (2026-10-13) : cartes de démonstration flottantes du panneau de marque, apparition
+ * en cascade, motif de points et coche de succès. Tout s'éteint avec prefers-reduced-motion.
+ */
+@keyframes auth-carte-flotte {
+  0%, 100% { transform: translateY(0) rotate(var(--auth-inclinaison, 0deg)); }
+  50% { transform: translateY(-9px) rotate(var(--auth-inclinaison, 0deg)); }
+}
+.animate-auth-carte-flotte {
+  animation: auth-carte-flotte 7s ease-in-out infinite;
+}
+@keyframes auth-apparition {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-auth-apparition {
+  animation: auth-apparition 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes auth-diapo-entree {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-auth-diapo {
+  animation: auth-diapo-entree 0.6s ease-out both;
+}
+@keyframes auth-progression-diapo {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-auth-progression-diapo {
+  transform-origin: left;
+  animation: auth-progression-diapo var(--auth-duree, 6s) linear both;
+}
+@keyframes auth-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-auth-pop {
+  animation: auth-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.auth-motif-points {
+  background-image: radial-gradient(color-mix(in oklab, white 22%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-auth-carte-flotte,
+  .animate-auth-apparition,
+  .animate-auth-diapo,
+  .animate-auth-progression-diapo,
+  .animate-auth-pop {
+    animation: none;
+  }
+}

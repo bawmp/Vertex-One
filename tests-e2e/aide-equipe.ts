@@ -23,7 +23,7 @@ export async function creerEquipe(page: Page, browser: Browser, prefixe: string)
 
   await page.goto("/inscription");
   await page.fill("#nomEntreprise", nomEntreprise);
-  await page.selectOption("#secteurProfil", "agence");
+  await page.getByRole("radio", { name: "Agence" }).click(); // cartes de choix (boîte à outils des formulaires), plus une liste déroulante
   await page.fill("#nomComplet", "Alice Admin");
   await page.fill("#email", emailAdmin);
   await page.fill("#motDePasse", MOT_DE_PASSE);

@@ -5,6 +5,16 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Connexion et inscription : refonte animée (2026-10-13)
+
+- **Quoi** : panneau de marque avec diaporama automatique (3 messages, suspendu au survol), cartes de démonstration qui
+  flottent, fond en dégradé et motif de points ; apparition en cascade des champs ; à la connexion, avertissement
+  « verrouillage majuscules », coche de succès avant l'ouverture de l'espace ; à l'inscription, barre de progression qui
+  se remplit pendant la saisie. Tout s'éteint avec `prefers-reduced-motion` ; sur mobile le panneau laisse la place au logo.
+- **Code** : `src/components/auth/panneau-marque.tsx`, `src/app/(auth)/`, classes `animate-auth-*` de `globals.css`.
+- **Tests** : les parcours Playwright choisissent le secteur par ses cartes (`getByRole("radio", { name: "Agence" })`) — la liste
+  déroulante `#secteurProfil` n'existe plus depuis la boîte à outils des formulaires.
+
 ## Transfert de données entre espaces (2026-10-09)
 
 - **Quoi** : exporter les données d'un espace en fichiers CSV, les importer dans un autre espace Vertex One (ou depuis

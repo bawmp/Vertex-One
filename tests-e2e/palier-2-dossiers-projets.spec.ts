@@ -77,7 +77,7 @@ test("devis accepté → Dossier + Projet automatiques → tâche créée et ach
 
   await page.goto("/inscription");
   await page.fill("#nomEntreprise", "TEST E2E Palier 2");
-  await page.selectOption("#secteurProfil", "cabinet"); // vocabulaire "Mission" attendu
+  await page.getByRole("radio", { name: "Cabinet" }).click(); // vocabulaire "Mission" attendu
   await page.fill("#nomComplet", "Admin E2E");
   await page.fill("#email", emailAdmin);
   await page.fill("#motDePasse", motDePasse);

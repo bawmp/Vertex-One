@@ -25,7 +25,7 @@ test("inscription crée l'entreprise, connecte l'Administrateur, et affiche le m
   await page.goto("/inscription");
 
   await page.fill("#nomEntreprise", "TEST E2E Agence Kiro");
-  await page.selectOption("#secteurProfil", "agence");
+  await page.getByRole("radio", { name: "Agence" }).click(); // cartes de choix (boîte à outils des formulaires), plus une liste déroulante
   await page.fill("#nomComplet", "Admin E2E");
   await page.fill("#email", email);
   await page.fill("#motDePasse", motDePasse);
@@ -44,7 +44,7 @@ test("inscription crée l'entreprise, connecte l'Administrateur, et affiche le m
   // les cinq entrées du menu doivent être visibles. Noms "One <mot anglais>"
   // à l'image de Zoho (Zoho CRM, Zoho Books...) — voir échange du 2026-09-17.
   for (const libelle of ["One CRM", "One Books", "One Projects", "One Docs"]) {
-    await expect(page.getByRole("link", { name: libelle })).toBeVisible();
+    await expect(page.getByRole("link", { name: libelle }).first()).toBeVisible(); // .first() : le lien existe deux fois (menu regroupé et liste complète)
   }
 
   // Paramètres et compte ont quitté la barre latérale (2026-09-20) : ils sont
