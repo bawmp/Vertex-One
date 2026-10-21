@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { candidature, entreprise, modeleEmail, parametreRecrutement, posteOuvert, utilisateur } from "@/db/schema";
-import { changerStatutEtPreparerEmail, construireEmailStatut, typeModelePourStatut, type StatutCandidature } from "@/lib/recrutement/notification";
+import { apercuEmailStatut, changerStatutEtPreparerEmail, construireEmailPersonnalise, construireEmailStatut, nettoyerContenuPersonnalise, typeModelePourStatut, type StatutCandidature } from "@/lib/recrutement/notification";
 import { modeleParDefaut, TYPES_MODELE_CANDIDATURE } from "@/lib/email/modeles";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
@@ -166,5 +166,76 @@ describe("Changement de statut — email au candidat (base réelle)", () => {
     const resultat = await avecEntreprise(entrepriseB, (tx) => changerStatutEtPreparerEmail(tx, { entrepriseId: entrepriseB, utilisateurId: adminB, candidatureId: id, statut: "REJETEE", prevenir: true }));
     expect(resultat).toBeNull();
     expect(await statutDe(id)).toBe("RECUE"); // intact
+  });
+});
+
+describe("Message relu et modifié avant l'envoi", () => {
+  test("nettoyerContenuPersonnalise : objet sur une ligne, texte non vide, tailles bornées, types vérifiés", () => {
+    expect(nettoyerContenuPersonnalise({ objet: "  Bonjour\r\nà vous  ", corps: "Texte\r\nsuite " })).toEqual({ objet: "Bonjour à vous", corps: "Texte\nsuite" });
+    expect(nettoyerContenuPersonnalise({ objet: "", corps: "x" })).toBeNull();
+    expect(nettoyerContenuPersonnalise({ objet: "x", corps: "   " })).toBeNull();
+    expect(nettoyerContenuPersonnalise({ objet: "x".repeat(201), corps: "x" })).toBeNull();
+    expect(nettoyerContenuPersonnalise({ objet: "x", corps: "x".repeat(5001) })).toBeNull();
+    expect(nettoyerContenuPersonnalise({ objet: 42, corps: ["x"] })).toBeNull();
+    expect(nettoyerContenuPersonnalise(undefined)).toBeNull();
+  });
+
+  test("le message modifié est échappé en HTML et ses {{variables}} ne sont pas réinterprétées", () => {
+    const { subject, html } = construireEmailPersonnalise({ objet: "Objet <i>modifié</i>", corps: "Ligne 1 <script>alert(1)</script>\n\n{{candidat}} reste tel quel" });
+    expect(subject).toBe("Objet <i>modifié</i>"); // un objet n'est pas du HTML : l'en-tête est du texte brut
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("{{candidat}} reste tel quel");
+  });
+
+  test("aperçu : le message du modèle, variables remplacées, sans rien changer en base", async () => {
+    const id = await creerCandidature("Awa Aperçu", "awa.apercu@exemple.test");
+    const apercu = await avecEntreprise(entrepriseA, (tx) => apercuEmailStatut(tx, { entrepriseId: entrepriseA, candidatureId: id, statut: "ENTRETIEN" }));
+    expect(apercu?.destinataire).toBe("awa.apercu@exemple.test");
+    expect(apercu?.corps).toContain("Awa Aperçu");
+    expect(apercu?.corps).toContain(nomA);
+    expect(apercu?.objet).toContain("Comptable");
+    expect(await statutDe(id)).toBe("RECUE"); // lecture seule
+  });
+
+  test("aperçu : rien n'est proposé quand aucun email ne partirait (pas d'adresse, « Reçue », statut inchangé, autre entreprise)", async () => {
+    const sansEmail = await creerCandidature("Sans Email", null);
+    const avecEmail = await creerCandidature("Avec Email", "avec@exemple.test");
+    const apercu = (candidatureId: string, statut: StatutCandidature, entrepriseId = entrepriseA) => avecEntreprise(entrepriseId, (tx) => apercuEmailStatut(tx, { entrepriseId, candidatureId, statut }));
+    expect(await apercu(sansEmail, "ENTRETIEN")).toBeNull();
+    expect(await apercu(avecEmail, "RECUE")).toBeNull();
+    expect(await apercu(avecEmail, "RECUE")).toBeNull(); // déjà « Reçue »
+    expect(await apercu(avecEmail, "ENTRETIEN", entrepriseB)).toBeNull(); // la candidature d'une autre entreprise est introuvable
+  });
+
+  test("le message modifié par l'utilisateur est celui qui part, au destinataire de la candidature", async () => {
+    const id = await creerCandidature("Awa Perso", "awa.perso@exemple.test");
+    const email = await avecEntreprise(entrepriseA, (tx) =>
+      changerStatutEtPreparerEmail(tx, {
+        entrepriseId: entrepriseA,
+        utilisateurId: adminA,
+        candidatureId: id,
+        statut: "ENTRETIEN",
+        prevenir: true,
+        contenu: { objet: "Rendez-vous jeudi", corps: "Bonjour Awa,\nVenez jeudi à 10h." },
+      })
+    );
+    expect(email?.to).toBe("awa.perso@exemple.test");
+    expect(email?.subject).toBe("Rendez-vous jeudi");
+    expect(email?.html).toContain("Venez jeudi à 10h.");
+    expect(email?.html).not.toContain("Nous vous contacterons"); // pas le modèle par défaut
+    expect(await statutDe(id)).toBe("ENTRETIEN");
+  });
+
+  test("sans message modifié, le modèle de l'entreprise reste utilisé ; « prevenir: false » n'envoie rien même avec un message", async () => {
+    const a = await creerCandidature("Awa Modèle", "awa.modele@exemple.test");
+    const parDefaut = await changer(a, "OFFRE");
+    expect(parDefaut?.subject).toContain("Suite de votre candidature");
+    const b = await creerCandidature("Awa Silence", "awa.silence@exemple.test");
+    const rien = await avecEntreprise(entrepriseA, (tx) =>
+      changerStatutEtPreparerEmail(tx, { entrepriseId: entrepriseA, utilisateurId: adminA, candidatureId: b, statut: "OFFRE", prevenir: false, contenu: { objet: "x", corps: "y" } })
+    );
+    expect(rien).toBeNull();
+    expect(await statutDe(b)).toBe("OFFRE");
   });
 });

@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { SelecteurPersonne } from "@/components/selecteur-personne";
-import { changerStatutCandidature, assignerCandidature, modifierCandidature, supprimerCandidature } from "@/lib/actions/recrutement";
+import { apercuEmailStatutCandidature, changerStatutCandidature, assignerCandidature, modifierCandidature, supprimerCandidature } from "@/lib/actions/recrutement";
 
 const STATUTS = [
   { valeur: "RECUE", libelle: "Reçue" },
@@ -21,6 +21,65 @@ const STATUTS = [
 ] as const;
 
 type Coordonnees = { nom: string; telephone: string; email: string | null; message: string | null };
+type StatutValeur = (typeof STATUTS)[number]["valeur"];
+type MessagePrevu = { statut: StatutValeur; destinataire: string; objet: string; corps: string };
+
+/**
+ * Message au candidat relu avant l'envoi : l'utilisateur le modifie (objet et texte), puis envoie en changeant le statut,
+ * change le statut sans prévenir, ou annule (le statut reste inchangé). Les modèles par défaut se règlent dans les paramètres.
+ */
+function FenetreMessageCandidat({
+  message,
+  enCours,
+  onEnvoyer,
+  onSansPrevenir,
+  onAnnuler,
+}: {
+  message: MessagePrevu;
+  enCours: boolean;
+  onEnvoyer: (objet: string, corps: string) => void;
+  onSansPrevenir: () => void;
+  onAnnuler: () => void;
+}) {
+  const [objet, setObjet] = useState(message.objet);
+  const [corps, setCorps] = useState(message.corps);
+  const libelle = STATUTS.find((x) => x.valeur === message.statut)?.libelle ?? message.statut;
+  const invalide = objet.trim().length === 0 || corps.trim().length === 0 || objet.length > 200 || corps.length > 5000;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="titre-message-candidat">
+      <div className="flex max-h-[90vh] w-full max-w-xl flex-col gap-3 overflow-y-auto rounded-xl bg-background p-5 shadow-xl">
+        <h2 id="titre-message-candidat" className="text-base font-semibold">
+          Message au candidat — statut « {libelle} »
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Ce message sera envoyé à <strong>{message.destinataire}</strong>. Relisez-le et modifiez-le si besoin avant de valider le changement de statut.
+        </p>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="objet-message-candidat">Objet</Label>
+          <Input id="objet-message-candidat" value={objet} maxLength={200} onChange={(e) => setObjet(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="corps-message-candidat">Message</Label>
+          <Textarea id="corps-message-candidat" rows={10} value={corps} maxLength={5000} onChange={(e) => setCorps(e.target.value)} />
+          <p className="text-xs text-muted-foreground">{corps.length} / 5000 caractères</p>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="ghost" disabled={enCours} onClick={onAnnuler}>
+            Annuler
+          </Button>
+          <Button type="button" variant="outline" disabled={enCours} onClick={onSansPrevenir}>
+            Changer sans prévenir
+          </Button>
+          <Button type="button" disabled={enCours || invalide} onClick={() => onEnvoyer(objet, corps)}>
+            {enCours ? <Spinner /> : null}
+            Envoyer et changer le statut
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ControlesCandidature({
   candidatureId,
@@ -44,6 +103,8 @@ export function ControlesCandidature({
   const [edition, setEdition] = useState(false);
   const [enCours, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
+  const [messagePrevu, setMessagePrevu] = useState<MessagePrevu | null>(null);
+  const [cleSelect, setCleSelect] = useState(0); // remonte le sélecteur de statut quand le changement est annulé
   const [etat, action, enregistrement] = useActionState(async (precedent: { erreur?: string } | null, formData: FormData) => {
     const resultat = await modifierCandidature(precedent, formData);
     if (!resultat) setEdition(false);
@@ -52,17 +113,47 @@ export function ControlesCandidature({
 
   return (
     <div className="flex flex-col gap-3">
+      {messagePrevu ? (
+        <FenetreMessageCandidat
+          message={messagePrevu}
+          enCours={enCours}
+          onEnvoyer={(objet, corps) =>
+            startTransition(async () => {
+              await changerStatutCandidature(candidatureId, messagePrevu.statut, { objet, corps });
+              setMessagePrevu(null);
+            })
+          }
+          onSansPrevenir={() =>
+            startTransition(async () => {
+              await changerStatutCandidature(candidatureId, messagePrevu.statut, { prevenir: false });
+              setMessagePrevu(null);
+            })
+          }
+          onAnnuler={() => {
+            setMessagePrevu(null);
+            setCleSelect((c) => c + 1);
+          }}
+        />
+      ) : null}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor={`statut-${candidatureId}`}>Statut</Label>
           {/* key : le statut affiché suit la base après une annulation ou un rétablissement. */}
           <Select
-            key={statut}
+            key={`${statut}-${cleSelect}`}
             id={`statut-${candidatureId}`}
             defaultValue={statut}
             className="w-36"
             disabled={!peutModifier}
-            onChange={(e) => changerStatutCandidature(candidatureId, e.target.value as (typeof STATUTS)[number]["valeur"])}
+            onChange={(e) => {
+              const nouveau = e.target.value as StatutValeur;
+              // Un message part au candidat : on le montre d'abord, modifiable. Sinon (pas d'email, « Reçue », notifications coupées), changement direct.
+              startTransition(async () => {
+                const apercu = coordonnees.email ? await apercuEmailStatutCandidature(candidatureId, nouveau) : null;
+                if (apercu) setMessagePrevu({ statut: nouveau, destinataire: apercu.destinataire, objet: apercu.objet, corps: apercu.corps });
+                else await changerStatutCandidature(candidatureId, nouveau);
+              });
+            }}
           >
             {STATUTS.map((s) => (
               <option key={s.valeur} value={s.valeur}>

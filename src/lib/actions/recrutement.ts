@@ -13,7 +13,7 @@ import { peut } from "@/lib/permissions";
 import { effacerObjetStockage } from "@/lib/documents/stockage";
 import { idsVisibles } from "@/lib/portee";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
-import { changerStatutEtPreparerEmail } from "@/lib/recrutement/notification";
+import { apercuEmailStatut, changerStatutEtPreparerEmail, nettoyerContenuPersonnalise, type ApercuEmailStatut } from "@/lib/recrutement/notification";
 import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
 import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
@@ -225,7 +225,23 @@ async function candidatureDansLaPortee(tx: TransactionDrizzle, utilisateurConnec
  * l'exécution avant tout UPDATE (même garde que changerStatutTicket(),
  * jamais fait confiance à une valeur castée côté client).
  */
-export async function changerStatutCandidature(candidatureId: string, statut: (typeof STATUTS_VALIDES)[number], options: { prevenir?: boolean } = {}) {
+export async function apercuEmailStatutCandidature(candidatureId: string, statut: (typeof STATUTS_VALIDES)[number]): Promise<ApercuEmailStatut | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!STATUTS_VALIDES.includes(statut)) return null;
+  if (!peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")) return null;
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
+    return apercuEmailStatut(tx, { entrepriseId: utilisateurConnecte.entrepriseId, candidatureId, statut });
+  });
+}
+
+/**
+ * `objet`/`corps` : message relu et modifié par l'utilisateur avant l'envoi (voir apercuEmailStatutCandidature). Revalidé ici
+ * (types, tailles, texte échappé) — jamais de confiance dans ce que le navigateur envoie ; le destinataire, lui, vient
+ * TOUJOURS de la candidature en base, jamais du navigateur.
+ */
+export async function changerStatutCandidature(candidatureId: string, statut: (typeof STATUTS_VALIDES)[number], options: { prevenir?: boolean; objet?: string; corps?: string } = {}) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!STATUTS_VALIDES.includes(statut)) return;
@@ -241,6 +257,7 @@ export async function changerStatutCandidature(candidatureId: string, statut: (t
       candidatureId,
       statut,
       prevenir: options.prevenir ?? true,
+      contenu: nettoyerContenuPersonnalise({ objet: options.objet, corps: options.corps }),
     });
   });
 
