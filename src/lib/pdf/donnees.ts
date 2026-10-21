@@ -17,6 +17,7 @@ import {
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
 import { urlTelechargementDocument } from "@/lib/documents/stockage";
+import { groupeNomPourPDF } from "@/lib/pdf/groupe";
 
 /** Libellé français fixe, indépendant de la langue de l'interface — voir CLAUDE.md, i18n (les PDF restent en français). */
 const LIBELLE_MOYEN_PAIEMENT: Record<string, string> = {
@@ -60,9 +61,10 @@ async function construireClientPourPDF(tx: TransactionDrizzle, contactId: string
  * serveur, react-pdf récupère l'image lui-même, une URL signée directe vers
  * R2 évite un aller-retour HTTP supplémentaire vers l'app elle-même).
  */
-async function avecLogo<T extends { logoCleStockage: string | null }>(monEntreprise: T): Promise<T & { logoUrl: string | null }> {
+async function avecLogo<T extends { logoCleStockage: string | null; nom: string; groupeId: string | null }>(tx: TransactionDrizzle, monEntreprise: T): Promise<T & { logoUrl: string | null; groupeNom: string | null }> {
   const logoUrl = monEntreprise.logoCleStockage ? await urlTelechargementDocument(monEntreprise.logoCleStockage) : null;
-  return { ...monEntreprise, logoUrl };
+  const groupeNom = await groupeNomPourPDF(tx, monEntreprise.nom, monEntreprise.groupeId);
+  return { ...monEntreprise, logoUrl, groupeNom };
 }
 
 /**
@@ -85,7 +87,7 @@ export async function recupererDevisPourPDF(tx: TransactionDrizzle, utilisateurC
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { devis: d, lignes, client, entreprise: await avecLogo(monEntreprise) };
+  return { devis: d, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
 }
 
 export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, factureId: string) {
@@ -102,7 +104,7 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
+  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
 }
 
 /**
@@ -122,7 +124,7 @@ export async function recupererDevisPourClient(tx: TransactionDrizzle, entrepris
     tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
   ]);
 
-  return { devis: d, lignes, client, entreprise: await avecLogo(monEntreprise) };
+  return { devis: d, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
 }
 
 export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepriseId: string, factureId: string) {
@@ -136,7 +138,7 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
     tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
   ]);
 
-  return { facture: f, lignes, client, entreprise: await avecLogo(monEntreprise) };
+  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
 }
 
 /**
@@ -159,7 +161,7 @@ export async function recupererBonCommandeVentePourPDF(tx: TransactionDrizzle, u
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
   ]);
 
-  return { bonCommandeVente: bc, lignes, client, entreprise: await avecLogo(monEntreprise) };
+  return { bonCommandeVente: bc, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
 }
 
 export async function recupererRecuVentePourPDF(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, recuVenteId: string) {
@@ -180,7 +182,7 @@ export async function recupererRecuVentePourPDF(tx: TransactionDrizzle, utilisat
     recuVente: rv,
     lignes,
     client,
-    entreprise: await avecLogo(monEntreprise),
+    entreprise: await avecLogo(tx, monEntreprise),
     moyenPaiementLibelle: LIBELLE_MOYEN_PAIEMENT[rv.moyenPaiement] ?? rv.moyenPaiement,
   };
 }
@@ -200,7 +202,7 @@ export async function recupererFactureAcomptePourPDF(tx: TransactionDrizzle, uti
   return {
     factureAcompte: fa,
     client,
-    entreprise: await avecLogo(monEntreprise),
+    entreprise: await avecLogo(tx, monEntreprise),
     moyenPaiementLibelle: fa.moyenPaiement ? (LIBELLE_MOYEN_PAIEMENT[fa.moyenPaiement] ?? fa.moyenPaiement) : null,
   };
 }

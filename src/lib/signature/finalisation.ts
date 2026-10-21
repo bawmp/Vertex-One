@@ -4,6 +4,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, demandeSignature, document, contrat, utilisateur, projet } from "@/db/schema";
 import { construireCertificatAudit } from "@/lib/signature/certificat";
 import { formaterHorodatage, rendreCertificatSignaturePDF } from "@/lib/pdf/certificat-signature";
+import { groupeNomPourPDF } from "@/lib/pdf/groupe";
 import { lireObjetStockage, televerserDocument } from "@/lib/documents/stockage";
 import { adressesAAlerter, alerterParEmail, echapper } from "@/lib/notifications/equipe";
 import { urlBase } from "@/lib/client-documents/liens";
@@ -27,11 +28,12 @@ async function chargerContexte(entrepriseId: string, demandeId: string) {
       const [leProjet] = await tx.select({ dossierId: projet.dossierId }).from(projet).where(eq(projet.id, leDocument.projetId));
       dossierId = leProjet?.dossierId ?? null;
     }
-    const [monEntreprise] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+    const [monEntreprise] = await tx.select({ nom: entreprise.nom, groupeId: entreprise.groupeId }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+    const groupeNom = monEntreprise ? await groupeNomPourPDF(tx, monEntreprise.nom, monEntreprise.groupeId) : null;
     const [leContrat] = await tx.select({ titre: contrat.titre }).from(contrat).where(eq(contrat.demandeSignatureId, demandeId));
     const destinataires = await adressesAAlerter(tx, entrepriseId, [demande.creeParId]);
 
-    return { certificat, demande, leDocument, dossierId, entrepriseNom: monEntreprise?.nom ?? "", titre: leContrat?.titre ?? leDocument.nom, destinataires };
+    return { certificat, demande, leDocument, dossierId, entrepriseNom: monEntreprise?.nom ?? "", groupeNom, titre: leContrat?.titre ?? leDocument.nom, destinataires };
   });
 }
 
@@ -70,10 +72,11 @@ const nomFichierSain = (nom: string) => nom.replace(/[\\/:*?"<>|]/g, "-");
 export async function envoyerCopieSignee(entrepriseId: string, demandeId: string): Promise<{ archive: boolean }> {
   const contexte = await chargerContexte(entrepriseId, demandeId);
   if (!contexte) return { archive: false };
-  const { certificat, demande, leDocument, dossierId, entrepriseNom, titre, destinataires } = contexte;
+  const { certificat, demande, leDocument, dossierId, entrepriseNom, groupeNom, titre, destinataires } = contexte;
 
   const pdfCertificat = await rendreCertificatSignaturePDF({
     entrepriseNom,
+    groupeNom,
     titreDocument: titre,
     nomFichier: leDocument.nom,
     empreinteDocument: certificat.empreinteDocument,

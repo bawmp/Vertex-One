@@ -25,6 +25,7 @@ const styles = StyleSheet.create({
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   logo: { width: 40, height: 40, objectFit: "contain" },
   nomEntreprise: { fontSize: 16, fontWeight: 700 },
+  mentionGroupe: { fontSize: 8.5, marginTop: 1, marginBottom: 3 },
   typeDocument: { fontSize: 20, fontWeight: 700, textAlign: "right" },
   numero: { fontSize: 11, color: STONE_500, textAlign: "right", marginTop: 4 },
   blocInfos: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24, gap: 24 },
@@ -111,6 +112,8 @@ export type DocumentCommercialProps = {
     assujettiTVA: boolean;
     logoUrl?: string | null;
     couleurMarque?: string | null;
+    // Nom du groupe auquel l'entreprise appartient (ex. « Vertex Technology »), absent hors groupe — voir src/lib/pdf/groupe.ts.
+    groupeNom?: string | null;
   };
   client: {
     nom: string;
@@ -172,6 +175,7 @@ export function DocumentCommercialPDF({
             {entreprise.logoUrl ? <Image src={entreprise.logoUrl} style={styles.logo} /> : null}
             <View>
               <Text style={[styles.nomEntreprise, { color: accent }]}>{entreprise.nom}</Text>
+              {entreprise.groupeNom ? <Text style={[styles.mentionGroupe, { color: accent }]}>Une entreprise du groupe {entreprise.groupeNom}</Text> : null}
               {entreprise.adresse ? <Text style={styles.ligneTexte}>{entreprise.adresse}</Text> : null}
               {entreprise.ville ? <Text style={styles.ligneTexte}>{entreprise.ville}</Text> : null}
               {entreprise.niu ? <Text style={styles.ligneTexte}>NIU : {entreprise.niu}</Text> : null}
@@ -261,7 +265,7 @@ export function DocumentCommercialPDF({
           <View style={[styles.piedDePageTrait, { backgroundColor: accent }]} />
           <View style={styles.piedDePageContenu}>
             <View>
-              <Text style={styles.piedDePageEntreprise}>{entreprise.nom}</Text>
+              <Text style={styles.piedDePageEntreprise}>{entreprise.groupeNom ? `${entreprise.nom} — groupe ${entreprise.groupeNom}` : entreprise.nom}</Text>
               <Text style={styles.piedDePageDetails}>{[coordonnees, mentionsLegales].filter(Boolean).join(" — ")}</Text>
             </View>
             <Text style={styles.piedDePagePage} render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />

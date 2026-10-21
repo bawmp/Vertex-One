@@ -38,6 +38,7 @@ export type SignataireCertificat = {
 
 export type CertificatSignatureProps = {
   entrepriseNom: string;
+  groupeNom?: string | null; // voir src/lib/pdf/groupe.ts
   titreDocument: string;
   nomFichier: string;
   empreinteDocument: string;
@@ -70,7 +71,7 @@ export function CertificatSignaturePDF(props: CertificatSignatureProps) {
       <Page size="A4" style={styles.page}>
         <View style={styles.bandeau}>
           <Text style={styles.titre}>Certificat de signature électronique</Text>
-          <Text style={styles.sousTitre}>{props.entrepriseNom} — généré le {formaterHorodatage(props.genereLe)}</Text>
+          <Text style={styles.sousTitre}>{props.groupeNom ? `${props.entrepriseNom} (groupe ${props.groupeNom})` : props.entrepriseNom} — généré le {formaterHorodatage(props.genereLe)}</Text>
         </View>
 
         <View style={styles.section}>
