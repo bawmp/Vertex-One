@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import { logoDirectementLisiblePourPDF, logoConvertibleEnPNG, convertirLogoEnPNG, svgContientDuTexte } from "@/lib/pdf/logo";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { lienEmail } from "@/lib/email/lien";
+import { formaterFCFAPourPDF } from "@/lib/facturation/calcul";
 
 describe("PDF — logo", () => {
   test("PNG et JPEG passent tels quels ; SVG, WebP et GIF sont convertis ; le reste est ignoré", () => {
@@ -51,6 +52,19 @@ describe("PDF — SVG avec du texte", () => {
     expect(svgContientDuTexte(Buffer.from('<svg><g><tspan>A</tspan></g></svg>'))).toBe(true);
     expect(svgContientDuTexte(Buffer.from('<svg><TEXT>A</TEXT></svg>'))).toBe(true);
     expect(svgContientDuTexte(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L10 10"/><rect width="5" height="5"/></svg>'))).toBe(false);
+  });
+});
+
+describe("PDF — séparateur des milliers", () => {
+  test("une espace ordinaire entre les milliers (jamais l'espace fine insécable, que la police du PDF dessine « / »)", () => {
+    expect(formaterFCFAPourPDF(150000)).toBe("150 000 FCFA");
+    expect(formaterFCFAPourPDF(1234567)).toBe("1 234 567 FCFA");
+    expect(formaterFCFAPourPDF(950)).toBe("950 FCFA");
+    for (const montant of [0, 999, 1000, 178875, 12345678]) {
+      const texte = formaterFCFAPourPDF(montant);
+      expect(texte, String(montant)).not.toMatch(/[  ]/);
+      expect(texte, String(montant)).toMatch(/^\d{1,3}( \d{3})* FCFA$/);
+    }
   });
 });
 

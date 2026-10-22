@@ -1,5 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { formaterFCFA } from "@/lib/facturation/calcul";
+import { formaterFCFAPourPDF as formaterFCFA } from "@/lib/facturation/calcul";
 
 /**
  * Reçu émis par VERTEX ONE lui-même vers un tenant qui paie son abonnement — sens inverse de
