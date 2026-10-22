@@ -193,4 +193,11 @@ export const VENTES: Record<string, string> = {
   "Compte de vente": "Sales account",
   "Prix d'achat": "Purchase price",
   "Ce produit n'apparaît encore sur aucun document.": "This product does not appear on any document yet.",
+  "Accepté par le client": "Accepted by the client",
+  "Refusé par le client": "Declined by the client",
+  "Le client a accepté ce devis le {date}.": "The client accepted this quote on {date}.",
+  "Le client a refusé ce devis le {date}.": "The client declined this quote on {date}.",
+  "La facture {numero} a été créée automatiquement.": "Invoice {numero} was created automatically.",
+  "Motif : « {motif} »": "Reason: “{motif}”",
+  "Aucun motif indiqué.": "No reason given.",
 };

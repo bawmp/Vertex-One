@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { Download, ArrowRight } from "lucide-react";
+import { Download, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { devis, ligneDevis, contact, compteClient, facture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -10,7 +10,7 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { STATUT_DEVIS } from "@/lib/libelles";
+import { statutDevisAffiche } from "@/lib/libelles";
 import { accepterDevis } from "@/lib/actions/devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
 import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
@@ -53,7 +53,8 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         : null;
 
   const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
-  const info = STATUT_DEVIS[leDevis.statut];
+  const info = statutDevisAffiche(leDevis);
+  const dateReponse = leDevis.reponseLe ? new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(leDevis.reponseLe) : null;
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -79,7 +80,26 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
         </Button>
       </div>
 
-      {jetonClient ? <EncartLienClient url={urlPubliqueDevis(jetonClient)} resume={resumeReponse} /> : null}
+      {leDevis.reponseLe && leDevis.statut === "ACCEPTE" ? (
+        <div role="status" className="flex items-start gap-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">{t("Le client a accepté ce devis le {date}.", { date: dateReponse ?? "" })}</p>
+            {laFacture ? <p className="mt-0.5">{t("La facture {numero} a été créée automatiquement.", { numero: laFacture.numero })}</p> : null}
+          </div>
+        </div>
+      ) : null}
+      {leDevis.reponseLe && leDevis.statut === "REFUSE" ? (
+        <div role="status" className="flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <XCircle className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">{t("Le client a refusé ce devis le {date}.", { date: dateReponse ?? "" })}</p>
+            <p className="mt-0.5">{leDevis.motifRefus ? t("Motif : « {motif} »", { motif: leDevis.motifRefus }) : t("Aucun motif indiqué.")}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {jetonClient ? <EncartLienClient url={urlPubliqueDevis(jetonClient)} resume={leDevis.reponseLe ? null : resumeReponse} /> : null}
 
       <Card className="p-0">
         <div className="overflow-x-auto">

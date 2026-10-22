@@ -9,7 +9,7 @@ import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { libelleDossier } from "@/lib/vocabulaire";
-import { STATUT_DEAL, STATUT_DEVIS, STATUT_FACTURE, STATUT_BON_COMMANDE_VENTE, STATUT_RECU_VENTE, STATUT_FACTURE_ACOMPTE, STATUT_FACTURE_RECURRENTE } from "@/lib/libelles";
+import { STATUT_DEAL, STATUT_DEVIS, statutDevisAffiche, STATUT_FACTURE, STATUT_BON_COMMANDE_VENTE, STATUT_RECU_VENTE, STATUT_FACTURE_ACOMPTE, STATUT_FACTURE_RECURRENTE } from "@/lib/libelles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -355,7 +355,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                   <Card className="p-0">
                     <div className="flex flex-col divide-y divide-border">
                       {devisListe.map((d) => {
-                        const infoDevis = STATUT_DEVIS[d.statut];
+                        const infoDevis = statutDevisAffiche(d);
                         return (
                           <Link key={d.id} href={`/app/facturation/devis/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
                             <span className="font-medium">{d.numero}</span>

@@ -5,6 +5,12 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## État du devis : la réponse du client se voit (2026-10-22)
+
+- **Quoi** : quand le client répond depuis son lien, l'état du devis le dit : « Accepté par le client » / « Refusé par le client » (badge vert ou rouge) dans la liste des devis, sur la fiche du devis, sur la fiche du contact et sur celle du deal. Sur la fiche du devis, un bandeau donne la date et l'heure de la réponse et la facture créée automatiquement (acceptation), ou le motif (refus). Un devis marqué accepté par un collaborateur reste « Accepté » tout court : il n'y a pas de date de réponse du client, et il n'est jamais présenté comme la décision du client.
+- **Code** : `statutDevisAffiche()` (`src/lib/libelles.ts`, repose sur `devis.reponseLe` posé par l'acceptation ou le refus public), `src/app/app/facturation/devis/[id]/page.tsx`.
+- **Pas encore** : une notification dans l'application (cloche, compteur) à la réponse du client ; aujourd'hui l'alerte part par email à l'assigné et au créateur du devis.
+
 ## Aperçu avant envoi et souche des emails envoyés (2026-10-22)
 
 - **Aperçu avant envoi** : sur un devis ou une facture, « Aperçu avant envoi » ouvre une fenêtre avec l'email tel qu'il partira (destinataire,

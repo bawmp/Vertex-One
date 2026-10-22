@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  STATUT_DEVIS,
+  statutDevisAffiche,
   STATUT_FACTURE,
   STATUT_BON_COMMANDE_VENTE,
   STATUT_FACTURE_RECURRENTE,
@@ -142,7 +142,7 @@ export default async function PageFacturation() {
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {devisVisibles.map((d, index) => {
-              const info = STATUT_DEVIS[d.statut];
+              const info = statutDevisAffiche(d);
               return (
                 <Link
                   key={d.id}

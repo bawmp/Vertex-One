@@ -46,6 +46,19 @@ export const STATUT_DEVIS: Record<string, { libelle: string; variante: VarianteB
   EXPIRE: { libelle: m("Expiré"), variante: "warning" },
 };
 
+/**
+ * État d'un devis à AFFICHER : quand c'est le client qui a répondu depuis son lien (date de réponse enregistrée), l'état
+ * le dit — « Accepté par le client » —, pour qu'on voie d'un coup d'œil, dans les listes comme sur la fiche, que la
+ * réponse vient bien de lui et non d'un collaborateur qui a marqué le devis accepté.
+ */
+export function statutDevisAffiche(d: { statut: string; reponseLe?: Date | null }): { libelle: string; variante: VarianteBadge } | undefined {
+  const base = STATUT_DEVIS[d.statut];
+  if (!base || !d.reponseLe) return base;
+  if (d.statut === "ACCEPTE") return { libelle: m("Accepté par le client"), variante: base.variante };
+  if (d.statut === "REFUSE") return { libelle: m("Refusé par le client"), variante: base.variante };
+  return base;
+}
+
 export const STATUT_FACTURE: Record<string, { libelle: string; variante: VarianteBadge }> = {
   EMISE: { libelle: m("Émise"), variante: "info" },
   PARTIELLEMENT_PAYEE: { libelle: m("Partiellement payée"), variante: "warning" },
