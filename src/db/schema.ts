@@ -553,6 +553,39 @@ export const documentRedige = pgTable(
   ]
 ).enableRLS();
 
+// Souche des emails envoyés (2026-10-22) : copie de chaque email envoyé à un client — destinataire, objet, corps tel
+// qu'il est parti, noms des pièces jointes — pour pouvoir toujours montrer ce qui a été écrit, à qui et quand. Les
+// pièces jointes elles-mêmes ne sont pas conservées (le PDF d'un devis ou d'une facture se régénère depuis le document).
+// Remplie par journaliserEmailEnvoye() (src/lib/crm/journaliser-email.ts), jamais depuis le navigateur.
+export const emailEnvoye = pgTable(
+  "email_envoye",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    // Null pour un envoi sans contact précis ; auteur nul pour un envoi automatique (relance, confirmation).
+    contactId: text("contact_id").references((): AnyPgColumn => contact.id),
+    auteurId: text("auteur_id").references(() => utilisateur.id),
+    destinataire: text("destinataire").notNull(),
+    sujet: text("sujet").notNull(),
+    corpsHtml: text("corps_html").notNull(),
+    piecesJointes: json("pieces_jointes").notNull().$type<{ nom: string; taille: number }[]>().default([]),
+    // « DEVIS », « FACTURE », « RELANCE », « CAMPAGNE », « DOCUMENT », « EMAIL »… (libellé libre côté code).
+    type: text("type").notNull().default("EMAIL"),
+    envoyeLe: timestamp("envoye_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("email_envoye_entreprise_idx").on(table.entrepriseId, table.envoyeLe),
+    index("email_envoye_contact_idx").on(table.contactId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Tables internes Better-Auth (session, compte, vérification) — champs
 // gardés aux noms natifs Better-Auth (anglais) pour éviter tout mapping
 // "fields" superflu (source d'erreurs, voir CLAUDE.md) ; seule la table

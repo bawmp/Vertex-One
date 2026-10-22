@@ -17,7 +17,7 @@ import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles"
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
-import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
+import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { getT } from "@/lib/i18n/langue";
 
 function urlBase(): string {
@@ -134,6 +134,43 @@ export async function genererLienPaiement(factureId: string): Promise<{ url?: st
 
 export type EtatEnvoiFacture = { erreur?: string; envoye?: boolean } | null;
 
+/** Objet et corps de l'email d'une facture, composés à un seul endroit : l'envoi réel et l'aperçu partent de ce même texte. */
+function composerEmailFacture(
+  modele: { objet: string; corps: string },
+  donnees: NonNullable<Awaited<ReturnType<typeof recupererFacturePourPDF>>>,
+  entete: string,
+  lien: string
+): { sujet: string; html: string } {
+  const variables = {
+    client: donnees.client?.nom ?? "",
+    numero: donnees.facture.numero,
+    montant: formaterFCFA(donnees.facture.montantTTC),
+    entreprise: donnees.entreprise.nom,
+  };
+  return {
+    sujet: interpoler(modele.objet, variables),
+    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${lien}">Consulter, accepter et régler cette facture en ligne</a></p>`,
+  };
+}
+
+export type ApercuEmailFacture = { erreur: string } | { destinataire: string | null; objet: string; corpsHtml: string; pieceJointe: string };
+
+/** Aperçu avant envoi d'une facture : l'email tel qu'il partira. Rien n'est envoyé ni enregistré. */
+export async function apercuEmailFacture(factureId: string): Promise<ApercuEmailFacture> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit d'envoyer cette facture.") };
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const donnees = await recupererFacturePourPDF(tx, utilisateurConnecte, factureId);
+    if (!donnees) return { erreur: t("Facture introuvable.") };
+    const modele = await recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_FACTURE");
+    const { sujet, html } = composerEmailFacture(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), "#");
+    return { destinataire: donnees.client?.email ?? null, objet: sujet, corpsHtml: html, pieceJointe: `${donnees.facture.numero}.pdf` };
+  });
+}
+
 /**
  * Même mécanique que envoyerDevis() (voir src/lib/actions/devis.ts) : envoi
  * réel par email avec le PDF en pièce jointe. Contrairement au devis,
@@ -176,24 +213,24 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
       }),
     ]);
 
-    const variables = {
-      client: donnees.client.nom,
-      numero: donnees.facture.numero,
-      montant: formaterFCFA(donnees.facture.montantTTC),
-      entreprise: donnees.entreprise.nom,
-    };
-
-    const sujet = interpoler(modele.objet, variables);
+    const { sujet, html } = composerEmailFacture(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), urlPubliqueFacture(jetonClient));
+    const piecesJointes = [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }];
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: sujet,
-      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueFacture(jetonClient)}">Consulter, accepter et régler cette facture en ligne</a></p>`,
-      attachments: [{ filename: `${donnees.facture.numero}.pdf`, content: buffer }],
+      html,
+      attachments: piecesJointes,
       ...(await expediteurDe(tx, utilisateurConnecte)),
     });
 
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
-    await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: donnees.facture.contactId, auteurId: utilisateurConnecte.utilisateurId, sujet });
+    await journaliserEmailEnvoye(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      contactId: donnees.facture.contactId,
+      auteurId: utilisateurConnecte.utilisateurId,
+      sujet,
+      souche: { destinataire: donnees.client.email, html, piecesJointes: resumePiecesJointes(piecesJointes), type: "FACTURE" },
+    });
     return { envoye: true };
   });
 }

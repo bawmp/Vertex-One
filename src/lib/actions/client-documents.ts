@@ -171,16 +171,17 @@ export async function repondreDevisPublic(
   const emailClient = contexte.clientEmail;
   if (emailClient) {
     const sujetFacture = `Votre facture ${resultat.numeroFacture} — ${contexte.entrepriseNom}`;
+    const htmlFacture = `<p>Bonjour ${echapper(contexte.clientNom)},</p><p>Merci d'avoir accepté le devis ${echapper(contexte.numero)}. Votre facture ${echapper(resultat.numeroFacture)} (${contexte.montant}) est disponible : vous pouvez la régler maintenant ou plus tard depuis ce lien.</p><p><a href="${lienFacture}">Consulter et payer ma facture</a></p><p>${echapper(contexte.entrepriseNom)}</p>`;
     after(() =>
       envoyerEmail({
         to: emailClient,
         subject: sujetFacture,
-        html: `<p>Bonjour ${echapper(contexte.clientNom)},</p><p>Merci d'avoir accepté le devis ${echapper(contexte.numero)}. Votre facture ${echapper(resultat.numeroFacture)} (${contexte.montant}) est disponible : vous pouvez la régler maintenant ou plus tard depuis ce lien.</p><p><a href="${lienFacture}">Consulter et payer ma facture</a></p><p>${echapper(contexte.entrepriseNom)}</p>`,
+        html: htmlFacture,
       })
         .then((r) => {
           if (r.envoye) {
             return avecEntreprise(lien.entrepriseId, (tx) =>
-              journaliserEmailEnvoye(tx, { entrepriseId: lien.entrepriseId, contactId: contexte.contactId, auteurId: null, sujet: sujetFacture }),
+              journaliserEmailEnvoye(tx, { entrepriseId: lien.entrepriseId, contactId: contexte.contactId, auteurId: null, sujet: sujetFacture, souche: { destinataire: emailClient, html: htmlFacture, type: "FACTURE" } }),
             );
           }
         })

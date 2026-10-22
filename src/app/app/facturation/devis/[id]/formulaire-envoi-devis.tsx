@@ -1,24 +1,27 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import Link from "next/link";
 import { Send, CheckCircle2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { envoyerDevis } from "@/lib/actions/devis";
+import { envoyerDevis, apercuEmailDevis } from "@/lib/actions/devis";
+import { ApercuAvantEnvoi } from "../../apercu-avant-envoi";
 import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { devisId: string; peutPersonnaliserModele: boolean }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(envoyerDevis.bind(null, devisId), null);
+  const formulaire = useRef<HTMLFormElement>(null);
 
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form ref={formulaire} action={action} className="flex flex-col gap-2">
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={enCours}>
           {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
           {enCours ? t("Envoi en cours…") : t("Envoyer au client par email")}
         </Button>
+        <ApercuAvantEnvoi charger={() => apercuEmailDevis(devisId)} pdfUrl={`/app/facturation/devis/${devisId}/pdf`} envoyer={() => formulaire.current?.requestSubmit()} enCoursEnvoi={enCours} />
         {peutPersonnaliserModele ? (
           <Link
             href="/app/parametres/modeles-email"

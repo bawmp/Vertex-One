@@ -5,6 +5,23 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Aperçu avant envoi et souche des emails envoyés (2026-10-22)
+
+- **Aperçu avant envoi** : sur un devis ou une facture, « Aperçu avant envoi » ouvre une fenêtre avec l'email tel qu'il partira (destinataire,
+  objet, message, pièce jointe) à côté du vrai PDF. Rien n'est envoyé ni enregistré tant qu'on ne clique pas sur « Envoyer au client par
+  email ». Si le client n'a pas d'adresse email, l'aperçu le dit et l'envoi est désactivé. L'email est composé par le même code que l'envoi
+  réel (`composerEmailDevis()` / `composerEmailFacture()`), donc l'aperçu ne peut pas différer de ce qui part.
+- **Souche** : chaque email envoyé à un client (devis, facture, bon de commande, reçu, acompte, contrat, relance, campagne, confirmation
+  après acceptation d'un devis) est conservé tel quel dans `email_envoye` : destinataire, objet, corps, noms et tailles des pièces jointes,
+  date, auteur. **Paramètres → Emails envoyés** : liste, recherche (destinataire, objet) et filtre par type ; le détail affiche le message
+  dans un cadre isolé. L'Administrateur voit tous les envois de l'entreprise, les autres seulement les leurs (jamais un envoi automatique
+  ni celui d'un collègue).
+- **Pas conservé** : le PDF joint lui-même (il se régénère depuis le document) ; les emails qui ne passent pas par `journaliserEmailEnvoye()`
+  (alertes internes à l'équipe, messages de candidats, emails d'accès) ne sont pas dans la souche.
+- **Code** : `emailEnvoye` (migration `0119`, RLS + FORCE), `journaliserEmailEnvoye(..., { souche })` (`src/lib/crm/journaliser-email.ts`),
+  `src/lib/email/souche.ts`, `src/app/app/parametres/emails-envoyes/`, `src/app/app/facturation/apercu-avant-envoi.tsx`,
+  tests `tests/souche-emails.test.ts` (isolation entre entreprises incluse).
+
 ## Logo en filigrane sur les documents de vente (2026-10-22)
 
 - **Quoi** : le logo de l'entreprise apparaît en filigrane (centré, très pâle, sous le texte) sur chaque page de ses devis, factures, bons de

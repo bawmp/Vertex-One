@@ -834,6 +834,13 @@
       "when": 1791030000000,
       "tag": "0118_utilisateur_supprime",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1791040000000,
+      "tag": "0119_email_envoye",
+      "breakpoints": true
     }
   ]
 }

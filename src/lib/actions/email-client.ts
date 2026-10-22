@@ -15,7 +15,7 @@ import { enteteLogoEmail } from "@/lib/email/logo";
 import { expediteurDe } from "@/lib/email/expediteur";
 import { corpsVersHtml } from "@/lib/email/modeles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
-import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
+import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import {
   recupererBonCommandeVentePourPDF,
   recupererRecuVentePourPDF,
@@ -123,16 +123,24 @@ export async function envoyerDocumentVente(type: TypeDocumentVente, documentId: 
     const sujet = `${lib.nom.charAt(0).toUpperCase()}${lib.nom.slice(1)} ${numero} — ${nomEntreprise}`;
     const corps = `Bonjour ${client.nom},\n\nVeuillez trouver ci-joint ${lib.article} ${lib.nom} ${numero} d'un montant de ${formaterFCFA(montant)}.\n\nCordialement,\n${nomEntreprise}`;
 
+    const html = (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(corps);
+    const piecesJointes = [{ filename: `${numero}.pdf`, content: buffer }];
     const { envoye, erreur } = await envoyerEmail({
       to: client.email,
       subject: sujet,
-      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(corps),
-      attachments: [{ filename: `${numero}.pdf`, content: buffer }],
+      html,
+      attachments: piecesJointes,
       ...(await expediteurDe(tx, utilisateurConnecte)),
     });
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
-    await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId, auteurId: utilisateurConnecte.utilisateurId, sujet });
+    await journaliserEmailEnvoye(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      contactId,
+      auteurId: utilisateurConnecte.utilisateurId,
+      sujet,
+      souche: { destinataire: client.email, html, piecesJointes: resumePiecesJointes(piecesJointes), type: type },
+    });
     return { envoye: true };
   });
 
@@ -263,16 +271,24 @@ export async function envoyerContratParEmail(contratId: string, _etat: EtatEmail
     const sujet = `${leContrat.titre} — ${nomEntreprise}`.replace(/ — $/, "");
     const corps = `Bonjour ${leContact.nom},\n\nVeuillez trouver ci-joint le document « ${leDocument.nom} » relatif à votre contrat « ${leContrat.titre} ».\n\nCordialement,\n${nomEntreprise}`;
 
+    const html = entete + corpsVersHtml(corps);
+    const piecesJointes = [{ filename: leDocument.nom, content: contenu }];
     const { envoye, erreur } = await envoyerEmail({
       to: leContact.email,
       subject: sujet,
-      html: entete + corpsVersHtml(corps),
-      attachments: [{ filename: leDocument.nom, content: contenu }],
+      html,
+      attachments: piecesJointes,
       ...expediteur,
     });
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
-    await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: leContact.id, auteurId: utilisateurConnecte.utilisateurId, sujet });
+    await journaliserEmailEnvoye(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      contactId: leContact.id,
+      auteurId: utilisateurConnecte.utilisateurId,
+      sujet,
+      souche: { destinataire: leContact.email, html, piecesJointes: resumePiecesJointes(piecesJointes), type: "CONTRAT" },
+    });
     return { envoye: true, dossierId: leContrat.dossierId };
   });
 

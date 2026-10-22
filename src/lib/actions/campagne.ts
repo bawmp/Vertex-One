@@ -95,10 +95,11 @@ export async function envoyerCampagne(campagneId: string): Promise<EtatEnvoiCamp
     for (const contact of contacts) {
       if (laCampagne.canal === "EMAIL") {
         if (!contact.email) continue;
-        const { envoye } = await envoyerEmail({ to: contact.email, subject: laCampagne.nom, html: enteteLogo + `<p>${laCampagne.contenu.replace(/\n/g, "</p><p>")}</p>` });
+        const html = enteteLogo + `<p>${laCampagne.contenu.replace(/\n/g, "</p><p>")}</p>`;
+        const { envoye } = await envoyerEmail({ to: contact.email, subject: laCampagne.nom, html });
         if (envoye) {
           envoyes++;
-          await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: contact.id, auteurId: utilisateurConnecte.utilisateurId, sujet: laCampagne.nom });
+          await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: contact.id, auteurId: utilisateurConnecte.utilisateurId, sujet: laCampagne.nom, souche: { destinataire: contact.email, html, type: "CAMPAGNE" } });
         }
       } else {
         const { envoye } = await envoyerWhatsApp(contact.telephone, laCampagne.contenu);

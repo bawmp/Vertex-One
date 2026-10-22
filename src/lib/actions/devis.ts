@@ -19,7 +19,7 @@ import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
-import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
+import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -150,6 +150,50 @@ export async function accepterDevis(devisId: string) {
 export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;
 
 /**
+ * Objet et corps de l'email d'un devis, composés à UN seul endroit : l'envoi réel et l'aperçu avant envoi partent de
+ * ce même texte, donc l'aperçu montre exactement ce que le client recevra.
+ */
+function composerEmailDevis(
+  modele: { objet: string; corps: string },
+  donnees: NonNullable<Awaited<ReturnType<typeof recupererDevisPourPDF>>>,
+  entete: string,
+  lien: string
+): { sujet: string; html: string } {
+  const variables = {
+    client: donnees.client?.nom ?? "",
+    numero: donnees.devis.numero,
+    montant: formaterFCFA(donnees.devis.montantTTC),
+    entreprise: donnees.entreprise.nom,
+  };
+  return {
+    sujet: interpoler(modele.objet, variables),
+    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${lien}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
+  };
+}
+
+export type ApercuEmailEnvoi = { erreur: string } | { destinataire: string | null; objet: string; corpsHtml: string; pieceJointe: string };
+
+/**
+ * Aperçu avant envoi : l'email tel qu'il partira (destinataire, objet, corps). Le PDF joint se montre à part, par
+ * la même route que le téléchargement. Rien n'est envoyé ni enregistré ; le lien du devis en ligne n'est créé qu'à
+ * l'envoi, l'aperçu en montre l'emplacement.
+ */
+export async function apercuEmailDevis(devisId: string): Promise<ApercuEmailEnvoi> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit d'envoyer ce devis.") };
+
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const donnees = await recupererDevisPourPDF(tx, utilisateurConnecte, devisId);
+    if (!donnees) return { erreur: t("Devis introuvable.") };
+    const modele = await recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_DEVIS");
+    const { sujet, html } = composerEmailDevis(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), "#");
+    return { destinataire: donnees.client?.email ?? null, objet: sujet, corpsHtml: html, pieceJointe: `${donnees.devis.numero}.pdf` };
+  });
+}
+
+/**
  * Envoi réel par email (Resend), pièce jointe PDF générée à la volée —
  * WhatsApp reste un TODO (API Meta Cloud non configurée, même traitement que
  * les autres intégrations externes de ce projet). Le statut ne passe à
@@ -191,25 +235,25 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
       }),
     ]);
 
-    const variables = {
-      client: donnees.client.nom,
-      numero: donnees.devis.numero,
-      montant: formaterFCFA(donnees.devis.montantTTC),
-      entreprise: donnees.entreprise.nom,
-    };
-
-    const sujet = interpoler(modele.objet, variables);
+    const { sujet, html } = composerEmailDevis(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), urlPubliqueDevis(jetonClient));
+    const piecesJointes = [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }];
     const { envoye, erreur } = await envoyerEmail({
       to: donnees.client.email,
       subject: sujet,
-      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${urlPubliqueDevis(jetonClient)}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
-      attachments: [{ filename: `${donnees.devis.numero}.pdf`, content: buffer }],
+      html,
+      attachments: piecesJointes,
       ...(await expediteurDe(tx, utilisateurConnecte)),
     });
 
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
-    await journaliserEmailEnvoye(tx, { entrepriseId: utilisateurConnecte.entrepriseId, contactId: donnees.devis.contactId, auteurId: utilisateurConnecte.utilisateurId, sujet });
+    await journaliserEmailEnvoye(tx, {
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      contactId: donnees.devis.contactId,
+      auteurId: utilisateurConnecte.utilisateurId,
+      sujet,
+      souche: { destinataire: donnees.client.email, html, piecesJointes: resumePiecesJointes(piecesJointes), type: "DEVIS" },
+    });
     await tx.update(devis).set({ statut: "ENVOYE" }).where(eq(devis.id, devisId));
     return { envoye: true };
   });

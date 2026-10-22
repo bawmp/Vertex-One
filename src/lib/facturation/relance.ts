@@ -67,7 +67,7 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
       });
       const { envoye, erreur } = await envoyerEmail({ to: leContact.email, subject, html: enteteLogo + html });
       if (envoye) {
-        await journaliserEmailEnvoye(tx, { entrepriseId, contactId: leContact.id, auteurId: null, sujet: subject });
+        await journaliserEmailEnvoye(tx, { entrepriseId, contactId: leContact.id, auteurId: null, sujet: subject, souche: { destinataire: leContact.email, html: enteteLogo + html, type: "RELANCE" } });
       }
       resultats.push({ factureId: f.id, numero: f.numero, canal: "email", envoye, erreur });
     }
