@@ -60,7 +60,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Offres modifiables à tout moment, désactivables puis réactivables ; une offre qui a déjà reçu des candidatures se désactive au lieu de se supprimer":
     "Job offers editable at any time, deactivatable and reactivatable; an offer that has already received applications is deactivated rather than deleted",
   "Candidatures corrigeables, annulables (et rétablissables) ou supprimables avec effacement réel du CV": "Applications that can be corrected, cancelled (and restored) or deleted, with real erasure of the CV",
-  "Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — textes personnalisables avec aperçu, envoi désactivable": "The candidate is notified by email at every status change of their application (under review, interview, offer, hired, rejected), in your company's name — customisable texts with a preview, can be switched off",
+  "Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — textes personnalisables avec aperçu ; à chaque changement, vous relisez et modifiez le message avant son envoi, ou changez le statut sans prévenir ; envoi désactivable": "The candidate is notified by email at every status change of their application (under review, interview, offer, hired, rejected), in your company's name — customisable texts with a preview; at each change you review and edit the message before it is sent, or change the status without notifying; can be switched off",
 
   // One Desk
   "Tickets clients par catégorie, avec assignation et suivi de résolution.": "Customer tickets by category, with assignment and resolution tracking.",
@@ -93,6 +93,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Code de vérification envoyé par email, adresse IP, appareil et consentement capturés dans un certificat d'audit consultable":
     "Verification code sent by email, IP address, device and consent captured in a viewable audit certificate",
   "Supprimer ou remplacer un document depuis One Docs, avec confirmation": "Delete or replace a document from One Docs, with confirmation",
+  "Rédiger un document directement dans Vertex One — titres, listes, tableaux et images, avec l'en-tête de votre entreprise, un pied de page et des numéros de page — puis le télécharger en PDF ou en Word, ou l'ajouter à vos documents":
+    "Write a document directly in Vertex One — headings, lists, tables and images, with your company letterhead, a footer and page numbers — then download it as PDF or Word, or add it to your documents",
   "Envoi d'un contrat au client depuis son dossier : il lit le document, le signe ou le refuse en indiquant pourquoi":
     "Sending a contract to the client from their file: they read the document, sign it or decline it with a reason",
   "À la signature, le contrat signé et son certificat horodaté (date et heure de Yaoundé) sont rangés directement dans le dossier du client et envoyés à l'Administrateur et au signataire":

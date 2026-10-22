@@ -617,3 +617,24 @@
     animation: none;
   }
 }
+
+/* ===== Éditeur de documents rédigés (Documents → Rédiger un document) ===== */
+.editeur-contenu { outline: none; min-height: 520px; font-size: 0.95rem; line-height: 1.6; }
+.editeur-contenu p { margin: 0 0 0.45rem; }
+.editeur-contenu h1 { font-size: 1.6rem; font-weight: 700; margin: 0.9rem 0 0.5rem; line-height: 1.25; }
+.editeur-contenu h2 { font-size: 1.25rem; font-weight: 700; margin: 0.8rem 0 0.45rem; line-height: 1.3; }
+.editeur-contenu h3 { font-size: 1.05rem; font-weight: 700; margin: 0.7rem 0 0.4rem; line-height: 1.3; }
+.editeur-contenu ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 0.5rem; }
+.editeur-contenu ol { list-style: decimal; padding-left: 1.4rem; margin: 0 0 0.5rem; }
+.editeur-contenu li > p { margin: 0 0 0.15rem; }
+.editeur-contenu blockquote { border-left: 3px solid #d6d3d1; padding-left: 0.9rem; margin: 0.5rem 0; color: #57534e; }
+.editeur-contenu hr { border: 0; border-top: 1px solid #d6d3d1; margin: 0.9rem 0; }
+.editeur-contenu table { border-collapse: collapse; width: 100%; margin: 0.6rem 0; table-layout: fixed; }
+.editeur-contenu th, .editeur-contenu td { border: 1px solid #d6d3d1; padding: 0.35rem 0.5rem; vertical-align: top; position: relative; }
+.editeur-contenu th { background: #f5f5f4; font-weight: 700; text-align: left; }
+.editeur-contenu .selectedCell::after { content: ""; position: absolute; inset: 0; background: rgba(59, 130, 246, 0.15); pointer-events: none; }
+.editeur-contenu img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
+.editeur-contenu img.ProseMirror-selectednode { outline: 2px solid #3b82f6; }
+.editeur-contenu .saut-de-page { display: flex; align-items: center; gap: 0.6rem; margin: 1rem 0; color: #78716c; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.editeur-contenu .saut-de-page::before, .editeur-contenu .saut-de-page::after { content: ""; flex: 1; border-top: 1px dashed #a8a29e; }
+.editeur-contenu .saut-de-page.ProseMirror-selectednode { color: #3b82f6; }

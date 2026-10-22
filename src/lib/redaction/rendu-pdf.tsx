@@ -238,16 +238,18 @@ function aUnPied(m: MiseEnPage): boolean {
   return m.numerotation !== "AUCUNE" || !!m.piedGauche || !!m.piedCentre || !!m.piedDroite;
 }
 
+/**
+ * Règles react-pdf à respecter pour que l'en-tête des pages suivantes (élément dynamique `render`) ne disparaisse pas — chacune a
+ * été vérifiée une à une par essai : l'en-tête est appelé comme une FONCTION (pas comme un composant React), les styles sont des
+ * OBJETS simples (jamais des tableaux), et la page n'a pas de `lineHeight` (porté par les paragraphes et les titres).
+ */
 export function DocumentRedigePDF({ titre, contenu, miseEnPage: m, identite, dateEdition }: PropsDocumentRedigePDF) {
   const marge = margePt(m.marges);
   const pied = aUnPied(m);
   return (
     <Document title={titre} author={identite.nom} creator="Vertex One">
-      // Style de page en OBJET simple : avec un tableau de styles, react-pdf perd l'en-tête dynamique des pages suivantes.
       <Page size="A4" style={{ ...styles.page, paddingTop: marge, paddingHorizontal: marge, paddingBottom: marge + (pied ? 34 : 0) }}>
         {aUnEntete(m) ? (
-          // L'en-tête est appelé comme une FONCTION (pas comme un composant) : react-pdf ne développe pas un composant React
-          // renvoyé par `render`, seulement ses éléments de base (View, Text, Image) — sinon l'en-tête disparaît du PDF.
           m.pagesEntete === "SUIVANTES" ? (
             <View fixed render={({ pageNumber }) => (pageNumber === 1 ? <View /> : Entete({ miseEnPage: m, identite, dateEdition, compact: true }))} />
           ) : m.pagesEntete === "PREMIERE" ? (

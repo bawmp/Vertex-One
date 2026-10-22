@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray } from "drizzle-orm";
-import { FileText, Lock, Download, ShieldAlert } from "lucide-react";
+import { FileText, Lock, Download, PenLine, ShieldAlert } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { document, dossier, projet, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -14,6 +14,7 @@ import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
 import { DemandesSuppression } from "./demandes-suppression";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { FormulaireDocument } from "../projets/formulaire-document";
 import { getT } from "@/lib/i18n/langue";
 
@@ -115,6 +116,11 @@ export default async function PageDocuments() {
       <p className="text-sm text-muted-foreground">
         {t("Les fichiers rattachés à un dossier ou un projet se déposent depuis leur propre fiche. Un fichier qui ne concerne aucun des deux (un contrat vierge, un modèle...) se dépose directement ici — jamais catégorisable en pièce sensible, faute de dossier auquel rattacher cette restriction.")}
       </p>
+      {peutVoir ? (
+        <Link href="/app/documents/rediger" className={`${buttonVariants({ variant: "outline" })} w-fit`}>
+          <PenLine data-icon="inline-start" aria-hidden /> Rédiger un document
+        </Link>
+      ) : null}
       {peutCreer ? <FormulaireDocument consentementManquant={false} autoriserSensible={false} /> : null}
       {peut(utilisateurConnecte, "DOCUMENTS", "SUPPRIMER") ? (
         <DemandesSuppression demandes={documents.filter((d) => demandes[d.id]).map((d) => ({ ...demandes[d.id], documentNom: d.nom }))} />

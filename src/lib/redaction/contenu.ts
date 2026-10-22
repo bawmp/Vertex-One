@@ -30,12 +30,12 @@ export type NoeudRedaction =
 export type ContenuRedaction = { type: "doc"; content: NoeudRedaction[] };
 
 export const LIMITES = {
-  octetsJsonMax: 6_000_000, // le document entier, images comprises
+  octetsJsonMax: 4_000_000, // le document entier, images comprises (la limite de corps de requête de Vercel est de 4,5 Mo)
   profondeurMax: 12,
   noeudsMax: 20_000,
   texteMax: 50_000, // caractères par morceau de texte
-  imagesMax: 12,
-  octetsImageMax: 1_500_000, // par image, une fois décodée
+  imagesMax: 8,
+  octetsImageMax: 1_000_000, // par image, une fois décodée
   titreMax: 150,
 } as const;
 
@@ -119,7 +119,7 @@ function nettoyerNoeud(brut: unknown, profondeur: number, c: Compteurs): NoeudRe
       const src = typeof attrs.src === "string" ? attrs.src : "";
       const m = IMAGE_DATA.exec(src);
       if (!m) return null; // jamais d'adresse distante : l'image est intégrée au document
-      if (Math.floor((m[2].length * 3) / 4) > LIMITES.octetsImageMax) throw new Error("Une image dépasse 1,5 Mo.");
+      if (Math.floor((m[2].length * 3) / 4) > LIMITES.octetsImageMax) throw new Error("Une image dépasse 1 Mo.");
       if (++c.images > LIMITES.imagesMax) throw new Error(`Maximum ${LIMITES.imagesMax} images par document.`);
       const largeur = entierBorne(attrs.largeur, 10, 100); // en % de la largeur de la page
       const alt = typeof attrs.alt === "string" ? attrs.alt.slice(0, 200) : undefined;
@@ -136,7 +136,7 @@ function nettoyerNoeud(brut: unknown, profondeur: number, c: Compteurs): NoeudRe
  */
 export function validerContenu(brut: unknown): { contenu: ContenuRedaction } | { erreur: string } {
   try {
-    if (JSON.stringify(brut ?? null).length > LIMITES.octetsJsonMax) return { erreur: "Document trop volumineux (6 Mo maximum, images comprises)." };
+    if (JSON.stringify(brut ?? null).length > LIMITES.octetsJsonMax) return { erreur: "Document trop volumineux (4 Mo maximum, images comprises)." };
     if (!brut || typeof brut !== "object" || (brut as { type?: unknown }).type !== "doc") return { erreur: "Contenu du document invalide." };
     const c: Compteurs = { noeuds: 0, images: 0 };
     const content = nettoyerEnfants((brut as { content?: unknown }).content, 0, c);

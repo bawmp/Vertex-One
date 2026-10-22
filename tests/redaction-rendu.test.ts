@@ -87,7 +87,7 @@ describe("Validation du contenu (liste blanche)", () => {
     expect("erreur" in validerContenu(null)).toBe(true);
     const lourde = "data:image/png;base64," + "A".repeat(Math.ceil(((LIMITES.octetsImageMax + 10) * 4) / 3));
     const r1 = validerContenu({ type: "doc", content: [{ type: "image", attrs: { src: lourde } }] });
-    expect("erreur" in r1 && r1.erreur).toMatch(/1,5 Mo/);
+    expect("erreur" in r1 && r1.erreur).toMatch(/1 Mo/);
     const r2 = validerContenu({ type: "doc", content: Array.from({ length: LIMITES.imagesMax + 1 }, () => ({ type: "image", attrs: { src: IMAGE } })) });
     expect("erreur" in r2 && r2.erreur).toMatch(/images/);
     const enorme = validerContenu({ type: "doc", content: [para("x".repeat(LIMITES.octetsJsonMax))] });

@@ -121,7 +121,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Page carrières publique aux couleurs de l'entreprise, avec dépôt de candidature et CV"),
       m("Offres modifiables à tout moment, désactivables puis réactivables ; une offre qui a déjà reçu des candidatures se désactive au lieu de se supprimer"),
       m("Candidatures corrigeables, annulables (et rétablissables) ou supprimables avec effacement réel du CV"),
-      m("Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — textes personnalisables avec aperçu, envoi désactivable"),
+      m("Le candidat est prévenu par email à chaque changement de statut de sa candidature (en examen, entretien, offre, embauche, rejet), au nom de votre entreprise — textes personnalisables avec aperçu ; à chaque changement, vous relisez et modifiez le message avant son envoi, ou changez le statut sans prévenir ; envoi désactivable"),
     ],
   },
   {
@@ -178,6 +178,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Signature électronique avec empreinte du document au moment de l'envoi"),
       m("Code de vérification envoyé par email, adresse IP, appareil et consentement capturés dans un certificat d'audit consultable"),
       m("Supprimer ou remplacer un document depuis One Docs, avec confirmation"),
+      m("Rédiger un document directement dans Vertex One — titres, listes, tableaux et images, avec l'en-tête de votre entreprise, un pied de page et des numéros de page — puis le télécharger en PDF ou en Word, ou l'ajouter à vos documents"),
       m("Envoi d'un contrat au client depuis son dossier : il lit le document, le signe ou le refuse en indiquant pourquoi"),
       m("À la signature, le contrat signé et son certificat horodaté (date et heure de Yaoundé) sont rangés directement dans le dossier du client et envoyés à l'Administrateur et au signataire"),
     ],

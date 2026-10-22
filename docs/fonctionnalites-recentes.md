@@ -5,6 +5,44 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Rédiger un document dans Vertex One (2026-10-22)
+
+- **Quoi** : un éditeur de documents (lettres, contrats, comptes rendus...) dans One Docs : titres, gras/italique/souligné/barré,
+  listes, citations, tableaux (lignes/colonnes, fusion), images, alignements, séparateurs et sauts de page. L'en-tête reprend l'identité
+  de l'entreprise (logo, nom, adresse, NIU/RCCM et, si elle appartient à un groupe, « Une entreprise du groupe X »), avec une
+  référence, la date du jour et deux textes libres ; le pied de page porte trois textes libres et la numérotation (« Page 2 / 5 »,
+  « Page 2 » ou aucune, à gauche, au centre ou à droite). L'en-tête s'affiche sur toutes les pages, sur la première seulement
+  (papier à en-tête) ou sur les suivantes seulement (version compacte, sans logo). Marges étroites, normales ou larges.
+  Enregistrement automatique 1,5 s après la dernière modification ; **aperçu PDF** exact dans la page ; téléchargement en **PDF**
+  et en **Word (.docx)** ; « Ajouter aux Documents » range le fichier dans One Docs comme n'importe quel téléversement.
+- **Où** : One Docs → « Rédiger un document » (`/app/documents/rediger`). Droits du module Documents : voir (lire, exporter), créer,
+  modifier, supprimer ; la portée suit le rôle (un Employé ne voit que ses propres documents).
+- **Sécurité** : le contenu est stocké en JSON (jamais en HTML) et **revalidé en liste blanche à chaque enregistrement** (types de
+  blocs, styles, attributs, 4 Mo au total, 8 images de 1 Mo, images intégrées PNG/JPEG uniquement — jamais d'adresse distante) ;
+  la table `document_redige` porte `entreprise_id`, RLS + FORCE ; l'export revérifie session, droit et portée à chaque appel.
+- **Pièges react-pdf trouvés en construisant** (chacun vérifié par essai, voir `DocumentRedigePDF`) : l'en-tête réservé aux pages
+  suivantes est un élément dynamique (`render`) qui disparaît du PDF si la page porte un `lineHeight`, si un style est un
+  tableau (au lieu d'un objet) ou si l'élément est un composant React (au lieu d'être appelé comme une fonction) ; il ne peut
+  pas contenir d'image, d'où la version compacte sans logo. Le texte d'un PDF se vérifie dans les tests en décompressant ses flux.
+- **Code** : `src/lib/redaction/` (`contenu.ts`, `mise-en-page.ts`, `identite.ts`, `rendu-pdf.tsx`, `rendu-docx.ts`, `service.ts`),
+  `src/lib/actions/redaction.ts`, `src/app/app/documents/rediger/` (liste, éditeur TipTap, route d'export), migration `0117`,
+  tests `tests/redaction-rendu.test.ts`, `tests/redaction-isolation.test.ts`, `tests-e2e/redaction-documents.spec.ts`.
+- **Pas encore** : liens, polices personnalisées, commentaires, historique des versions, modèles de documents, rattachement à un
+  contact ou un dossier, tableaux avec cellules fusionnées en Word dans tous les cas (le rendu PDF les place sur une ligne simple).
+
+## One Recruit : le message au candidat se relit et se modifie avant l'envoi (2026-10-22)
+
+- **Quoi** : quand on change le statut d'une candidature, une fenêtre montre le message qui partirait (modèle de l'entreprise,
+  variables remplacées) : l'objet et le texte sont modifiables, puis « Envoyer et changer le statut », « Changer sans prévenir »
+  ou « Annuler » (le statut reste inchangé). Sans adresse email, pour « Reçue » ou quand l'entreprise a coupé les notifications,
+  le statut change directement, comme avant. Annuler/rétablir une candidature ne prévient toujours personne.
+- **Où** : One Recruit → fiche d'une candidature → sélecteur « Statut ». Les modèles par défaut restent dans Paramètres → Modèles d'email.
+- **Sécurité** : le destinataire vient TOUJOURS de la candidature en base ; le message modifié est revalidé côté serveur (objet
+  sur une ligne de 200 caractères au plus, texte de 5 000 au plus) et échappé en HTML ; ses `{{variables}}` ne sont pas réinterprétées.
+- **Code** : `apercuEmailStatut()`, `nettoyerContenuPersonnalise()` et le paramètre `contenu` de `changerStatutEtPreparerEmail()`
+  (`src/lib/recrutement/notification.ts`), `apercuEmailStatutCandidature()` et `changerStatutCandidature(..., { objet, corps })`
+  (`src/lib/actions/recrutement.ts`), `controles-candidature.tsx`, tests `tests/recrutement-notification.test.ts`.
+
 ## Publicités Facebook : les prospects deviennent des leads (2026-10-13)
 
 - **Quoi** : l'Administrateur relie la page Facebook de son entreprise ; chaque prospect qui remplit le formulaire d'une
