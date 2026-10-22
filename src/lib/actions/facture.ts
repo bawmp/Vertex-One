@@ -18,6 +18,7 @@ import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
+import { lienEmail } from "@/lib/email/lien";
 import { getT } from "@/lib/i18n/langue";
 
 function urlBase(): string {
@@ -139,7 +140,7 @@ function composerEmailFacture(
   modele: { objet: string; corps: string },
   donnees: NonNullable<Awaited<ReturnType<typeof recupererFacturePourPDF>>>,
   entete: string,
-  lien: string
+  lien: string | null
 ): { sujet: string; html: string } {
   const variables = {
     client: donnees.client?.nom ?? "",
@@ -149,7 +150,7 @@ function composerEmailFacture(
   };
   return {
     sujet: interpoler(modele.objet, variables),
-    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${lien}">Consulter, accepter et régler cette facture en ligne</a></p>`,
+    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + lienEmail(lien, "Consulter, accepter et régler cette facture en ligne"),
   };
 }
 
@@ -166,7 +167,7 @@ export async function apercuEmailFacture(factureId: string): Promise<ApercuEmail
     const donnees = await recupererFacturePourPDF(tx, utilisateurConnecte, factureId);
     if (!donnees) return { erreur: t("Facture introuvable.") };
     const modele = await recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_FACTURE");
-    const { sujet, html } = composerEmailFacture(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), "#");
+    const { sujet, html } = composerEmailFacture(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), null);
     return { destinataire: donnees.client?.email ?? null, objet: sujet, corpsHtml: html, pieceJointe: `${donnees.facture.numero}.pdf` };
   });
 }

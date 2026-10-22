@@ -7,8 +7,16 @@ import { RecuAbonnementPDF, type RecuAbonnementProps } from "./recu-abonnement";
  * PDF (téléchargement) et par les actions d'envoi par email (pièce jointe),
  * pour ne pas dupliquer l'appel à renderToBuffer.
  */
-export function rendreDocumentCommercialPDF(props: DocumentCommercialProps): Promise<Buffer> {
-  return renderToBuffer(<DocumentCommercialPDF {...props} />);
+export async function rendreDocumentCommercialPDF(props: DocumentCommercialProps): Promise<Buffer> {
+  try {
+    return await renderToBuffer(<DocumentCommercialPDF {...props} />);
+  } catch (erreur) {
+    // Une image (logo, filigrane) que react-pdf n'arrive pas à lire ne doit jamais empêcher d'émettre le document :
+    // on réessaie sans elle, et l'erreur reste dans les journaux du serveur.
+    console.error(`[pdf] rendu en échec (${props.typeDocument} ${props.numero}), nouvel essai sans logo :`, erreur instanceof Error ? erreur.message : erreur);
+    if (!props.entreprise.logoUrl) throw erreur;
+    return renderToBuffer(<DocumentCommercialPDF {...props} entreprise={{ ...props.entreprise, logoUrl: null }} />);
+  }
 }
 
 /**

@@ -20,6 +20,7 @@ import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles"
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
+import { lienEmail } from "@/lib/email/lien";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -157,7 +158,7 @@ function composerEmailDevis(
   modele: { objet: string; corps: string },
   donnees: NonNullable<Awaited<ReturnType<typeof recupererDevisPourPDF>>>,
   entete: string,
-  lien: string
+  lien: string | null
 ): { sujet: string; html: string } {
   const variables = {
     client: donnees.client?.nom ?? "",
@@ -167,7 +168,7 @@ function composerEmailDevis(
   };
   return {
     sujet: interpoler(modele.objet, variables),
-    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + `<p><a href="${lien}">Consulter, accepter ou refuser ce devis en ligne</a></p>`,
+    html: entete + corpsVersHtml(interpoler(modele.corps, variables)) + lienEmail(lien, "Consulter, accepter ou refuser ce devis en ligne"),
   };
 }
 
@@ -188,7 +189,7 @@ export async function apercuEmailDevis(devisId: string): Promise<ApercuEmailEnvo
     const donnees = await recupererDevisPourPDF(tx, utilisateurConnecte, devisId);
     if (!donnees) return { erreur: t("Devis introuvable.") };
     const modele = await recupererModele(tx, utilisateurConnecte.entrepriseId, "ENVOI_DEVIS");
-    const { sujet, html } = composerEmailDevis(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), "#");
+    const { sujet, html } = composerEmailDevis(modele, donnees, await enteteLogoEmail(utilisateurConnecte.entrepriseId), null);
     return { destinataire: donnees.client?.email ?? null, objet: sujet, corpsHtml: html, pieceJointe: `${donnees.devis.numero}.pdf` };
   });
 }

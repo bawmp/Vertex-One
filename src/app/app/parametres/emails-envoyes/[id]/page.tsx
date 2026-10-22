@@ -54,7 +54,7 @@ export default async function PageEmailEnvoye({ params }: { params: Promise<{ id
       </Card>
 
       {/* Le corps est du HTML déjà envoyé : affiché dans un cadre isolé, sans script ni accès à l'application. */}
-      <iframe title={t("Contenu de l'email")} sandbox="" srcDoc={e.corpsHtml} className="min-h-96 w-full rounded-xl border border-border bg-white" />
+      <iframe title={t("Contenu de l'email")} sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={`<base target="_blank">${e.corpsHtml}`} className="min-h-96 w-full rounded-xl border border-border bg-white" />
       <p className="text-xs text-muted-foreground">{t("Le PDF joint n'est pas conservé : il se régénère depuis le document.")}</p>
     </div>
   );
