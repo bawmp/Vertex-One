@@ -9,6 +9,7 @@ import { peut } from "@/lib/permissions";
 import { recupererModele, variablesDuType, variablesExemple, type TypeModeleEmail } from "@/lib/email/modeles";
 import { FormulaireModeleEmail } from "./formulaire-modele-email";
 import { cheminRetourSur, libelleRetour } from "@/lib/navigation-retour";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -65,7 +66,9 @@ export default async function PageModelesEmail({ searchParams }: { searchParams:
         <Link href={retour} className="inline-flex w-fit items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
           <ArrowLeft className="size-4" aria-hidden /> {libelleBoutonRetour}
         </Link>
-      ) : null}
+      ) : (
+        <BoutonRetour repli="/app/facturation" />
+      )}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Modèles d'email")}</h1>
         <p className="mt-1 text-muted-foreground">{t("Personnalisez les textes envoyés par email. Chaque modèle montre un aperçu avec des valeurs d'exemple ; les variables entre accolades sont remplacées à l'envoi.")}</p>
