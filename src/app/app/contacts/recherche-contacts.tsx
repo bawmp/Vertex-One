@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Phone, Building2 } from "lucide-react";
+import { Search, Phone, Building2, SearchX, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { EtatVide } from "@/components/etat-vide";
 import { useT } from "@/lib/i18n/contexte";
 
 type Contact = { id: string; nom: string; telephone: string; email: string | null; compteNom: string | null };
@@ -53,7 +54,11 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
             </Link>
           ))}
           {filtres.length === 0 ? (
-            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun contact ne correspond à cette recherche.") : t("Aucun contact pour le moment.")}</p>
+            <EtatVide
+              icone={terme ? SearchX : Users}
+              titre={terme ? t("Aucun contact ne correspond à cette recherche.") : t("Aucun contact pour le moment.")}
+              description={terme ? t("Essayez un autre nom, ou effacez la recherche.") : t("Ajoutez votre premier contact pour commencer à suivre vos clients.")}
+            />
           ) : null}
         </div>
       </Card>

@@ -5,6 +5,15 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Interface plus accueillante : tableau de bord et états vides (2026-10-22)
+
+- **Quoi** : l'accueil salue la personne par son prénom, affiche la date du jour et propose des raccourcis (nouveau contact, nouveau devis,
+  factures) selon ses droits. L'Administrateur voit une liste « Premiers pas » (premier contact, premier devis ou facture, inviter un
+  collègue) avec une barre d'avancement, qui disparaît d'elle-même quand tout est fait. Une liste vide montre une icône, un titre et une
+  phrase qui dit quoi faire (contacts pour commencer).
+- **Code** : `src/app/app/page.tsx`, composant réutilisable `src/components/etat-vide.tsx` (à utiliser à la place d'une ligne « Aucun … »).
+- **Pas encore** : l'état vide n'est appliqué qu'aux contacts ; les autres listes (≈ 60) gardent leur ligne de texte.
+
 ## Supprimer un Manager, un Employé ou un client du portail (2026-10-22)
 
 - **Quoi** : dans Paramètres → Équipe, l'Administrateur retire un Manager, un Employé (bouton « Supprimer » sur sa ligne, confirmation en ligne)

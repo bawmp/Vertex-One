@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { and, eq, ne, lt, gte, notInArray, sql } from "drizzle-orm";
-import { Wallet, AlertTriangle, Users, ClipboardList, FolderClock } from "lucide-react";
+import { Wallet, AlertTriangle, Users, ClipboardList, FolderClock, UserPlus, FileText, Receipt, CheckCircle2, Circle, ArrowRight, Sparkles } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { paiement, facture, deal, entreprise, tache } from "@/db/schema";
+import { paiement, facture, deal, entreprise, tache, contact, devis, utilisateur } from "@/db/schema";
+import { peut } from "@/lib/permissions";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -21,7 +22,7 @@ export default async function PageTableauDeBord() {
 
   // Docs/palier-1-*, section 8 — trois indicateurs, vue entreprise entière
   // (le document ne filtre pas ces requêtes par portee()).
-  const { caDuMois, facturesEnRetard, pipeline, projetsDisponibles, tachesEnRetard, dossiersSansProjetActif, secteurProfil } =
+  const { caDuMois, facturesEnRetard, pipeline, projetsDisponibles, tachesEnRetard, dossiersSansProjetActif, secteurProfil, prenom, etapes } =
     await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
       const debutDuMois = new Date();
       debutDuMois.setDate(1);
@@ -52,6 +53,21 @@ export default async function PageTableauDeBord() {
         .where(eq(deal.entrepriseId, utilisateurConnecte.entrepriseId))
         .groupBy(deal.statut);
 
+      // Accueil : prénom pour la salutation et avancement des premiers pas (des comptages de CETTE entreprise seulement).
+      const [moi] = await tx
+        .select({ nomComplet: utilisateur.nomComplet })
+        .from(utilisateur)
+        .where(and(eq(utilisateur.id, utilisateurConnecte.utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+      const [{ nbContacts }] = await tx.select({ nbContacts: sql<number>`count(*)::int` }).from(contact).where(eq(contact.entrepriseId, utilisateurConnecte.entrepriseId));
+      const [{ nbDevis }] = await tx.select({ nbDevis: sql<number>`count(*)::int` }).from(devis).where(eq(devis.entrepriseId, utilisateurConnecte.entrepriseId));
+      const [{ nbFactures }] = await tx.select({ nbFactures: sql<number>`count(*)::int` }).from(facture).where(eq(facture.entrepriseId, utilisateurConnecte.entrepriseId));
+      const [{ nbMembres }] = await tx
+        .select({ nbMembres: sql<number>`count(*)::int` })
+        .from(utilisateur)
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")));
+      const prenom = (moi?.nomComplet ?? "").trim().split(/\s+/)[0] ?? "";
+      const etapes = { contact: nbContacts > 0, document: nbDevis + nbFactures > 0, equipe: nbMembres > 1 };
+
       const [monEntreprise] = await tx
         .select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
         .from(entreprise)
@@ -59,7 +75,7 @@ export default async function PageTableauDeBord() {
 
       const projetsOk = disponible(monEntreprise, "PROJETS") && disponible(monEntreprise, "DOSSIERS");
       if (!projetsOk) {
-        return { caDuMois: Number(total), facturesEnRetard: enRetard, pipeline: pipelineLignes, projetsDisponibles: false, tachesEnRetard: [], dossiersSansProjetActif: [], secteurProfil: monEntreprise?.secteurProfil ?? "generique" };
+        return { caDuMois: Number(total), facturesEnRetard: enRetard, pipeline: pipelineLignes, projetsDisponibles: false, tachesEnRetard: [], dossiersSansProjetActif: [], secteurProfil: monEntreprise?.secteurProfil ?? "generique", prenom, etapes };
       }
 
       // Palier 2, section 7 — tâches en retard, tous projets confondus.
@@ -83,20 +99,83 @@ export default async function PageTableauDeBord() {
         tachesEnRetard: tachesRetard,
         dossiersSansProjetActif: sansProjetActif,
         secteurProfil: monEntreprise?.secteurProfil ?? "generique",
+        prenom,
+        etapes,
       };
     });
 
   const totalPipeline = pipeline.reduce((somme, p) => somme + Number(p.total), 0);
   const vocabDossier = libelleDossier(secteurProfil);
 
+  // Raccourcis vers les créations les plus fréquentes, selon les droits (le serveur revérifie à chaque action).
+  const actionsRapides = [
+    peut(utilisateurConnecte, "CRM", "CREER") ? { href: "/app/contacts/nouveau", libelle: t("Nouveau contact"), icone: UserPlus } : null,
+    peut(utilisateurConnecte, "FACTURATION", "CREER") ? { href: "/app/facturation/devis/nouveau", libelle: t("Nouveau devis"), icone: FileText } : null,
+    peut(utilisateurConnecte, "FACTURATION", "CREER") ? { href: "/app/facturation/factures", libelle: t("Factures"), icone: Receipt } : null,
+  ].filter((a): a is NonNullable<typeof a> => a !== null);
+
+  // Liste de démarrage : réservée à l'Administrateur, elle disparaît d'elle-même quand tout est fait.
+  const premiersPas =
+    utilisateurConnecte.role === "ADMIN"
+      ? [
+          { href: "/app/contacts/nouveau", libelle: t("Ajouter votre premier contact"), fait: etapes.contact },
+          { href: "/app/facturation/devis/nouveau", libelle: t("Créer votre premier devis ou facture"), fait: etapes.document },
+          { href: "/app/parametres/equipe", libelle: t("Inviter un collègue"), fait: etapes.equipe },
+        ]
+      : [];
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("Tableau de bord")}</h1>
-        <p className="mt-1 text-muted-foreground">
-          {t("Connecté en tant que")} <span className="font-medium text-foreground">{utilisateurConnecte.role}</span>.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{prenom ? t("Bonjour {prenom}", { prenom }) : t("Tableau de bord")}</h1>
+          <p className="mt-1 text-muted-foreground first-letter:uppercase">
+            {new Date().toLocaleDateString(t.locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
+        {actionsRapides.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {actionsRapides.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-sm ring-1 ring-foreground/10 transition hover:-translate-y-0.5 hover:bg-muted hover:shadow-md"
+              >
+                <a.icone className="size-4 text-primary" aria-hidden />
+                {a.libelle}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      {premiersPas.some((e) => !e.fait) ? (
+        <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Sparkles className="size-4.5" aria-hidden />
+              </span>
+              <div>
+                <CardTitle className="text-base">{t("Premiers pas")}</CardTitle>
+                <CardDescription>{t("{n} étapes sur {total} faites", { n: premiersPas.filter((e) => e.fait).length, total: premiersPas.length })}</CardDescription>
+              </div>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${(premiersPas.filter((e) => e.fait).length / premiersPas.length) * 100}%` }} />
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1">
+            {premiersPas.map((e) => (
+              <Link key={e.href} href={e.href} className="group/etape -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-muted">
+                {e.fait ? <CheckCircle2 className="size-5 shrink-0 text-emerald-600" aria-hidden /> : <Circle className="size-5 shrink-0 text-muted-foreground/60" aria-hidden />}
+                <span className={e.fait ? "text-muted-foreground line-through" : "font-medium"}>{e.libelle}</span>
+                {!e.fait ? <ArrowRight className="ml-auto size-4 text-muted-foreground opacity-0 transition group-hover/etape:translate-x-0.5 group-hover/etape:opacity-100" aria-hidden /> : null}
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Link href="/app/facturation" className="contents">
