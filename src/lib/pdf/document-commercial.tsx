@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   page: { paddingTop: 40, paddingHorizontal: 40, paddingBottom: 72, fontSize: 10, fontFamily: "Helvetica", color: "#1c1917" },
   entete: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  logo: { width: 96, height: 56, objectFit: "contain" },
+  logo: { width: 150, height: 56, objectFit: "contain" },
   // Logo de l'entreprise en filigrane, centré et répété sur chaque page (`fixed`) ; très pâle pour ne jamais gêner la lecture.
   filigrane: { position: "absolute", top: 196, left: 67, width: 460, height: 460, objectFit: "contain", opacity: 0.13 },
   nomEntreprise: { fontSize: 16, fontWeight: 700 },
