@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Search, Phone, Building2, ArrowRightCircle } from "lucide-react";
+import { Search, Phone, Building2, ArrowRightCircle, SearchX, UserPlus } from "lucide-react";
+import { EtatVide } from "@/components/etat-vide";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,11 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
             );
           })}
           {leadsFiltres.length === 0 ? (
-            <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun lead ne correspond à cette recherche.") : t("Aucun lead pour le moment.")}</p>
+            <EtatVide
+              icone={terme ? SearchX : UserPlus}
+              titre={terme ? t("Aucun lead ne correspond à cette recherche.") : t("Aucun lead pour le moment.")}
+              description={terme ? t("Essayez un autre nom, ou effacez la recherche.") : t("Les prospects que vous ajoutez ou qui arrivent de vos formulaires apparaissent ici.")}
+            />
           ) : null}
         </div>
       </Card>

@@ -12,7 +12,7 @@ où se trouve le code.
   collègue) avec une barre d'avancement, qui disparaît d'elle-même quand tout est fait. Une liste vide montre une icône, un titre et une
   phrase qui dit quoi faire (contacts pour commencer).
 - **Code** : `src/app/app/page.tsx`, composant réutilisable `src/components/etat-vide.tsx` (à utiliser à la place d'une ligne « Aucun … »).
-- **Pas encore** : l'état vide n'est appliqué qu'aux contacts ; les autres listes (≈ 60) gardent leur ligne de texte.
+- **Appliqué à** : contacts, leads, deals, comptes, documents, produits. Les autres listes gardent leur ligne de texte.
 
 ## Supprimer un Manager, un Employé ou un client du portail (2026-10-22)
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { Package, Lock } from "lucide-react";
+import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -79,7 +80,7 @@ export default async function PageProduits() {
               </div>
             </div>
           ))}
-          {produits.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun produit pour le moment.")}</p> : null}
+          {produits.length === 0 ? <EtatVide icone={Package} titre={t("Aucun produit pour le moment.")} description={t("Ajoutez vos produits et services pour les reprendre dans vos devis.")} /> : null}
         </div>
       </Card>
     </div>

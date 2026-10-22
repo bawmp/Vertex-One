@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { Building2 } from "lucide-react";
+import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -54,7 +55,7 @@ export default async function PageComptes() {
               {c.niu ? <span className="text-xs text-muted-foreground">{t("NIU : {niu}", { niu: c.niu })}</span> : null}
             </Link>
           ))}
-          {comptes.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun compte pour le moment.")}</p> : null}
+          {comptes.length === 0 ? <EtatVide icone={Building2} titre={t("Aucun compte pour le moment.")} description={t("Un compte regroupe les contacts d'une même entreprise cliente.")} /> : null}
         </div>
       </Card>
     </div>

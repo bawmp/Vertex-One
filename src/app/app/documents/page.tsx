@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray } from "drizzle-orm";
 import { FileText, Lock, Download, PenLine, ShieldAlert } from "lucide-react";
+import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { document, dossier, projet, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -179,7 +180,7 @@ export default async function PageDocuments() {
               </div>
             );
           })}
-          {documents.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun document pour le moment.")}</p> : null}
+          {documents.length === 0 ? <EtatVide icone={FileText} titre={t("Aucun document pour le moment.")} description={t("Téléversez un fichier ou rédigez un document pour le retrouver ici.")} /> : null}
         </div>
       </Card>
     </div>

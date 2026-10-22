@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { List, LayoutGrid, Search, Building2 } from "lucide-react";
+import { List, LayoutGrid, Search, Building2, SearchX, Handshake } from "lucide-react";
+import { EtatVide } from "@/components/etat-vide";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -155,7 +156,11 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
               );
             })}
             {donneesFiltrees.length === 0 ? (
-              <p className="px-4 py-8 text-center text-muted-foreground">{terme ? t("Aucun deal ne correspond à cette recherche.") : t("Aucun deal pour le moment.")}</p>
+              <EtatVide
+                icone={terme ? SearchX : Handshake}
+                titre={terme ? t("Aucun deal ne correspond à cette recherche.") : t("Aucun deal pour le moment.")}
+                description={terme ? t("Essayez un autre nom, ou effacez la recherche.") : t("Créez un deal pour suivre une opportunité commerciale.")}
+              />
             ) : null}
           </div>
         </Card>
