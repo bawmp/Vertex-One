@@ -213,4 +213,7 @@ export const PARAMETRES: Record<string, string> = {
   "Supprimer {nom} ? Son accès est retiré, son historique reste.": "Delete {nom}? Their access is removed, their history stays.",
   "Clients du portail": "Portal clients",
   "Comptes de vos clients qui ont accès au portail. Supprimer un compte retire seulement son accès.": "Accounts of your clients who have portal access. Deleting an account only removes their access.",
+  "Seul l'Administrateur peut activer ou désactiver un compte.": "Only the Administrator can activate or deactivate an account.",
+  "Vous ne pouvez pas désactiver votre propre compte.": "You cannot deactivate your own account.",
+  "Un compte Administrateur ne peut pas être désactivé ici.": "An Administrator account cannot be deactivated here.",
 };

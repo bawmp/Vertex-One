@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { KeyRound, Send, Trash2 } from "lucide-react";
+import { KeyRound, Power, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { definirModulesUtilisateur } from "@/lib/actions/acces-modules";
 import { renvoyerAccesCollegue } from "@/lib/actions/invitation";
-import { supprimerCompte } from "@/lib/actions/suppression-compte";
+import { definirActivationCompte, supprimerCompte } from "@/lib/actions/suppression-compte";
 import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
@@ -17,6 +17,29 @@ import { useT } from "@/lib/i18n/contexte";
 export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null; statut: "ACTIF" | "DESACTIVE" };
 
 const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
+
+/** Désactive un compte actif (accès coupé, mot de passe conservé) ou réactive un compte désactivé. */
+function BoutonActivation({ id, actif, onErreur }: { id: string; actif: boolean; onErreur: (message: string) => void }) {
+  const t = useT();
+  const [enCours, startTransition] = useTransition();
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      disabled={enCours}
+      onClick={() =>
+        startTransition(async () => {
+          const resultat = await definirActivationCompte(id, !actif);
+          if (resultat?.erreur) onErreur(resultat.erreur);
+        })
+      }
+    >
+      {enCours ? <Spinner /> : <Power data-icon="inline-start" aria-hidden />}
+      {actif ? t("Désactiver") : t("Activer")}
+    </Button>
+  );
+}
 
 /** Bouton « Supprimer » en deux temps (confirmation en ligne) : retire le compte, garde l'historique. */
 function BoutonSupprimer({ id, nom, onErreur }: { id: string; nom: string; onErreur: (message: string) => void }) {
@@ -56,7 +79,7 @@ function BoutonSupprimer({ id, nom, onErreur }: { id: string; nom: string; onErr
   );
 }
 
-export type ClientPortail = { id: string; nomComplet: string; email: string };
+export type ClientPortail = { id: string; nomComplet: string; email: string; statut: "ACTIF" | "DESACTIVE" };
 
 export function ClientsPortail({ clients }: { clients: ClientPortail[] }) {
   const t = useT();
@@ -74,7 +97,11 @@ export function ClientsPortail({ clients }: { clients: ClientPortail[] }) {
                 <p className="truncate font-medium">{c.nomComplet}</p>
                 <p className="truncate text-muted-foreground">{c.email}</p>
               </div>
-              <BoutonSupprimer id={c.id} nom={c.nomComplet} onErreur={setErreur} />
+              <div className="flex items-center gap-2">
+                {c.statut === "DESACTIVE" ? <Badge variant="danger">{t("Désactivé")}</Badge> : null}
+                <BoutonActivation id={c.id} actif={c.statut === "ACTIF"} onErreur={setErreur} />
+                <BoutonSupprimer id={c.id} nom={c.nomComplet} onErreur={setErreur} />
+              </div>
             </div>
           ))}
         </div>
@@ -140,6 +167,7 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
             <KeyRound data-icon="inline-start" aria-hidden />
             {t("Accès")}
           </Button>
+          <BoutonActivation id={membre.id} actif={!desactive} onErreur={(m) => setMessageAcces({ texte: m, erreur: true })} />
           <BoutonSupprimer id={membre.id} nom={membre.nomComplet} onErreur={(m) => setMessageAcces({ texte: m, erreur: true })} />
         </div>
       </div>

@@ -93,3 +93,36 @@ describe("Suppression d'un compte par l'Administrateur", () => {
     expect((await lire(clientA)).statut).toBe("SUPPRIME");
   });
 });
+
+describe("Activation et désactivation d'un compte par l'Administrateur", () => {
+  test("un Employé ne peut pas désactiver", async () => {
+    connecte = { utilisateurId: employeA, entrepriseId: a, role: "EMPLOYE" };
+    const { definirActivationCompte } = await import("@/lib/actions/suppression-compte");
+    expect((await definirActivationCompte(employeA, false))?.erreur).toBeTruthy();
+    expect((await lire(employeA)).statut).toBe("ACTIF");
+  });
+
+  test("ni soi-même, ni un Administrateur, ni un compte d'une autre entreprise", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    const { definirActivationCompte } = await import("@/lib/actions/suppression-compte");
+    expect((await definirActivationCompte(adminA, false))?.erreur).toBeTruthy();
+    expect((await definirActivationCompte(adminA2, false))?.erreur).toBeTruthy();
+    expect((await definirActivationCompte(employeB, false))?.erreur).toBeTruthy();
+    expect((await lire(adminA2)).statut).toBe("ACTIF");
+    expect((await lire(employeB)).statut).toBe("ACTIF");
+  });
+
+  test("désactive (sessions fermées) puis réactive un Employé ; un compte supprimé ne se réactive pas", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    const { definirActivationCompte } = await import("@/lib/actions/suppression-compte");
+    await db.insert(session).values({ token: `tok-emp-${suffixe}`, userId: employeA, expiresAt: new Date(Date.now() + 3600_000) });
+    expect(await definirActivationCompte(employeA, false)).toBeNull();
+    expect((await lire(employeA)).statut).toBe("DESACTIVE");
+    expect(await db.select().from(session).where(eq(session.userId, employeA))).toHaveLength(0);
+    expect(await definirActivationCompte(employeA, true)).toBeNull();
+    expect((await lire(employeA)).statut).toBe("ACTIF");
+    // managerA a été supprimé plus haut : introuvable pour l'activation
+    expect((await definirActivationCompte(managerA, true))?.erreur).toBeTruthy();
+    expect((await lire(managerA)).statut).toBe("SUPPRIME");
+  });
+});

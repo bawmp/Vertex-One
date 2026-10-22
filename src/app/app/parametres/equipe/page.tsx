@@ -47,7 +47,7 @@ export default async function PageEquipe() {
         .orderBy(utilisateur.nomComplet),
       // Clients du portail (role CLIENT) de CETTE entreprise : l'Administrateur peut retirer leur accès.
       tx
-        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email })
+        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email, statut: utilisateur.statut })
         .from(utilisateur)
         .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.role, "CLIENT"), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
         .orderBy(utilisateur.nomComplet),
@@ -70,7 +70,7 @@ export default async function PageEquipe() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
-        <ClientsPortail clients={clientsPortail} />
+        <ClientsPortail clients={clientsPortail.map((c) => ({ ...c, statut: c.statut as "ACTIF" | "DESACTIVE" }))} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">

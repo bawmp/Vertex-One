@@ -48,3 +48,38 @@ export async function supprimerCompte(utilisateurId: string): Promise<{ erreur?:
   revalidatePath("/app/parametres/equipe");
   return null;
 }
+
+/**
+ * Désactive un compte actif ou réactive un compte désactivé (2026-10-22). Réservé à l'Administrateur.
+ * Désactiver coupe l'accès sur-le-champ (sessions fermées, `recupererUtilisateurConnecte()` refuse tout statut non ACTIF) mais
+ * garde le mot de passe : réactiver rend l'accès tel quel. Seuls Manager, Employé et client du portail, de CETTE entreprise ;
+ * un compte invité (jamais activé) ou supprimé n'est pas concerné. Le statut actuel est relu en base.
+ */
+export async function definirActivationCompte(utilisateurId: string, actif: boolean): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN") return { erreur: t("Seul l'Administrateur peut activer ou désactiver un compte.") };
+  if (utilisateurId === utilisateurConnecte.utilisateurId) return { erreur: t("Vous ne pouvez pas désactiver votre propre compte.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [cible] = await tx
+      .select({ role: utilisateur.role, statut: utilisateur.statut })
+      .from(utilisateur)
+      .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!cible || (cible.statut !== "ACTIF" && cible.statut !== "DESACTIVE")) return { erreur: t("Compte introuvable.") };
+    if (!["MANAGER", "EMPLOYE", "CLIENT"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être désactivé ici.") };
+
+    await tx
+      .update(utilisateur)
+      .set({ statut: actif ? "ACTIF" : "DESACTIVE" })
+      .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return { ok: true };
+  });
+  if ("erreur" in resultat && resultat.erreur) return { erreur: resultat.erreur };
+
+  if (!actif) await db.delete(session).where(eq(session.userId, utilisateurId));
+
+  revalidatePath("/app/parametres/equipe");
+  return null;
+}
