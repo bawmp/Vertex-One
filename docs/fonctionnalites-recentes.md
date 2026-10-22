@@ -11,6 +11,7 @@ où se trouve le code.
   objet, message, pièce jointe) à côté du vrai PDF. Rien n'est envoyé ni enregistré tant qu'on ne clique pas sur « Envoyer au client par
   email ». Si le client n'a pas d'adresse email, l'aperçu le dit et l'envoi est désactivé. L'email est composé par le même code que l'envoi
   réel (`composerEmailDevis()` / `composerEmailFacture()`), donc l'aperçu ne peut pas différer de ce qui part.
+- **Retour après avoir modifié le message** : « Personnaliser le message » (sur un devis ou une facture) ouvre le bon modèle d'email avec un bouton « Retour au devis » / « Retour à la facture » en haut, et de nouveau juste après « Enregistrer » ; on revient envoyer. Le chemin de retour (`?retour=`) n'accepte qu'une page interne de l'application (`cheminRetourSur()`, `src/lib/navigation-retour.ts`, testé contre les redirections ouvertes).
 - **Souche** : chaque email envoyé à un client (devis, facture, bon de commande, reçu, acompte, contrat, relance, campagne, confirmation
   après acceptation d'un devis) est conservé tel quel dans `email_envoye` : destinataire, objet, corps, noms et tailles des pièces jointes,
   date, auteur. **Paramètres → Emails envoyés** : liste, recherche (destinataire, objet) et filtre par type ; le détail affiche le message

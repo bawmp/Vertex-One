@@ -24,7 +24,7 @@ export function FormulaireEnvoiDevis({ devisId, peutPersonnaliserModele }: { dev
         <ApercuAvantEnvoi charger={() => apercuEmailDevis(devisId)} pdfUrl={`/app/facturation/devis/${devisId}/pdf`} envoyer={() => formulaire.current?.requestSubmit()} enCoursEnvoi={enCours} />
         {peutPersonnaliserModele ? (
           <Link
-            href="/app/parametres/modeles-email"
+            href={`/app/parametres/modeles-email?retour=${encodeURIComponent(`/app/facturation/devis/${devisId}`)}#ENVOI_DEVIS`}
             className="flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             <Settings2 className="size-3.5" aria-hidden />

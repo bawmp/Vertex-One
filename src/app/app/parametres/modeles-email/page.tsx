@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { modeleEmail } from "@/db/schema";
@@ -6,6 +8,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { recupererModele, variablesDuType, variablesExemple, type TypeModeleEmail } from "@/lib/email/modeles";
 import { FormulaireModeleEmail } from "./formulaire-modele-email";
+import { cheminRetourSur, libelleRetour } from "@/lib/navigation-retour";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -22,8 +25,11 @@ const TITRES: Record<TypeModeleEmail, string> = {
 const TYPES_VENTES: TypeModeleEmail[] = ["ENVOI_DEVIS", "ENVOI_FACTURE"];
 const TYPES_CANDIDATS: TypeModeleEmail[] = ["CANDIDATURE_EN_EXAMEN", "CANDIDATURE_ENTRETIEN", "CANDIDATURE_OFFRE", "CANDIDATURE_EMBAUCHE", "CANDIDATURE_REJETEE"];
 
-export default async function PageModelesEmail() {
+export default async function PageModelesEmail({ searchParams }: { searchParams: Promise<{ retour?: string }> }) {
   const t = await getT();
+  const retour = cheminRetourSur((await searchParams).retour);
+  const natureRetour = retour ? libelleRetour(retour) : null;
+  const libelleBoutonRetour = natureRetour === "devis" ? t("Retour au devis") : natureRetour === "facture" ? t("Retour à la facture") : t("Retour");
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -39,7 +45,7 @@ export default async function PageModelesEmail() {
   });
 
   const formulaire = (type: TypeModeleEmail, i: number) => (
-    <div key={type} style={{ animationDelay: `${i * 70}ms` }} className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+    <div key={type} id={type} style={{ animationDelay: `${i * 70}ms` }} className="scroll-mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
       <FormulaireModeleEmail
         type={type}
         titre={t(TITRES[type])}
@@ -48,12 +54,18 @@ export default async function PageModelesEmail() {
         variables={[...variablesDuType(type)]}
         exemple={variablesExemple(type)}
         personnalise={personnalises.has(type)}
+        retour={retour ? { href: retour, libelle: libelleBoutonRetour } : null}
       />
     </div>
   );
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
+      {retour ? (
+        <Link href={retour} className="inline-flex w-fit items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
+          <ArrowLeft className="size-4" aria-hidden /> {libelleBoutonRetour}
+        </Link>
+      ) : null}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Modèles d'email")}</h1>
         <p className="mt-1 text-muted-foreground">{t("Personnalisez les textes envoyés par email. Chaque modèle montre un aperçu avec des valeurs d'exemple ; les variables entre accolades sont remplacées à l'envoi.")}</p>

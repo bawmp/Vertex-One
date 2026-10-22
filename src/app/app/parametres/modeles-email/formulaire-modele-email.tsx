@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { Save, CheckCircle2, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Save, CheckCircle2, RotateCcw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ export function FormulaireModeleEmail({
   variables,
   exemple,
   personnalise,
+  retour: pageRetour,
 }: {
   type: TypeModeleEmail;
   titre: string;
@@ -36,6 +38,8 @@ export function FormulaireModeleEmail({
   exemple: Record<string, string>;
   /** Une version personnalisée existe : le bouton « Rétablir le texte par défaut » est proposé. */
   personnalise: boolean;
+  /** Page d'où l'on vient (ex. un devis) : un bouton y ramène, surtout juste après l'enregistrement. */
+  retour?: { href: string; libelle: string } | null;
 }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(enregistrerModeleEmail, null);
@@ -82,6 +86,12 @@ export function FormulaireModeleEmail({
               <CheckCircle2 className="size-4" aria-hidden />
               {t("Modèle enregistré.")}
             </p>
+          ) : null}
+          {etat?.enregistre && pageRetour ? (
+            <Button render={<Link href={pageRetour.href} />} nativeButton={false} className="self-start">
+              <ArrowLeft data-icon="inline-start" aria-hidden />
+              {pageRetour.libelle}
+            </Button>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-2">
