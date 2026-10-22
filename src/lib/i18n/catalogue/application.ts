@@ -83,6 +83,7 @@ export const APPLICATION: Record<string, string> = {
   "Premiers pas": "Getting started",
   "{n} étapes sur {total} faites": "{n} of {total} steps done",
   "Ajouter votre premier contact": "Add your first contact",
+  "Voir la fiche du contact": "View the contact record",
   "Aperçu avant envoi": "Preview before sending",
   "rien n'est envoyé tant que vous ne cliquez pas sur Envoyer": "nothing is sent until you click Send",
   "Fermer l'aperçu": "Close preview",

@@ -16,6 +16,7 @@ où se trouve le code.
   date, auteur. **Paramètres → Emails envoyés** : liste, recherche (destinataire, objet) et filtre par type ; le détail affiche le message
   dans un cadre isolé. L'Administrateur voit tous les envois de l'entreprise, les autres seulement les leurs (jamais un envoi automatique
   ni celui d'un collègue).
+- **Sur la fiche du contact** : une section « Emails envoyés » liste ses emails (objet, date, pièce jointe) ; un clic ouvre la copie complète, qui renvoie à la fiche. Mêmes règles de visibilité (`listerSoucheContact()`).
 - **Pas conservé** : le PDF joint lui-même (il se régénère depuis le document) ; les emails qui ne passent pas par `journaliserEmailEnvoye()`
   (alertes internes à l'équipe, messages de candidats, emails d'accès) ne sont pas dans la souche.
 - **Code** : `emailEnvoye` (migration `0119`, RLS + FORCE), `journaliserEmailEnvoye(..., { souche })` (`src/lib/crm/journaliser-email.ts`),

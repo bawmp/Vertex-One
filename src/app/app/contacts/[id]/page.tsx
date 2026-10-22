@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, inArray } from "drizzle-orm";
-import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet } from "lucide-react";
+import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet, Paperclip } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { contact, compteClient, interaction, dossier, deal, dealContact, entreprise, contactChampValeur, document, devis, facture, bonCommandeVente, recuVente, factureAcompte, factureRecurrente } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -28,6 +28,7 @@ import { genererEtEnregistrerLienVisio, modifierNotesContact } from "@/lib/actio
 import { listerChampsPersonnalisesContact } from "@/lib/actions/champ-personnalise-contact";
 import { estCategorieSensible, peutVoirDocumentSensible } from "@/lib/documents/acces";
 import { demandesSuppressionEnAttente } from "@/lib/documents/demandes";
+import { listerSoucheContact } from "@/lib/email/souche";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -102,10 +103,13 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       ...filtreFacturation(recurrentes).map((x) => ({ cle: `fr-${x.id}`, type: m("Facture récurrente"), titre: x.libelle, lien: null as string | null, montant: x.montantTTC, statut: STATUT_FACTURE_RECURRENTE[x.statut], statutBrut: x.statut })),
     ];
 
+    const emailsEnvoyes = await listerSoucheContact(tx, utilisateurConnecte, id);
+
     return {
       fiche: ligne,
       compte: Array.isArray(compte) ? compte[0] : compte,
       interactions,
+      emailsEnvoyes,
       dossierExistant: dossierExistant[0] ?? null,
       deals,
       dossiersDisponibles: disponible(monEntreprise, "DOSSIERS"),
@@ -126,6 +130,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     fiche,
     compte,
     interactions,
+    emailsEnvoyes,
     dossierExistant,
     deals,
     dossiersDisponibles,
@@ -426,6 +431,28 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                 </div>
               ) : null}
             </>
+          ) : null}
+
+          {emailsEnvoyes.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-sm font-medium text-muted-foreground">{t("Emails envoyés")}</h2>
+              <Card className="p-0">
+                <div className="flex flex-col divide-y divide-border">
+                  {emailsEnvoyes.map((e) => (
+                    <Link key={e.id} href={`/app/parametres/emails-envoyes/${e.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/50">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Mail className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <span className="truncate font-medium">{e.sujet}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                        {e.nbPiecesJointes > 0 ? <Paperclip className="size-3" aria-hidden /> : null}
+                        {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(e.envoyeLe)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            </div>
           ) : null}
 
           {peutModifier ? <FormulaireMessageClient contactId={fiche.id} nomContact={fiche.nom} emailContact={fiche.email} /> : null}

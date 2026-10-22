@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, emailEnvoye } from "@/db/schema";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
-import { listerSouche, lireSouche } from "@/lib/email/souche";
+import { listerSouche, listerSoucheContact, lireSouche } from "@/lib/email/souche";
 import type { UtilisateurConnecte } from "@/lib/session";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
@@ -65,6 +65,14 @@ describe("Souche des emails envoyés", () => {
     // ni l'envoi automatique, ni celui d'un collègue, même avec l'identifiant exact
     expect(await avecEntreprise(a, (tx) => lireSouche(tx, moi(a, employeA, "EMPLOYE"), idEnvoiAuto))).toBeNull();
     expect(await avecEntreprise(a, (tx) => lireSouche(tx, moi(a, adminA, "ADMIN"), idEnvoiEmploye))).not.toBeNull();
+  });
+
+  test("la fiche d'un contact montre ses emails (Administrateur : tous ; Employé : les siens ; autre entreprise : aucun)", async () => {
+    const admin = await avecEntreprise(a, (tx) => listerSoucheContact(tx, moi(a, adminA, "ADMIN"), contactA));
+    expect(admin.map((l) => l.sujet).sort()).toEqual(["Devis admin", "Facture employé", "Relance auto"]);
+    const employe = await avecEntreprise(a, (tx) => listerSoucheContact(tx, moi(a, employeA, "EMPLOYE"), contactA));
+    expect(employe.map((l) => l.sujet)).toEqual(["Facture employé"]);
+    expect(await avecEntreprise(b, (tx) => listerSoucheContact(tx, moi(b, adminB, "ADMIN"), contactA))).toHaveLength(0);
   });
 
   test("la recherche et le filtre par type fonctionnent, jokers neutralisés", async () => {

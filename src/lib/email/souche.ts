@@ -50,6 +50,26 @@ export async function listerSouche(tx: TransactionDrizzle, demandeur: Utilisateu
   return lignes.map((l) => ({ id: l.id, destinataire: l.destinataire, sujet: l.sujet, type: l.type, envoyeLe: l.envoyeLe, nbPiecesJointes: l.piecesJointes.length, auteurNom: l.auteurNom }));
 }
 
+/** Emails envoyés à un contact précis (fiche du contact), du plus récent au plus ancien — mêmes règles de visibilité que la liste générale. */
+export async function listerSoucheContact(tx: TransactionDrizzle, demandeur: UtilisateurConnecte, contactId: string): Promise<LigneSouche[]> {
+  const lignes = await tx
+    .select({
+      id: emailEnvoye.id,
+      destinataire: emailEnvoye.destinataire,
+      sujet: emailEnvoye.sujet,
+      type: emailEnvoye.type,
+      envoyeLe: emailEnvoye.envoyeLe,
+      piecesJointes: emailEnvoye.piecesJointes,
+      auteurNom: utilisateur.nomComplet,
+    })
+    .from(emailEnvoye)
+    .leftJoin(utilisateur, eq(utilisateur.id, emailEnvoye.auteurId))
+    .where(and(visibles(demandeur), eq(emailEnvoye.contactId, contactId)))
+    .orderBy(desc(emailEnvoye.envoyeLe))
+    .limit(50);
+  return lignes.map((l) => ({ id: l.id, destinataire: l.destinataire, sujet: l.sujet, type: l.type, envoyeLe: l.envoyeLe, nbPiecesJointes: l.piecesJointes.length, auteurNom: l.auteurNom }));
+}
+
 export async function lireSouche(tx: TransactionDrizzle, demandeur: UtilisateurConnecte, id: string) {
   const [ligne] = await tx
     .select({

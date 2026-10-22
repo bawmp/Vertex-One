@@ -28,6 +28,11 @@ export default async function PageEmailEnvoye({ params }: { params: Promise<{ id
 
       <Card className="gap-3 px-4">
         <h1 className="text-lg font-semibold tracking-tight">{e.sujet}</h1>
+        {e.contactId ? (
+          <Link href={`/app/contacts/${e.contactId}`} className="w-fit text-sm text-primary underline-offset-4 hover:underline">
+            {t("Voir la fiche du contact")}
+          </Link>
+        ) : null}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted-foreground">{t("À")}</dt>
           <dd>{e.destinataire}</dd>
