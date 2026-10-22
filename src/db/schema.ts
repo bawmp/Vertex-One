@@ -521,6 +521,38 @@ export const journalExportDonnees = pgTable(
   ]
 ).enableRLS();
 
+// Documents rédigés dans Vertex One (2026-10-22) : lettres, contrats, comptes rendus... écrits dans l'éditeur (Documents →
+// « Rédiger un document »), avec en-tête, pied de page et numéros de page, exportables en PDF et en Word. `contenu` est le
+// document de l'éditeur (JSON, jamais du HTML : voir src/lib/redaction/contenu.ts qui le valide en liste blanche) ;
+// `miseEnPage` règle l'en-tête, le pied de page et la numérotation (src/lib/redaction/mise-en-page.ts). Portée sur
+// `assigneAId` (module DOCUMENTS), colonne propre à cette table comme partout ailleurs.
+export const documentRedige = pgTable(
+  "document_redige",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    titre: text("titre").notNull(),
+    contenu: json("contenu").notNull().$type<unknown>(),
+    miseEnPage: json("mise_en_page").notNull().$type<unknown>(),
+    assigneAId: text("assigne_a_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    modifieLe: timestamp("modifie_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("document_redige_entreprise_idx").on(table.entrepriseId),
+    index("document_redige_assigne_idx").on(table.assigneAId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Tables internes Better-Auth (session, compte, vérification) — champs
 // gardés aux noms natifs Better-Auth (anglais) pour éviter tout mapping
 // "fields" superflu (source d'erreurs, voir CLAUDE.md) ; seule la table
