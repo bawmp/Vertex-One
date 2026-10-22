@@ -16,7 +16,7 @@ import {
 } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
-import { urlTelechargementDocument } from "@/lib/documents/stockage";
+import { logoPourPDF } from "@/lib/pdf/logo";
 import { groupeNomPourPDF } from "@/lib/pdf/groupe";
 
 /** Libellé français fixe, indépendant de la langue de l'interface — voir CLAUDE.md, i18n (les PDF restent en français). */
@@ -61,24 +61,9 @@ async function construireClientPourPDF(tx: TransactionDrizzle, contactId: string
  * serveur, react-pdf récupère l'image lui-même, une URL signée directe vers
  * R2 évite un aller-retour HTTP supplémentaire vers l'app elle-même).
  */
-/**
- * react-pdf ne sait dessiner que le PNG et le JPEG : un logo SVG, WebP ou GIF (le téléversement accepte toute image) n'est
- * pas transmis au PDF — sans logo, le document reste complet. Un logo introuvable ou une signature R2 en échec ne doit
- * jamais empêcher non plus l'émission d'un devis ou d'une facture.
- */
-export function logoUtilisablePourPDF(typeMime: string | null | undefined): boolean {
-  return typeMime === "image/png" || typeMime === "image/jpeg" || typeMime === "image/jpg";
-}
-
 async function avecLogo<T extends { logoCleStockage: string | null; logoTypeMime?: string | null; nom: string; groupeId: string | null }>(tx: TransactionDrizzle, monEntreprise: T): Promise<T & { logoUrl: string | null; groupeNom: string | null }> {
-  let logoUrl: string | null = null;
-  if (monEntreprise.logoCleStockage && logoUtilisablePourPDF(monEntreprise.logoTypeMime)) {
-    try {
-      logoUrl = await urlTelechargementDocument(monEntreprise.logoCleStockage);
-    } catch (erreur) {
-      console.error("[pdf] adresse du logo indisponible, document généré sans logo :", erreur instanceof Error ? erreur.message : erreur);
-    }
-  }
+  // PNG/JPEG : adresse signée ; SVG/WebP/GIF : converti en PNG (react-pdf ne les lit pas) ; sinon, document sans logo.
+  const logoUrl = await logoPourPDF(monEntreprise.logoCleStockage, monEntreprise.logoTypeMime);
   const groupeNom = await groupeNomPourPDF(tx, monEntreprise.nom, monEntreprise.groupeId);
   return { ...monEntreprise, logoUrl, groupeNom };
 }

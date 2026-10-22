@@ -30,7 +30,7 @@ où se trouve le code.
   commande, reçus et factures d'acompte. Sans logo enregistré (Paramètres → Entreprise), rien n'est ajouté ; le logo officiel Vertex One
   n'est jamais substitué sur le document d'un client.
 - **Code** : `DocumentCommercialPDF` (`src/lib/pdf/document-commercial.tsx`, prop `filigrane`, activée par défaut), test `tests/pdf-filigrane.test.ts`.
-- **Formats** : seuls les logos PNG et JPEG sont transmis au PDF (react-pdf ne sait pas dessiner le SVG ni le WebP) ; un autre format donne un document sans logo ni filigrane, et le téléversement le signale. Si le rendu échoue malgré tout, il est refait sans logo et l'erreur est journalisée (`[pdf]`).
+- **Formats** : react-pdf ne dessine que le PNG et le JPEG ; un logo SVG, WebP ou GIF est converti en PNG à la volée pour le PDF (`src/lib/pdf/logo.ts`, bibliothèque `sharp` ; le fichier d'origine reste intact). Un autre format, ou une conversion impossible, donne un document sans logo ni filigrane. Si le rendu échoue malgré tout, il est refait sans logo et l'erreur est journalisée (`[pdf]`).
 - **Pas encore** : réglage pour le désactiver, certificat de signature, documents rédigés dans One Docs.
 
 ## Interface plus accueillante : tableau de bord et états vides (2026-10-22)
