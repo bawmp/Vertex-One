@@ -2,7 +2,7 @@ import { describe, test, expect, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { logoDirectementLisiblePourPDF, logoConvertibleEnPNG, convertirLogoEnPNG } from "@/lib/pdf/logo";
+import { logoDirectementLisiblePourPDF, logoConvertibleEnPNG, convertirLogoEnPNG, svgContientDuTexte } from "@/lib/pdf/logo";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
 import { lienEmail } from "@/lib/email/lien";
 
@@ -43,6 +43,15 @@ describe("PDF — logo", () => {
     // le PDF avec logo embarque l'image : il est nettement plus volumineux que sans
     expect(avec.length).toBeGreaterThan(sans.length + 500);
   }, 60_000);
+});
+
+describe("PDF — SVG avec du texte", () => {
+  test("un SVG qui contient du texte est reconnu (polices absentes du serveur : pas de conversion), pas un SVG en tracés", () => {
+    expect(svgContientDuTexte(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><text x="1" y="2">LOGO</text></svg>'))).toBe(true);
+    expect(svgContientDuTexte(Buffer.from('<svg><g><tspan>A</tspan></g></svg>'))).toBe(true);
+    expect(svgContientDuTexte(Buffer.from('<svg><TEXT>A</TEXT></svg>'))).toBe(true);
+    expect(svgContientDuTexte(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L10 10"/><rect width="5" height="5"/></svg>'))).toBe(false);
+  });
 });
 
 describe("Email — lien de l'aperçu", () => {

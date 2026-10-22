@@ -23,6 +23,7 @@ export function FormulaireLogo({ entrepriseId, logoCleStockage, nomEntreprise }:
           {enCours ? <Spinner className="size-3.5" /> : null}
           {enCours ? t("Envoi…") : t("Téléverser")}
         </Button>
+        <p className="max-w-xs text-xs text-muted-foreground">{t("Pour un rendu fidèle sur vos devis et factures PDF, préférez un logo PNG ou JPEG : le texte d'un logo SVG peut mal s'afficher.")}</p>
         {etat?.erreur ? <p className="text-xs text-destructive">{etat.erreur}</p> : null}
       </div>
     </form>

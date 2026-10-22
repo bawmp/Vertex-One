@@ -83,6 +83,7 @@ export const APPLICATION: Record<string, string> = {
   "Premiers pas": "Getting started",
   "{n} étapes sur {total} faites": "{n} of {total} steps done",
   "Ajouter votre premier contact": "Add your first contact",
+  "Pour un rendu fidèle sur vos devis et factures PDF, préférez un logo PNG ou JPEG : le texte d'un logo SVG peut mal s'afficher.": "For a faithful result on your PDF quotes and invoices, prefer a PNG or JPEG logo: the text of an SVG logo may display incorrectly.",
   "Message": "Message",
   "Document (PDF)": "Document (PDF)",
   "Le PDF ne s'affiche pas ? Ouvrir dans un nouvel onglet": "PDF not showing? Open in a new tab",

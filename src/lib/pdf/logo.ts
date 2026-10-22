@@ -15,6 +15,15 @@ export function logoConvertibleEnPNG(typeMime: string | null | undefined): boole
   return typeMime === "image/svg+xml" || typeMime === "image/webp" || typeMime === "image/gif";
 }
 
+/**
+ * Un SVG qui contient du TEXTE dépend des polices installées sur le serveur, qui manquent : les lettres deviendraient des
+ * carrés. On ne le convertit pas (document sans logo, plutôt qu'un logo abîmé) ; un SVG dont les lettres sont déjà
+ * converties en tracés se convertit sans problème. Un PNG ou un JPEG est toujours rendu fidèlement.
+ */
+export function svgContientDuTexte(octets: Buffer): boolean {
+  return /<(?:svg:)?(?:text|tspan)[\s>]/i.test(octets.toString("utf8"));
+}
+
 const LARGEUR_MAX_PX = 800;
 
 /** Convertit une image en PNG de largeur raisonnable (jamais agrandie au-delà de LARGEUR_MAX_PX, 1re image d'un GIF animé). */
@@ -36,6 +45,10 @@ export async function logoPourPDF(cleStockage: string | null, typeMime: string |
     if (logoConvertibleEnPNG(typeMime)) {
       const octets = await lireObjetStockage(cleStockage);
       if (!octets) return null;
+      if (typeMime === "image/svg+xml" && svgContientDuTexte(octets)) {
+        console.warn("[pdf] logo SVG contenant du texte (polices absentes du serveur) : document généré sans logo. Un logo PNG ou JPEG est conseillé.");
+        return null;
+      }
       return `data:image/png;base64,${(await convertirLogoEnPNG(octets)).toString("base64")}`;
     }
     return null;
