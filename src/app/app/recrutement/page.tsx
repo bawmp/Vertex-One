@@ -70,7 +70,7 @@ export default async function PageRecrutement() {
     const agents = await tx
       .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
       .from(utilisateur)
-      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT")))
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
       .orderBy(utilisateur.nomComplet);
 
     return { actif: true as const, candidatures, agents };

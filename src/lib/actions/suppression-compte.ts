@@ -1,10 +1,11 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise, db } from "@/db/client";
-import { utilisateur, session, compte } from "@/db/schema";
+import { utilisateur, session, compte, invitation } from "@/db/schema";
+import { annulerInvitationsNonUtilisees } from "@/lib/invitations/annulation";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { getT } from "@/lib/i18n/langue";
 
@@ -25,11 +26,18 @@ export async function supprimerCompte(utilisateurId: string): Promise<{ erreur?:
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     // `utilisateur` est en RLS permissive : le filtre sur l'entreprise est explicite.
     const [cible] = await tx
-      .select({ role: utilisateur.role, statut: utilisateur.statut })
+      .select({ role: utilisateur.role, statut: utilisateur.statut, email: utilisateur.email })
       .from(utilisateur)
       .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
     if (!cible || cible.statut === "SUPPRIME") return { erreur: t("Compte introuvable.") };
     if (!["MANAGER", "EMPLOYE", "CLIENT"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être supprimé ici.") };
+
+    // Ses invitations restées sans suite (en attente ou expirées) sont annulées : le lien ne doit plus rien permettre.
+    const enAttente = await tx
+      .select({ id: invitation.id })
+      .from(invitation)
+      .where(and(eq(invitation.entrepriseId, utilisateurConnecte.entrepriseId), eq(invitation.email, cible.email), isNull(invitation.utiliseeLe)));
+    await annulerInvitationsNonUtilisees(tx, utilisateurConnecte.entrepriseId, enAttente.map((i) => i.id));
 
     // Ceux qu'elle encadrait n'ont plus de manager (la portée « équipe » ne doit pas passer par un compte supprimé).
     await tx.update(utilisateur).set({ managerId: null }).where(and(eq(utilisateur.managerId, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));

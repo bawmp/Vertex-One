@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, ne } from "drizzle-orm";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { dossierRH, utilisateur, demandeDepart, clearanceDepart } from "@/db/schema";
@@ -52,7 +52,7 @@ export default async function PageDepartRH({ params }: { params: Promise<{ id: s
           .where(eq(clearanceDepart.demandeDepartId, demandeActive.id))
       : [];
 
-    const collegues = await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId));
+    const collegues = await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.statut, "SUPPRIME")));
 
     return { ligne, estProprietaire, demandes, demandeActive, aUneDemandeEnCours, clearances, collegues };
   });

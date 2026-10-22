@@ -66,7 +66,7 @@ export default async function PageSupport() {
       .orderBy(desc(ticketSupport.creeLe));
 
     const tousLesUtilisateurs = estAdmin
-      ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT")))
+      ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
       : [];
 
     return { actif: true as const, categories, tickets, tousLesUtilisateurs };

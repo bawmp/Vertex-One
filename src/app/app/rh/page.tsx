@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, ne } from "drizzle-orm";
 import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
@@ -113,7 +113,7 @@ export default async function PageRH() {
       .select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId, poste: dossierRH.poste, nomComplet: utilisateur.nomComplet })
       .from(dossierRH)
       .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
-      .where(ids === "TOUT" ? eq(dossierRH.entrepriseId, utilisateurConnecte.entrepriseId) : inArray(dossierRH.utilisateurId, ids));
+      .where(and(ne(utilisateur.statut, "SUPPRIME"), ids === "TOUT" ? eq(dossierRH.entrepriseId, utilisateurConnecte.entrepriseId) : inArray(dossierRH.utilisateurId, ids)));
 
     const idsDossiersRH = dossiers.map((d) => d.id);
     const demandesEnAttente =

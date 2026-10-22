@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and, ne } from "drizzle-orm";
 import { Download, ShieldAlert, ArrowRight } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { journalExportDonnees, utilisateur } from "@/db/schema";
@@ -41,7 +41,7 @@ export default async function PageExport() {
       .orderBy(desc(journalExportDonnees.creeLe))
       .limit(10);
     // Pas de jointure avec `utilisateur` (RLS permissive, Better-Auth) : lecture séparée, entreprise filtrée explicitement.
-    const equipe = await tx.select({ id: utilisateur.id, nom: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId));
+    const equipe = await tx.select({ id: utilisateur.id, nom: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.statut, "SUPPRIME")));
     const nomParId = new Map(equipe.map((u) => [u.id, u.nom]));
     return { comptes, historique: lignes.map((l) => ({ type: l.type, nombreLignes: l.nombreLignes, creeLe: l.creeLe, auteur: nomParId.get(l.utilisateurId) ?? "—" })) };
   });

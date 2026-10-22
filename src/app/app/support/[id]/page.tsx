@@ -64,7 +64,7 @@ export default async function PageTicketSupport({ params }: { params: Promise<{ 
 
     const agents =
       utilisateurConnecte.role === "ADMIN"
-        ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT")))
+        ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
         : [];
 
     return { leTicket, messages, agents };

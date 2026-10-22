@@ -70,7 +70,8 @@ export async function obtenirServicesEtIntervenants(slug: string): Promise<{ ser
       .select({ id: intervenantReservation.id, nomComplet: utilisateur.nomComplet })
       .from(intervenantReservation)
       .innerJoin(utilisateur, eq(intervenantReservation.utilisateurId, utilisateur.id))
-      .where(and(eq(intervenantReservation.entrepriseId, params.entrepriseId), eq(intervenantReservation.actif, true)));
+      // Un compte désactivé ou supprimé n'est plus réservable.
+      .where(and(eq(intervenantReservation.entrepriseId, params.entrepriseId), eq(intervenantReservation.actif, true), eq(utilisateur.statut, "ACTIF")));
 
     return { services, intervenants };
   });
@@ -98,7 +99,8 @@ async function calculerCreneauxPourJour(
     const [intervenant] = await tx
       .select({ id: intervenantReservation.id })
       .from(intervenantReservation)
-      .where(and(eq(intervenantReservation.id, intervenantId), eq(intervenantReservation.entrepriseId, entrepriseId), eq(intervenantReservation.actif, true)));
+      .innerJoin(utilisateur, eq(intervenantReservation.utilisateurId, utilisateur.id))
+      .where(and(eq(intervenantReservation.id, intervenantId), eq(intervenantReservation.entrepriseId, entrepriseId), eq(intervenantReservation.actif, true), eq(utilisateur.statut, "ACTIF")));
     if (!intervenant) return null;
 
     const fenetres = await tx

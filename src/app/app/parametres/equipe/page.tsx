@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { GestionServices } from "./gestion-services";
 import { MembresEquipe, ClientsPortail } from "./membres-equipe";
+import { BoutonAnnulerInvitation } from "./bouton-annuler-invitation";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageEquipe() {
@@ -24,7 +25,7 @@ export default async function PageEquipe() {
     );
   }
 
-  const [invitations, collegues, services, membres, clientsPortail] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+  const [invitationsBrutes, collegues, services, membres, clientsPortail, emailsComptes] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     Promise.all([
       tx
         .select()
@@ -51,8 +52,13 @@ export default async function PageEquipe() {
         .from(utilisateur)
         .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.role, "CLIENT"), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
         .orderBy(utilisateur.nomComplet),
+      // Adresses des comptes qui existent encore (tout statut sauf supprimé) : une invitation utilisée dont le compte a été
+      // supprimé n'a plus rien à montrer.
+      tx.select({ email: utilisateur.email }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.statut, "SUPPRIME"))),
     ])
   );
+  const emailsExistants = new Set(emailsComptes.map((c) => c.email));
+  const invitations = invitationsBrutes.filter((inv) => !inv.utiliseeLe || emailsExistants.has(inv.email));
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -103,6 +109,7 @@ export default async function PageEquipe() {
                       ) : null}
                     </p>
                   </div>
+                  <div className="flex items-center gap-2">
                   {estUtilisee ? (
                     <Badge variant="success">{t("Compte activé")}</Badge>
                   ) : estExpiree ? (
@@ -110,6 +117,8 @@ export default async function PageEquipe() {
                   ) : (
                     <Badge variant="info">{t("En attente")}</Badge>
                   )}
+                  {!estUtilisee ? <BoutonAnnulerInvitation id={inv.id} /> : null}
+                  </div>
                 </div>
               );
             })}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, or, desc, and, ne } from "drizzle-orm";
 import { ArrowLeft, Lock, Ticket } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, categorieTicketRH, ticketRH } from "@/db/schema";
@@ -59,7 +59,7 @@ export default async function PageTicketsRH() {
       .where(estAdmin ? eq(ticketRH.entrepriseId, utilisateurConnecte.entrepriseId) : or(eq(ticketRH.demandeurId, utilisateurConnecte.utilisateurId), eq(ticketRH.assigneAId, utilisateurConnecte.utilisateurId)))
       .orderBy(desc(ticketRH.creeLe));
 
-    const tousLesUtilisateurs = estAdmin ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)) : [];
+    const tousLesUtilisateurs = estAdmin ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.statut, "SUPPRIME"))) : [];
 
     return { categories, tickets, tousLesUtilisateurs };
   });

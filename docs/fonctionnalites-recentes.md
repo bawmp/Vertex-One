@@ -13,6 +13,11 @@ où se trouve le code.
   **Son historique reste** (documents, tâches, messages gardent leur auteur) : une facture ne s'efface jamais.
 - **Désactiver / activer** : le même écran propose « Désactiver » (accès coupé tout de suite, sessions fermées, mot de passe conservé) et, sur un
   compte désactivé, « Activer » (l'accès revient tel quel). Valable pour Manager, Employé et client du portail ; `definirActivationCompte()`.
+- **Invitations** : chaque invitation en attente ou expirée a un bouton « Annuler l'invitation » (le lien ne permet plus de créer de compte ;
+  `annulerInvitation()`). Supprimer un compte annule aussi ses invitations restées sans suite, et une invitation déjà utilisée dont le compte
+  a été supprimé n'est plus listée. Une invitation utilisée ne s'annule pas : on désactive ou supprime le compte.
+- **Visibilité** : un compte supprimé n'apparaît plus dans les listes de choix (supports, tickets RH, départs, export, projets, recrutement,
+  réservations), ni dans la liste RH ; un compte désactivé ou supprimé n'est plus réservable depuis la page publique de réservation.
 - **Pas possible** : supprimer son propre compte, un autre Administrateur, ou un compte d'une autre entreprise. Réservé à l'Administrateur.
 - **Code** : `supprimerCompte()` (`src/lib/actions/suppression-compte.ts`), statut `SUPPRIME` ajouté à `statut_utilisateur` (migration `0118`),
   `membres-equipe.tsx`, tests `tests/suppression-compte.test.ts` (dont l'isolation entre entreprises).

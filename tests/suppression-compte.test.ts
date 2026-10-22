@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "@/db/client";
-import { entreprise, utilisateur, session, compte } from "@/db/schema";
+import { db, avecEntreprise } from "@/db/client";
+import { entreprise, utilisateur, session, compte, invitation } from "@/db/schema";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
 vi.mock("server-only", () => ({}));
@@ -124,5 +124,41 @@ describe("Activation et désactivation d'un compte par l'Administrateur", () => 
     // managerA a été supprimé plus haut : introuvable pour l'activation
     expect((await definirActivationCompte(managerA, true))?.erreur).toBeTruthy();
     expect((await lire(managerA)).statut).toBe("SUPPRIME");
+  });
+});
+
+describe("Invitations d'un compte retiré", () => {
+  const inv = async (entrepriseId: string, email: string, jeton: string, utiliseeLe?: Date) =>
+    (await avecEntreprise(entrepriseId, (tx) => tx.insert(invitation).values({ entrepriseId, email, roleProposee: "EMPLOYE", jeton: `${jeton}-${suffixe}`, expireLe: new Date(Date.now() + 86_400_000), utiliseeLe }).returning({ id: invitation.id })))[0].id;
+  const existe = async (id: string) => (await db.select({ id: invitation.id }).from(invitation).where(eq(invitation.id, id))).length === 1; // lecture permissive hors session
+
+  test("l'Administrateur annule une invitation en attente ; jamais celle d'une autre entreprise ni une invitation déjà utilisée", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    const { annulerInvitation } = await import("@/lib/actions/invitation");
+    const enAttente = await inv(a, `attente-${suffixe}@vertexone.test`, "att");
+    const autreEntreprise = await inv(b, `autre-${suffixe}@vertexone.test`, "autre");
+    const utilisee = await inv(a, `utilisee-${suffixe}@vertexone.test`, "util", new Date());
+    expect(await annulerInvitation(autreEntreprise)).toMatchObject({ erreur: expect.any(String) });
+    expect(await annulerInvitation(utilisee)).toMatchObject({ erreur: expect.any(String) });
+    expect(await existe(autreEntreprise) && await existe(utilisee)).toBe(true);
+    expect(await annulerInvitation(enAttente)).toBeNull();
+    expect(await existe(enAttente)).toBe(false);
+  });
+
+  test("un Employé ne peut pas annuler une invitation", async () => {
+    const { annulerInvitation } = await import("@/lib/actions/invitation");
+    const id = await inv(a, `emp-${suffixe}@vertexone.test`, "emp");
+    connecte = { utilisateurId: employeA, entrepriseId: a, role: "EMPLOYE" };
+    expect((await annulerInvitation(id))?.erreur).toBeTruthy();
+    expect(await existe(id)).toBe(true);
+  });
+
+  test("supprimer un compte annule ses invitations restées sans suite", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    const { supprimerCompte } = await import("@/lib/actions/suppression-compte");
+    const [{ id: z }] = await db.insert(utilisateur).values({ entrepriseId: a, email: `zed-${suffixe}@vertexone.test`, nomComplet: "Zed", role: "EMPLOYE" }).returning({ id: utilisateur.id });
+    const relance = await inv(a, `zed-${suffixe}@vertexone.test`, "zed");
+    expect(await supprimerCompte(z)).toBeNull();
+    expect(await existe(relance)).toBe(false);
   });
 });

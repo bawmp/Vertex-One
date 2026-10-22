@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lt, inArray, desc, sql, ne } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { tache, projet, dossier, utilisateur } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
@@ -56,7 +56,7 @@ export async function tableauEquipe(
   const membres = await tx
     .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
     .from(utilisateur)
-    .where(ids === "TOUT" ? eq(utilisateur.entrepriseId, entrepriseId) : inArray(utilisateur.id, ids));
+    .where(and(ne(utilisateur.statut, "SUPPRIME"), ids === "TOUT" ? eq(utilisateur.entrepriseId, entrepriseId) : inArray(utilisateur.id, ids)));
 
   const resultats: LigneTableauEquipe[] = [];
   for (const m of membres) {

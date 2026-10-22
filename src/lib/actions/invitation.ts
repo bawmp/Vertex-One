@@ -16,6 +16,7 @@ import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-li
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 import { getT } from "@/lib/i18n/langue";
+import { annulerInvitationsNonUtilisees } from "@/lib/invitations/annulation";
 import { m } from "@/lib/i18n/catalogue";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
@@ -224,6 +225,32 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
   });
 
   redirect(invitationValide.roleProposee === "CLIENT" ? "/portail" : "/app");
+}
+
+/**
+ * Annule une invitation qui n'a pas servi (en attente ou expirée) : son lien ne permet plus de créer de compte.
+ * Une invitation déjà utilisée correspond à un compte : on désactive ou supprime ce compte, pas l'invitation.
+ */
+export async function annulerInvitation(invitationId: string): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) return { erreur: t("Vous n'avez pas le droit d'annuler une invitation.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [inv] = await tx
+      .select({ id: invitation.id, utiliseeLe: invitation.utiliseeLe })
+      .from(invitation)
+      .where(and(eq(invitation.id, invitationId), eq(invitation.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!inv) return { erreur: t("Invitation introuvable.") };
+    if (inv.utiliseeLe) return { erreur: t("Cette invitation a déjà servi : désactivez ou supprimez le compte correspondant.") };
+    await annulerInvitationsNonUtilisees(tx, utilisateurConnecte.entrepriseId, [inv.id]);
+    return { ok: true };
+  });
+  if ("erreur" in resultat && resultat.erreur) return { erreur: resultat.erreur };
+
+  revalidatePath("/app/parametres/equipe");
+  return null;
 }
 
 export type EtatRenvoiAcces = { erreur?: string; succes?: string } | null;

@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and, ne } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { projet, dossier, entreprise, tache, entreeTemps, commentaire, utilisateur, document } from "@/db/schema";
@@ -55,7 +55,7 @@ export default async function PageDetailProjet({ params }: { params: Promise<{ i
       tx.select().from(tache).where(eq(tache.projetId, id)).orderBy(asc(tache.ordre), asc(tache.creeLe)),
       tx.select().from(entreeTemps).where(eq(entreeTemps.projetId, id)).orderBy(desc(entreeTemps.date)),
       tx.select().from(commentaire).where(eq(commentaire.projetId, id)).orderBy(desc(commentaire.creeLe)),
-      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)),
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.statut, "SUPPRIME"))),
       tx.select().from(document).where(eq(document.projetId, id)),
       recupererMinuteurActif(tx, utilisateurConnecte),
     ]);

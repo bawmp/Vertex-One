@@ -216,4 +216,8 @@ export const PARAMETRES: Record<string, string> = {
   "Seul l'Administrateur peut activer ou désactiver un compte.": "Only the Administrator can activate or deactivate an account.",
   "Vous ne pouvez pas désactiver votre propre compte.": "You cannot deactivate your own account.",
   "Un compte Administrateur ne peut pas être désactivé ici.": "An Administrator account cannot be deactivated here.",
+  "Vous n'avez pas le droit d'annuler une invitation.": "You are not allowed to cancel an invitation.",
+  "Invitation introuvable.": "Invitation not found.",
+  "Cette invitation a déjà servi : désactivez ou supprimez le compte correspondant.": "This invitation has already been used: deactivate or delete the matching account.",
+  "Annuler l'invitation": "Cancel invitation",
 };

@@ -34,7 +34,7 @@ export default async function PageStaffReservations() {
     const utilisateurs = await tx
       .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
       .from(utilisateur)
-      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT")))
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
       .orderBy(utilisateur.nomComplet);
 
     const intervenants = await tx.select().from(intervenantReservation).where(eq(intervenantReservation.entrepriseId, utilisateurConnecte.entrepriseId));
