@@ -9,7 +9,7 @@ où se trouve le code.
 
 - **Aperçu avant envoi** : sur un devis ou une facture, « Aperçu avant envoi » ouvre une fenêtre avec l'email tel qu'il partira (destinataire,
   objet, message, pièce jointe) à côté du vrai PDF. Rien n'est envoyé ni enregistré tant qu'on ne clique pas sur « Envoyer au client par
-  email ». Si le client n'a pas d'adresse email, l'aperçu le dit et l'envoi est désactivé. L'email est composé par le même code que l'envoi
+  email ». Sous 1024 px de large, deux onglets « Message » et « Document (PDF) » (un seul volet à la fois) ; au-dessus, côte à côte ; un lien « Ouvrir dans un nouvel onglet » sert de secours si le navigateur n'affiche pas le PDF intégré. Si le client n'a pas d'adresse email, l'aperçu le dit et l'envoi est désactivé. L'email est composé par le même code que l'envoi
   réel (`composerEmailDevis()` / `composerEmailFacture()`), donc l'aperçu ne peut pas différer de ce qui part.
 - **Retour après avoir modifié le message** : « Personnaliser le message » (sur un devis ou une facture) ouvre le bon modèle d'email avec un bouton « Retour au devis » / « Retour à la facture » en haut, et de nouveau juste après « Enregistrer » ; on revient envoyer. Sans page d'origine (arrivée par le menu), la page des modèles affiche un bouton « Retour » (`BoutonRetour`, page précédente du navigateur). Le chemin de retour (`?retour=`) n'accepte qu'une page interne de l'application (`cheminRetourSur()`, `src/lib/navigation-retour.ts`, testé contre les redirections ouvertes).
 - **Souche** : chaque email envoyé à un client (devis, facture, bon de commande, reçu, acompte, contrat, relance, campagne, confirmation

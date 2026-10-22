@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Eye, Paperclip, Send, X, TriangleAlert } from "lucide-react";
+import { Eye, ExternalLink, Paperclip, Send, X, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useT } from "@/lib/i18n/contexte";
@@ -27,10 +27,13 @@ export function ApercuAvantEnvoi({
   const t = useT();
   const [ouvert, setOuvert] = useState(false);
   const [apercu, setApercu] = useState<ApercuEmailEnvoi | null>(null);
+  // Sous la largeur « lg », un seul volet à la fois (message ou PDF) ; au-dessus, les deux côte à côte.
+  const [volet, setVolet] = useState<"email" | "pdf">("email");
   const [chargement, startTransition] = useTransition();
 
   function ouvrir() {
     setApercu(null);
+    setVolet("email");
     setOuvert(true);
     startTransition(async () => setApercu(await charger()));
   }
@@ -67,8 +70,17 @@ export function ApercuAvantEnvoi({
             </div>
           </div>
 
+          <div className="flex gap-2 lg:hidden" role="tablist" aria-label={t("Aperçu avant envoi")}>
+            <Button type="button" role="tab" aria-selected={volet === "email"} variant={volet === "email" ? "default" : "secondary"} size="sm" onClick={() => setVolet("email")}>
+              {t("Message")}
+            </Button>
+            <Button type="button" role="tab" aria-selected={volet === "pdf"} variant={volet === "pdf" ? "default" : "secondary"} size="sm" onClick={() => setVolet("pdf")}>
+              {t("Document (PDF)")}
+            </Button>
+          </div>
+
           <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
-            <section className="flex min-h-0 flex-col gap-2 overflow-auto rounded-lg bg-background p-3" aria-label={t("Email")}>
+            <section className={`min-h-0 flex-col gap-2 overflow-auto rounded-lg bg-background p-3 ${volet === "email" ? "flex" : "hidden"} lg:flex`} aria-label={t("Email")}>
               {chargement || !apercu ? (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Spinner /> {t("Chargement de l'aperçu…")}
@@ -100,7 +112,13 @@ export function ApercuAvantEnvoi({
                 </>
               )}
             </section>
-            <iframe src={pdfUrl} title={t("Aperçu du PDF")} className="h-full min-h-72 w-full rounded-lg bg-white" />
+            <section className={`min-h-0 flex-col gap-2 rounded-lg bg-background p-3 ${volet === "pdf" ? "flex" : "hidden"} lg:flex`} aria-label={t("Document (PDF)")}>
+              <iframe src={pdfUrl} title={t("Aperçu du PDF")} className="min-h-0 w-full flex-1 rounded-md border border-border bg-white" />
+              <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline">
+                <ExternalLink className="size-3.5" aria-hidden />
+                {t("Le PDF ne s'affiche pas ? Ouvrir dans un nouvel onglet")}
+              </a>
+            </section>
           </div>
         </div>
       ) : null}
