@@ -46,6 +46,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé": "Salary never filled in automatically, visible only to the Administrator and the person concerned",
   "Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé": "Leave requests with configurable policies, attendance, activity tracking per employee",
   "Sondages internes et tickets RH par catégorie": "Internal surveys and HR tickets by category",
+  "Retirer l'accès d'un Manager, d'un Employé ou d'un client du portail en un clic, avec confirmation — son historique (documents, tâches, messages) reste": "Remove a Manager, an Employee or a portal client's access in one click, with confirmation — their history (documents, tasks, messages) stays",
   "Hiérarchie de management à plusieurs niveaux — un manager voit toute son équipe étendue, pas seulement ses subordonnés directs":
     "Multi-level management hierarchy — a manager sees their whole extended team, not only their direct reports",
   "Organisation par département, avec visibilité RH cloisonnée entre départements — un manager ne voit que le sien, sauf permission explicite de l'Administrateur":

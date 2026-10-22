@@ -5,6 +5,18 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Supprimer un Manager, un Employé ou un client du portail (2026-10-22)
+
+- **Quoi** : dans Paramètres → Équipe, l'Administrateur retire un Manager, un Employé (bouton « Supprimer » sur sa ligne, confirmation en ligne)
+  ou un client du portail (section « Clients du portail »). Le compte ne peut plus se connecter, sort des listes, ses sessions et son mot de
+  passe sont effacés, son adresse email est libérée (on peut réinviter la personne) et ceux qu'il encadrait n'ont plus de manager.
+  **Son historique reste** (documents, tâches, messages gardent leur auteur) : une facture ne s'efface jamais.
+- **Pas possible** : supprimer son propre compte, un autre Administrateur, ou un compte d'une autre entreprise. Réservé à l'Administrateur.
+- **Code** : `supprimerCompte()` (`src/lib/actions/suppression-compte.ts`), statut `SUPPRIME` ajouté à `statut_utilisateur` (migration `0118`),
+  `membres-equipe.tsx`, tests `tests/suppression-compte.test.ts` (dont l'isolation entre entreprises).
+- **Pas encore** : effacement définitif d'un compte, annulation d'une suppression ; les listes de choix d'un responsable qui ne filtrent pas
+  encore sur le statut peuvent afficher un compte supprimé.
+
 ## Rédiger un document dans Vertex One (2026-10-22)
 
 - **Quoi** : un éditeur de documents (lettres, contrats, comptes rendus...) dans One Docs : titres, gras/italique/souligné/barré,

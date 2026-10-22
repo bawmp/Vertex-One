@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { GestionServices } from "./gestion-services";
-import { MembresEquipe } from "./membres-equipe";
+import { MembresEquipe, ClientsPortail } from "./membres-equipe";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageEquipe() {
@@ -24,7 +24,7 @@ export default async function PageEquipe() {
     );
   }
 
-  const [invitations, collegues, services, membres] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+  const [invitations, collegues, services, membres, clientsPortail] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     Promise.all([
       tx
         .select()
@@ -45,6 +45,12 @@ export default async function PageEquipe() {
         .from(utilisateur)
         .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE"]), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
         .orderBy(utilisateur.nomComplet),
+      // Clients du portail (role CLIENT) de CETTE entreprise : l'Administrateur peut retirer leur accès.
+      tx
+        .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email })
+        .from(utilisateur)
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.role, "CLIENT"), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
+        .orderBy(utilisateur.nomComplet),
     ])
   );
 
@@ -61,6 +67,10 @@ export default async function PageEquipe() {
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
         <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE", statut: m.statut as "ACTIF" | "DESACTIVE" }))} />
+      </div>
+
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
+        <ClientsPortail clients={clientsPortail} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">

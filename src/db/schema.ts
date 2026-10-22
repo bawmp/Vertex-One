@@ -28,7 +28,7 @@ import { createId } from "@paralleldrive/cuid2";
 // recherche une ligne par jeton avant qu'une session n'existe.
 
 export const roleSysteme = pgEnum("role_systeme", ["ADMIN", "MANAGER", "EMPLOYE", "CLIENT"]);
-export const statutUtilisateur = pgEnum("statut_utilisateur", ["ACTIF", "INVITE", "DESACTIVE"]);
+export const statutUtilisateur = pgEnum("statut_utilisateur", ["ACTIF", "INVITE", "DESACTIVE", "SUPPRIME"]);
 export const statutDomaineEmail = pgEnum("statut_domaine_email", [
   "SOUS_DOMAINE_VERTEX", // contact@nomentreprise.vertexone.app — actif immédiatement
   "EN_ATTENTE_DNS", // domaine propre saisi, en attente de vérification

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { KeyRound, Send } from "lucide-react";
+import { KeyRound, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { definirModulesUtilisateur } from "@/lib/actions/acces-modules";
 import { renvoyerAccesCollegue } from "@/lib/actions/invitation";
+import { supprimerCompte } from "@/lib/actions/suppression-compte";
 import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
@@ -16,6 +17,72 @@ import { useT } from "@/lib/i18n/contexte";
 export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null; statut: "ACTIF" | "DESACTIVE" };
 
 const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
+
+/** Bouton « Supprimer » en deux temps (confirmation en ligne) : retire le compte, garde l'historique. */
+function BoutonSupprimer({ id, nom, onErreur }: { id: string; nom: string; onErreur: (message: string) => void }) {
+  const t = useT();
+  const [confirmer, setConfirmer] = useState(false);
+  const [enCours, startTransition] = useTransition();
+
+  function supprimer() {
+    startTransition(async () => {
+      const resultat = await supprimerCompte(id);
+      if (resultat?.erreur) {
+        onErreur(resultat.erreur);
+        setConfirmer(false);
+      }
+    });
+  }
+
+  if (!confirmer) {
+    return (
+      <Button type="button" variant="ghost" size="xs" className="text-destructive" onClick={() => setConfirmer(true)}>
+        <Trash2 data-icon="inline-start" aria-hidden />
+        {t("Supprimer")}
+      </Button>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1" role="alertdialog" aria-label={t("Confirmer la suppression de {nom}", { nom })}>
+      <span className="text-xs text-destructive">{t("Supprimer {nom} ? Son accès est retiré, son historique reste.", { nom })}</span>
+      <Button type="button" variant="destructive" size="xs" disabled={enCours} onClick={supprimer}>
+        {enCours ? <Spinner /> : null}
+        {t("Oui, supprimer")}
+      </Button>
+      <Button type="button" variant="ghost" size="xs" disabled={enCours} onClick={() => setConfirmer(false)}>
+        {t("Annuler")}
+      </Button>
+    </span>
+  );
+}
+
+export type ClientPortail = { id: string; nomComplet: string; email: string };
+
+export function ClientsPortail({ clients }: { clients: ClientPortail[] }) {
+  const t = useT();
+  const [erreur, setErreur] = useState<string | null>(null);
+  if (clients.length === 0) return null;
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-medium text-muted-foreground">{t("Clients du portail")}</h2>
+      <p className="mb-2 text-xs text-muted-foreground">{t("Comptes de vos clients qui ont accès au portail. Supprimer un compte retire seulement son accès.")}</p>
+      <Card className="p-0">
+        <div className="flex flex-col divide-y divide-border">
+          {clients.map((c) => (
+            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{c.nomComplet}</p>
+                <p className="truncate text-muted-foreground">{c.email}</p>
+              </div>
+              <BoutonSupprimer id={c.id} nom={c.nomComplet} onErreur={setErreur} />
+            </div>
+          ))}
+        </div>
+      </Card>
+      {erreur ? <p className="mt-2 text-sm text-destructive">{erreur}</p> : null}
+    </div>
+  );
+}
 
 function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number }) {
   const t = useT();
@@ -73,6 +140,7 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
             <KeyRound data-icon="inline-start" aria-hidden />
             {t("Accès")}
           </Button>
+          <BoutonSupprimer id={membre.id} nom={membre.nomComplet} onErreur={(m) => setMessageAcces({ texte: m, erreur: true })} />
         </div>
       </div>
       {messageAcces ? <p className={`text-xs ${messageAcces.erreur ? "text-destructive" : "text-emerald-700 dark:text-emerald-400"}`}>{messageAcces.texte}</p> : null}
