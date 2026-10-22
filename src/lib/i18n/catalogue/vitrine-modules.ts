@@ -30,6 +30,7 @@ export const VITRINE_MODULES: Record<string, string> = {
     "On their invoice, the client accepts or disputes it (reason required), then pays right away or later from the same link",
   "Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email": "Each client response is time-stamped, with their IP address, and the team is notified by email",
   "Pages client guidées : une frise « consulter, répondre, régler », de grands boutons faciles à toucher et un suivi animé de la validation sur le téléphone": "Guided client pages: a \"review, respond, pay\" progress bar, large touch-friendly buttons and an animated follow-up of the approval on the phone",
+  "Votre logo en filigrane discret sur chaque page de vos devis, factures, bons de commande, reçus et factures d'acompte": "Your logo as a discreet watermark on every page of your quotes, invoices, purchase orders, receipts and deposit invoices",
   "Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients": "Your logo and identity on quotes, invoices, emails and the pages sent to your clients",
   "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur": "Purchasing: supplier records and purchase orders, directly convertible into a supplier invoice",
   "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique":

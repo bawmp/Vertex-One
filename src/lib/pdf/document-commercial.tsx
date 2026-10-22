@@ -24,6 +24,8 @@ const styles = StyleSheet.create({
   entete: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   logo: { width: 40, height: 40, objectFit: "contain" },
+  // Logo de l'entreprise en filigrane, centré et répété sur chaque page (`fixed`) ; très pâle pour ne jamais gêner la lecture.
+  filigrane: { position: "absolute", top: 262, left: 147, width: 300, height: 300, objectFit: "contain", opacity: 0.07 },
   nomEntreprise: { fontSize: 16, fontWeight: 700 },
   mentionGroupe: { fontSize: 8.5, marginTop: 1, marginBottom: 3 },
   typeDocument: { fontSize: 20, fontWeight: 700, textAlign: "right" },
@@ -132,6 +134,8 @@ export type DocumentCommercialProps = {
   moyenPaiement?: string;
   // Facture d'acompte seulement : ce qu'il reste à appliquer sur de futures factures.
   montantRestant?: number;
+  // Logo en filigrane quand l'entreprise en a un (défaut : oui) ; sans logo, rien n'est ajouté.
+  filigrane?: boolean;
 };
 
 function formaterDate(date: Date): string {
@@ -159,6 +163,7 @@ export function DocumentCommercialPDF({
   montantTTC,
   moyenPaiement,
   montantRestant,
+  filigrane = true,
 }: DocumentCommercialProps) {
   const accent = entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT;
   const coordonnees = [entreprise.adresse, entreprise.ville].filter(Boolean).join(", ");
@@ -169,6 +174,11 @@ export function DocumentCommercialPDF({
   return (
     <Document title={`${typeDocument} ${numero}`}>
       <Page size="A4" style={styles.page}>
+        {filigrane && entreprise.logoUrl ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt
+          <Image src={entreprise.logoUrl} style={styles.filigrane} fixed />
+        ) : null}
+
         <View style={styles.entete}>
           <View style={styles.blocIdentite}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt */}

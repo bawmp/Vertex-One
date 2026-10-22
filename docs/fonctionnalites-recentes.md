@@ -5,6 +5,14 @@ est documentée ici **et** reflétée sur le site vitrine — `src/lib/marketing
 `src/lib/i18n/catalogue/vitrine-modules.ts`). Pour chaque entrée : ce que ça fait pour l'utilisateur, où le trouver, et
 où se trouve le code.
 
+## Logo en filigrane sur les documents de vente (2026-10-22)
+
+- **Quoi** : le logo de l'entreprise apparaît en filigrane (centré, très pâle, sous le texte) sur chaque page de ses devis, factures, bons de
+  commande, reçus et factures d'acompte. Sans logo enregistré (Paramètres → Entreprise), rien n'est ajouté ; le logo officiel Vertex One
+  n'est jamais substitué sur le document d'un client.
+- **Code** : `DocumentCommercialPDF` (`src/lib/pdf/document-commercial.tsx`, prop `filigrane`, activée par défaut), test `tests/pdf-filigrane.test.ts`.
+- **Pas encore** : réglage pour le désactiver, certificat de signature, documents rédigés dans One Docs.
+
 ## Interface plus accueillante : tableau de bord et états vides (2026-10-22)
 
 - **Quoi** : l'accueil salue la personne par son prénom, affiche la date du jour et propose des raccourcis (nouveau contact, nouveau devis,

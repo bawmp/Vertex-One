@@ -83,6 +83,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email"),
       m("Pages client guidées : une frise « consulter, répondre, régler », de grands boutons faciles à toucher et un suivi animé de la validation sur le téléphone"),
       m("Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients"),
+      m("Votre logo en filigrane discret sur chaque page de vos devis, factures, bons de commande, reçus et factures d'acompte"),
       m("Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur"),
       m("Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique"),
       m("Comptabilité : plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise"),
