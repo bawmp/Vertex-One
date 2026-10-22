@@ -88,8 +88,8 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     }
 
     if (managerPropose) {
-      // RLS-scopé, même logique que contactId ci-dessus.
-      const [leManager] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(eq(utilisateur.id, managerPropose));
+      // `utilisateur` est en RLS permissive : le filtre sur l'entreprise est explicite, sinon un identifiant d'une autre entreprise passerait.
+      const [leManager] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, managerPropose), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
       if (!leManager) return { erreur: t("Manager introuvable.") };
     }
 

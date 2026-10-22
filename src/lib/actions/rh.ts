@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
@@ -189,6 +189,12 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [dossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
     if (!dossier) return;
+
+    // `utilisateur` est en RLS permissive : le manager reçu du formulaire doit être relu dans CETTE entreprise.
+    if (managerId) {
+      const [leManager] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, managerId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+      if (!leManager) return;
+    }
 
     await tx
       .update(dossierRH)

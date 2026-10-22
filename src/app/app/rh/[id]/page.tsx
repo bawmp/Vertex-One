@@ -154,7 +154,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     // autorisations RH déjà accordées à cette personne pour d'autres
     // départements, pour le formulaire d'édition ci-dessous.
     const [collegues, services, [departementActuel], autorisationsExistantes] = await Promise.all([
-      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.id, ligne.utilisateurId)),
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.id, ligne.utilisateurId))),
       tx.select({ id: service.id, nom: service.nom }).from(service),
       ligne.serviceId ? tx.select({ nom: service.nom }).from(service).where(eq(service.id, ligne.serviceId)) : Promise.resolve([]),
       tx.select({ serviceId: autorisationDepartementRh.serviceId }).from(autorisationDepartementRh).where(eq(autorisationDepartementRh.utilisateurId, ligne.utilisateurId)),

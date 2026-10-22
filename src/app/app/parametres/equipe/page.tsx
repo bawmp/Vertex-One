@@ -35,7 +35,7 @@ export default async function PageEquipe() {
       // manager d'un nouvel invité, pas seulement les comptes déjà rôle
       // MANAGER (une vraie hiérarchie n'a pas besoin de correspondre au
       // rôle système à 4 niveaux).
-      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(ne(utilisateur.role, "CLIENT")),
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), eq(utilisateur.statut, "ACTIF"))).orderBy(utilisateur.nomComplet),
       tx.select({ id: service.id, nom: service.nom }).from(service),
       // Manager/Employé de l'entreprise — filtre entrepriseId explicite (utilisateur reste en RLS permissive).
       // Inclut les comptes désactivés (départ, voir src/lib/actions/depart.ts) : sinon un Administrateur ne peut
