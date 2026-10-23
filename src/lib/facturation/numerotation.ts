@@ -28,12 +28,12 @@ import { entreprise, devis, facture, bonCommandeVente, recuVente, factureAcompte
  * les journaux manuels : leur numéro n'est pas porté par une table unique.
  */
 const SERIES = {
-  compteurDevis: devis,
-  compteurFactures: facture,
-  compteurBonsCommandeVente: bonCommandeVente,
-  compteurRecusVente: recuVente,
-  compteurFacturesAcompte: factureAcompte,
-  compteurBonsCommandeAchat: bonCommandeAchat,
+  compteurDevis: { table: devis, prefixe: "DEV" },
+  compteurFactures: { table: facture, prefixe: "FAC" },
+  compteurBonsCommandeVente: { table: bonCommandeVente, prefixe: "BCV" },
+  compteurRecusVente: { table: recuVente, prefixe: "REC" },
+  compteurFacturesAcompte: { table: factureAcompte, prefixe: "ACO" },
+  compteurBonsCommandeAchat: { table: bonCommandeAchat, prefixe: "BC" },
 } as const;
 
 async function incrementerCompteur(
@@ -52,9 +52,13 @@ async function incrementerCompteur(
   // atomique : si des documents ont été importés ou copiés avec leur numéro d'origine (transfert entre entreprises,
   // reprise d'un ancien outil), le compteur n'a pas suivi et le prochain numéro serait un doublon (contrainte d'unicité
   // violée, document impossible à créer). Sans retard, GREATEST ne change rien : aucun trou, aucun saut.
+  //
+  // Seuls comptent les numéros AU FORMAT DU SYSTÈME (« FAC-2026-000007 », 9 chiffres au plus) : une facture importée d'un autre
+  // outil garde son numéro d'origine (« INV-20241015 », « 2024/0045 »…), qui n'a rien à voir avec ce compteur — la prendre en
+  // compte ferait sauter la numérotation, voire dépasser la capacité de l'entier.
   const serie = colonne === "compteurJournauxManuels" ? null : SERIES[colonne];
   const plusGrandNumero = serie
-    ? sql`coalesce((select max((substring(${serie.numero} from '([0-9]+)$'))::int) from ${serie} where ${serie.entrepriseId} = ${entrepriseId}), 0)`
+    ? sql`coalesce((select max((substring(${serie.table.numero} from ${`^${serie.prefixe}-[0-9]{4}-([0-9]{1,9})$`}))::int) from ${serie.table} where ${serie.table.entrepriseId} = ${entrepriseId}), 0)`
     : sql`0`;
 
   const [ligne] = await tx

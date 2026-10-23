@@ -59,6 +59,23 @@ describe("Numérotation — alignement du compteur sur les numéros déjà émis
     await creerFacture(a, adminA, contactA, numero);
   }, 120_000);
 
+  test("un numéro importé d'un autre outil (format différent, même très grand) est ignoré : ni saut, ni dépassement d'entier", async () => {
+    // entreprise B : compteur de factures à 2 (voir le test suivant) — on l'isole ici avec une autre entreprise « propre »
+    const [{ id: c }] = await db.insert(entreprise).values({ nom: `${nomB} import`, secteurProfil: "generique" }).returning({ id: entreprise.id });
+    try {
+      const admin = (await db.insert(utilisateur).values({ entrepriseId: c, email: `num-c-${suffixe}@vertexone.test`, nomComplet: "Admin C", role: "ADMIN" }).returning({ id: utilisateur.id }))[0].id;
+      const ct = (await avecEntreprise(c, (tx) => tx.insert(contact).values({ entrepriseId: c, nom: "Client C", telephone: "690000002", assigneAId: admin }).returning({ id: contact.id })))[0].id;
+      for (const numero of ["INV-20241015123456", "2024/0045", "FA-99999999999", "FAC-2026-99999999999"]) await creerFacture(c, admin, ct, numero);
+      const premier = await avecEntreprise(c, (tx) => genererNumeroFacture(tx, c));
+      expect(premier).toMatch(/-000001$/);
+      // un vrai numéro du système, lui, est pris en compte
+      await creerFacture(c, admin, ct, "FAC-2026-000040");
+      expect(await avecEntreprise(c, (tx) => genererNumeroFacture(tx, c))).toMatch(/-000041$/);
+    } finally {
+      await supprimerEntrepriseDeTest(`${nomB} import`);
+    }
+  }, 180_000);
+
   test("sans retard, la numérotation reste continue, sans trou ni saut ; une autre entreprise n'est pas touchée", async () => {
     const un = await avecEntreprise(b, (tx) => genererNumeroFacture(tx, b));
     const deux = await avecEntreprise(b, (tx) => genererNumeroFacture(tx, b));
