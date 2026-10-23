@@ -220,4 +220,7 @@ export const PARAMETRES: Record<string, string> = {
   "Invitation introuvable.": "Invitation not found.",
   "Cette invitation a déjà servi : désactivez ou supprimez le compte correspondant.": "This invitation has already been used: deactivate or delete the matching account.",
   "Annuler l'invitation": "Cancel invitation",
+  "Documents PDF": "PDF documents",
+  "Afficher le logo en filigrane sur les devis, factures et autres documents PDF": "Show the logo as a watermark on quotes, invoices and other PDF documents",
+  "Aucun logo téléversé : ce réglage n'a pas d'effet pour le moment.": "No logo uploaded: this setting has no effect for now.",
 };

@@ -80,6 +80,26 @@ export async function definirCouleurMarque(_etat: EtatBranding, formData: FormDa
   return null;
 }
 
+/**
+ * Active ou désactive le logo en filigrane sur les PDF de vente de l'entreprise (devis, factures, bons de commande, reçus,
+ * acomptes). Réservé à qui peut modifier les paramètres ; la valeur est un booléen strict, jamais prise telle quelle.
+ */
+export async function definirFiligraneDocuments(actif: boolean): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier l'identité visuelle de l'entreprise.") };
+  }
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.update(entreprise).set({ filigraneDocuments: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId))
+  );
+
+  revalidatePath("/app/parametres");
+  return null;
+}
+
 export async function reinitialiserCouleurMarque() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");

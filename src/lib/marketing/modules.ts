@@ -86,7 +86,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("L'état du devis dit « Accepté par le client » ou « Refusé par le client » dans les listes et sur la fiche, avec un bandeau (date, facture créée ou motif du refus)"),
       m("Pages client guidées : une frise « consulter, répondre, régler », de grands boutons faciles à toucher et un suivi animé de la validation sur le téléphone"),
       m("Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients"),
-      m("Votre logo en filigrane discret sur chaque page de vos devis, factures, bons de commande, reçus et factures d'acompte"),
+      m("Votre logo en filigrane discret sur chaque page de vos devis, factures, bons de commande, reçus et factures d'acompte, désactivable en un clic"),
       m("Aperçu avant envoi d'un devis ou d'une facture : l'email tel que le client le recevra (destinataire, objet, message) à côté du vrai PDF joint, et envoi depuis cet aperçu"),
       m("Souche de chaque email envoyé à vos clients (destinataire, message, pièces jointes, date, auteur), consultable et filtrable dans Paramètres"),
       m("Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur"),

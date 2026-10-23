@@ -191,6 +191,8 @@ export const entreprise = pgTable("entreprise", {
   logoCleStockage: text("logo_cle_stockage"),
   logoTypeMime: text("logo_type_mime"),
   couleurMarque: text("couleur_marque"),
+  // Logo en filigrane sur les PDF de vente (devis, factures…) : activé par défaut, désactivable dans Paramètres.
+  filigraneDocuments: boolean("filigrane_documents").notNull().default(true),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });

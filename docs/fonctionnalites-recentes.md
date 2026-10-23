@@ -53,7 +53,8 @@ où se trouve le code.
 - **Code** : `DocumentCommercialPDF` (`src/lib/pdf/document-commercial.tsx`, prop `filigrane`, activée par défaut), test `tests/pdf-filigrane.test.ts`.
 - **Formats** : react-pdf ne dessine que le PNG et le JPEG ; un logo SVG, WebP ou GIF est converti en PNG à la volée pour le PDF (`src/lib/pdf/logo.ts`, bibliothèque `sharp` ; le fichier d'origine reste intact). **Un SVG qui contient du texte n'est pas converti** (les polices manquent sur le serveur : les lettres deviendraient des carrés) : le document sort sans logo plutôt qu'avec un logo abîmé ; un SVG dont les lettres sont des tracés se convertit bien. **Un logo PNG ou JPEG est le choix sûr** (le formulaire du logo le conseille). Un autre format, ou une conversion impossible, donne un document sans logo ni filigrane. Si le rendu échoue malgré tout, il est refait sans logo et l'erreur est journalisée (`[pdf]`).
 - **Montants** : dans les PDF, les milliers sont séparés par une espace ordinaire (« 150 000 FCFA ») grâce à `formaterFCFAPourPDF()` ; l'espace fine insécable du format français (U+202F) n'existe pas dans la police standard des PDF et s'y dessinait « / » (« 150/000 »). L'interface web et les emails gardent `formaterFCFA()`.
-- **Pas encore** : réglage pour le désactiver, certificat de signature, documents rédigés dans One Docs.
+- **Réglage** : Paramètres → Personnalisation → « Afficher le logo en filigrane sur les devis, factures et autres documents PDF » (case à cocher, enregistrée aussitôt, activée par défaut) ; colonne `entreprise.filigrane_documents` (migration `0121`), action `definirFiligraneDocuments()`, droit de modifier les paramètres. Décoché : plus de filigrane sur tous les PDF de vente de l'entreprise ; le logo d'en-tête reste.
+- **Pas encore** : certificat de signature, documents rédigés dans One Docs.
 
 ## Interface plus accueillante : tableau de bord et états vides (2026-10-22)
 

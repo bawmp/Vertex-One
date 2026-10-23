@@ -114,6 +114,8 @@ export type DocumentCommercialProps = {
     assujettiTVA: boolean;
     logoUrl?: string | null;
     couleurMarque?: string | null;
+    // Réglage de l'entreprise (Paramètres) : `false` retire le filigrane de tous ses documents ; absent = activé.
+    filigraneDocuments?: boolean;
     // Nom du groupe auquel l'entreprise appartient (ex. « Vertex Technology »), absent hors groupe — voir src/lib/pdf/groupe.ts.
     groupeNom?: string | null;
   };
@@ -174,7 +176,7 @@ export function DocumentCommercialPDF({
   return (
     <Document title={`${typeDocument} ${numero}`}>
       <Page size="A4" style={styles.page}>
-        {filigrane && entreprise.logoUrl ? (
+        {filigrane && entreprise.filigraneDocuments !== false && entreprise.logoUrl ? (
           // eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, pas une balise <img> HTML : pas de prop alt
           <Image src={entreprise.logoUrl} style={styles.filigrane} fixed />
         ) : null}
