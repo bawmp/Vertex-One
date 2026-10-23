@@ -5,6 +5,7 @@ import { CadreDocumentClient, LignesDocumentClient } from "@/components/document
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ReponseFacture } from "./reponse-facture";
+import { RedirectionEspaceClient } from "./redirection-espace-client";
 import { EtapesClient } from "@/components/formulaire/parcours-client";
 import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -29,8 +30,10 @@ export default async function PageFactureClient({ params, searchParams }: { para
     );
   }
 
-  const { facture, lignes, client, entreprise, entrepriseId } = donnees;
+  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe } = donnees;
   const payee = facture.statut === "PAYEE";
+  // Redirection automatique seulement juste après le paiement (moins de 30 minutes) : rouvrir plus tard une facture réglée ne renvoie pas.
+  const payeRecemment = payee && dernierPaiementLe !== null && Date.now() - dernierPaiementLe.getTime() < 30 * 60 * 1000;
   const annulee = facture.statut === "ANNULEE";
 
   return (
@@ -68,11 +71,22 @@ export default async function PageFactureClient({ params, searchParams }: { para
       </Link>
 
       {payee ? (
-        <EcranPaiementReussi titre="Cette facture est réglée. Merci !" texte={`Un reçu vous a été envoyé par ${entreprise.nom}.`} />
+        <EcranPaiementReussi titre="Cette facture est réglée. Merci !" texte={`Un reçu vous a été envoyé par ${entreprise.nom}.`}>
+          {espaceClientUrl ? <RedirectionEspaceClient url={espaceClientUrl} automatique={payeRecemment} nomEntreprise={entreprise.nom} /> : null}
+        </EcranPaiementReussi>
       ) : annulee ? (
         <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">Cette facture a été annulée : il n&apos;y a rien à régler.</p>
       ) : (
-        <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} montant={formaterFCFA(facture.montantTTC)} numero={facture.numero} />
+        <>
+          <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} montant={formaterFCFA(facture.montantTTC)} numero={facture.numero} />
+          {/* Il peut payer plus tard : son espace de suivi reste accessible sans attendre le paiement. */}
+          {espaceClientUrl && facture.reponseClient === "ACCEPTEE" ? (
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="text-sm text-muted-foreground">Vous pouvez dès maintenant suivre l&apos;avancement de votre procédure.</p>
+              <RedirectionEspaceClient url={espaceClientUrl} automatique={false} nomEntreprise={entreprise.nom} />
+            </div>
+          ) : null}
+        </>
       )}
     </CadreDocumentClient>
   );

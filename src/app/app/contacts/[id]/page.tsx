@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
+import { EspaceClientContact } from "./espace-client";
 import { FormulaireMessageClient } from "./formulaire-message-client";
 import { BoutonEcrireAuClient } from "./bouton-ecrire-au-client";
 import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
@@ -254,6 +255,13 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-6">
+          <Card>
+            <CardContent>
+              <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Espace de suivi du client")}</h2>
+              <EspaceClientContact contactId={fiche.id} adresseInitiale={fiche.espaceClientUrl} peutModifier={peutModifier} />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent>
               <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Notes")}</h2>

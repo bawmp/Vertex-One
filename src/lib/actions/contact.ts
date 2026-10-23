@@ -10,6 +10,8 @@ import { listerChampsPersonnalisesContact } from "@/lib/actions/champ-personnali
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererLienVisio } from "@/lib/marketing/visio";
+import { adresseEspaceClientSure } from "@/lib/client-documents/espace-client";
+import { idsVisibles } from "@/lib/portee";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -140,6 +142,34 @@ export async function genererEtEnregistrerLienVisio(contactId: string) {
   );
 
   revalidatePath(`/app/contacts/${contactId}`);
+}
+
+/**
+ * Adresse de l'espace où le client suit sa procédure (page vers laquelle il est renvoyé à la fin de son parcours). Droit de modifier
+ * le CRM + contact dans la portée de l'utilisateur ; l'adresse est revalidée côté serveur (https uniquement) : jamais une valeur
+ * dangereuse, puisque le client y est redirigé. Vide : l'adresse est retirée.
+ */
+export async function definirEspaceClientContact(contactId: string, adresse: string): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier ce contact.") };
+
+  const brute = adresse.trim();
+  const sure = brute ? adresseEspaceClientSure(brute) : null;
+  if (brute && !sure) return { erreur: t("L'adresse doit être une adresse https valide (ex. https://monsite.com/suivi/…).") };
+
+  const trouve = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
+    const [c] = await tx.select({ assigneAId: contact.assigneAId }).from(contact).where(and(eq(contact.id, contactId), eq(contact.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!c || (visibles !== "TOUT" && !visibles.includes(c.assigneAId))) return false;
+    await tx.update(contact).set({ espaceClientUrl: sure }).where(and(eq(contact.id, contactId), eq(contact.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return true;
+  });
+  if (!trouve) return { erreur: t("Contact introuvable.") };
+
+  revalidatePath(`/app/contacts/${contactId}`);
+  return null;
 }
 
 export async function modifierNotesContact(contactId: string, notes: string) {

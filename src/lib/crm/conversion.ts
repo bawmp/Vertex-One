@@ -38,6 +38,7 @@ export async function convertirLead(
       telephone: leLead.telephone,
       email: leLead.email,
       assigneAId: leLead.assigneAId,
+      espaceClientUrl: leLead.espaceClientUrl,
     })
     .returning({ id: contact.id });
 

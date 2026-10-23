@@ -783,6 +783,9 @@ export const lead = pgTable(
     // ne jamais créer deux fois le même lead si l'émetteur renvoie sa requête.
     sourceExterne: text("source_externe"),
     referenceExterne: text("reference_externe"),
+    // Espace où ce prospect suit sa procédure (page de suivi du site de l'entreprise), transmis par l'API des leads et repris
+    // sur le contact à la conversion — voir src/lib/client-documents/espace-client.ts.
+    espaceClientUrl: text("espace_client_url"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -842,6 +845,9 @@ export const contact = pgTable(
     // compte de connexion (role CLIENT, jamais interne). Nullable : la
     // grande majorité des Contacts n'ont jamais de compte portail.
     utilisateurId: text("utilisateur_id").unique().references(() => utilisateur.id),
+    // Espace où ce client suit sa procédure (page de suivi du site de l'entreprise) : le client y est renvoyé à la fin de son
+    // parcours (devis accepté, facture payée) — voir src/lib/client-documents/espace-client.ts.
+    espaceClientUrl: text("espace_client_url"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [

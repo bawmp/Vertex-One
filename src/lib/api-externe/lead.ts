@@ -2,6 +2,7 @@ import { z } from "zod";
 import { and, asc, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { lead, utilisateur } from "@/db/schema";
+import { adresseEspaceClientSure } from "@/lib/client-documents/espace-client";
 
 /**
  * Corps accepté par `POST /api/externe/leads`. Tout est borné : cette entrée est publique (derrière une clé), jamais
@@ -19,6 +20,14 @@ export const schemaLeadExterne = z.object({
   // Complète un lead déjà créé avec cette référence (ex. Kyria apprend le vrai nom et le besoin au fil de la conversation).
   // Sans cet indicateur, un renvoi de la même référence reste un simple doublon qui ne change rien.
   miseAJour: z.boolean().optional(),
+  // Page où ce prospect suit sa procédure (ex. la page de suivi de dossier du site) : il y est renvoyé à la fin de son parcours.
+  // Une adresse qui n'est pas en https est refusée (le client y est redirigé : jamais un lien dangereux).
+  espaceClientUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || adresseEspaceClientSure(v) !== null, "L'adresse de l'espace client doit être une adresse https valide.")
+    .optional(),
 });
 
 export type LeadExterne = z.infer<typeof schemaLeadExterne>;
@@ -48,7 +57,7 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
 
   if (donnees.reference) {
     const [existant] = await tx
-      .select({ id: lead.id, nom: lead.nom, email: lead.email, societeCliente: lead.societeCliente, notes: lead.notes })
+      .select({ id: lead.id, nom: lead.nom, email: lead.email, societeCliente: lead.societeCliente, notes: lead.notes, espaceClientUrl: lead.espaceClientUrl })
       .from(lead)
       .where(and(eq(lead.entrepriseId, entrepriseId), eq(lead.sourceExterne, donnees.source), eq(lead.referenceExterne, donnees.reference)));
     if (existant) {
@@ -60,6 +69,7 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
         if (donnees.nom && existant.nom.startsWith(NOM_PROVISOIRE) && !donnees.nom.startsWith(NOM_PROVISOIRE)) changements.nom = donnees.nom;
         if (donnees.email && !existant.email) changements.email = donnees.email;
         if (donnees.societe && !existant.societeCliente) changements.societeCliente = donnees.societe;
+        if (donnees.espaceClientUrl && !existant.espaceClientUrl) changements.espaceClientUrl = adresseEspaceClientSure(donnees.espaceClientUrl) ?? undefined;
         if (donnees.message) {
           const base = (existant.notes ?? "").split(MARQUEUR_MISE_A_JOUR)[0].trimEnd();
           changements.notes = `${base}\n\n${MARQUEUR_MISE_A_JOUR}\n${donnees.message}`.trim();
@@ -84,6 +94,7 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
       assigneAId: admin.id,
       sourceExterne: donnees.source,
       referenceExterne: donnees.reference,
+      espaceClientUrl: adresseEspaceClientSure(donnees.espaceClientUrl),
     })
     .returning({ id: lead.id });
 

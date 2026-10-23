@@ -86,4 +86,11 @@ export const CRM: Record<string, string> = {
   "Convertir en Contact/Deal": "Convert to Contact/Deal",
   "Voir le Deal": "View the Deal",
   "Vous n'avez pas le droit de créer un lead.": "You are not allowed to create a lead.",
+  "Adresse enregistrée.": "Address saved.",
+  "Ouvrir l'espace de suivi": "Open the tracking space",
+  "Aucun espace de suivi renseigné.": "No tracking space set.",
+  "Adresse de l'espace de suivi": "Tracking space address",
+  "Le client y est renvoyé à la fin de son parcours (facture payée). Adresse en https uniquement.": "The client is sent there at the end of their journey (invoice paid). https addresses only.",
+  "L'adresse doit être une adresse https valide (ex. https://monsite.com/suivi/…).": "The address must be a valid https address (e.g. https://mysite.com/tracking/…).",
+  "Espace de suivi du client": "Client tracking space",
 };

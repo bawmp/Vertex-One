@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import {
   devis,
@@ -13,10 +13,12 @@ import {
   contact,
   compteClient,
   entreprise,
+  paiement,
 } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
 import { logoPourPDF } from "@/lib/pdf/logo";
+import { adresseEspaceClientSure } from "@/lib/client-documents/espace-client";
 import { groupeNomPourPDF } from "@/lib/pdf/groupe";
 
 /** Libellé français fixe, indépendant de la langue de l'interface — voir CLAUDE.md, i18n (les PDF restent en français). */
@@ -134,12 +136,23 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
   const client = await construireClientPourPDF(tx, f.contactId, f.compteId);
   if (!client) return null;
 
-  const [lignes, [monEntreprise]] = await Promise.all([
+  const [lignes, [monEntreprise], [leContact], [dernierPaiement]] = await Promise.all([
     tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
     tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
+    f.contactId ? tx.select({ espaceClientUrl: contact.espaceClientUrl }).from(contact).where(eq(contact.id, f.contactId)) : Promise.resolve([]),
+    tx.select({ datePaiement: paiement.datePaiement }).from(paiement).where(eq(paiement.factureId, factureId)).orderBy(desc(paiement.datePaiement)).limit(1),
   ]);
 
-  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
+  // `espaceClientUrl` : où renvoyer le client à la fin de son parcours (page publique de la facture) ; `dernierPaiementLe` sert à ne
+  // le rediriger tout seul que juste après avoir payé, jamais en rouvrant plus tard une facture déjà réglée.
+  return {
+    facture: f,
+    lignes,
+    client,
+    entreprise: await avecLogo(tx, monEntreprise),
+    espaceClientUrl: adresseEspaceClientSure(leContact?.espaceClientUrl),
+    dernierPaiementLe: dernierPaiement?.datePaiement ?? null,
+  };
 }
 
 /**
