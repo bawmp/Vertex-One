@@ -200,4 +200,11 @@ export const VENTES: Record<string, string> = {
   "La facture {numero} a été créée automatiquement.": "Invoice {numero} was created automatically.",
   "Motif : « {motif} »": "Reason: “{motif}”",
   "Aucun motif indiqué.": "No reason given.",
+  "Vous n'avez pas le droit de supprimer ce devis.": "You are not allowed to delete this quote.",
+  "Seul un devis en brouillon peut être supprimé. Un devis envoyé au client reste dans vos documents.": "Only a draft quote can be deleted. A quote sent to the client stays in your documents.",
+  "Ce devis a déjà donné lieu à d'autres documents : il ne peut pas être supprimé.": "This quote has already led to other documents: it cannot be deleted.",
+  "Supprimer le brouillon {numero} ? Cette action est irréversible.": "Delete draft {numero}? This cannot be undone.",
+  "Supprimer le brouillon {numero}": "Delete draft {numero}",
+  "Supprimer le brouillon": "Delete draft",
+  "Supprimer ce brouillon": "Delete this draft",
 };

@@ -1,6 +1,6 @@
 import { sql, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { entreprise } from "@/db/schema";
+import { entreprise, devis, facture, bonCommandeVente, recuVente, factureAcompte, bonCommandeAchat } from "@/db/schema";
 
 /**
  * Numérotation séquentielle sans trou (docs/palier-1-*, section 5) — le
@@ -23,6 +23,19 @@ import { entreprise } from "@/db/schema";
  * entreprise sont sérialisées par le verrou de ligne — jamais deux
  * incréments simultanés ne peuvent lire la même valeur de départ.
  */
+/**
+ * Table (et colonne `numero`) de chaque série, pour pouvoir aligner un compteur sur les numéros DÉJÀ émis. Pas de série pour
+ * les journaux manuels : leur numéro n'est pas porté par une table unique.
+ */
+const SERIES = {
+  compteurDevis: devis,
+  compteurFactures: facture,
+  compteurBonsCommandeVente: bonCommandeVente,
+  compteurRecusVente: recuVente,
+  compteurFacturesAcompte: factureAcompte,
+  compteurBonsCommandeAchat: bonCommandeAchat,
+} as const;
+
 async function incrementerCompteur(
   tx: TransactionDrizzle,
   entrepriseId: string,
@@ -35,9 +48,18 @@ async function incrementerCompteur(
     | "compteurFacturesAcompte"
     | "compteurJournauxManuels"
 ): Promise<number> {
+  // Le compteur est d'abord ALIGNÉ sur le plus grand numéro déjà émis pour cette entreprise, dans la même instruction
+  // atomique : si des documents ont été importés ou copiés avec leur numéro d'origine (transfert entre entreprises,
+  // reprise d'un ancien outil), le compteur n'a pas suivi et le prochain numéro serait un doublon (contrainte d'unicité
+  // violée, document impossible à créer). Sans retard, GREATEST ne change rien : aucun trou, aucun saut.
+  const serie = colonne === "compteurJournauxManuels" ? null : SERIES[colonne];
+  const plusGrandNumero = serie
+    ? sql`coalesce((select max((substring(${serie.numero} from '([0-9]+)$'))::int) from ${serie} where ${serie.entrepriseId} = ${entrepriseId}), 0)`
+    : sql`0`;
+
   const [ligne] = await tx
     .update(entreprise)
-    .set({ [colonne]: sql`${entreprise[colonne]} + 1` })
+    .set({ [colonne]: sql`greatest(${entreprise[colonne]}, ${plusGrandNumero}) + 1` })
     .where(eq(entreprise.id, entrepriseId))
     .returning({ compteur: entreprise[colonne] });
 

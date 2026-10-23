@@ -81,6 +81,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture"),
       m("Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien"),
       m("Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email"),
+      m("Supprimer un devis resté en brouillon (jamais envoyé), depuis la liste ou la fiche, avec confirmation"),
       m("L'état du devis dit « Accepté par le client » ou « Refusé par le client » dans les listes et sur la fiche, avec un bandeau (date, facture créée ou motif du refus)"),
       m("Pages client guidées : une frise « consulter, répondre, régler », de grands boutons faciles à toucher et un suivi animé de la validation sur le téléphone"),
       m("Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients"),

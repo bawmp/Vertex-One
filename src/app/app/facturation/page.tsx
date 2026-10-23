@@ -24,6 +24,7 @@ import {
 } from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
 import { BoutonEnvoiDocumentVente } from "./bouton-envoi-document-vente";
+import { BoutonSupprimerDevis } from "./bouton-supprimer-devis";
 import { TableauDeBord } from "./tableau-de-bord";
 import { BoutonConvertirBCV } from "../deals/[id]/bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "../deals/[id]/boutons-facture-recurrente";
@@ -144,11 +145,11 @@ export default async function PageFacturation() {
             {devisVisibles.map((d, index) => {
               const info = statutDevisAffiche(d);
               return (
+                <div key={d.id} className="flex items-center hover:bg-muted/60">
                 <Link
-                  key={d.id}
                   href={`/app/facturation/devis/${d.id}`}
                   style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
+                  className="group/ligne relative flex min-w-0 flex-1 animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300"
                 >
                   <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
                   <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
@@ -160,6 +161,12 @@ export default async function PageFacturation() {
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </span>
                 </Link>
+                {d.statut === "BROUILLON" && peutModifier ? (
+                  <div className="shrink-0 pr-3">
+                    <BoutonSupprimerDevis devisId={d.id} numero={d.numero} compact />
+                  </div>
+                ) : null}
+                </div>
               );
             })}
             {devisVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun devis.")}</p> : null}

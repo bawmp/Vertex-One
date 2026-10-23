@@ -1,11 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis } from "@/db/schema";
+import { entreprise, devis, ligneDevis, facture, projet, lienClientDocument } from "@/db/schema";
+import { idsVisibles } from "@/lib/portee";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
@@ -149,6 +150,43 @@ export async function accepterDevis(devisId: string) {
 }
 
 export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;
+
+/**
+ * Supprime un devis EN BROUILLON (jamais envoyé : le client ne l'a pas vu, aucun document n'en découle). Un devis envoyé,
+ * accepté, refusé ou expiré ne se supprime pas — il reste la trace de ce qui a été proposé au client. Jamais une facture :
+ * la facturation n'a pas de suppression (voir CLAUDE.md). Droit de modifier la facturation + devis dans la portée de
+ * l'utilisateur ; le statut est relu en base, jamais pris dans la requête. Le numéro d'un devis supprimé n'est pas réutilisé.
+ */
+export async function supprimerDevis(devisId: string, retourListe = false): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de supprimer ce devis.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
+    const [d] = await tx.select().from(devis).where(and(eq(devis.id, devisId), eq(devis.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!d || (visibles !== "TOUT" && !visibles.includes(d.assigneAId))) return { erreur: t("Devis introuvable.") };
+    if (d.statut !== "BROUILLON") return { erreur: t("Seul un devis en brouillon peut être supprimé. Un devis envoyé au client reste dans vos documents.") };
+
+    // Garde-fou : rien ne doit dépendre de ce devis (impossible pour un brouillon, mais jamais de suppression « à l'aveugle »).
+    const [uneFacture] = await tx.select({ id: facture.id }).from(facture).where(eq(facture.devisOrigineId, devisId)).limit(1);
+    const [unProjet] = await tx.select({ id: projet.id }).from(projet).where(eq(projet.devisOrigineId, devisId)).limit(1);
+    if (uneFacture || unProjet) return { erreur: t("Ce devis a déjà donné lieu à d'autres documents : il ne peut pas être supprimé.") };
+
+    await tx.delete(lienClientDocument).where(eq(lienClientDocument.devisId, devisId));
+    await tx.delete(ligneDevis).where(eq(ligneDevis.devisId, devisId));
+    await tx.delete(devis).where(and(eq(devis.id, devisId), eq(devis.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return { ok: true };
+  });
+  if ("erreur" in resultat && resultat.erreur) return { erreur: resultat.erreur };
+
+  revalidatePath("/app/facturation");
+  revalidatePath("/app/contacts");
+  revalidatePath("/app/deals");
+  if (retourListe) redirect("/app/facturation");
+  return null;
+}
 
 /**
  * Objet et corps de l'email d'un devis, composés à UN seul endroit : l'envoi réel et l'aperçu avant envoi partent de

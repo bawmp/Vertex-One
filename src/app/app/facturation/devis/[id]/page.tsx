@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { statutDevisAffiche } from "@/lib/libelles";
 import { accepterDevis } from "@/lib/actions/devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
+import { BoutonSupprimerDevis } from "../../bouton-supprimer-devis";
 import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
@@ -162,6 +163,8 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           ) : null}
         </div>
       ) : null}
+
+      {peutModifier && leDevis.statut === "BROUILLON" ? <BoutonSupprimerDevis devisId={leDevis.id} numero={leDevis.numero} /> : null}
 
       {peutModifier && leProspect ? (
         <FormulaireMessageClient contactId={leProspect.id} nomContact={leProspect.nom} emailContact={leProspect.email} devisId={leDevis.id} />
