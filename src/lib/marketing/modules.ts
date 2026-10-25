@@ -81,6 +81,8 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture"),
       m("Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien"),
       m("Un site relié à Vertex One y fait émettre automatiquement la facture de chaque paiement reçu : le client la reçoit à votre nom, avec votre logo, et elle est classée dans votre comptabilité"),
+      m("Après chaque paiement, le client reçoit par email, à votre nom et avec votre logo, sa facture à jour en PDF (déjà réglé, reste à payer) ; l'Administrateur est prévenu de chaque paiement reçu"),
+      m("Le PDF d'une facture partiellement payée affiche le déjà réglé et le reste à payer ; « Marquer comme payée » ne règle que le solde restant"),
       m("Paiement en plusieurs fois : le client choisit le montant de chaque tranche, jusqu'au solde de sa facture ; vous pouvez désactiver cette option"),
       m("Chaque réponse du client est horodatée, avec son adresse IP, et l'équipe est prévenue par email"),
       m("À la fin de son parcours (facture payée), le client est renvoyé vers son espace de suivi — l'adresse est transmise par votre site avec la demande, ou saisie sur la fiche du contact"),
