@@ -6,6 +6,9 @@ import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 import type { ResultatVerification } from "@/lib/paiement/types";
 
 vi.mock("server-only", () => ({}));
+
+// Aucun envoi réel (les paiements confirmés préviennent l'Administrateur par email) : l'envoi est simulé.
+vi.mock("@/lib/email/client", () => ({ envoyerEmail: async () => ({ envoye: true }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (u: string) => { throw new Error(`REDIRECT ${u}`); } }));
 vi.mock("@/lib/i18n/langue", () => ({ getT: async () => Object.assign((texte: string) => texte, { locale: "fr-FR" }) }));

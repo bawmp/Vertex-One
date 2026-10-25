@@ -85,6 +85,39 @@ const TEXTES_EVENEMENT_ABONNEMENT: Record<EvenementAbonnement, { objet: string; 
  * src/lib/paiement/confirmation.ts), envoyée quel que soit le chemin qui a confirmé le paiement (sondage client ou
  * réconciliation serveur) — un client qui a quitté l'écran de paiement doit être informé sans devoir y revenir.
  */
+/**
+ * Notification à l'Administrateur : un client vient de payer (en totalité ou par tranche) une facture par Mobile Money. Les textes venus
+ * d'un tiers (nom du client) sont déjà échappés par l'appelant.
+ */
+export function gabaritPaiementFactureRecu({
+  nomClient,
+  numeroFacture,
+  montant,
+  moyen,
+  resteAPayer,
+  lien,
+}: {
+  nomClient: string;
+  numeroFacture: string;
+  montant: number;
+  moyen: string;
+  /** Ce qui reste dû après ce paiement ; 0 = facture soldée. */
+  resteAPayer: number;
+  lien: string;
+}): { subject: string; html: string } {
+  const solde = resteAPayer <= 0;
+  return {
+    subject: solde ? `Paiement reçu — facture ${numeroFacture} soldée (${formaterFCFA(montant)})` : `Paiement reçu — facture ${numeroFacture} : ${formaterFCFA(montant)} (tranche)`,
+    html: `
+      <p>Bonjour,</p>
+      <p><strong>${nomClient}</strong> vient de payer <strong>${formaterFCFA(montant)}</strong> pour la facture <strong>${numeroFacture}</strong> (${moyen}).</p>
+      <p>${solde ? "La facture est <strong>entièrement réglée</strong>." : `Il reste <strong>${formaterFCFA(resteAPayer)}</strong> à régler : la facture est partiellement payée.`}</p>
+      <p><a href="${lien}">Ouvrir la facture dans Vertex One</a></p>
+      <p>Cordialement,<br>L'équipe Vertex One</p>
+    `.trim(),
+  };
+}
+
 export function gabaritPaiementAbonnement({
   reussi,
   nomEntreprise,

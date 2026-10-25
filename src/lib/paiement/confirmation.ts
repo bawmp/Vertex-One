@@ -1,11 +1,13 @@
 import "server-only";
+import { after } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { db, avecEntreprise, type TransactionDrizzle } from "@/db/client";
-import { entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture, utilisateur } from "@/db/schema";
+import { compteClient, contact, entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture, utilisateur } from "@/db/schema";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
-import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
+import { gabaritPaiementAbonnement, gabaritPaiementFactureRecu } from "@/lib/email/gabarits";
+import { adressesAAlerter, alerterParEmail, echapper } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { lireSolde, statutApresReglement } from "@/lib/facturation/solde";
@@ -102,6 +104,7 @@ function montantConforme(verification: ResultatVerification, montantAttendu: num
 }
 
 async function confirmerTentativeFacture(idTentative: string, verification: ResultatVerification) {
+  let notification: NotificationPaiementFacture | null = null;
   // Lecture anonyme (aucune session) — n'aboutit que grâce à la policy RLS de lecture permissive dédiée à cette table quand
   // app.entreprise_id n'est pas positionné (même patron que `invitation`, voir src/db/schema.ts).
   const [anonyme] = await db.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, idTentative));
@@ -143,6 +146,20 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
     await tx.update(facture).set({ statut: statutApresReglement(laFacture.statut, laFacture.montantTTC, paye) }).where(eq(facture.id, tentative.factureId));
     await tx.update(tentativePaiementFacture).set({ statut: "CONFIRME", confirmeLe: datePaiement }).where(eq(tentativePaiementFacture.id, idTentative));
 
+    // Notification à l'Administrateur (envoyée APRÈS la transaction) : seulement quand CET appel vient d'enregistrer le règlement —
+    // jamais pour un rappel du prestataire sur une tentative déjà confirmée (le test de statut CONFIRME plus haut coupe court).
+    const [leContact] = laFacture.contactId ? await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, laFacture.contactId)) : [];
+    const [leCompte] = !leContact && laFacture.compteId ? await tx.select({ nom: compteClient.nom }).from(compteClient).where(eq(compteClient.id, laFacture.compteId)) : [];
+    notification = {
+      adresses: await adressesAAlerter(tx, entrepriseId),
+      nomClient: leContact?.nom ?? leCompte?.nom ?? "Un client",
+      numeroFacture: laFacture.numero,
+      factureId: tentative.factureId,
+      montant: tentative.montant,
+      moyen: libelleMoyenPaiement(verification.operateur),
+      resteAPayer: Math.max(0, laFacture.montantTTC - paye),
+    };
+
     await genererEcrituresPaiement(tx, {
       entrepriseId,
       factureId: tentative.factureId,
@@ -153,6 +170,33 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
       datePaiement,
     });
   });
+  if (notification) notifierSansBloquer(notification);
+}
+
+type NotificationPaiementFacture = { adresses: string[]; nomClient: string; numeroFacture: string; factureId: string; montant: number; moyen: string; resteAPayer: number };
+
+/** Envoi après la réponse quand on est dans une requête (le client ne l'attend jamais), directement sinon (worker, test). Jamais d'erreur remontée. */
+function notifierSansBloquer(n: NotificationPaiementFacture): void {
+  const envoyer = async () => {
+    try {
+      const { subject, html } = gabaritPaiementFactureRecu({
+        nomClient: echapper(n.nomClient),
+        numeroFacture: echapper(n.numeroFacture),
+        montant: n.montant,
+        moyen: n.moyen,
+        resteAPayer: n.resteAPayer,
+        lien: `${urlBase()}/app/facturation/factures/${n.factureId}`,
+      });
+      await alerterParEmail(n.adresses, subject, html);
+    } catch (erreur) {
+      console.error("[paiement] échec de la notification de paiement de facture :", erreur instanceof Error ? erreur.message : erreur);
+    }
+  };
+  try {
+    after(envoyer);
+  } catch {
+    void envoyer();
+  }
 }
 
 async function confirmerTentativeAbonnement(idTentative: string, verification: ResultatVerification) {

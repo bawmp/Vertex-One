@@ -8,6 +8,9 @@ import type { ResultatVerification } from "@/lib/paiement/types";
 // « server-only » interdit l'import hors d'un composant serveur : sans effet pour un test Node.
 vi.mock("server-only", () => ({}));
 
+// Aucun envoi réel (les paiements confirmés préviennent l'Administrateur par email) : l'envoi est simulé.
+vi.mock("@/lib/email/client", () => ({ envoyerEmail: async () => ({ envoye: true }) }));
+
 // Seul l'appel réseau vers Aangaraa Pay est simulé : tout le reste (base, RLS, écritures comptables) est réel.
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
 vi.mock("@/lib/aangaraa/client", async () => {
