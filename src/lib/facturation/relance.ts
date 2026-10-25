@@ -6,6 +6,7 @@ import { gabaritRelanceFacture } from "@/lib/email/gabarits";
 import { enteteLogoEmail } from "@/lib/email/logo";
 import { envoyerWhatsApp } from "@/lib/whatsapp/client";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { lireSolde } from "@/lib/facturation/solde";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
 
 export type ResultatRelance = {
@@ -56,12 +57,14 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
   for (const f of enRetard) {
     const leContact = f.contactId ? contactParId.get(f.contactId) : undefined;
     if (!leContact) continue;
+    const reste = (await lireSolde(tx, f.id, f.montantTTC)).solde || f.montantTTC; // le montant RESTANT dû (des tranches ont pu être payées)
 
     if (leContact.email) {
       const { subject, html } = gabaritRelanceFacture({
         nomClient: leContact.nom,
         numeroFacture: f.numero,
         montantTTC: f.montantTTC,
+        montantRestant: reste,
         dateEcheance: f.dateEcheance,
         nomEntreprise: monEntreprise.nom,
       });
@@ -78,7 +81,7 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
     // WHATSAPP_ACCESS_TOKEN n'est pas configuré (voir CLAUDE.md).
     const { envoye: envoyeWhatsapp, erreur: erreurWhatsapp } = await envoyerWhatsApp(
       leContact.telephone,
-      `Bonjour ${leContact.nom}, votre facture ${f.numero} d'un montant de ${formaterFCFA(f.montantTTC)} est en retard de paiement. Merci de régulariser dès que possible.`
+      `Bonjour ${leContact.nom}, votre facture ${f.numero} d'un montant restant de ${formaterFCFA(reste)} est en retard de paiement. Merci de régulariser dès que possible.`
     );
     resultats.push({ factureId: f.id, numero: f.numero, canal: "whatsapp", envoye: envoyeWhatsapp, erreur: erreurWhatsapp });
   }

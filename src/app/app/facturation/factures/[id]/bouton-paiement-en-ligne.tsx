@@ -12,7 +12,7 @@ import { useT } from "@/lib/i18n/contexte";
  * Encaissement Mobile Money d'une facture par l'équipe, SANS redirection : on saisit le numéro du payeur et son opérateur, une
  * invite USSD part sur son téléphone, puis l'écran sonde le statut jusqu'à la confirmation (voir PaiementMobileMoney).
  */
-export function BoutonPaiementEnLigne({ factureId, montant, numero }: { factureId: string; montant: string; numero: string }) {
+export function BoutonPaiementEnLigne({ factureId, solde, dejaPaye, tranchesAutorisees, numero }: { factureId: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string }) {
   const t = useT();
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
@@ -31,8 +31,10 @@ export function BoutonPaiementEnLigne({ factureId, montant, numero }: { factureI
       <PaiementMobileMoney
         etiquette={t("Montant à régler")}
         designation={`${t("Facture")} ${numero}`}
-        montant={montant}
-        declencher={(telephone, operateur) => declencherPaiementFactureInterne(factureId, telephone, operateur)}
+        solde={solde}
+        dejaPaye={dejaPaye}
+        tranchesAutorisees={tranchesAutorisees}
+        declencher={(telephone, operateur, montant) => declencherPaiementFactureInterne(factureId, telephone, operateur, montant)}
         verifier={(tentativeId) => verifierPaiementFactureInterne(factureId, tentativeId)}
         onConfirme={() => router.refresh()}
       />

@@ -285,7 +285,7 @@ export async function repondreFacturePublic(
 
 /**
  * Le client paie sa facture depuis son lien : seulement après l'avoir acceptée (le paiement direct n'est proposé qu'à un client
- * qui reconnaît la facture). Paiement SANS redirection (2026-10-25, comme l'abonnement) : le client saisit son numéro Mobile Money
+ * qui reconnaît la facture). Le client peut régler en plusieurs fois (tranches) : il choisit le montant de chaque tranche, jusqu'au solde. Paiement SANS redirection (2026-10-25, comme l'abonnement) : le client saisit son numéro Mobile Money
  * et son opérateur sur la page, une invite part sur son téléphone, puis la page sonde le statut (verifierPaiementFacturePublic).
  * Paiement Mobile Money avec reversement différé, jamais présenté comme instantané (voir CLAUDE.md).
  */
@@ -293,6 +293,7 @@ export async function payerFacturePublic(
   jeton: string,
   telephone: string,
   operateur: string,
+  montant?: number, // la tranche choisie ; absent = tout le solde. Le serveur la borne toujours (determinerMontantTranche).
 ): Promise<{ tentativeId?: string; erreur?: string }> {
   const lien = await trouverLien(jeton);
   if (!lien?.factureId) return { erreur: "Ce lien n'est pas valide." };
@@ -312,6 +313,7 @@ export async function payerFacturePublic(
       returnUrl: `${urlBase()}/facture/${jeton}`,
       telephone,
       operateur,
+      montant,
     });
   });
 }

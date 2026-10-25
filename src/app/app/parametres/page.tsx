@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireLogo } from "./formulaire-logo";
 import { FormulaireCouleur } from "./formulaire-couleur";
 import { FormulaireFiligrane } from "./formulaire-filigrane";
+import { FormulairePaiementTranches } from "./formulaire-paiement-tranches";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageParametres() {
@@ -33,6 +34,7 @@ export default async function PageParametres() {
       logoCleStockage: entreprise.logoCleStockage,
       couleurMarque: entreprise.couleurMarque,
       filigraneDocuments: entreprise.filigraneDocuments,
+      paiementEnTranches: entreprise.paiementEnTranches,
     })
     .from(entreprise)
     .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -72,6 +74,10 @@ export default async function PageParametres() {
             <div>
               <p className="mb-2 text-sm font-medium">{t("Documents PDF")}</p>
               <FormulaireFiligrane actifInitial={monEntreprise?.filigraneDocuments ?? true} aUnLogo={Boolean(monEntreprise?.logoCleStockage)} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">{t("Paiement des factures")}</p>
+              <FormulairePaiementTranches actifInitial={monEntreprise?.paiementEnTranches ?? true} />
             </div>
             <div>
               <p className="mb-2 text-sm font-medium">{t("Couleur de marque")}</p>

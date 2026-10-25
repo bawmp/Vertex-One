@@ -193,6 +193,8 @@ export const entreprise = pgTable("entreprise", {
   couleurMarque: text("couleur_marque"),
   // Logo en filigrane sur les PDF de vente (devis, factures…) : activé par défaut, désactivable dans Paramètres.
   filigraneDocuments: boolean("filigrane_documents").notNull().default(true),
+  // Paiement en plusieurs fois (2026-10-25) : le client choisit le montant de chaque tranche, jusqu'au solde de sa facture. Activé par défaut.
+  paiementEnTranches: boolean("paiement_en_tranches").notNull().default(true),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });

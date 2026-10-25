@@ -2,6 +2,7 @@ import { and, eq, gt } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { entreprise, facture, tentativePaiementFacture } from "@/db/schema";
 import { disponible } from "@/lib/plans";
+import { DELAI_RESERVATION_TENTATIVE_MS, determinerMontantTranche, lireSolde } from "@/lib/facturation/solde";
 import { initierPaiementDirect } from "@/lib/aangaraa/client";
 import { referenceExterne } from "@/lib/paiement/reference";
 import { telephoneInternational } from "@/lib/paiement/telephone";
@@ -35,8 +36,9 @@ export function operateurValide(valeur: unknown): valeur is OperateurMobileMoney
 
 export async function declencherPaiementDirectFacture(
   tx: TransactionDrizzle,
-  params: { entrepriseId: string; factureId: string; returnUrl: string; telephone: string; operateur: unknown },
-): Promise<{ tentativeId?: string; erreur?: string }> {
+  /** `montant` : la tranche choisie par le payeur (FCFA, entier) ; absent = tout le solde restant. Jamais pris tel quel : voir determinerMontantTranche(). */
+  params: { entrepriseId: string; factureId: string; returnUrl: string; telephone: string; operateur: unknown; montant?: unknown },
+): Promise<{ tentativeId?: string; montant?: number; erreur?: string }> {
   const { entrepriseId, factureId, returnUrl } = params;
 
   const telephone = telephoneInternational(params.telephone);
@@ -56,7 +58,7 @@ export async function declencherPaiementDirectFacture(
   }
 
   const recentes = await tx
-    .select({ statut: tentativePaiementFacture.statut, creeLe: tentativePaiementFacture.creeLe })
+    .select({ statut: tentativePaiementFacture.statut, creeLe: tentativePaiementFacture.creeLe, montant: tentativePaiementFacture.montant })
     .from(tentativePaiementFacture)
     .where(and(eq(tentativePaiementFacture.factureId, factureId), gt(tentativePaiementFacture.creeLe, new Date(Date.now() - 3_600_000))));
   if (recentes.some((r) => r.statut === "EN_ATTENTE" && Date.now() - r.creeLe.getTime() < DELAI_ENTRE_TENTATIVES_MS)) {
@@ -66,17 +68,28 @@ export async function declencherPaiementDirectFacture(
     return { erreur: "Trop de tentatives de paiement pour cette facture. Réessayez dans une heure ou contactez l'entreprise." };
   }
 
+  // Le montant de la tentative : une tranche choisie ou tout le solde, toujours borné par ce qui reste réellement dû (règlements lus
+  // en base) moins ce que d'autres tentatives encore en attente ont déjà réservé.
+  const { solde } = await lireSolde(tx, factureId, laFacture.montantTTC);
+  if (solde <= 0) return { erreur: "Cette facture est déjà entièrement réglée." };
+  const reserve = recentes
+    .filter((r) => r.statut === "EN_ATTENTE" && Date.now() - r.creeLe.getTime() < DELAI_RESERVATION_TENTATIVE_MS)
+    .reduce((somme, r) => somme + r.montant, 0);
+  const choix = determinerMontantTranche({ solde, reserve, montantDemande: params.montant, tranchesAutorisees: monEntreprise.paiementEnTranches });
+  if ("erreur" in choix) return { erreur: choix.erreur };
+  const montant = choix.montant;
+
   const [tentative] = await tx
     .insert(tentativePaiementFacture)
-    .values({ entrepriseId, factureId, montant: laFacture.montantTTC })
+    .values({ entrepriseId, factureId, montant })
     .returning({ id: tentativePaiementFacture.id });
 
   const resultat = await initierPaiementDirect({
     telephone,
     operateur,
     reference: referenceExterne("FACTURE", tentative.id),
-    montant: laFacture.montantTTC,
-    description: `Facture ${laFacture.numero}`,
+    montant,
+    description: montant < laFacture.montantTTC ? `Facture ${laFacture.numero} (tranche)` : `Facture ${laFacture.numero}`,
     notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
     returnUrl,
   });
@@ -86,5 +99,5 @@ export async function declencherPaiementDirectFacture(
     return { erreur: resultat.erreur };
   }
   if (resultat.payToken) await tx.update(tentativePaiementFacture).set({ payToken: resultat.payToken }).where(eq(tentativePaiementFacture.id, tentative.id));
-  return { tentativeId: tentative.id };
+  return { tentativeId: tentative.id, montant };
 }

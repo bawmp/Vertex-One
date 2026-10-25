@@ -100,6 +100,26 @@ export async function definirFiligraneDocuments(actif: boolean): Promise<{ erreu
   return null;
 }
 
+/**
+ * Active ou désactive le paiement en plusieurs fois : quand il est actif, le client peut régler une facture par tranches de son choix
+ * depuis son lien. Réservé à qui peut modifier les paramètres ; la valeur est un booléen strict, jamais prise telle quelle.
+ */
+export async function definirPaiementEnTranches(actif: boolean): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier les réglages de paiement de l'entreprise.") };
+  }
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.update(entreprise).set({ paiementEnTranches: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId))
+  );
+
+  revalidatePath("/app/parametres");
+  return null;
+}
+
 export async function reinitialiserCouleurMarque() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");

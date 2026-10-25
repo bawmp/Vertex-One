@@ -1,4 +1,5 @@
 import { eq, desc } from "drizzle-orm";
+import { calculerSolde } from "@/lib/facturation/solde";
 import type { TransactionDrizzle } from "@/db/client";
 import {
   devis,
@@ -136,11 +137,12 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
   const client = await construireClientPourPDF(tx, f.contactId, f.compteId);
   if (!client) return null;
 
-  const [lignes, [monEntreprise], [leContact], [dernierPaiement]] = await Promise.all([
+  const [lignes, [monEntreprise], [leContact], [dernierPaiement], reglements] = await Promise.all([
     tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
     tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
     f.contactId ? tx.select({ espaceClientUrl: contact.espaceClientUrl }).from(contact).where(eq(contact.id, f.contactId)) : Promise.resolve([]),
     tx.select({ datePaiement: paiement.datePaiement }).from(paiement).where(eq(paiement.factureId, factureId)).orderBy(desc(paiement.datePaiement)).limit(1),
+    tx.select({ montant: paiement.montant }).from(paiement).where(eq(paiement.factureId, factureId)),
   ]);
 
   // `espaceClientUrl` : où renvoyer le client à la fin de son parcours (page publique de la facture) ; `dernierPaiementLe` sert à ne
@@ -152,6 +154,9 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
     entreprise: await avecLogo(tx, monEntreprise),
     espaceClientUrl: adresseEspaceClientSure(leContact?.espaceClientUrl),
     dernierPaiementLe: dernierPaiement?.datePaiement ?? null,
+    // Paiement en plusieurs fois : ce qui est déjà réglé et ce qui reste dû, toujours calculés depuis les règlements enregistrés.
+    ...calculerSolde(f.montantTTC, reglements),
+    tranchesAutorisees: monEntreprise.paiementEnTranches,
   };
 }
 

@@ -7,6 +7,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { calculerSolde } from "@/lib/facturation/tranche";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
   const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
   const estReglee = laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE";
   const info = STATUT_FACTURE[laFacture.statut];
+  const { paye, solde } = calculerSolde(laFacture.montantTTC, paiements);
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -152,6 +154,12 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
                   <Badge variant="success">{p.moyenPaiement}</Badge>
                 </div>
               ))}
+              {solde > 0 && laFacture.statut !== "ANNULEE" ? (
+                <div className="flex items-center justify-between bg-muted/40 px-4 py-2.5 text-sm">
+                  <span className="text-muted-foreground">{t("Reste à payer")}</span>
+                  <span className="tabular-nums font-semibold">{formaterFCFA(solde)}</span>
+                </div>
+              ) : null}
             </div>
           </Card>
         </div>
@@ -165,7 +173,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            {paiementEnLigneDisponible ? <BoutonPaiementEnLigne factureId={laFacture.id} montant={formaterFCFA(laFacture.montantTTC)} numero={laFacture.numero} /> : null}
+            {paiementEnLigneDisponible ? <BoutonPaiementEnLigne factureId={laFacture.id} solde={solde} dejaPaye={paye} tranchesAutorisees={monEntreprise.paiementEnTranches} numero={laFacture.numero} /> : null}
             <form action={marquerFacturePayee.bind(null, laFacture.id)}>
               <Button type="submit">
                 <CheckCircle2 data-icon="inline-start" aria-hidden />

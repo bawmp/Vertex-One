@@ -15,6 +15,7 @@ import { enteteLogoEmail } from "@/lib/email/logo";
 import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
+import { lireSolde } from "@/lib/facturation/solde";
 import { declencherPaiementDirectFacture } from "@/lib/facturation/paiement-en-ligne";
 import { relireEtConfirmerFacture, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
@@ -40,13 +41,21 @@ export async function marquerFacturePayee(factureId: string) {
     const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
     if (!laFacture || laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE") return;
 
+    // Le pointage manuel règle ce qui reste dû : jamais le montant total quand des tranches ont déjà été payées (sinon le CA et la
+    // comptabilité compteraient deux fois la partie déjà réglée).
+    const { solde } = await lireSolde(tx, factureId, laFacture.montantTTC);
+    if (solde <= 0) {
+      await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, factureId));
+      return;
+    }
+
     const datePaiement = new Date();
     const [nouveauPaiement] = await tx
       .insert(paiement)
       .values({
         entrepriseId: utilisateurConnecte.entrepriseId,
         factureId,
-        montant: laFacture.montantTTC,
+        montant: solde,
         moyenPaiement: "manuel",
         saisiParId: utilisateurConnecte.utilisateurId,
         datePaiement,
@@ -62,7 +71,7 @@ export async function marquerFacturePayee(factureId: string) {
       factureId,
       paiementId: nouveauPaiement.id,
       numeroFacture: laFacture.numero,
-      montant: laFacture.montantTTC,
+      montant: solde,
       moyenPaiement: "manuel",
       datePaiement,
     });
@@ -121,6 +130,7 @@ export async function declencherPaiementFactureInterne(
   factureId: string,
   telephone: string,
   operateur: string,
+  montant?: number, // la tranche choisie ; absent = tout le solde
 ): Promise<{ tentativeId?: string; erreur?: string }> {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -134,6 +144,7 @@ export async function declencherPaiementFactureInterne(
       returnUrl: `${urlBase()}/app/facturation/factures/${factureId}`,
       telephone,
       operateur,
+      montant,
     });
   });
 }

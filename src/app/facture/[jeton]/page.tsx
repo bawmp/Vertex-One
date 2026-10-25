@@ -8,7 +8,6 @@ import { ReponseFacture } from "./reponse-facture";
 import { RedirectionEspaceClient } from "./redirection-espace-client";
 import { EtapesClient } from "@/components/formulaire/parcours-client";
 import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
-import { formaterFCFA } from "@/lib/facturation/calcul";
 
 const formatDate = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(d);
 
@@ -30,7 +29,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
     );
   }
 
-  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe } = donnees;
+  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe, paye, solde, tranchesAutorisees } = donnees;
   const payee = facture.statut === "PAYEE";
   // Redirection automatique seulement juste après le paiement (moins de 30 minutes) : rouvrir plus tard une facture réglée ne renvoie pas.
   const payeRecemment = payee && dernierPaiementLe !== null && Date.now() - dernierPaiementLe.getTime() < 30 * 60 * 1000;
@@ -57,7 +56,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
           </p>
         </div>
         <div className="flex flex-col items-end gap-1 text-sm">
-          {payee ? <Badge variant="success">Payée</Badge> : annulee ? <Badge variant="neutral">Annulée</Badge> : facture.reponseClient === "CONTESTEE" ? <Badge variant="warning">Contestée</Badge> : facture.reponseClient === "ACCEPTEE" ? <Badge variant="info">Acceptée</Badge> : null}
+          {payee ? <Badge variant="success">Payée</Badge> : paye > 0 && !annulee ? <Badge variant="warning">Partiellement payée</Badge> : annulee ? <Badge variant="neutral">Annulée</Badge> : facture.reponseClient === "CONTESTEE" ? <Badge variant="warning">Contestée</Badge> : facture.reponseClient === "ACCEPTEE" ? <Badge variant="info">Acceptée</Badge> : null}
           <p className="text-muted-foreground">Émise le {formatDate(facture.dateEmission)}</p>
           <p className="text-muted-foreground">Échéance : {formatDate(facture.dateEcheance)}</p>
         </div>
@@ -78,7 +77,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
         <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">Cette facture a été annulée : il n&apos;y a rien à régler.</p>
       ) : (
         <>
-          <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} montant={formaterFCFA(facture.montantTTC)} numero={facture.numero} />
+          <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} solde={solde} dejaPaye={paye} tranchesAutorisees={tranchesAutorisees} numero={facture.numero} />
           {/* Il peut payer plus tard : son espace de suivi reste accessible sans attendre le paiement. */}
           {espaceClientUrl && facture.reponseClient === "ACCEPTEE" ? (
             <div className="flex flex-col items-center gap-1 text-center">

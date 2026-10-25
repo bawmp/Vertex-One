@@ -9,7 +9,7 @@ import { payerFacturePublic, recupererPaiementFactureEnAttentePublic, repondreFa
 import { BoutonDecision } from "@/components/formulaire/parcours-client";
 import { PaiementMobileMoney } from "@/components/formulaire/paiement-mobile-money";
 
-export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; montant: string; numero: string }) {
+export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye, tranchesAutorisees, numero }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string }) {
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [contestation, setContestation] = useState(false);
@@ -60,21 +60,23 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero 
           <h2 id="titre-reglement" className="text-base font-semibold">
             Régler cette facture
           </h2>
-          <p className="text-sm text-muted-foreground">Par Mobile Money (MTN ou Orange), depuis votre téléphone.</p>
+          <p className="text-sm text-muted-foreground">{tranchesAutorisees ? "Par Mobile Money (MTN ou Orange), en une fois ou par tranches." : "Par Mobile Money (MTN ou Orange), depuis votre téléphone."}</p>
         </div>
         {paiementOuvert ? (
           <PaiementMobileMoney
             etiquette="Montant à régler"
             designation={`Facture ${numero}`}
-            montant={montant}
-            declencher={(telephone, operateur) => payerFacturePublic(jeton, telephone, operateur)}
+            solde={solde}
+            dejaPaye={dejaPaye}
+            tranchesAutorisees={tranchesAutorisees}
+            declencher={(telephone, operateur, montant) => payerFacturePublic(jeton, telephone, operateur, montant)}
             verifier={(tentativeId) => verifierPaiementFacturePublic(jeton, tentativeId)}
             reprendre={() => recupererPaiementFactureEnAttentePublic(jeton)}
             onConfirme={() => router.refresh()}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            <BoutonDecision principal icone={CreditCard} titre="Payer maintenant" detail="Mobile Money : une demande de validation arrive sur votre téléphone" onClick={() => setPaiementOuvert(true)} />
+            <BoutonDecision principal icone={CreditCard} titre="Payer maintenant" detail={tranchesAutorisees && solde > 1000 ? "Tout le solde ou une tranche de votre choix, par Mobile Money" : "Mobile Money : une demande de validation arrive sur votre téléphone"} onClick={() => setPaiementOuvert(true)} />
             <BoutonDecision icone={Clock} titre="Payer plus tard" detail="Ce lien reste valable jusqu'à l'échéance" onClick={() => setPlusTard(true)} />
           </div>
         )}

@@ -8,6 +8,7 @@ import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangara
 import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
 import { envoyerEmail } from "@/lib/email/client";
 import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
+import { lireSolde, statutApresReglement } from "@/lib/facturation/solde";
 import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
 
@@ -136,7 +137,10 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
       .values({ entrepriseId, factureId: tentative.factureId, montant: tentative.montant, moyenPaiement, referenceTransaction: idTentative, datePaiement })
       .returning({ id: paiement.id });
 
-    await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, tentative.factureId));
+    // Paiement en plusieurs fois : la facture n'est « payée » que lorsque le total des règlements atteint son montant ; une tranche la
+    // laisse « partiellement payée » (ou « en retard » si elle l'était déjà). Chaque tranche a son règlement et ses écritures.
+    const { paye } = await lireSolde(tx, tentative.factureId, laFacture.montantTTC);
+    await tx.update(facture).set({ statut: statutApresReglement(laFacture.statut, laFacture.montantTTC, paye) }).where(eq(facture.id, tentative.factureId));
     await tx.update(tentativePaiementFacture).set({ statut: "CONFIRME", confirmeLe: datePaiement }).where(eq(tentativePaiementFacture.id, idTentative));
 
     await genererEcrituresPaiement(tx, {

@@ -27,12 +27,15 @@ export function gabaritRelanceFacture({
   nomClient,
   numeroFacture,
   montantTTC,
+  montantRestant,
   dateEcheance,
   nomEntreprise,
 }: {
   nomClient: string;
   numeroFacture: string;
   montantTTC: number;
+  /** Quand des tranches ont déjà été payées : ce qui reste dû. Absent = la facture entière est due. */
+  montantRestant?: number;
   dateEcheance: Date;
   nomEntreprise: string;
 }): { subject: string; html: string } {
@@ -43,7 +46,7 @@ export function gabaritRelanceFacture({
     html: `
       <p>Bonjour ${nomClient},</p>
       <p>
-        La facture <strong>${numeroFacture}</strong> d'un montant de <strong>${formaterFCFA(montantTTC)}</strong>,
+        La facture <strong>${numeroFacture}</strong> d'un montant de <strong>${formaterFCFA(montantTTC)}</strong>${montantRestant !== undefined && montantRestant < montantTTC ? ` (il reste <strong>${formaterFCFA(montantRestant)}</strong> à régler)` : ""},
         dont l'échéance était fixée au ${dateFormatee}, n'a pas encore été réglée.
       </p>
       <p>Merci de bien vouloir procéder au règlement dans les meilleurs délais.</p>
