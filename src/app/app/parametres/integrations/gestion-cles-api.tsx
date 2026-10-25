@@ -8,10 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { creerCleApi, revoquerCleApi } from "@/lib/actions/cle-api";
+import { creerCleApi, definirAutorisationFacturationCle, revoquerCleApi } from "@/lib/actions/cle-api";
 import { useT } from "@/lib/i18n/contexte";
 
-type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null };
+type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean };
 
 export function GestionClesApi({ cles }: { cles: Cle[] }) {
   const t = useT();
@@ -36,6 +36,13 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
     });
   }
 
+  function basculerFacturation(c: Cle) {
+    if (!c.autoriseFacturation && !window.confirm(t("Autoriser la clé « {nom} » à créer des factures payées dans votre comptabilité ? Une facture créée ne peut jamais être supprimée.", { nom: c.nom }))) return;
+    demarrer(async () => {
+      await definirAutorisationFacturationCle(c.id, !c.autoriseFacturation);
+    });
+  }
+
   const format = (iso: string) => new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
   return (
@@ -45,6 +52,10 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
           <Label htmlFor="nom-cle">{t("Nom de la nouvelle clé")}</Label>
           <Input id="nom-cle" name="nom" required minLength={2} maxLength={80} placeholder={t("Ex. : Site Global Mobility")} />
         </div>
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" name="facturation" className="size-4 accent-primary" />
+          {t("Autoriser cette clé à créer des factures payées (paiements faits sur le site)")}
+        </label>
         <Button type="submit" size="sm" disabled={enCours} className="w-fit">
           {enCours ? <Spinner /> : <KeyRound data-icon="inline-start" aria-hidden />}
           {t("Créer une clé")}
@@ -79,6 +90,7 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
                     <p className="flex items-center gap-2 font-medium">
                       {c.nom}
                       {c.revoqueeLe ? <Badge variant="neutral">{t("Révoquée")}</Badge> : <Badge variant="success">{t("Active")}</Badge>}
+                      {!c.revoqueeLe && c.autoriseFacturation ? <Badge variant="info">{t("Factures payées")}</Badge> : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       <span className="font-mono">{c.prefixe}…</span> · {t("créée le {date}", { date: format(c.creeLe) })} ·{" "}
@@ -86,10 +98,15 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
                     </p>
                   </div>
                   {!c.revoqueeLe ? (
-                    <Button type="button" size="sm" variant="outline" disabled={revocation} onClick={() => revoquer(c.id, c.nom)} className="text-destructive hover:text-destructive">
-                      <Ban data-icon="inline-start" aria-hidden />
-                      {t("Révoquer")}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button type="button" size="sm" variant="outline" disabled={revocation} onClick={() => basculerFacturation(c)}>
+                        {c.autoriseFacturation ? t("Retirer le droit de facturer") : t("Autoriser les factures")}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" disabled={revocation} onClick={() => revoquer(c.id, c.nom)} className="text-destructive hover:text-destructive">
+                        <Ban data-icon="inline-start" aria-hidden />
+                        {t("Révoquer")}
+                      </Button>
+                    </div>
                   ) : null}
                 </div>
               ))}

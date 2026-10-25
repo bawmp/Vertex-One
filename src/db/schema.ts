@@ -414,6 +414,8 @@ export const cleApiEntreprise = pgTable(
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     dernierUsageLe: timestamp("dernier_usage_le"),
     revoqueeLe: timestamp("revoquee_le"),
+    // Peut créer des factures payées (POST /api/externe/factures) : refusé par défaut, accordé explicitement par l'Administrateur.
+    autoriseFacturation: boolean("autorise_facturation").notNull().default(false),
   },
   (table) => [
     index("cle_api_entreprise_entreprise_idx").on(table.entrepriseId),

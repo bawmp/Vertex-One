@@ -49,6 +49,7 @@ export async function creerCleApi(_etat: EtatCleApi, formData: FormData): Promis
       prefixe,
       empreinte,
       creeParId: utilisateurConnecte.utilisateurId,
+      autoriseFacturation: formData.get("facturation") === "on",
     });
     return null;
   });
@@ -56,6 +57,29 @@ export async function creerCleApi(_etat: EtatCleApi, formData: FormData): Promis
 
   revalidatePath(CHEMIN);
   return { cleCree: cle, nomCle: analyse.data.nom };
+}
+
+/**
+ * Autoriser ou retirer à une clé le droit de créer des factures payées (paiements faits sur un site connecté). Administrateur seulement ;
+ * la valeur est un booléen strict et la clé doit appartenir à l'entreprise de l'appelant. Une clé révoquée n'est jamais modifiée.
+ */
+export async function definirAutorisationFacturationCle(cleId: string, actif: boolean): Promise<{ erreur?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN" || !peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Seul l'administrateur peut gérer les clés d'API.") };
+  }
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx
+      .update(cleApiEntreprise)
+      .set({ autoriseFacturation: actif === true })
+      .where(and(eq(cleApiEntreprise.id, cleId), eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId), isNull(cleApiEntreprise.revoqueeLe)))
+  );
+
+  revalidatePath(CHEMIN);
+  return {};
 }
 
 /** Révoquer une clé : effet immédiat (le prochain appel avec cette clé reçoit 401). Irréversible, la clé n'est jamais réactivée. */
