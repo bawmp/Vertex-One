@@ -247,3 +247,9 @@ où se trouve le code.
   MTN refuse aussitôt (`LOW_BALANCE_OR_PAYEE_LIMIT_REACHED_OR_NOT_ALLOWED`) quand le solde est inférieur au montant.
 - **Message d'échec précis** : le client voit « solde Mobile Money insuffisant », « demande expirée » ou « annulé sur votre
   téléphone » au lieu d'un échec générique (colonne `raison_echec`, `src/lib/aangaraa/messages-echec.ts`).
+
+## Factures et devis : le client paie sans quitter la page (2026-10-25)
+
+- **Quoi** : depuis le lien d'une facture (ou d'un devis accepté, qui crée la facture), le client clique sur « Payer maintenant », saisit son numéro Mobile Money et son opérateur (Orange ou MTN), valide la demande qui arrive sur son téléphone, et la page confirme le paiement. Plus de page de paiement externe à ouvrir. L'équipe dispose du même parcours dans la fiche d'une facture (« Encaisser par Mobile Money »), pour un client au téléphone ou au guichet.
+- **À savoir** : le paiement par carte bancaire n'est plus proposé pour les factures (Mobile Money uniquement, comme sur Global Mobility et Vertex Technology). Si le client ferme sa page après avoir validé, le serveur relit le statut chez Aangaraa Pay dans la minute et règle la facture. Au plus 5 tentatives par heure et par facture, et pas de seconde invite pendant 90 secondes.
+- **Code** : `declencherPaiementDirectFacture()` (`src/lib/facturation/paiement-en-ligne.ts`), `payerFacturePublic()` / `verifierPaiementFacturePublic()` (`src/lib/actions/client-documents.ts`), `declencherPaiementFactureInterne()` (`src/lib/actions/facture.ts`), `relireEtConfirmerFacture()` (`src/lib/paiement/confirmation.ts`), composant `src/components/formulaire/paiement-mobile-money.tsx`, migration `0122` (colonnes `pay_token`, `raison_echec` sur `tentative_paiement_facture`), tests `tests/paiement-direct-facture.test.ts`.

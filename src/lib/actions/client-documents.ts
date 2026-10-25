@@ -1,11 +1,11 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNotNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, contact, entreprise } from "@/db/schema";
+import { devis, facture, contact, entreprise, tentativePaiementFacture } from "@/db/schema";
 import {
   obtenirOuCreerLien,
   trouverLien,
@@ -13,7 +13,8 @@ import {
   urlBase,
 } from "@/lib/client-documents/liens";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
-import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
+import { declencherPaiementDirectFacture } from "@/lib/facturation/paiement-en-ligne";
+import { relireEtConfirmerFacture, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import {
   adressesAAlerter,
@@ -283,14 +284,16 @@ export async function repondreFacturePublic(
 }
 
 /**
- * Le client paie sa facture depuis son lien : seulement après l'avoir acceptée (le
- * paiement direct n'est proposé qu'à un client qui reconnaît la facture). Renvoie
- * l'URL de paiement Aangaraa Pay — paiement Mobile Money avec reversement différé, jamais
- * présenté comme instantané (voir CLAUDE.md).
+ * Le client paie sa facture depuis son lien : seulement après l'avoir acceptée (le paiement direct n'est proposé qu'à un client
+ * qui reconnaît la facture). Paiement SANS redirection (2026-10-25, comme l'abonnement) : le client saisit son numéro Mobile Money
+ * et son opérateur sur la page, une invite part sur son téléphone, puis la page sonde le statut (verifierPaiementFacturePublic).
+ * Paiement Mobile Money avec reversement différé, jamais présenté comme instantané (voir CLAUDE.md).
  */
 export async function payerFacturePublic(
   jeton: string,
-): Promise<{ url?: string; erreur?: string }> {
+  telephone: string,
+  operateur: string,
+): Promise<{ tentativeId?: string; erreur?: string }> {
   const lien = await trouverLien(jeton);
   if (!lien?.factureId) return { erreur: "Ce lien n'est pas valide." };
   const factureId = lien.factureId;
@@ -303,10 +306,69 @@ export async function payerFacturePublic(
     if (!laFacture) return { erreur: "Cette facture est introuvable." };
     if (laFacture.reponseClient !== "ACCEPTEE")
       return { erreur: "Acceptez d'abord la facture pour pouvoir la régler." };
-    return creerLienPaiementFacture(tx, {
+    return declencherPaiementDirectFacture(tx, {
       entrepriseId: lien.entrepriseId,
       factureId,
       returnUrl: `${urlBase()}/facture/${jeton}`,
+      telephone,
+      operateur,
     });
+  });
+}
+
+/**
+ * Sondée par la page du client après le déclenchement : relit activement le statut chez Aangaraa Pay. L'entreprise et la facture
+ * viennent du lien (jeton) ; la tentative doit appartenir à CETTE facture, jamais un identifiant pris tel quel.
+ */
+export async function verifierPaiementFacturePublic(
+  jeton: string,
+  tentativeId: string,
+): Promise<{ statut: StatutRelectureAbonnement; raison: string | null }> {
+  const lien = await trouverLien(jeton);
+  if (!lien?.factureId) return { statut: "INTROUVABLE", raison: null };
+  const factureId = lien.factureId;
+
+  const appartient = await avecEntreprise(lien.entrepriseId, async (tx) => {
+    const [t] = await tx
+      .select({ id: tentativePaiementFacture.id })
+      .from(tentativePaiementFacture)
+      .where(and(eq(tentativePaiementFacture.id, tentativeId), eq(tentativePaiementFacture.factureId, factureId)));
+    return Boolean(t);
+  });
+  if (!appartient) return { statut: "INTROUVABLE", raison: null };
+
+  const statut = await relireEtConfirmerFacture(tentativeId);
+  if (statut === "CONFIRME") revalidatePath(`/app/facturation/factures/${factureId}`);
+  if (statut !== "ECHEC") return { statut, raison: null };
+  const raison = await avecEntreprise(lien.entrepriseId, async (tx) => {
+    const [t] = await tx.select({ raison: tentativePaiementFacture.raisonEchec }).from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentativeId));
+    return t?.raison ?? null;
+  });
+  return { statut, raison };
+}
+
+/**
+ * Reprise après rechargement de la page (l'onglet peut être déchargé pendant que le client valide sur son téléphone) : une tentative
+ * récente (moins de 10 minutes, avec payToken) encore en attente, pour CETTE facture.
+ */
+export async function recupererPaiementFactureEnAttentePublic(jeton: string): Promise<{ tentativeId: string } | null> {
+  const lien = await trouverLien(jeton);
+  if (!lien?.factureId) return null;
+  const factureId = lien.factureId;
+  return avecEntreprise(lien.entrepriseId, async (tx) => {
+    const [t] = await tx
+      .select({ id: tentativePaiementFacture.id })
+      .from(tentativePaiementFacture)
+      .where(
+        and(
+          eq(tentativePaiementFacture.factureId, factureId),
+          eq(tentativePaiementFacture.statut, "EN_ATTENTE"),
+          isNotNull(tentativePaiementFacture.payToken),
+          gt(tentativePaiementFacture.creeLe, new Date(Date.now() - 10 * 60 * 1000)),
+        ),
+      )
+      .orderBy(desc(tentativePaiementFacture.creeLe))
+      .limit(1);
+    return t ? { tentativeId: t.id } : null;
   });
 }

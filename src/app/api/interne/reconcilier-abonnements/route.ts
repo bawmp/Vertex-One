@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, isNotNull, eq } from "drizzle-orm";
+import { and, eq, gt, isNotNull } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
-import { relireEtConfirmerAbonnement } from "@/lib/paiement/confirmation";
+import { entreprise, tentativePaiementAbonnement, tentativePaiementFacture } from "@/db/schema";
+import { relireEtConfirmerAbonnement, relireEtConfirmerFacture } from "@/lib/paiement/confirmation";
 
 /**
  * Réconciliation SERVEUR des paiements d'abonnement encore EN_ATTENTE (2026-09-23) — appelée toutes les minutes par
@@ -24,6 +24,10 @@ import { relireEtConfirmerAbonnement } from "@/lib/paiement/confirmation";
  * → traiter-abonnement-entreprise.ts) : la table `entreprise` elle-même n'a pas de RLS (lue librement pour lister
  * les tenants), puis chaque lecture de `tentative_paiement_abonnement` passe par avecEntreprise(), une entreprise à
  * la fois — jamais un balayage direct multi-tenant sur une table protégée.
+ *
+ * Les paiements de FACTURES (paiement direct sans redirection, 2026-10-25) suivent la même règle et sont réconciliés ici dans la
+ * même passe : un client qui valide sur son téléphone puis ferme la page ne doit pas laisser sa facture « due ». Seules les
+ * tentatives récentes (moins d'une heure, avec payToken) sont relues.
  *
  * Protégée par un secret partagé (WORKER_INTERNAL_SECRET, distinct de tout secret de paiement) — jamais accessible
  * sans lui, pour qu'une requête externe ne puisse pas déclencher un balayage à volonté.
@@ -47,6 +51,20 @@ export async function POST(requete: Request) {
     );
     for (const t of enAttente) {
       const statut = await relireEtConfirmerAbonnement(t.id);
+      resultats.push({ entrepriseId: e.id, id: t.id, statut });
+    }
+  }
+
+  const seuilFactures = new Date(Date.now() - 60 * 60 * 1000);
+  for (const e of entreprises) {
+    const enAttente = await avecEntreprise(e.id, (tx) =>
+      tx
+        .select({ id: tentativePaiementFacture.id })
+        .from(tentativePaiementFacture)
+        .where(and(eq(tentativePaiementFacture.statut, "EN_ATTENTE"), isNotNull(tentativePaiementFacture.payToken), gt(tentativePaiementFacture.creeLe, seuilFactures)))
+    );
+    for (const t of enAttente) {
+      const statut = await relireEtConfirmerFacture(t.id);
       resultats.push({ entrepriseId: e.id, id: t.id, statut });
     }
   }

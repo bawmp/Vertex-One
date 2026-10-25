@@ -1673,6 +1673,9 @@ export const tentativePaiementFacture = pgTable(
       .references(() => facture.id),
     montant: integer("montant").notNull(),
     statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
+    // Paiement direct (2026-10-25, comme l'abonnement) : payToken renvoyé à l'initiation, pour relire activement le statut.
+    payToken: text("pay_token"),
+    raisonEchec: text("raison_echec"), // raison donnée par le prestataire (solde insuffisant, expirée…), expliquée au client
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     confirmeLe: timestamp("confirme_le"),
   },

@@ -855,6 +855,13 @@
       "when": 1791060000000,
       "tag": "0121_filigrane_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1791070000000,
+      "tag": "0122_paiement_direct_facture",
+      "breakpoints": true
     }
   ]
 }

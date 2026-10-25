@@ -1,10 +1,10 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { facture, paiement, avoirFacture } from "@/db/schema";
+import { facture, paiement, avoirFacture, tentativePaiementFacture } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -15,7 +15,8 @@ import { enteteLogoEmail } from "@/lib/email/logo";
 import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { creerLienPaiementFacture } from "@/lib/facturation/paiement-en-ligne";
+import { declencherPaiementDirectFacture } from "@/lib/facturation/paiement-en-ligne";
+import { relireEtConfirmerFacture, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { lienEmail } from "@/lib/email/lien";
@@ -106,31 +107,66 @@ export async function annulerFacture(factureId: string, motif: string) {
 }
 
 /**
- * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : génère un
- * lien de paiement Aangaraa Pay (Mobile Money) — non branché tant que
- * AANGARAA_PAY_APP_KEY n'est pas configurée (même
- * traitement que Migadu/Resend/R2 : le contrôle d'accès est réel,
- * l'intégration externe est différée). Rappel CLAUDE.md : le paiement Mobile Money est
- * custodial avec délai de reversement — ne jamais présenter ce lien comme un
- * encaissement "instantané" ou "direct".
+ * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : encaisse la facture par Mobile Money SANS redirection (2026-10-25,
+ * comme l'abonnement et la page publique du client) — l'équipe saisit le numéro du payeur et son opérateur, une invite USSD part sur
+ * son téléphone, puis l'écran sonde le statut (verifierPaiementFactureInterne). Non branché tant que AANGARAA_PAY_APP_KEY n'est
+ * pas configurée. Rappel CLAUDE.md : le paiement Mobile Money est custodial avec délai de reversement — jamais présenté comme
+ * « instantané » ou « direct ».
  *
- * Une ligne tentativePaiementFacture est créée AVANT l'appel à Aangaraa Pay —
- * son id sert de transaction_id (jamais l'id de la Facture, transmis à un
- * service externe partagé entre entreprises clientes) et sert d'ancrage
- * retrouvable par le webhook de notification (route publique, sans
- * session, voir src/app/api/paiements/aangaraa/notify/route.ts).
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à Aangaraa Pay — son id sert de transaction_id (jamais l'id de la
+ * Facture, transmis à un service externe partagé entre entreprises clientes) et d'ancrage au webhook de notification (route
+ * publique, sans session, voir src/app/api/paiements/aangaraa/notify/route.ts).
  */
-export async function genererLienPaiement(factureId: string): Promise<{ url?: string; erreur?: string }> {
+export async function declencherPaiementFactureInterne(
+  factureId: string,
+  telephone: string,
+  operateur: string,
+): Promise<{ tentativeId?: string; erreur?: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit d'encaisser cette facture.") };
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    return creerLienPaiementFacture(tx, {
+    return declencherPaiementDirectFacture(tx, {
       entrepriseId: utilisateurConnecte.entrepriseId,
       factureId,
       returnUrl: `${urlBase()}/app/facturation/factures/${factureId}`,
+      telephone,
+      operateur,
     });
   });
+}
+
+/** Sondée par l'écran d'encaissement : la tentative doit appartenir à une facture de l'entreprise connectée ET à cette facture. */
+export async function verifierPaiementFactureInterne(
+  factureId: string,
+  tentativeId: string,
+): Promise<{ statut: StatutRelectureAbonnement; raison: string | null }> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { statut: "INTROUVABLE", raison: null };
+
+  const appartient = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [ligne] = await tx
+      .select({ id: tentativePaiementFacture.id })
+      .from(tentativePaiementFacture)
+      .where(and(eq(tentativePaiementFacture.id, tentativeId), eq(tentativePaiementFacture.factureId, factureId)));
+    return Boolean(ligne);
+  });
+  if (!appartient) return { statut: "INTROUVABLE", raison: null };
+
+  const statut = await relireEtConfirmerFacture(tentativeId);
+  if (statut === "CONFIRME") {
+    revalidatePath(`/app/facturation/factures/${factureId}`);
+    revalidatePath("/app/facturation");
+  }
+  if (statut !== "ECHEC") return { statut, raison: null };
+  const raison = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [ligne] = await tx.select({ raison: tentativePaiementFacture.raisonEchec }).from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentativeId));
+    return ligne?.raison ?? null;
+  });
+  return { statut, raison };
 }
 
 export type EtatEnvoiFacture = { erreur?: string; envoye?: boolean } | null;

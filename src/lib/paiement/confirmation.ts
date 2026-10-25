@@ -112,7 +112,7 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
     if (!tentative || tentative.statut === "CONFIRME") return;
 
     if (verification.statut === "REFUSED") {
-      await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, idTentative));
+      await tx.update(tentativePaiementFacture).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementFacture.id, idTentative));
       return;
     }
     if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — le prestataire rappellera
@@ -218,6 +218,30 @@ export async function relireEtConfirmerAbonnement(idTentative: string): Promise<
   await confirmerTentativeAbonnement(idTentative, verification);
 
   const [apres] = await db.select({ statut: tentativePaiementAbonnement.statut }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
+  if (apres?.statut === "CONFIRME") return "CONFIRME";
+  if (apres?.statut === "ECHEC") return "ECHEC";
+  return "EN_ATTENTE";
+}
+
+/**
+ * Relecture ACTIVE du statut d'une tentative de paiement de FACTURE (paiement direct, 2026-10-25) : même principe et même logique
+ * de confirmation que pour l'abonnement (voir relireEtConfirmerAbonnement), idempotente. Appelée en sondage depuis la page du
+ * client et le bouton interne, et par la réconciliation serveur quand le client a fermé sa page. Aucune session ici : l'appelant
+ * vérifie d'abord que la tentative appartient bien à la facture / à l'entreprise concernée.
+ */
+export async function relireEtConfirmerFacture(idTentative: string): Promise<StatutRelectureAbonnement> {
+  const [anonyme] = await db.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, idTentative));
+  if (!anonyme) return "INTROUVABLE";
+  if (anonyme.statut === "CONFIRME") return "CONFIRME";
+  if (anonyme.statut === "ECHEC") return "ECHEC";
+  if (!anonyme.payToken) return "EN_ATTENTE"; // rien à relire pour l'instant (réponse initiale sans payToken exploitable)
+
+  const verification = await verifierTransaction(anonyme.payToken);
+  if (verification.indisponible) return "INDISPONIBLE";
+
+  await confirmerTentativeFacture(idTentative, verification);
+
+  const [apres] = await db.select({ statut: tentativePaiementFacture.statut }).from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, idTentative));
   if (apres?.statut === "CONFIRME") return "CONFIRME";
   if (apres?.statut === "ECHEC") return "ECHEC";
   return "EN_ATTENTE";

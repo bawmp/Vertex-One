@@ -23,7 +23,7 @@ export const VITRINE_MODULES: Record<string, string> = {
     "VAT calculated line by line at 19.25%, with any issuing blocked until the company's NIU (tax ID) is entered",
   "Acomptes, bons de commande, factures récurrentes et reçus de vente": "Down payments, purchase orders, recurring invoices and sales receipts",
   "Relance automatique des factures impayées, sans intervention manuelle": "Automatic reminders for unpaid invoices, with no manual intervention",
-  "Paiement en ligne Mobile Money (Orange Money, MTN MoMo) directement depuis la facture, via Aangaraa Pay": "Online Mobile Money payment (Orange Money, MTN MoMo) directly from the invoice, via Aangaraa Pay",
+  "Paiement Mobile Money (Orange Money, MTN MoMo) sans quitter la facture : le client saisit son numéro, valide sur son téléphone et la facture passe à « payée », via Aangaraa Pay": "Mobile Money payment (Orange Money, MTN MoMo) without leaving the invoice: the client enters their number, confirms on their phone, and the invoice is marked as paid, via Aangaraa Pay",
   "Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture":
     "The client receives a link: they view their quote, accept it or decline it with a reason — acceptance creates the invoice automatically",
   "Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien":

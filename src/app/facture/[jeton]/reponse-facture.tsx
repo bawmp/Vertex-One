@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Clock, CreditCard, MessageCircleWarning, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { payerFacturePublic, repondreFacturePublic } from "@/lib/actions/client-documents";
+import { payerFacturePublic, recupererPaiementFactureEnAttentePublic, repondreFacturePublic, verifierPaiementFacturePublic } from "@/lib/actions/client-documents";
 import { BoutonDecision } from "@/components/formulaire/parcours-client";
-import { BandeauPaiementSecurise, RecapMontant } from "@/components/formulaire/ecrans-paiement";
+import { PaiementMobileMoney } from "@/components/formulaire/paiement-mobile-money";
 
 export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; montant: string; numero: string }) {
   const router = useRouter();
@@ -16,7 +16,20 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero 
   const [motif, setMotif] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [plusTard, setPlusTard] = useState(false);
-  const [action, setAction] = useState<"accepter" | "payer" | null>(null);
+  const [action, setAction] = useState<"accepter" | null>(null);
+  const [paiementOuvert, setPaiementOuvert] = useState(false);
+
+  // Retour sur la page pendant qu'un paiement attend la validation du téléphone (onglet rechargé) : le suivi reprend tout seul.
+  useEffect(() => {
+    if (reponse !== "ACCEPTEE") return;
+    let annule = false;
+    recupererPaiementFactureEnAttentePublic(jeton).then((enAttente) => {
+      if (!annule && enAttente) setPaiementOuvert(true);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [jeton, reponse]);
 
   function repondre(decision: "ACCEPTER" | "CONTESTER") {
     setErreur(null);
@@ -28,20 +41,6 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero 
         return setErreur(resultat.erreur);
       }
       router.refresh();
-    });
-  }
-
-  function payer() {
-    setErreur(null);
-    setAction("payer");
-    startTransition(async () => {
-      const resultat = await payerFacturePublic(jeton);
-      if (resultat.url) {
-        window.location.href = resultat.url;
-        return;
-      }
-      setAction(null);
-      setErreur(resultat.erreur ?? "Le paiement en ligne n'a pas pu être lancé.");
     });
   }
 
@@ -61,15 +60,24 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, montant, numero 
           <h2 id="titre-reglement" className="text-base font-semibold">
             Régler cette facture
           </h2>
-          <p className="text-sm text-muted-foreground">Mobile Money ou carte, en quelques secondes.</p>
+          <p className="text-sm text-muted-foreground">Par Mobile Money (MTN ou Orange), depuis votre téléphone.</p>
         </div>
-        <RecapMontant etiquette="Montant à régler" designation={`Facture ${numero}`} montant={montant} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <BoutonDecision principal icone={CreditCard} titre="Payer maintenant" detail="Vous êtes redirigé vers le paiement sécurisé" chargement={enCours && action === "payer"} disabled={enCours} onClick={payer} />
-          <BoutonDecision icone={Clock} titre="Payer plus tard" detail="Ce lien reste valable jusqu'à l'échéance" disabled={enCours} onClick={() => setPlusTard(true)} />
-        </div>
-        {enCours && action === "payer" ? <p className="animate-in text-center text-sm text-muted-foreground fade-in">Ouverture du paiement sécurisé…</p> : null}
-        <BandeauPaiementSecurise libelle="Paiement sécurisé" moyens={["Mobile Money", "Carte bancaire", "Aangaraa Pay"]} />
+        {paiementOuvert ? (
+          <PaiementMobileMoney
+            etiquette="Montant à régler"
+            designation={`Facture ${numero}`}
+            montant={montant}
+            declencher={(telephone, operateur) => payerFacturePublic(jeton, telephone, operateur)}
+            verifier={(tentativeId) => verifierPaiementFacturePublic(jeton, tentativeId)}
+            reprendre={() => recupererPaiementFactureEnAttentePublic(jeton)}
+            onConfirme={() => router.refresh()}
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <BoutonDecision principal icone={CreditCard} titre="Payer maintenant" detail="Mobile Money : une demande de validation arrive sur votre téléphone" onClick={() => setPaiementOuvert(true)} />
+            <BoutonDecision icone={Clock} titre="Payer plus tard" detail="Ce lien reste valable jusqu'à l'échéance" onClick={() => setPlusTard(true)} />
+          </div>
+        )}
         {plusTard ? <p className="animate-in rounded-xl bg-background p-3 text-sm shadow-xs duration-300 fade-in slide-in-from-top-1">Pas de problème : vous pouvez régler cette facture à tout moment depuis ce lien, avant son échéance.</p> : null}
         {erreur ? (
           <p role="alert" className="text-sm text-destructive">

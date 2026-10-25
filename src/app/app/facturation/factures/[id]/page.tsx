@@ -165,7 +165,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            {paiementEnLigneDisponible ? <BoutonPaiementEnLigne factureId={laFacture.id} /> : null}
+            {paiementEnLigneDisponible ? <BoutonPaiementEnLigne factureId={laFacture.id} montant={formaterFCFA(laFacture.montantTTC)} numero={laFacture.numero} /> : null}
             <form action={marquerFacturePayee.bind(null, laFacture.id)}>
               <Button type="submit">
                 <CheckCircle2 data-icon="inline-start" aria-hidden />

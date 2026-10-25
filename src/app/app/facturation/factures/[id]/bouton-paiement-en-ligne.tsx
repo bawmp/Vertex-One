@@ -1,42 +1,41 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { genererLienPaiement } from "@/lib/actions/facture";
+import { PaiementMobileMoney } from "@/components/formulaire/paiement-mobile-money";
+import { declencherPaiementFactureInterne, verifierPaiementFactureInterne } from "@/lib/actions/facture";
 import { useT } from "@/lib/i18n/contexte";
 
 /**
- * Redirige le navigateur vers l'URL de paiement Aangaraa Pay retournée par
- * genererLienPaiement() — jamais un lien Next.js interne, Aangaraa Pay héberge
- * lui-même la page de paiement (choix de l'opérateur Mobile Money, saisie
- * du numéro, code de confirmation).
+ * Encaissement Mobile Money d'une facture par l'équipe, SANS redirection : on saisit le numéro du payeur et son opérateur, une
+ * invite USSD part sur son téléphone, puis l'écran sonde le statut jusqu'à la confirmation (voir PaiementMobileMoney).
  */
-export function BoutonPaiementEnLigne({ factureId }: { factureId: string }) {
+export function BoutonPaiementEnLigne({ factureId, montant, numero }: { factureId: string; montant: string; numero: string }) {
   const t = useT();
-  const [enCours, startTransition] = useTransition();
-  const [erreur, setErreur] = useState<string | null>(null);
+  const router = useRouter();
+  const [ouvert, setOuvert] = useState(false);
 
-  function generer() {
-    setErreur(null);
-    startTransition(async () => {
-      const resultat = await genererLienPaiement(factureId);
-      if (resultat.erreur) {
-        setErreur(resultat.erreur);
-        return;
-      }
-      if (resultat.url) window.location.href = resultat.url;
-    });
+  if (!ouvert) {
+    return (
+      <Button type="button" variant="outline" onClick={() => setOuvert(true)}>
+        <CreditCard data-icon="inline-start" aria-hidden />
+        {t("Encaisser par Mobile Money")}
+      </Button>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <Button type="button" variant="outline" onClick={generer} disabled={enCours}>
-        {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
-        {t("Envoyer un lien de paiement Mobile Money")}
-      </Button>
-      {erreur ? <p className="text-xs text-destructive">{erreur}</p> : null}
+    <div className="w-full max-w-md rounded-xl border bg-card p-4">
+      <PaiementMobileMoney
+        etiquette={t("Montant à régler")}
+        designation={`${t("Facture")} ${numero}`}
+        montant={montant}
+        declencher={(telephone, operateur) => declencherPaiementFactureInterne(factureId, telephone, operateur)}
+        verifier={(tentativeId) => verifierPaiementFactureInterne(factureId, tentativeId)}
+        onConfirme={() => router.refresh()}
+      />
     </div>
   );
 }
