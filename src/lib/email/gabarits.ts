@@ -96,6 +96,7 @@ export function gabaritPaiementFactureRecu({
   moyen,
   resteAPayer,
   lien,
+  clientSansEmail,
 }: {
   nomClient: string;
   numeroFacture: string;
@@ -104,6 +105,8 @@ export function gabaritPaiementFactureRecu({
   /** Ce qui reste dû après ce paiement ; 0 = facture soldée. */
   resteAPayer: number;
   lien: string;
+  /** Le client n'a pas d'adresse email : aucun reçu ne lui a été envoyé, l'Administrateur doit le lui faire parvenir. */
+  clientSansEmail?: boolean;
 }): { subject: string; html: string } {
   const solde = resteAPayer <= 0;
   return {
@@ -112,8 +115,44 @@ export function gabaritPaiementFactureRecu({
       <p>Bonjour,</p>
       <p><strong>${nomClient}</strong> vient de payer <strong>${formaterFCFA(montant)}</strong> pour la facture <strong>${numeroFacture}</strong> (${moyen}).</p>
       <p>${solde ? "La facture est <strong>entièrement réglée</strong>." : `Il reste <strong>${formaterFCFA(resteAPayer)}</strong> à régler : la facture est partiellement payée.`}</p>
+      ${clientSansEmail ? "<p>Ce client n'a pas d'adresse email dans sa fiche : <strong>aucun reçu ne lui a été envoyé</strong>. Ajoutez son email pour qu'il reçoive ses prochains reçus.</p>" : "<p>Un reçu avec la facture à jour a été envoyé au client.</p>"}
       <p><a href="${lien}">Ouvrir la facture dans Vertex One</a></p>
       <p>Cordialement,<br>L'équipe Vertex One</p>
+    `.trim(),
+  };
+}
+
+/**
+ * Reçu envoyé au CLIENT après chaque paiement de facture (totalité ou tranche), au nom de l'entreprise : la facture à jour est jointe
+ * en PDF. Le logo de l'entreprise est ajouté en tête par l'appelant ; les textes d'origine tierce (noms) sont déjà échappés.
+ */
+export function gabaritRecuPaiementClient({
+  nomClient,
+  nomEntreprise,
+  numeroFacture,
+  montant,
+  moyen,
+  resteAPayer,
+  lien,
+}: {
+  nomClient: string;
+  nomEntreprise: string;
+  numeroFacture: string;
+  montant: number;
+  moyen: string;
+  resteAPayer: number;
+  lien: string;
+}): { subject: string; html: string } {
+  const solde = resteAPayer <= 0;
+  return {
+    subject: solde ? `Facture ${numeroFacture} réglée — merci` : `Reçu de paiement — facture ${numeroFacture} (reste ${formaterFCFA(resteAPayer)})`,
+    html: `
+      <p>Bonjour ${nomClient},</p>
+      <p>Nous avons bien reçu votre paiement de <strong>${formaterFCFA(montant)}</strong> pour la facture <strong>${numeroFacture}</strong> (${moyen}). Merci !</p>
+      <p>${solde ? "Votre facture est <strong>entièrement réglée</strong>." : `Il vous reste <strong>${formaterFCFA(resteAPayer)}</strong> à régler : vous pouvez payer la suite, par la somme de votre choix, depuis le lien ci-dessous.`}</p>
+      <p>Vous trouverez la facture à jour en pièce jointe.</p>
+      <p><a href="${lien}">${solde ? "Consulter ma facture" : "Consulter ma facture et payer la suite"}</a></p>
+      <p>Cordialement,<br>${nomEntreprise}</p>
     `.trim(),
   };
 }

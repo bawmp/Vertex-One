@@ -6,8 +6,9 @@ import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 import type { ResultatVerification } from "@/lib/paiement/types";
 
 vi.mock("server-only", () => ({}));
-// L'envoi part « après la réponse » : ici, tout de suite, pour pouvoir l'observer.
-vi.mock("next/server", async (original) => ({ ...(await original<typeof import("next/server")>()), after: (f: () => unknown) => { void f(); } }));
+// L'envoi part « après la réponse » : on garde les tâches pour attendre leur fin avant de vérifier.
+const taches = vi.hoisted(() => [] as Promise<unknown>[]);
+vi.mock("next/server", async (original) => ({ ...(await original<typeof import("next/server")>()), after: (f: () => unknown) => { taches.push(Promise.resolve().then(f)); } }));
 
 const envoyerEmail = vi.fn<(p: { to: string; subject: string; html: string }) => Promise<{ envoye: boolean; erreur?: string }>>();
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: (p: { to: string; subject: string; html: string }) => envoyerEmail(p) }));
@@ -19,6 +20,16 @@ vi.mock("@/lib/aangaraa/client", async () => {
 });
 
 const { relireEtConfirmerFacture, traiterNotificationPaiement } = await import("@/lib/paiement/confirmation");
+const confirmer = async (id: string) => {
+  const statut = await relireEtConfirmerFacture(id);
+  await Promise.all(taches.splice(0)); // les emails envoyés après la réponse sont partis
+  return statut;
+};
+const notifier = async (entree: { payToken: string | null }) => {
+  const issue = await traiterNotificationPaiement(entree);
+  await Promise.all(taches.splice(0));
+  return issue;
+};
 
 const suffixe = Math.random().toString(36).slice(2, 8);
 const nomA = `TEST NotifPaiement A ${suffixe}`;
@@ -82,7 +93,7 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idA, adminA);
     const id = await nouvelleTentative(idA, f, 5000, "MP26.8101.N81011");
     verifierTransaction.mockResolvedValue(accepte(id, 5000));
-    expect(await relireEtConfirmerFacture(id)).toBe("CONFIRME");
+    expect(await confirmer(id)).toBe("CONFIRME");
 
     // Seul l'Administrateur actif de A : ni l'ancien administrateur désactivé, ni l'employé, ni l'administrateur de B.
     expect(destinataires()).toEqual([emailAdminA]);
@@ -99,7 +110,7 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idA, adminA);
     const id = await nouvelleTentative(idA, f, 11925, "MP26.8102.N81022");
     verifierTransaction.mockResolvedValue(accepte(id, 11925, "Orange_Cameroon"));
-    await relireEtConfirmerFacture(id);
+    await confirmer(id);
     const mail = envoyerEmail.mock.calls[0][0];
     expect(mail.subject).toMatch(/soldée/);
     expect(mail.html).toContain("entièrement réglée");
@@ -110,9 +121,9 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idA, adminA);
     const id = await nouvelleTentative(idA, f, 4000, "MP26.8103.N81033");
     verifierTransaction.mockResolvedValue(accepte(id, 4000));
-    await relireEtConfirmerFacture(id);
-    await relireEtConfirmerFacture(id);
-    expect((await traiterNotificationPaiement({ payToken: "MP26.8103.N81033" })).code).toBe(200);
+    await confirmer(id);
+    await confirmer(id);
+    expect((await notifier({ payToken: "MP26.8103.N81033" })).code).toBe(200);
     expect(envoyerEmail).toHaveBeenCalledTimes(1);
     const reglements = await avecEntreprise(idA, (tx) => tx.select().from(paiement).where(eq(paiement.factureId, f)));
     expect(reglements).toHaveLength(1);
@@ -123,18 +134,18 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const refusee = await nouvelleFacture(idA, adminA);
     const idRefus = await nouvelleTentative(idA, refusee, 3000, "MP26.8104.N81044");
     verifierTransaction.mockResolvedValue({ statut: "REFUSED", indisponible: false, referenceExterne: `fac_${idRefus}`, montant: 3000, raisonEchec: "SOLDE_OU_COMPTE" });
-    await relireEtConfirmerFacture(idRefus);
+    await confirmer(idRefus);
 
     const autreMontant = await nouvelleFacture(idA, adminA);
     const idMontant = await nouvelleTentative(idA, autreMontant, 3000, "MP26.8105.N81055");
     verifierTransaction.mockResolvedValue(accepte(idMontant, 999));
-    await relireEtConfirmerFacture(idMontant);
+    await confirmer(idMontant);
 
     const reglee = await nouvelleFacture(idA, adminA);
     await avecEntreprise(idA, (tx) => tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, reglee)));
     const idReglee = await nouvelleTentative(idA, reglee, 3000, "MP26.8106.N81066");
     verifierTransaction.mockResolvedValue(accepte(idReglee, 3000));
-    await relireEtConfirmerFacture(idReglee);
+    await confirmer(idReglee);
 
     expect(envoyerEmail).not.toHaveBeenCalled();
   }, 240_000);
@@ -143,7 +154,7 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idB, adminB, "Client de B");
     const id = await nouvelleTentative(idB, f, 2000, "MP26.8107.N81077");
     verifierTransaction.mockResolvedValue(accepte(id, 2000));
-    await relireEtConfirmerFacture(id);
+    await confirmer(id);
     expect(destinataires()).toEqual([emailAdminB]);
     expect(envoyerEmail.mock.calls[0][0].html).toContain("Client de B");
   }, 240_000);
@@ -152,7 +163,7 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idA, adminA, "<script>alert(1)</script> Eve");
     const id = await nouvelleTentative(idA, f, 2000, "MP26.8108.N81088");
     verifierTransaction.mockResolvedValue(accepte(id, 2000));
-    await relireEtConfirmerFacture(id);
+    await confirmer(id);
     const html = envoyerEmail.mock.calls[0][0].html;
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
@@ -164,7 +175,7 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     const f = await nouvelleFacture(idA, adminA);
     const id = await nouvelleTentative(idA, f, 11925, "MP26.8109.N81099");
     verifierTransaction.mockResolvedValue(accepte(id, 11925));
-    expect(await relireEtConfirmerFacture(id)).toBe("CONFIRME");
+    expect(await confirmer(id)).toBe("CONFIRME");
     const [apres] = await avecEntreprise(idA, (tx) => tx.select().from(facture).where(eq(facture.id, f)));
     expect(apres.statut).toBe("PAYEE");
   }, 240_000);

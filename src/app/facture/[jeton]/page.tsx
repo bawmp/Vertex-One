@@ -70,7 +70,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
       </Link>
 
       {payee ? (
-        <EcranPaiementReussi titre="Cette facture est réglée. Merci !" texte={`Un reçu vous a été envoyé par ${entreprise.nom}.`}>
+        <EcranPaiementReussi titre="Cette facture est réglée. Merci !" texte={`${entreprise.nom} vous envoie un reçu avec la facture à jour par email, à l'adresse qu'elle a enregistrée pour vous.`}>
           {espaceClientUrl ? <RedirectionEspaceClient url={espaceClientUrl} automatique={payeRecemment} nomEntreprise={entreprise.nom} /> : null}
         </EcranPaiementReussi>
       ) : annulee ? (

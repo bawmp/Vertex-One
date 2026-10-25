@@ -136,6 +136,9 @@ export type DocumentCommercialProps = {
   moyenPaiement?: string;
   // Facture d'acompte seulement : ce qu'il reste à appliquer sur de futures factures.
   montantRestant?: number;
+  // Facture déjà payée en partie ou en totalité (paiement en plusieurs fois) : total des règlements reçus ; affiche « Déjà réglé » et
+  // « Reste à payer » sous le total. Absent ou 0 = rien n'est affiché (document identique à avant).
+  montantRegle?: number;
   // Logo en filigrane quand l'entreprise en a un (défaut : oui) ; sans logo, rien n'est ajouté.
   filigrane?: boolean;
 };
@@ -165,6 +168,7 @@ export function DocumentCommercialPDF({
   montantTTC,
   moyenPaiement,
   montantRestant,
+  montantRegle,
   filigrane = true,
 }: DocumentCommercialProps) {
   const accent = entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT;
@@ -261,6 +265,18 @@ export function DocumentCommercialPDF({
                 <Text>Total TTC</Text>
                 <Text>{formaterFCFA(montantTTC)}</Text>
               </View>
+              {montantRegle != null && montantRegle > 0 ? (
+                <>
+                  <View style={styles.ligneTotal}>
+                    <Text>Déjà réglé</Text>
+                    <Text>{formaterFCFA(montantRegle)}</Text>
+                  </View>
+                  <View style={styles.ligneTotal}>
+                    <Text style={{ fontFamily: "Helvetica-Bold" }}>Reste à payer</Text>
+                    <Text style={{ fontFamily: "Helvetica-Bold" }}>{formaterFCFA(Math.max(0, montantTTC - montantRegle))}</Text>
+                  </View>
+                </>
+              ) : null}
             </View>
           </>
         ) : (

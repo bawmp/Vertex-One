@@ -103,12 +103,14 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
   const client = await construireClientPourPDF(tx, f.contactId, f.compteId);
   if (!client) return null;
 
-  const [lignes, [monEntreprise]] = await Promise.all([
+  const [lignes, [monEntreprise], reglements] = await Promise.all([
     tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+    tx.select({ montant: paiement.montant }).from(paiement).where(eq(paiement.factureId, factureId)),
   ]);
 
-  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise) };
+  // `paye` : total déjà réglé, pour que le PDF affiche « Déjà réglé » et « Reste à payer » (paiement en plusieurs fois).
+  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise), paye: calculerSolde(f.montantTTC, reglements).paye };
 }
 
 /**

@@ -6,10 +6,14 @@ import { compteClient, contact, entreprise, facture, paiement, tentativePaiement
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
-import { gabaritPaiementAbonnement, gabaritPaiementFactureRecu } from "@/lib/email/gabarits";
+import { gabaritPaiementAbonnement, gabaritPaiementFactureRecu, gabaritRecuPaiementClient } from "@/lib/email/gabarits";
+import { enteteLogoEmail } from "@/lib/email/logo";
+import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
+import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
+import { recupererFacturePourClient } from "@/lib/pdf/donnees";
 import { adressesAAlerter, alerterParEmail, echapper } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
-import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
+import { rendreDocumentCommercialPDF, rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { lireSolde, statutApresReglement } from "@/lib/facturation/solde";
 import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
@@ -148,13 +152,16 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
 
     // Notification à l'Administrateur (envoyée APRÈS la transaction) : seulement quand CET appel vient d'enregistrer le règlement —
     // jamais pour un rappel du prestataire sur une tentative déjà confirmée (le test de statut CONFIRME plus haut coupe court).
-    const [leContact] = laFacture.contactId ? await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, laFacture.contactId)) : [];
+    const [leContact] = laFacture.contactId ? await tx.select({ nom: contact.nom, email: contact.email }).from(contact).where(eq(contact.id, laFacture.contactId)) : [];
     const [leCompte] = !leContact && laFacture.compteId ? await tx.select({ nom: compteClient.nom }).from(compteClient).where(eq(compteClient.id, laFacture.compteId)) : [];
     notification = {
+      entrepriseId,
       adresses: await adressesAAlerter(tx, entrepriseId),
       nomClient: leContact?.nom ?? leCompte?.nom ?? "Un client",
+      emailClient: leContact?.email?.trim() || null,
       numeroFacture: laFacture.numero,
       factureId: tentative.factureId,
+      contactId: laFacture.contactId,
       montant: tentative.montant,
       moyen: libelleMoyenPaiement(verification.operateur),
       resteAPayer: Math.max(0, laFacture.montantTTC - paye),
@@ -173,7 +180,7 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
   if (notification) notifierSansBloquer(notification);
 }
 
-type NotificationPaiementFacture = { adresses: string[]; nomClient: string; numeroFacture: string; factureId: string; montant: number; moyen: string; resteAPayer: number };
+type NotificationPaiementFacture = { entrepriseId: string; adresses: string[]; nomClient: string; emailClient: string | null; numeroFacture: string; factureId: string; contactId: string | null; montant: number; moyen: string; resteAPayer: number };
 
 /** Envoi après la réponse quand on est dans une requête (le client ne l'attend jamais), directement sinon (worker, test). Jamais d'erreur remontée. */
 function notifierSansBloquer(n: NotificationPaiementFacture): void {
@@ -186,16 +193,83 @@ function notifierSansBloquer(n: NotificationPaiementFacture): void {
         moyen: n.moyen,
         resteAPayer: n.resteAPayer,
         lien: `${urlBase()}/app/facturation/factures/${n.factureId}`,
+        clientSansEmail: !n.emailClient,
       });
       await alerterParEmail(n.adresses, subject, html);
     } catch (erreur) {
       console.error("[paiement] échec de la notification de paiement de facture :", erreur instanceof Error ? erreur.message : erreur);
+    }
+    try {
+      await envoyerRecuAuClient(n);
+    } catch (erreur) {
+      console.error("[paiement] échec de l'envoi du reçu au client :", erreur instanceof Error ? erreur.message : erreur);
     }
   };
   try {
     after(envoyer);
   } catch {
     void envoyer();
+  }
+}
+
+/**
+ * Le client reçoit, après CHAQUE paiement (totalité ou tranche), un email au nom de l'entreprise (logo en tête) avec la facture à jour
+ * en PDF (« Déjà réglé », « Reste à payer »). Sans adresse email dans sa fiche, rien ne part (l'Administrateur en est informé dans sa
+ * propre notification). Les données sont relues APRÈS la transaction de confirmation : le PDF montre donc bien ce paiement.
+ */
+async function envoyerRecuAuClient(n: NotificationPaiementFacture): Promise<void> {
+  if (!n.emailClient) return;
+
+  const donnees = await avecEntreprise(n.entrepriseId, async (tx) => {
+    const d = await recupererFacturePourClient(tx, n.entrepriseId, n.factureId);
+    if (!d) return null;
+    return { d, jeton: await obtenirOuCreerLien(tx, n.entrepriseId, { factureId: n.factureId }) };
+  });
+  if (!donnees) return;
+  const { d, jeton } = donnees;
+
+  const pdf = await rendreDocumentCommercialPDF({
+    typeDocument: "FACTURE",
+    numero: d.facture.numero,
+    dateEmission: d.facture.dateEmission,
+    dateEcheanceOuValidite: d.facture.dateEcheance,
+    labelDateSecondaire: "Date d'échéance",
+    entreprise: d.entreprise,
+    client: d.client,
+    lignes: d.lignes,
+    montantHT: d.facture.montantHT,
+    montantTVA: d.facture.montantTVA,
+    montantTTC: d.facture.montantTTC,
+    montantRegle: d.paye,
+  });
+
+  const { subject, html } = gabaritRecuPaiementClient({
+    nomClient: echapper(n.nomClient),
+    nomEntreprise: echapper(d.entreprise.nom),
+    numeroFacture: echapper(n.numeroFacture),
+    montant: n.montant,
+    moyen: n.moyen,
+    resteAPayer: d.solde,
+    lien: urlPubliqueFacture(jeton),
+  });
+  const corps = (await enteteLogoEmail(n.entrepriseId)) + html;
+  const piecesJointes = [{ filename: `${d.facture.numero}.pdf`, content: pdf }];
+
+  const { envoye, erreur } = await envoyerEmail({ to: n.emailClient, subject, html: corps, attachments: piecesJointes, nomExpediteur: d.entreprise.nom });
+  if (!envoye) {
+    console.error(`[paiement] reçu non envoyé au client de la facture ${n.numeroFacture} :`, erreur);
+    return;
+  }
+  if (n.contactId) {
+    await avecEntreprise(n.entrepriseId, (tx) =>
+      journaliserEmailEnvoye(tx, {
+        entrepriseId: n.entrepriseId,
+        contactId: n.contactId!,
+        auteurId: null,
+        sujet: subject,
+        souche: { destinataire: n.emailClient!, html: corps, piecesJointes: resumePiecesJointes(piecesJointes), type: "FACTURE" },
+      })
+    );
   }
 }
 
