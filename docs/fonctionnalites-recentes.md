@@ -280,3 +280,10 @@ où se trouve le code.
 - **Où** : Paramètres → Intégrations : chaque clé d'API a un bouton « Autoriser les factures » (refusé par défaut). Dans l'admin du site, le bouton « Générer la facture » rattrape un paiement fait avant la mise en service ou dont la création a échoué.
 - **À savoir** : la TVA est déduite du montant payé selon vos réglages (entreprise assujettie ou non). Si Vertex One est injoignable au moment du paiement, le site réessaie tout seul toutes les 5 minutes pendant 30 jours. Les paiements confirmés avant la mise en service ne sont jamais facturés automatiquement. Une facture créée ne peut jamais être supprimée (seul un avoir l'annule).
 - **Code** : `src/app/api/externe/factures/route.ts`, `src/lib/api-externe/facture.ts`, `src/lib/paiement/recu-facture.ts`, migration `0124`, tests `tests/api-externe-factures.test.ts` ; côté sites : `src/lib/vertexone/facturation.ts`.
+
+## Clés d'API : une pour les leads, une pour les factures, suppression d'une clé révoquée (2026-10-26)
+
+- **Quoi** : Paramètres → Intégrations permet de créer une clé pour les leads et une autre, autorisée à facturer, pour les factures des paiements faits sur un site : la fuite de l'une ne donne jamais le droit de créer des factures. Une clé **révoquée** peut maintenant être supprimée définitivement (bouton « Supprimer » sur sa ligne) ; une clé encore active doit d'abord être révoquée.
+- **À savoir** : supprimer une clé ne touche ni les leads ni les factures déjà créés avec elle. Côté site, la clé des factures se place dans `VERTEXONE_FACTURES_API_KEY` ; si cette variable est absente, le site utilise la clé des leads (qui doit alors être autorisée à facturer).
+- **Code** : `supprimerCleApi()` (`src/lib/actions/cle-api.ts`), `cleFacturation()` (`src/lib/vertexone/facturation.ts` des sites), tests `tests/cle-api-facturation.test.ts`.
+

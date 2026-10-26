@@ -192,6 +192,8 @@ export const APPLICATION: Record<string, string> = {
   "Factures payées": "Paid invoices",
   "Retirer le droit de facturer": "Remove invoicing right",
   "Autoriser les factures": "Authorise invoices",
+  "Supprimer définitivement la clé « {nom} » ? Cette action est irréversible.": "Permanently delete the key “{nom}”? This cannot be undone.",
+  "Seule une clé déjà révoquée peut être supprimée.": "Only a key that has already been revoked can be deleted.",
   "Envoyez une requête POST depuis le serveur de votre site (jamais depuis le navigateur du visiteur : la clé y serait visible).": "Send a POST request from your website's server (never from the visitor's browser: the key would be visible).",
   "« nom » est obligatoire. « reference » évite les doublons si votre site renvoie la même demande. Réponses : 201 créé, 200 déjà reçu, 400 données invalides, 401 clé invalide, 429 trop de requêtes.":
     "“nom” is required. “reference” avoids duplicates if your site resends the same request. Responses: 201 created, 200 already received, 400 invalid data, 401 invalid key, 429 too many requests.",

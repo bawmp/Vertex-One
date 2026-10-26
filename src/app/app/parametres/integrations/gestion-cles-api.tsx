@@ -1,14 +1,14 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { KeyRound, Copy, Check, Ban } from "lucide-react";
+import { KeyRound, Copy, Check, Ban, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { creerCleApi, definirAutorisationFacturationCle, revoquerCleApi } from "@/lib/actions/cle-api";
+import { creerCleApi, definirAutorisationFacturationCle, revoquerCleApi, supprimerCleApi } from "@/lib/actions/cle-api";
 import { useT } from "@/lib/i18n/contexte";
 
 type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean };
@@ -33,6 +33,13 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
     if (!window.confirm(t("Révoquer la clé « {nom} » ? Les sites qui l'utilisent ne pourront plus envoyer de demandes.", { nom }))) return;
     demarrer(async () => {
       await revoquerCleApi(id);
+    });
+  }
+
+  function supprimer(id: string, nom: string) {
+    if (!window.confirm(t("Supprimer définitivement la clé « {nom} » ? Cette action est irréversible.", { nom }))) return;
+    demarrer(async () => {
+      await supprimerCleApi(id);
     });
   }
 
@@ -107,7 +114,12 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
                         {t("Révoquer")}
                       </Button>
                     </div>
-                  ) : null}
+                  ) : (
+                    <Button type="button" size="sm" variant="outline" disabled={revocation} onClick={() => supprimer(c.id, c.nom)} className="text-destructive hover:text-destructive">
+                      <Trash2 data-icon="inline-start" aria-hidden />
+                      {t("Supprimer")}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

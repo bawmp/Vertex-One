@@ -12,7 +12,7 @@ vi.mock("@/lib/i18n/langue", () => ({ getT: async () => Object.assign((texte: st
 let connecte: { utilisateurId: string; entrepriseId: string; role: string } | null = null;
 vi.mock("@/lib/session", () => ({ recupererUtilisateurConnecte: async () => connecte }));
 
-const { creerCleApi, definirAutorisationFacturationCle } = await import("@/lib/actions/cle-api");
+const { creerCleApi, definirAutorisationFacturationCle, supprimerCleApi } = await import("@/lib/actions/cle-api");
 
 const suffixe = Math.random().toString(36).slice(2, 8);
 const nomA = `TEST CleFacturation A ${suffixe}`;
@@ -93,3 +93,38 @@ describe("Clés d'API — autorisation de facturer", () => {
     expect((await lireCle(idA, c.id)).autoriseFacturation).toBe(false);
   }, 240_000);
 });
+
+describe("Clés d'API — suppression d'une clé révoquée", () => {
+  async function creerCle(entrepriseId: string, creeParId: string, nom: string, revoquee: boolean) {
+    const { prefixe, empreinte } = genererCle();
+    const [c] = await avecEntreprise(entrepriseId, (tx) => tx.insert(cleApiEntreprise).values({ entrepriseId, nom, prefixe, empreinte, creeParId, revoqueeLe: revoquee ? new Date() : null }).returning({ id: cleApiEntreprise.id }));
+    return c.id;
+  }
+  const existe = async (entrepriseId: string, id: string) => (await avecEntreprise(entrepriseId, (tx) => tx.select({ id: cleApiEntreprise.id }).from(cleApiEntreprise).where(eq(cleApiEntreprise.id, id)))).length === 1;
+
+  test("l'Administrateur supprime une clé révoquée ; une clé encore active ne se supprime jamais", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: idA, role: "ADMIN" };
+    const revoquee = await creerCle(idA, adminA, "Ancienne à supprimer", true);
+    const active = await creerCle(idA, adminA, "Encore active", false);
+    expect(await supprimerCleApi(active)).toHaveProperty("erreur");
+    expect(await existe(idA, active)).toBe(true);
+    expect(await supprimerCleApi(revoquee)).toEqual({});
+    expect(await existe(idA, revoquee)).toBe(false);
+  }, 240_000);
+
+  test("un Manager ne peut pas supprimer, sans session redirection, et jamais la clé d'une autre entreprise", async () => {
+    const revoquee = await creerCle(idA, adminA, "Révoquée protégée", true);
+    connecte = { utilisateurId: managerA, entrepriseId: idA, role: "MANAGER" };
+    expect(await supprimerCleApi(revoquee)).toHaveProperty("erreur");
+    expect(await existe(idA, revoquee)).toBe(true);
+
+    connecte = null;
+    await expect(supprimerCleApi(revoquee)).rejects.toThrow("REDIRECT /connexion");
+
+    const revoqueeB = await creerCle(idB, adminB, "Révoquée de B", true);
+    connecte = { utilisateurId: adminA, entrepriseId: idA, role: "ADMIN" };
+    expect(await supprimerCleApi(revoqueeB)).toHaveProperty("erreur");
+    expect(await existe(idB, revoqueeB)).toBe(true);
+  }, 240_000);
+});
+

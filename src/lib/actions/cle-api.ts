@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
@@ -77,6 +77,31 @@ export async function definirAutorisationFacturationCle(cleId: string, actif: bo
       .set({ autoriseFacturation: actif === true })
       .where(and(eq(cleApiEntreprise.id, cleId), eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId), isNull(cleApiEntreprise.revoqueeLe)))
   );
+
+  revalidatePath(CHEMIN);
+  return {};
+}
+
+/**
+ * Supprime DÉFINITIVEMENT une clé déjà révoquée (pour garder la liste lisible). Une clé encore active ne se supprime jamais : il faut
+ * d'abord la révoquer, ce qui coupe son usage. Administrateur seulement ; la clé doit appartenir à l'entreprise de l'appelant. Les leads et
+ * les factures déjà créés avec cette clé ne sont pas touchés (ils ne dépendent pas d'elle).
+ */
+export async function supprimerCleApi(cleId: string): Promise<{ erreur?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN" || !peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Seul l'administrateur peut gérer les clés d'API.") };
+  }
+
+  const supprimees = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx
+      .delete(cleApiEntreprise)
+      .where(and(eq(cleApiEntreprise.id, cleId), eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId), isNotNull(cleApiEntreprise.revoqueeLe)))
+      .returning({ id: cleApiEntreprise.id })
+  );
+  if (supprimees.length === 0) return { erreur: t("Seule une clé déjà révoquée peut être supprimée.") };
 
   revalidatePath(CHEMIN);
   return {};
