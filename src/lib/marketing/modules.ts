@@ -145,6 +145,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     icone: LifeBuoy,
     classeFond: "bg-cyan-500",
     capacites: [
+      m("Espace client : vos clients retrouvent leurs factures (avec le reste à payer), leurs devis et leurs tickets, et ouvrent chaque document pour payer, accepter ou répondre"),
       m("Tickets rattachés à un Contact (pas nécessairement un utilisateur du portail)"),
       m("Catégories avec agent par défaut, assignation manuelle possible"),
       m("Suivi du statut de Ouvert à Résolu, avec horodatage de la résolution"),
