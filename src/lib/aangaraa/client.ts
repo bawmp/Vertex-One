@@ -19,6 +19,7 @@ export { moyenPaiementDepuisOperateur };
 const API_PAR_DEFAUT = "https://api-production.aangaraa-pay.com/api/v1";
 const PAGE_PAR_DEFAUT = "https://aangaraa-pay.com";
 const DELAI_MS = 15_000;
+const DELAI_INITIATION_MS = 30_000; // l'invite USSD part avant la réponse : on laisse le temps au prestataire plutôt que de conclure trop vite à un échec
 
 function urlApi(): string {
   return (process.env.AANGARAA_PAY_API_URL || API_PAR_DEFAUT).replace(/\/+$/, "");
@@ -30,15 +31,33 @@ export function aangaraaConfigure(): boolean {
 
 type ReponseApi = { statut: number; corps: unknown };
 
-/** Un appel avec une nouvelle tentative sur erreur réseau. `null` = aucune réponse. Ne consigne jamais le corps envoyé (il contient la clé). */
-async function appeler(chemin: string, corps: Record<string, unknown>): Promise<ReponseApi | null> {
+/** Erreurs qui prouvent que la requête n'est JAMAIS arrivée chez le prestataire (adresse introuvable, connexion refusée) : la rejouer est sans risque. */
+const ERREURS_AVANT_ENVOI = new Set(["ENOTFOUND", "ECONNREFUSED", "EAI_AGAIN", "CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE"]);
+
+function codeErreur(erreur: unknown): string | undefined {
+  const e = erreur as { code?: unknown; cause?: { code?: unknown } } | null;
+  const code = e?.cause?.code ?? e?.code;
+  return typeof code === "string" ? code : undefined;
+}
+
+type ResultatAppel = { reponse: ReponseApi } | { reponse: null; avantEnvoi: boolean };
+
+/**
+ * Un appel avec une nouvelle tentative sur erreur réseau. Ne consigne jamais le corps envoyé (il contient la clé).
+ * `reessayerSiIncertain: false` pour une opération qui DÉPLACE de l'argent (déclencher un paiement) : après un délai dépassé ou une
+ * coupure en cours de route, le prestataire a peut-être déjà traité la demande — la rejouer risquerait un second prélèvement. Seule une
+ * erreur qui prouve que la requête n'est jamais partie est alors rejouée.
+ */
+async function appelerBrut(chemin: string, corps: Record<string, unknown>, options: { delaiMs?: number; reessayerSiIncertain?: boolean } = {}): Promise<ResultatAppel> {
+  const { delaiMs = DELAI_MS, reessayerSiIncertain = true } = options;
+  let avantEnvoi = false;
   for (let essai = 0; essai < 2; essai++) {
     try {
       const reponse = await fetch(`${urlApi()}${chemin}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...corps, app_key: process.env.AANGARAA_PAY_APP_KEY }),
-        signal: AbortSignal.timeout(DELAI_MS),
+        signal: AbortSignal.timeout(delaiMs),
       });
       let json: unknown = null;
       try {
@@ -46,12 +65,19 @@ async function appeler(chemin: string, corps: Record<string, unknown>): Promise<
       } catch {
         json = null;
       }
-      return { statut: reponse.status, corps: json };
+      return { reponse: { statut: reponse.status, corps: json } };
     } catch (erreur) {
-      if (essai === 1) console.error("[aangaraa] erreur réseau :", erreur instanceof Error ? erreur.message : erreur);
+      const code = codeErreur(erreur);
+      avantEnvoi = code !== undefined && ERREURS_AVANT_ENVOI.has(code);
+      console.error(`[aangaraa] erreur réseau sur ${chemin} (essai ${essai + 1}/2, ${avantEnvoi ? "requête non partie" : "résultat incertain"}) :`, erreur instanceof Error ? erreur.message : erreur);
+      if (!avantEnvoi && !reessayerSiIncertain) break;
     }
   }
-  return null;
+  return { reponse: null, avantEnvoi };
+}
+
+async function appeler(chemin: string, corps: Record<string, unknown>): Promise<ReponseApi | null> {
+  return (await appelerBrut(chemin, corps)).reponse;
 }
 
 export type InitierPaiementParams = {
@@ -106,7 +132,13 @@ export type InitierPaiementDirectParams = InitierPaiementParams & {
   operateur: "MTN_Cameroon" | "Orange_Cameroon";
 };
 
-export type ResultatInitiationDirecte = { declenche: true; payToken: string | null; erreur?: undefined } | { declenche?: undefined; payToken?: undefined; erreur: string };
+/** Montré au client quand on ne sait pas si le prestataire a traité la demande : jamais « échec » (il a peut-être déjà été débité). */
+export const MESSAGE_PAIEMENT_INCERTAIN =
+  "Nous n'avons pas pu confirmer votre paiement. Si une demande est arrivée sur votre téléphone, ne payez pas une seconde fois : contactez-nous, nous vérifions et nous vous répondons rapidement.";
+
+export type ResultatInitiationDirecte =
+  | { declenche: true; payToken: string | null; erreur?: undefined; incertain?: undefined }
+  | { declenche?: undefined; payToken?: undefined; erreur: string; incertain?: true };
 
 /**
  * Déclenche un paiement SANS redirection (`/no_redirect/payment`) : Aangaraa Pay envoie une invite USSD directement au
@@ -123,7 +155,7 @@ export type ResultatInitiationDirecte = { declenche: true; payToken: string | nu
 export async function initierPaiementDirect(params: InitierPaiementDirectParams): Promise<ResultatInitiationDirecte> {
   if (!aangaraaConfigure()) return { erreur: "Intégration Aangaraa Pay non configurée pour le moment — utilisez l'encaissement manuel." };
 
-  const reponse = await appeler("/no_redirect/payment", {
+  const appel = await appelerBrut("/no_redirect/payment", {
     // ⚠️ `telephoneInternational()` produit "+237…" (format international standard), mais /no_redirect/payment veut le
     // numéro SANS le "+" (ex. "237690111222") — constaté en réel le 2026-09-23. On ne touche pas
     // telephoneInternational() (réutilisable ailleurs avec le "+"), on retire juste le signe ici, au point d'entrée
@@ -138,7 +170,8 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
     notify_url: params.notifyUrl,
     operator: params.operateur,
     devise_id: "XAF",
-  });
+  }, { delaiMs: DELAI_INITIATION_MS, reessayerSiIncertain: false });
+  const reponse = appel.reponse;
 
   if (reponse && (reponse.statut === 200 || reponse.statut === 201)) {
     // Journalisé une fois pour de bon (diagnostic du 2026-09-22) : la réponse n'étant pas documentée, on garde une
@@ -149,10 +182,13 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
     return { declenche: true, payToken };
   }
 
+  // Aucune réponse après l'envoi, ou erreur du serveur du prestataire : on NE SAIT PAS s'il a déclenché le paiement.
+  const incertain = reponse ? reponse.statut >= 500 : !appel.avantEnvoi;
   console.error(
     "[aangaraa] échec d'initiation de paiement direct :",
     reponse ? masquerCle(`HTTP ${reponse.statut} ${JSON.stringify(reponse.corps)}`, process.env.AANGARAA_PAY_APP_KEY) : "aucune réponse"
   );
+  if (incertain) return { incertain: true, erreur: MESSAGE_PAIEMENT_INCERTAIN };
   return { erreur: "Impossible de déclencher le paiement pour le moment." };
 }
 

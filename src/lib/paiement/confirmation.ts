@@ -85,8 +85,8 @@ export async function traiterNotificationPaiement(entree: { payToken: string | n
   const cible = lireReferenceExterne(verification.referenceExterne);
   if (!cible) return { code: 404, message: "transaction inconnue" };
 
-  if (cible.nature === "FACTURE") await confirmerTentativeFacture(cible.id, verification);
-  else await confirmerTentativeAbonnement(cible.id, verification);
+  if (cible.nature === "FACTURE") await confirmerTentativeFacture(cible.id, verification, entree.payToken);
+  else await confirmerTentativeAbonnement(cible.id, verification, entree.payToken);
   return { code: 200, message: "OK" };
 }
 
@@ -95,7 +95,16 @@ function montantConforme(verification: ResultatVerification, montantAttendu: num
   return verification.montant === undefined || verification.montant === montantAttendu;
 }
 
-async function confirmerTentativeFacture(idTentative: string, verification: ResultatVerification) {
+/**
+ * Réponse d'initiation perdue (délai dépassé) : la tentative n'a pas de jeton et a pu être marquée « échec » alors que le prestataire l'avait
+ * bien traitée. La notification apporte le vrai jeton : on le garde et on remet la tentative en attente pour que la relecture régulière la
+ * confirme. Un échec VENU du prestataire (jeton déjà connu) n'est jamais rouvert.
+ */
+function doitRattacherJeton(tentative: { payToken: string | null; statut: string }, payToken: string | null | undefined, verification: ResultatVerification): payToken is string {
+  return Boolean(payToken) && !tentative.payToken && (tentative.statut === "EN_ATTENTE" || (tentative.statut === "ECHEC" && (verification.statut === "PENDING" || verification.statut === "ACCEPTED")));
+}
+
+async function confirmerTentativeFacture(idTentative: string, verification: ResultatVerification, payToken?: string | null) {
   let notification: NotificationPaiementFacture | null = null;
   // Lecture anonyme (aucune session) — n'aboutit que grâce à la policy RLS de lecture permissive dédiée à cette table quand
   // app.entreprise_id n'est pas positionné (même patron que `invitation`, voir src/db/schema.ts).
@@ -106,6 +115,9 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
   await avecEntreprise(entrepriseId, async (tx) => {
     const [tentative] = await tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, idTentative));
     if (!tentative || tentative.statut === "CONFIRME") return;
+    if (doitRattacherJeton(tentative, payToken, verification)) {
+      await tx.update(tentativePaiementFacture).set({ payToken, statut: "EN_ATTENTE", raisonEchec: null }).where(eq(tentativePaiementFacture.id, idTentative));
+    }
 
     if (verification.statut === "REFUSED") {
       await tx.update(tentativePaiementFacture).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementFacture.id, idTentative));
@@ -168,7 +180,7 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
   if (notification) notifierPaiementFacture(notification);
 }
 
-async function confirmerTentativeAbonnement(idTentative: string, verification: ResultatVerification) {
+async function confirmerTentativeAbonnement(idTentative: string, verification: ResultatVerification, payToken?: string | null) {
   const [anonyme] = await db.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
   if (!anonyme) return;
   const entrepriseId = anonyme.entrepriseId;
@@ -176,6 +188,9 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
   await avecEntreprise(entrepriseId, async (tx) => {
     const [tentative] = await tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
     if (!tentative || tentative.statut === "CONFIRME") return;
+    if (doitRattacherJeton(tentative, payToken, verification)) {
+      await tx.update(tentativePaiementAbonnement).set({ payToken, statut: "EN_ATTENTE", raisonEchec: null }).where(eq(tentativePaiementAbonnement.id, idTentative));
+    }
 
     if (verification.statut === "REFUSED") {
       await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementAbonnement.id, idTentative));
