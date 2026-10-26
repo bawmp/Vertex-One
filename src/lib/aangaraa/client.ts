@@ -52,6 +52,7 @@ async function appelerBrut(chemin: string, corps: Record<string, unknown>, optio
   const { delaiMs = DELAI_MS, reessayerSiIncertain = true } = options;
   let avantEnvoi = false;
   for (let essai = 0; essai < 2; essai++) {
+    const debut = Date.now();
     try {
       const reponse = await fetch(`${urlApi()}${chemin}`, {
         method: "POST",
@@ -65,11 +66,12 @@ async function appelerBrut(chemin: string, corps: Record<string, unknown>, optio
       } catch {
         json = null;
       }
+      if (chemin.includes("payment")) console.log(`[aangaraa] ${chemin} : HTTP ${reponse.status} en ${((Date.now() - debut) / 1000).toFixed(1)} s`);
       return { reponse: { statut: reponse.status, corps: json } };
     } catch (erreur) {
       const code = codeErreur(erreur);
       avantEnvoi = code !== undefined && ERREURS_AVANT_ENVOI.has(code);
-      console.error(`[aangaraa] erreur réseau sur ${chemin} (essai ${essai + 1}/2, ${avantEnvoi ? "requête non partie" : "résultat incertain"}) :`, erreur instanceof Error ? erreur.message : erreur);
+      console.error(`[aangaraa] erreur réseau sur ${chemin} (essai ${essai + 1}/2, après ${((Date.now() - debut) / 1000).toFixed(1)} s, ${avantEnvoi ? "requête non partie" : "résultat incertain"}) :`, erreur instanceof Error ? erreur.message : erreur);
       if (!avantEnvoi && !reessayerSiIncertain) break;
     }
   }

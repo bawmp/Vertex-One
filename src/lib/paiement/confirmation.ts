@@ -76,6 +76,7 @@ export type IssueNotification = { code: number; message: string };
  * Idempotent : le prestataire peut rappeler plusieurs fois pour une même transaction — une tentative n'est confirmée qu'une fois.
  */
 export async function traiterNotificationPaiement(entree: { payToken: string | null }): Promise<IssueNotification> {
+  console.log(`[notification] reçue du prestataire (jeton ${entree.payToken ? "présent" : "ABSENT"})`);
   if (!entree.payToken) return { code: 400, message: "paytoken manquant ou invalide" };
 
   const verification = await verifierTransaction(entree.payToken);
