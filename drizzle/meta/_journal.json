@@ -890,6 +890,13 @@
       "when": 1791262800000,
       "tag": "0126_recrutement_partage_groupe",
       "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1791349200000,
+      "tag": "0127_membre_plateforme",
+      "breakpoints": true
     }
   ]
 }

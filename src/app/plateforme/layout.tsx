@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, LayoutDashboard, Building2, ArrowLeft } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, Building2, ArrowLeft, Users } from "lucide-react";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { estStaffPlateforme } from "@/lib/plateforme/acces";
+import { estStaffPlateforme, estProprietairePlateforme } from "@/lib/plateforme/acces";
 import { LogoEntreprise } from "@/components/logo-entreprise";
 
 /**
@@ -16,6 +16,7 @@ export default async function LayoutPlateforme({ children }: { children: React.R
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!(await estStaffPlateforme())) redirect("/app");
+  const proprietaire = await estProprietairePlateforme();
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,6 +38,12 @@ export default async function LayoutPlateforme({ children }: { children: React.R
               <Building2 className="size-3.5" aria-hidden />
               Entreprises
             </Link>
+            {proprietaire ? (
+              <Link href="/plateforme/equipe" className="flex items-center gap-1.5 hover:text-white">
+                <Users className="size-3.5" aria-hidden />
+                Équipe
+              </Link>
+            ) : null}
             <Link href="/app" className="flex items-center gap-1.5 text-sidebar-foreground/60 hover:text-white">
               <ArrowLeft className="size-3.5" aria-hidden />
               Retour à l&apos;application

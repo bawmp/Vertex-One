@@ -1794,6 +1794,19 @@ export const journalActionPlateforme = pgTable(
   ]
 ).enableRLS();
 
+// Équipe de la console interne plateforme (2026-10-26) : collaborateurs ajoutés PAR LE PROPRIÉTAIRE (les emails de PLATEFORME_ADMINS) pour gérer Vertex One
+// avec lui. Table de niveau plateforme, sans `entrepriseId` ni RLS — même statut que `groupe` : elle ne porte aucune donnée d'entreprise cliente, seulement
+// l'email de collègues déjà titulaires d'un compte, et n'est lue et écrite que par des fonctions gardées (src/lib/plateforme/equipe.ts). Une révocation
+// garde la ligne (qui l'a ajouté, quand, qui l'a retiré) : c'est la trace de ce que le propriétaire a décidé.
+export const membrePlateforme = pgTable("membre_plateforme", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  email: text("email").notNull().unique(), // toujours en minuscules
+  ajouteParEmail: text("ajoute_par_email").notNull(),
+  ajouteLe: timestamp("ajoute_le").notNull().defaultNow(),
+  revoqueLe: timestamp("revoque_le"),
+  revoqueParEmail: text("revoque_par_email"),
+});
+
 // Une facture n'est jamais supprimée, quel que soit le rôle (règle posée au
 // Palier 0) — une annulation crée cette trace à la place.
 export const avoirFacture = pgTable(

@@ -5,7 +5,9 @@ import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, journalActionPlateforme } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { estStaffPlateforme, emailStaffCourant } from "@/lib/plateforme/acces";
+import { estStaffPlateforme, estProprietairePlateforme, emailStaffCourant } from "@/lib/plateforme/acces";
+import { ajouterMembreEquipe, revoquerMembreEquipe } from "@/lib/plateforme/equipe";
+import { revalidatePath } from "next/cache";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 
 /**
@@ -24,6 +26,28 @@ async function garde(): Promise<void> {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!(await estStaffPlateforme())) redirect("/app");
+}
+
+/** L'équipe de la console ne se gère que par le PROPRIÉTAIRE (liste blanche) : un collaborateur ne peut ni ajouter quelqu'un ni retirer le propriétaire. */
+async function gardeProprietaire(): Promise<string> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!(await estProprietairePlateforme())) redirect("/plateforme");
+  return emailStaffCourant();
+}
+
+export async function ajouterMembrePlateforme(email: string): Promise<{ erreur?: string }> {
+  const parEmail = await gardeProprietaire();
+  const r = await ajouterMembreEquipe(parEmail, String(email), process.env.PLATEFORME_ADMINS);
+  if (!r.erreur) revalidatePath("/plateforme/equipe");
+  return r;
+}
+
+export async function revoquerMembrePlateforme(membreId: string): Promise<{ erreur?: string }> {
+  const parEmail = await gardeProprietaire();
+  const r = await revoquerMembreEquipe(parEmail, String(membreId));
+  if (!r.erreur) revalidatePath("/plateforme/equipe");
+  return r;
 }
 
 export async function etendreEssai(entrepriseId: string, jours: number): Promise<{ erreur?: string }> {
