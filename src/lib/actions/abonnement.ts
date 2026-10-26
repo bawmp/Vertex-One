@@ -67,7 +67,14 @@ export async function declencherPaiementAbonnement(
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
     });
 
-    if (resultat.erreur) return { erreur: resultat.erreur };
+    if (resultat.erreur) {
+    // Résultat incertain : pendant l'attente, la notification du prestataire a peut-être déjà apporté le jeton — alors le paiement est bien
+    // lancé et on continue comme après un succès. Sinon la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité) et la
+    // notification, si elle arrive plus tard, la rattrapera (voir confirmation.ts).
+      const [apres] = resultat.incertain ? await tx.select({ payToken: tentativePaiementAbonnement.payToken }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentative.id)) : [];
+      if (!apres?.payToken) return { erreur: resultat.erreur };
+      return { declenche: true, tentativeId: tentative.id };
+    }
     if (resultat.payToken) await tx.update(tentativePaiementAbonnement).set({ payToken: resultat.payToken }).where(eq(tentativePaiementAbonnement.id, tentative.id));
     return { declenche: true, tentativeId: tentative.id };
   });

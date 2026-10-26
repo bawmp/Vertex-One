@@ -95,8 +95,15 @@ export async function declencherPaiementDirectFacture(
   });
 
   if (resultat.erreur) {
-    await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, tentative.id));
-    return { erreur: resultat.erreur };
+    // Résultat incertain : pendant l'attente, la notification du prestataire a peut-être déjà apporté le jeton — alors le paiement est bien
+    // lancé et on continue comme après un succès. Sinon la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité) et la
+    // notification, si elle arrive plus tard, la rattrapera (voir confirmation.ts).
+    const [apres] = resultat.incertain ? await tx.select({ payToken: tentativePaiementFacture.payToken }).from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative.id)) : [];
+    if (!apres?.payToken) {
+      if (!resultat.incertain) await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, tentative.id));
+      return { erreur: resultat.erreur };
+    }
+    return { tentativeId: tentative.id, montant };
   }
   if (resultat.payToken) await tx.update(tentativePaiementFacture).set({ payToken: resultat.payToken }).where(eq(tentativePaiementFacture.id, tentative.id));
   return { tentativeId: tentative.id, montant };
