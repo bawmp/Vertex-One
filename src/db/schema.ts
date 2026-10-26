@@ -195,6 +195,9 @@ export const entreprise = pgTable("entreprise", {
   filigraneDocuments: boolean("filigrane_documents").notNull().default(true),
   // Paiement en plusieurs fois (2026-10-25) : le client choisit le montant de chaque tranche, jusqu'au solde de sa facture. Activé par défaut.
   paiementEnTranches: boolean("paiement_en_tranches").notNull().default(true),
+  // Réglage de l'Administrateur : les Managers voient les données de toute l'entreprise (modules métier seulement, voir
+  // MODULES_OUVERTS_AUX_MANAGERS dans src/lib/permissions.ts) au lieu de leur seule équipe. Désactivé par défaut.
+  managersVoientTout: boolean("managers_voient_tout").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });

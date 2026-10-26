@@ -12,6 +12,7 @@ import { FormulaireLogo } from "./formulaire-logo";
 import { FormulaireCouleur } from "./formulaire-couleur";
 import { FormulaireFiligrane } from "./formulaire-filigrane";
 import { FormulairePaiementTranches } from "./formulaire-paiement-tranches";
+import { FormulaireManagersVoientTout } from "./formulaire-managers-voient-tout";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageParametres() {
@@ -35,6 +36,7 @@ export default async function PageParametres() {
       couleurMarque: entreprise.couleurMarque,
       filigraneDocuments: entreprise.filigraneDocuments,
       paiementEnTranches: entreprise.paiementEnTranches,
+      managersVoientTout: entreprise.managersVoientTout,
     })
     .from(entreprise)
     .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -78,6 +80,10 @@ export default async function PageParametres() {
             <div>
               <p className="mb-2 text-sm font-medium">{t("Paiement des factures")}</p>
               <FormulairePaiementTranches actifInitial={monEntreprise?.paiementEnTranches ?? true} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">{t("Visibilité des managers")}</p>
+              <FormulaireManagersVoientTout actifInitial={monEntreprise?.managersVoientTout ?? false} />
             </div>
             <div>
               <p className="mb-2 text-sm font-medium">{t("Couleur de marque")}</p>

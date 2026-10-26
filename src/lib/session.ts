@@ -1,5 +1,9 @@
 import "server-only";
+import { cache } from "react";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { db } from "@/db/client";
+import { entreprise } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { Module, RoleSysteme } from "@/lib/permissions";
 
@@ -21,7 +25,15 @@ export type UtilisateurConnecte = {
   ordreModules?: string[] | null;
   // Restriction posée par l'Administrateur (null = tous les modules du rôle) — lue par peut()/portee().
   modulesAutorises?: Module[] | null;
+  // Réglage de l'entreprise (Paramètres) lu pour portee() : les Managers voient toute l'entreprise sur les modules métier.
+  managersVoientTout?: boolean;
 };
+
+/** Réglage de l'entreprise, lu une seule fois par requête (la table `entreprise` est hors RLS, comme partout ailleurs). */
+const managersVoientToutPour = cache(async (entrepriseId: string): Promise<boolean> => {
+  const [e] = await db.select({ v: entreprise.managersVoientTout }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  return e?.v === true;
+});
 
 /**
  * À utiliser dans les Server Components, Server Actions et Route Handlers.
@@ -59,5 +71,6 @@ export async function recupererUtilisateurConnecte(): Promise<UtilisateurConnect
     theme: user.theme ?? "systeme",
     ordreModules: user.ordreModules ?? null,
     modulesAutorises: user.modulesAutorises ?? null,
+    managersVoientTout: user.role === "MANAGER" ? await managersVoientToutPour(user.entrepriseId) : false,
   };
 }

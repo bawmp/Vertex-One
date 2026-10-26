@@ -120,6 +120,26 @@ export async function definirPaiementEnTranches(actif: boolean): Promise<{ erreu
   return null;
 }
 
+/**
+ * Les Managers voient les données de toute l'entreprise (et non plus seulement celles de leur équipe) sur les modules métier. Réservé à
+ * l'Administrateur (droit de modifier les paramètres) ; la valeur est un booléen strict.
+ */
+export async function definirManagersVoientTout(actif: boolean): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Seul l'Administrateur peut modifier ce réglage.") };
+  }
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.update(entreprise).set({ managersVoientTout: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId))
+  );
+
+  revalidatePath("/app", "layout");
+  return null;
+}
+
 export async function reinitialiserCouleurMarque() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");

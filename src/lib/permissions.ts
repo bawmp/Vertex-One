@@ -205,7 +205,14 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
  * modules choisie par l'Administrateur (utilisateur.modulesAutorises).
  * null/absent = aucune restriction supplémentaire.
  */
-export type SujetPermission = RoleSysteme | { role: RoleSysteme; modulesAutorises?: Module[] | null };
+export type SujetPermission = RoleSysteme | { role: RoleSysteme; modulesAutorises?: Module[] | null; managersVoientTout?: boolean };
+
+/**
+ * Modules dont la portée « équipe » d'un Manager devient « toute l'entreprise » quand l'Administrateur active le réglage « Les managers
+ * voient toute l'entreprise ». Seulement les modules métier : jamais la RH (dossiers, congés, salaires), le recrutement (candidats) ni la
+ * messagerie, qui gardent leur règle. Les droits (créer, modifier, supprimer) ne changent pas : seule la visibilité s'élargit.
+ */
+export const MODULES_OUVERTS_AUX_MANAGERS: readonly Module[] = ["CRM", "FACTURATION", "DOSSIERS", "PROJETS", "DOCUMENTS", "SIGNATURE", "CONTRATS", "ACHATS", "RESERVATIONS", "SUPPORT"];
 
 /**
  * La liste par utilisateur ne fait que RESTREINDRE : un module absent de la liste
@@ -230,5 +237,7 @@ export function peut(sujet: SujetPermission, module: Module, action: Action): bo
 export function portee(sujet: SujetPermission, module: Module): Portee {
   // Module fermé : la portée la plus étroite, par sécurité (peut() refuse déjà toute action).
   if (moduleFerme(sujet, module)) return "PROPRE";
-  return MATRICE_PERMISSIONS[roleDe(sujet)][module].portee;
+  const parDefaut = MATRICE_PERMISSIONS[roleDe(sujet)][module].portee;
+  if (parDefaut === "EQUIPE" && roleDe(sujet) === "MANAGER" && typeof sujet !== "string" && sujet.managersVoientTout && MODULES_OUVERTS_AUX_MANAGERS.includes(module)) return "TOUT";
+  return parDefaut;
 }
