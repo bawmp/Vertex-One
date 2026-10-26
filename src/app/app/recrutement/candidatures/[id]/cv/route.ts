@@ -7,6 +7,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { urlTelechargementDocument } from "@/lib/documents/stockage";
+import { resoudreProprietaireCandidature } from "@/lib/recrutement/partage";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,7 +15,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RECRUTEMENT", "VOIR")) return new NextResponse("Introuvable", { status: 404 });
 
-  const cleStockage = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  // Recrutement partagé : le CV peut être celui d'une candidature d'une autre entreprise du groupe (Administrateur et Managers seulement).
+  const cible = await resoudreProprietaireCandidature(utilisateurConnecte, id);
+  if (!cible) return new NextResponse("Introuvable", { status: 404 });
+
+  const cleStockage = await avecEntreprise(cible.entrepriseId, async (tx) => {
+    if (cible.partagee) {
+      const [partagee] = await tx.select({ cvCleStockage: candidature.cvCleStockage }).from(candidature).where(eq(candidature.id, id));
+      return partagee?.cvCleStockage ?? null;
+    }
     const ids = await idsVisibles(tx, utilisateurConnecte, "RECRUTEMENT");
     const [laCandidature] = await tx.select({ cvCleStockage: candidature.cvCleStockage, assigneAId: candidature.assigneAId }).from(candidature).where(eq(candidature.id, id));
     if (!laCandidature) return null;

@@ -9,6 +9,7 @@ import { traduire } from "@/lib/i18n/traduire";
 import { peut } from "@/lib/permissions";
 import { disponibleAddon } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
+import { candidaturesDesPartenaires, peutGererRecrutementPartage } from "@/lib/recrutement/partage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonActiverRecrutement } from "./bouton-activer-recrutement";
@@ -76,6 +77,13 @@ export default async function PageRecrutement() {
     return { actif: true as const, candidatures, agents };
   });
 
+  // Recrutement partagé avec les autres entreprises du groupe (Administrateur et Managers) : leurs candidatures, avec le nom de l'entreprise.
+  const candidaturesGroupe = donnees.actif ? await candidaturesDesPartenaires(utilisateurConnecte) : [];
+  const peutGererGroupe = peutGererRecrutementPartage(utilisateurConnecte);
+  const toutes = donnees.actif
+    ? [...donnees.candidatures.map((c) => ({ ...c, entrepriseNom: null as string | null })), ...candidaturesGroupe.map((c) => ({ ...c, entrepriseNom: c.entrepriseNom as string | null }))].sort((a, b) => a.creeLe.getTime() - b.creeLe.getTime())
+    : [];
+
   const t = traduire(utilisateurConnecte.langue);
 
   return (
@@ -107,7 +115,7 @@ export default async function PageRecrutement() {
         )
       ) : (
         <div className="flex flex-col gap-3">
-          {donnees.candidatures.map((c, index) => (
+          {toutes.map((c, index) => (
             <Card
               key={c.id}
               style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
@@ -119,6 +127,7 @@ export default async function PageRecrutement() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{c.nom}</p>
                       <Badge variant={LIBELLE_STATUT[c.statut]?.variant ?? "neutral"}>{LIBELLE_STATUT[c.statut]?.libelle ?? c.statut}</Badge>
+                      {c.entrepriseNom ? <Badge variant="info">{c.entrepriseNom}</Badge> : null}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {c.posteTitre} — {c.telephone}
@@ -138,20 +147,21 @@ export default async function PageRecrutement() {
                 <ControlesCandidature
                   candidatureId={c.id}
                   statut={c.statut}
-                  peutReassigner={utilisateurConnecte.role === "ADMIN"}
+                  peutReassigner={utilisateurConnecte.role === "ADMIN" && !c.entrepriseNom}
                   agents={donnees.agents}
                   agentActuelId={c.assigneAId}
-                  peutModifier={peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")}
-                  peutSupprimer={peut(utilisateurConnecte, "RECRUTEMENT", "SUPPRIMER") && !c.invitationId}
+                  peutModifier={c.entrepriseNom ? peutGererGroupe : peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")}
+                  peutSupprimer={!c.entrepriseNom && peut(utilisateurConnecte, "RECRUTEMENT", "SUPPRIMER") && !c.invitationId}
                   coordonnees={{ nom: c.nom, telephone: c.telephone, email: c.email, message: c.message }}
                 />
-                {(c.statut === "OFFRE" || c.statut === "EMBAUCHE") && utilisateurConnecte.role === "ADMIN" ? (
+                {c.entrepriseNom ? <p className="text-xs text-muted-foreground">Candidature de {c.entrepriseNom} (groupe) : vous pouvez changer son statut et corriger ses coordonnées ; l&apos;embauche et la suppression restent à {c.entrepriseNom}.</p> : null}
+                {(c.statut === "OFFRE" || c.statut === "EMBAUCHE") && utilisateurConnecte.role === "ADMIN" && !c.entrepriseNom ? (
                   <FormulaireConversion candidatureId={c.id} statut={c.statut} />
                 ) : null}
               </CardContent>
             </Card>
           ))}
-          {donnees.candidatures.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucune candidature pour le moment.</p> : null}
+          {toutes.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucune candidature pour le moment.</p> : null}
         </div>
       )}
     </div>

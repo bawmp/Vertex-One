@@ -198,6 +198,10 @@ export const entreprise = pgTable("entreprise", {
   // Réglage de l'Administrateur : les Managers voient les données de toute l'entreprise (modules métier seulement, voir
   // MODULES_OUVERTS_AUX_MANAGERS dans src/lib/permissions.ts) au lieu de leur seule équipe. Désactivé par défaut.
   managersVoientTout: boolean("managers_voient_tout").notNull().default(false),
+  // Partage du recrutement dans un groupe (2026-10-26) : exception VOLONTAIRE à l'isolation entre filiales. Deux entreprises du même groupe
+  // ne se voient (postes et candidatures) que si les DEUX ont activé ce réglage. La RLS reste strictement par entreprise : le partage passe
+  // par src/lib/recrutement/partage.ts, qui rouvre une transaction DANS l'entreprise propriétaire après avoir vérifié le groupe et les deux réglages.
+  recrutementPartageGroupe: boolean("recrutement_partage_groupe").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });

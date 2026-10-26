@@ -3,13 +3,15 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { ArrowLeft, Lock, Settings } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, parametreRecrutement } from "@/db/schema";
+import { entreprise, parametreRecrutement, groupe } from "@/db/schema";
+import { db } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponibleAddon } from "@/lib/plans";
 import { BoutonActiverRecrutement } from "../bouton-activer-recrutement";
 import { FormulaireParametresRecrutement } from "./formulaire-parametres";
 import { BoutonPublierRecrutement } from "./bouton-publier";
 import { LienPublicCarrieres } from "./lien-public";
+import { FormulairePartageGroupe } from "./formulaire-partage-groupe";
 
 export default async function PageParametresRecrutement() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -30,8 +32,16 @@ export default async function PageParametresRecrutement() {
     if (!actif) return { actif: false as const };
 
     const [params] = await tx.select().from(parametreRecrutement).where(eq(parametreRecrutement.entrepriseId, utilisateurConnecte.entrepriseId));
-    return { actif: true as const, params: params ?? null };
+    return { actif: true as const, params: params ?? null, partage: monEntreprise.recrutementPartageGroupe, groupeId: monEntreprise.groupeId };
   });
+
+  // `entreprise` et `groupe` n'ont pas de RLS : lecture directe, filtrée par groupe.
+  let groupeInfo: { nom: string; autres: { nom: string; partage: boolean }[] } | null = null;
+  if (donnees.actif && donnees.groupeId) {
+    const [g] = await db.select({ nom: groupe.nom }).from(groupe).where(eq(groupe.id, donnees.groupeId));
+    const autres = await db.select({ id: entreprise.id, nom: entreprise.nom, partage: entreprise.recrutementPartageGroupe }).from(entreprise).where(eq(entreprise.groupeId, donnees.groupeId));
+    groupeInfo = g ? { nom: g.nom, autres: autres.filter((a) => a.id !== utilisateurConnecte.entrepriseId).map((a) => ({ nom: a.nom, partage: a.partage })) } : null;
+  }
 
   return (
     <div className="flex max-w-xl flex-col gap-6">
@@ -49,6 +59,7 @@ export default async function PageParametresRecrutement() {
       ) : (
         <div className="flex flex-col gap-4">
           <FormulaireParametresRecrutement params={donnees.params} />
+          {groupeInfo ? <FormulairePartageGroupe actifInitial={donnees.partage} groupeNom={groupeInfo.nom} autres={groupeInfo.autres} /> : null}
 
           {donnees.params ? (
             <>

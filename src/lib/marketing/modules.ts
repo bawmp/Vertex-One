@@ -112,6 +112,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     capacites: [
       m("Invitation envoyée par email à chaque collaborateur : il choisit son mot de passe, puis se connecte avec son adresse email"),
       m("Réglage « Les managers voient toute l'entreprise » : vos managers voient les données métier de toute l'entreprise, ou seulement celles de leur équipe"),
+      m("Recrutement partagé entre les entreprises d'un même groupe : postes et candidatures visibles et gérables par les managers de chacune, sur activation des deux côtés"),
       m("Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)"),
       m("Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé"),
       m("Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé"),

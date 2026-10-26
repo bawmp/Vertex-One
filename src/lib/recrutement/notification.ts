@@ -115,8 +115,9 @@ export async function changerStatutEtPreparerEmail(
 
   const [poste] = await tx.select({ titre: posteOuvert.titre }).from(posteOuvert).where(and(eq(posteOuvert.id, avant.posteId), eq(posteOuvert.entrepriseId, entrepriseId)));
   const [ent] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
-  // `utilisateur` est en RLS permissive : l'entreprise est filtrée explicitement.
-  const [moi] = await tx.select({ email: utilisateur.email }).from(utilisateur).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
+  // `utilisateur` est en RLS permissive ; `utilisateurId` vient toujours de la session (jamais du navigateur). Il peut appartenir à une AUTRE
+  // entreprise du groupe quand le recrutement est partagé : on ne filtre donc pas sur l'entreprise du candidat.
+  const [moi] = await tx.select({ email: utilisateur.email }).from(utilisateur).where(eq(utilisateur.id, utilisateurId));
 
   // Message relu et modifié par l'utilisateur avant l'envoi : il part tel quel ; sinon, le modèle de l'entreprise.
   const { subject, html } = contenu

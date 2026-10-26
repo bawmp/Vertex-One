@@ -13,6 +13,7 @@ import { peut } from "@/lib/permissions";
 import { effacerObjetStockage } from "@/lib/documents/stockage";
 import { idsVisibles } from "@/lib/portee";
 import { convertirCandidatureEnInvitation } from "@/lib/recrutement/conversion";
+import { resoudreProprietaireCandidature } from "@/lib/recrutement/partage";
 import { apercuEmailStatut, changerStatutEtPreparerEmail, nettoyerContenuPersonnalise, type ApercuEmailStatut } from "@/lib/recrutement/notification";
 import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
@@ -81,6 +82,21 @@ export async function configurerParametresRecrutement(_etat: EtatRecrutementConf
   if (resultat?.erreur) return resultat;
 
   revalidatePath(`${CHEMIN}/parametres`);
+  return null;
+}
+
+/**
+ * Active ou coupe le partage du recrutement avec les autres entreprises du groupe. Réservé à l'Administrateur ; booléen strict. Le partage n'a
+ * d'effet que si l'autre entreprise l'a activé aussi (voir src/lib/recrutement/partage.ts).
+ */
+export async function definirRecrutementPartage(actif: boolean): Promise<{ erreur?: string } | null> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN") return { erreur: "Seul l'Administrateur peut modifier ce réglage." };
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(entreprise).set({ recrutementPartageGroupe: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)));
+
+  revalidatePath(CHEMIN, "layout");
   return null;
 }
 
@@ -230,9 +246,12 @@ export async function apercuEmailStatutCandidature(candidatureId: string, statut
   if (!utilisateurConnecte) redirect("/connexion");
   if (!STATUTS_VALIDES.includes(statut)) return null;
   if (!peut(utilisateurConnecte, "RECRUTEMENT", "MODIFIER")) return null;
-  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
-    return apercuEmailStatut(tx, { entrepriseId: utilisateurConnecte.entrepriseId, candidatureId, statut });
+  // La candidature peut appartenir à une entreprise partenaire du groupe (recrutement partagé) : le message est alors celui de CETTE entreprise.
+  const cible = await resoudreProprietaireCandidature(utilisateurConnecte, candidatureId);
+  if (!cible) return null;
+  return avecEntreprise(cible.entrepriseId, async (tx) => {
+    if (!cible.partagee && !(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
+    return apercuEmailStatut(tx, { entrepriseId: cible.entrepriseId, candidatureId, statut });
   });
 }
 
@@ -249,10 +268,14 @@ export async function changerStatutCandidature(candidatureId: string, statut: (t
 
   // Le candidat est prévenu par email à chaque changement de statut (sauf annulation/rétablissement, qui passent
   // `prevenir: false`, et sauf réglage coupé par l'entreprise) — voir src/lib/recrutement/notification.ts.
-  const email = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
+  // Recrutement partagé : la candidature peut appartenir à une autre entreprise du groupe ; le statut est alors changé DANS cette entreprise et le
+  // candidat est prévenu à son nom (modèles, logo, réglages de celle qui a publié le poste).
+  const cible = await resoudreProprietaireCandidature(utilisateurConnecte, candidatureId);
+  if (!cible) return;
+  const email = await avecEntreprise(cible.entrepriseId, async (tx) => {
+    if (!cible.partagee && !(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return null;
     return changerStatutEtPreparerEmail(tx, {
-      entrepriseId: utilisateurConnecte.entrepriseId,
+      entrepriseId: cible.entrepriseId,
       utilisateurId: utilisateurConnecte.utilisateurId,
       candidatureId,
       statut,
@@ -263,7 +286,7 @@ export async function changerStatutCandidature(candidatureId: string, statut: (t
 
   // Envoi APRÈS la réponse : l'employé ne l'attend jamais, et un échec d'envoi ne défait pas le changement de statut.
   if (email) {
-    const entete = await enteteLogoEmail(utilisateurConnecte.entrepriseId);
+    const entete = await enteteLogoEmail(cible.entrepriseId);
     after(async () => {
       try {
         const resultat = await envoyerEmail({ to: email.to, subject: email.subject, html: entete + email.html, nomExpediteur: email.nomExpediteur, replyTo: email.replyTo });
@@ -315,12 +338,14 @@ export async function modifierCandidature(_etat: EtatRecrutementConfig, formData
   }
   const { candidatureId, nom, telephone, email, message } = analyse.data;
 
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    if (!(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return { erreur: "Candidature introuvable." };
+  const cible = await resoudreProprietaireCandidature(utilisateurConnecte, candidatureId);
+  if (!cible) return { erreur: "Candidature introuvable." };
+  const resultat = await avecEntreprise(cible.entrepriseId, async (tx) => {
+    if (!cible.partagee && !(await candidatureDansLaPortee(tx, utilisateurConnecte, candidatureId))) return { erreur: "Candidature introuvable." };
     const modifiees = await tx
       .update(candidature)
       .set({ nom, telephone, email: email || null, message: message || null })
-      .where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, cible.entrepriseId)))
       .returning({ id: candidature.id });
     return modifiees.length === 0 ? { erreur: "Candidature introuvable." } : null;
   });

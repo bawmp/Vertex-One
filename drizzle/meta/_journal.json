@@ -883,6 +883,13 @@
       "when": 1791176400000,
       "tag": "0125_managers_voient_tout",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1791262800000,
+      "tag": "0126_recrutement_partage_groupe",
+      "breakpoints": true
     }
   ]
 }

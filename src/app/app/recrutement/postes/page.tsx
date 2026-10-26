@@ -6,6 +6,8 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, posteOuvert } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponibleAddon } from "@/lib/plans";
+import { postesDesPartenaires } from "@/lib/recrutement/partage";
+import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauPoste } from "./formulaire-nouveau-poste";
 import { CartePoste } from "./carte-poste";
 
@@ -39,6 +41,8 @@ export default async function PagePostesOuverts() {
     );
   }
 
+  const postesGroupe = await postesDesPartenaires(utilisateurConnecte);
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/recrutement" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -58,6 +62,28 @@ export default async function PagePostesOuverts() {
         ))}
         {donnees.postes.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucun poste pour le moment.</p> : null}
       </div>
+
+      {postesGroupe.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Postes des autres entreprises du groupe (lecture seule)</h2>
+          <div className="flex flex-col divide-y divide-border rounded-lg border">
+            {postesGroupe.map((p) => (
+              <div key={`${p.entrepriseNom}-${p.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{p.titre}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[p.lieu, p.typeContrat].filter(Boolean).join(" — ") || "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="info">{p.entrepriseNom}</Badge>
+                  <Badge variant={p.actif ? "success" : "neutral"}>{p.actif ? "Actif" : "Désactivé"}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
