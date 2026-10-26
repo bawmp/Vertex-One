@@ -125,9 +125,9 @@ export default async function PageFacturation() {
   // du même client (memeClientVente(), plus dealId — voir schema.ts et
   // src/lib/actions/facture-acompte.ts) : recalculé ici puisque les
   // Factures/Acomptes sont désormais listés indépendamment de tout Deal.
-  const facturesEmises = facturesVisibles.filter((f) => f.statut === "EMISE");
+  const facturesEmises = facturesVisibles.filter((f) => ["EMISE", "PARTIELLEMENT_PAYEE", "EN_RETARD"].includes(f.statut));
   const facturesEligiblesPour = (fa: (typeof facturesAcompteVisibles)[number]) =>
-    facturesEmises.filter((f) => memeClientVente(fa, f) && f.montantTTC <= fa.montantRestant).map((f) => ({ id: f.id, numero: f.numero, montantTTC: f.montantTTC }));
+    facturesEmises.filter((f) => memeClientVente(fa, f)).map((f) => ({ id: f.id, numero: f.numero, montantTTC: f.montantTTC }));
 
   return (
     <div className="flex flex-col gap-8">

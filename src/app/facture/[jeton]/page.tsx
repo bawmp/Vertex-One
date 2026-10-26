@@ -1,3 +1,4 @@
+import { formaterFCFA } from "@/lib/facturation/calcul";
 import Link from "next/link";
 import { Download, CheckCircle2 } from "lucide-react";
 import { chargerFactureParJeton } from "@/lib/client-documents/chargement";
@@ -29,7 +30,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
     );
   }
 
-  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe, paye, solde, tranchesAutorisees } = donnees;
+  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe, paye, solde, tranchesAutorisees, acomptesDeduits } = donnees;
   const payee = facture.statut === "PAYEE";
   // Redirection automatique seulement juste après le paiement (moins de 30 minutes) : rouvrir plus tard une facture réglée ne renvoie pas.
   const payeRecemment = payee && dernierPaiementLe !== null && Date.now() - dernierPaiementLe.getTime() < 30 * 60 * 1000;
@@ -63,6 +64,31 @@ export default async function PageFactureClient({ params, searchParams }: { para
       </div>
 
       <LignesDocumentClient lignes={lignes} montantHT={facture.montantHT} montantTVA={facture.montantTVA} montantTTC={facture.montantTTC} />
+
+      {paye > 0 && !annulee ? (
+        <div className="flex flex-col gap-1.5 self-end rounded-2xl bg-muted/50 p-4 text-sm sm:min-w-72">
+          <div className="flex justify-between gap-6">
+            <span className="text-muted-foreground">Total TTC</span>
+            <span className="tabular-nums">{formaterFCFA(facture.montantTTC)}</span>
+          </div>
+          {acomptesDeduits.map((a) => (
+            <div key={a.numero} className="flex justify-between gap-6">
+              <span className="text-muted-foreground">Acompte {a.numero}</span>
+              <span className="tabular-nums">- {formaterFCFA(a.montant)}</span>
+            </div>
+          ))}
+          {paye - acomptesDeduits.reduce((somme, a) => somme + a.montant, 0) > 0 ? (
+            <div className="flex justify-between gap-6">
+              <span className="text-muted-foreground">Déjà réglé</span>
+              <span className="tabular-nums">- {formaterFCFA(paye - acomptesDeduits.reduce((somme, a) => somme + a.montant, 0))}</span>
+            </div>
+          ) : null}
+          <div className="mt-1 flex justify-between gap-6 border-t pt-2 text-base font-bold">
+            <span>Reste à payer</span>
+            <span className="tabular-nums">{formaterFCFA(solde)}</span>
+          </div>
+        </div>
+      ) : null}
 
       <Link href={`/facture/${jeton}/pdf`} target="_blank" className={buttonVariants({ variant: "outline", size: "sm" }) + " self-start"}>
         <Download data-icon="inline-start" aria-hidden />

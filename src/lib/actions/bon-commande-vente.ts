@@ -10,6 +10,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroBonCommandeVente, genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
@@ -181,6 +182,8 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
       montantTVA: leBCV.montantTVA,
       montantTTC: leBCV.montantTTC,
     });
+    await // Acomptes déjà encaissés du même client : déduits du solde dès l'émission (voir src/lib/facturation/acompte.ts).
+    await await appliquerAcomptesSurFacture(tx, utilisateurConnecte.entrepriseId, nouvelleFacture.id);
 
     return leBCV.dealId;
   });

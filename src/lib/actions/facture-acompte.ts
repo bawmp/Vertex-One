@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
@@ -8,7 +8,8 @@ import { factureAcompte, facture, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererNumeroFactureAcompte } from "@/lib/facturation/numerotation";
-import { genererEcrituresPaiementAcompte, genererEcrituresApplicationAcompte } from "@/lib/comptabilite/ecritures";
+import { genererEcrituresPaiementAcompte } from "@/lib/comptabilite/ecritures";
+import { appliquerAcompteSurFacturesOuvertes, deduireAcompteManuellement } from "@/lib/facturation/acompte";
 import { resoudreClientVente, memeClientVente } from "@/lib/facturation/client-document";
 import { getT } from "@/lib/i18n/langue";
 
@@ -121,6 +122,9 @@ export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompt
       moyenPaiement,
     });
 
+    // Déduction automatique : l'acompte vient en déduction des factures ouvertes du même client (reste à payer mis à jour).
+    await appliquerAcompteSurFacturesOuvertes(tx, utilisateurConnecte.entrepriseId, acompte.id);
+
     return acompte.dealId;
   });
 
@@ -132,10 +136,8 @@ export async function enregistrerPaiementFactureAcompte(_etat: EtatFactureAcompt
 }
 
 /**
- * Applique un acompte encaissé sur une Facture émise du même Deal.
- * Simplification connue (voir schema.ts) : n'autorise l'application que si
- * montantRestant couvre intégralement facture.montantTTC — pas de paiement
- * partiel d'une Facture, cohérent avec le reste de ce module.
+ * Applique à la main un acompte encaissé sur une facture ouverte du même client (cas que la déduction automatique ne couvre pas : un
+ * acompte lié à une autre affaire, par exemple). Application partielle : on déduit le plus petit du reste de l'acompte et du solde.
  */
 export async function appliquerAcompteSurFacture(factureAcompteId: string, factureId: string) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -145,36 +147,15 @@ export async function appliquerAcompteSurFacture(factureAcompteId: string, factu
   const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [acompte] = await tx.select().from(factureAcompte).where(and(eq(factureAcompte.id, factureAcompteId), eq(factureAcompte.statut, "PAYEE")));
     if (!acompte) return null;
-
-    const [laFacture] = await tx.select().from(facture).where(and(eq(facture.id, factureId), eq(facture.statut, "EMISE")));
+    const [laFacture] = await tx.select().from(facture).where(and(eq(facture.id, factureId), inArray(facture.statut, ["EMISE", "PARTIELLEMENT_PAYEE", "EN_RETARD"])));
     if (!laFacture) return null;
     if (!memeClientVente(acompte, laFacture)) return null;
-    if (acompte.montantRestant < laFacture.montantTTC) return null;
-
-    const dateApplication = new Date();
-    const montantRestantApres = acompte.montantRestant - laFacture.montantTTC;
-
-    await tx
-      .update(factureAcompte)
-      .set({ montantRestant: montantRestantApres, statut: montantRestantApres === 0 ? "APPLIQUEE" : "PAYEE" })
-      .where(eq(factureAcompte.id, acompte.id));
-
-    await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, laFacture.id));
-
-    await genererEcrituresApplicationAcompte(tx, {
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      factureAcompteId: acompte.id,
-      factureId: laFacture.id,
-      numeroFactureAcompte: acompte.numero,
-      numeroFacture: laFacture.numero,
-      montant: laFacture.montantTTC,
-      dateApplication,
-    });
-
+    await deduireAcompteManuellement(tx, utilisateurConnecte.entrepriseId, acompte.id, laFacture.id);
     return acompte.dealId;
   });
 
   revalidatePath(CHEMIN);
+  revalidatePath(`/app/facturation/factures/${factureId}`);
   if (dealId) revalidatePath(`/app/deals/${dealId}`);
 }
 

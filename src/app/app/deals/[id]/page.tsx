@@ -242,8 +242,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
               <div className="flex flex-col divide-y divide-border">
                 {facturesAcompteListe.map((fa) => {
                   const infoAcompte = STATUT_FACTURE_ACOMPTE[fa.statut];
-                  const facturesEmisesDuDeal = facturesListe.filter((f) => f.statut === "EMISE");
-                  const facturesEligibles = facturesEmisesDuDeal.filter((f) => f.montantTTC <= fa.montantRestant);
+                  const facturesEligibles = facturesListe.filter((f) => ["EMISE", "PARTIELLEMENT_PAYEE", "EN_RETARD"].includes(f.statut));
                   return (
                     <div key={fa.id} className="flex flex-col gap-2 px-4 py-2.5 text-sm">
                       <div className="flex items-center justify-between gap-3">

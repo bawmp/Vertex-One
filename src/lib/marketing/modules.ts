@@ -76,6 +76,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Numéro de facture généré uniquement au moment exact de l'émission, jamais avant, par une opération protégée contre les doublons"),
       m("TVA calculée ligne par ligne à 19,25 %, avec blocage de toute émission tant que le NIU de l'entreprise n'est pas renseigné"),
       m("Acomptes, bons de commande, factures récurrentes et reçus de vente"),
+      m("Un acompte encaissé se déduit tout seul de la facture du client, avec le reste à payer clairement indiqué"),
       m("Relance automatique des factures impayées, sans intervention manuelle"),
       m("Paiement Mobile Money (Orange Money, MTN MoMo) sans quitter la facture : le client saisit son numéro, valide sur son téléphone et la facture passe à « payée », via Aangaraa Pay"),
       m("Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture"),

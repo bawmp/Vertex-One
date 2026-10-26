@@ -87,7 +87,7 @@ async function envoyerRecuAuClient(n: NotificationPaiementFacture): Promise<void
     montantHT: d.facture.montantHT,
     montantTVA: d.facture.montantTVA,
     montantTTC: d.facture.montantTTC,
-    montantRegle: d.paye,
+    montantRegle: d.paye, acomptesDeduits: d.acomptesDeduits,
   });
 
   const { subject, html } = gabaritRecuPaiementClient({

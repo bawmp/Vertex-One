@@ -1,3 +1,4 @@
+import { extraireAcomptesDeduits } from "@/lib/facturation/acompte";
 import { eq, desc } from "drizzle-orm";
 import { calculerSolde } from "@/lib/facturation/solde";
 import type { TransactionDrizzle } from "@/db/client";
@@ -106,11 +107,11 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
   const [lignes, [monEntreprise], reglements] = await Promise.all([
     tx.select().from(ligneFacture).where(eq(ligneFacture.factureId, factureId)),
     tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
-    tx.select({ montant: paiement.montant }).from(paiement).where(eq(paiement.factureId, factureId)),
+    tx.select({ montant: paiement.montant, referenceTransaction: paiement.referenceTransaction }).from(paiement).where(eq(paiement.factureId, factureId)),
   ]);
 
   // `paye` : total déjà réglé, pour que le PDF affiche « Déjà réglé » et « Reste à payer » (paiement en plusieurs fois).
-  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise), paye: calculerSolde(f.montantTTC, reglements).paye };
+  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise), paye: calculerSolde(f.montantTTC, reglements).paye, acomptesDeduits: extraireAcomptesDeduits(reglements) };
 }
 
 /**
@@ -144,7 +145,7 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
     tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId)),
     f.contactId ? tx.select({ espaceClientUrl: contact.espaceClientUrl }).from(contact).where(eq(contact.id, f.contactId)) : Promise.resolve([]),
     tx.select({ datePaiement: paiement.datePaiement }).from(paiement).where(eq(paiement.factureId, factureId)).orderBy(desc(paiement.datePaiement)).limit(1),
-    tx.select({ montant: paiement.montant }).from(paiement).where(eq(paiement.factureId, factureId)),
+    tx.select({ montant: paiement.montant, referenceTransaction: paiement.referenceTransaction }).from(paiement).where(eq(paiement.factureId, factureId)),
   ]);
 
   // `espaceClientUrl` : où renvoyer le client à la fin de son parcours (page publique de la facture) ; `dernierPaiementLe` sert à ne
@@ -158,6 +159,7 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
     dernierPaiementLe: dernierPaiement?.datePaiement ?? null,
     // Paiement en plusieurs fois : ce qui est déjà réglé et ce qui reste dû, toujours calculés depuis les règlements enregistrés.
     ...calculerSolde(f.montantTTC, reglements),
+    acomptesDeduits: extraireAcomptesDeduits(reglements),
     tranchesAutorisees: monEntreprise.paiementEnTranches,
   };
 }

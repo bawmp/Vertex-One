@@ -258,7 +258,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
         montantHT: donnees.facture.montantHT,
         montantTVA: donnees.facture.montantTVA,
         montantTTC: donnees.facture.montantTTC,
-        montantRegle: donnees.paye,
+        montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits,
       }),
     ]);
 

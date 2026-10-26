@@ -3,6 +3,7 @@ import type { TransactionDrizzle } from "@/db/client";
 import { entreprise, devis, ligneDevis, facture, ligneFacture, contact } from "@/db/schema";
 import { genererNumeroFacture } from "@/lib/facturation/numerotation";
 import { creerProjetDepuisDevisAccepte } from "@/lib/projets/pont";
+import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 
@@ -96,6 +97,8 @@ export async function accepterDevisEtCreerFacture(
     montantTVA: leDevis.montantTVA,
     montantTTC: leDevis.montantTTC,
   });
+  await // Acomptes déjà encaissés du même client : déduits du solde dès l'émission (voir src/lib/facturation/acompte.ts).
+  await await appliquerAcomptesSurFacture(tx, entrepriseId, nouvelleFacture.id);
 
   // Palier 2, section 3 : ouverture (ou réutilisation) du Dossier client
   // et création d'un nouveau Projet, dans la même transaction que la

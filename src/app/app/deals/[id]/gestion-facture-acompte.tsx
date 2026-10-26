@@ -83,7 +83,7 @@ export function GestionFactureAcompte({
 
   if (statut === "PAYEE") {
     if (facturesEligibles.length === 0) {
-      return <p className="text-xs text-muted-foreground">{t("Aucune facture émise de {montant} FCFA ou moins pour appliquer ce solde.", { montant: montantRestant })}</p>;
+      return <p className="text-xs text-muted-foreground">{t("Aucune facture ouverte de ce client sur laquelle appliquer ce solde.")}</p>;
     }
     return (
       <div className="flex items-center gap-1.5">

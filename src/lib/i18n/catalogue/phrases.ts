@@ -8,7 +8,8 @@ export const PHRASES: Record<string, string> = {
   "{n} deals visibles.": "{n} deals visible.",
   "{n} deal visible.": "{n} deal visible.",
   "Total enregistrements {n}": "Total records {n}",
-  "Aucune facture émise de {montant} FCFA ou moins pour appliquer ce solde.": "No invoice issued for {montant} FCFA or less to apply this balance to.",
+  "Acompte": "Deposit",
+  "Aucune facture ouverte de ce client sur laquelle appliquer ce solde.": "No open invoice for this customer to apply this balance to.",
   "par {auteur}": "by {auteur}",
 
   // Facturation

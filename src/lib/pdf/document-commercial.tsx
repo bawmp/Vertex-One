@@ -139,6 +139,8 @@ export type DocumentCommercialProps = {
   // Facture déjà payée en partie ou en totalité (paiement en plusieurs fois) : total des règlements reçus ; affiche « Déjà réglé » et
   // « Reste à payer » sous le total. Absent ou 0 = rien n'est affiché (document identique à avant).
   montantRegle?: number;
+  // Acomptes déjà encaissés et déduits de cette facture (inclus dans `montantRegle`) : affichés ligne par ligne, avant le reste à payer.
+  acomptesDeduits?: { numero: string; montant: number }[];
   // Logo en filigrane quand l'entreprise en a un (défaut : oui) ; sans logo, rien n'est ajouté.
   filigrane?: boolean;
 };
@@ -169,6 +171,7 @@ export function DocumentCommercialPDF({
   moyenPaiement,
   montantRestant,
   montantRegle,
+  acomptesDeduits,
   filigrane = true,
 }: DocumentCommercialProps) {
   const accent = entreprise.couleurMarque ?? ACCENT_PAR_DEFAUT;
@@ -267,13 +270,21 @@ export function DocumentCommercialPDF({
               </View>
               {montantRegle != null && montantRegle > 0 ? (
                 <>
-                  <View style={styles.ligneTotal}>
-                    <Text>Déjà réglé</Text>
-                    <Text>{formaterFCFA(montantRegle)}</Text>
-                  </View>
-                  <View style={styles.ligneTotal}>
-                    <Text style={{ fontFamily: "Helvetica-Bold" }}>Reste à payer</Text>
-                    <Text style={{ fontFamily: "Helvetica-Bold" }}>{formaterFCFA(Math.max(0, montantTTC - montantRegle))}</Text>
+                  {(acomptesDeduits ?? []).map((a) => (
+                    <View key={a.numero} style={styles.ligneTotal}>
+                      <Text>Acompte {a.numero}</Text>
+                      <Text>- {formaterFCFA(a.montant)}</Text>
+                    </View>
+                  ))}
+                  {montantRegle - (acomptesDeduits ?? []).reduce((somme, a) => somme + a.montant, 0) > 0 ? (
+                    <View style={styles.ligneTotal}>
+                      <Text>Déjà réglé</Text>
+                      <Text>- {formaterFCFA(montantRegle - (acomptesDeduits ?? []).reduce((somme, a) => somme + a.montant, 0))}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.ligneTotalFinal}>
+                    <Text>Reste à payer</Text>
+                    <Text>{formaterFCFA(Math.max(0, montantTTC - montantRegle))}</Text>
                   </View>
                 </>
               ) : null}

@@ -2,6 +2,7 @@ import { eq, and, lte } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { factureRecurrente, ligneFactureRecurrente, facture, ligneFacture, entreprise } from "@/db/schema";
 import { genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 
@@ -110,6 +111,8 @@ export async function genererFacturesRecurrentesDues(tx: TransactionDrizzle, ent
       montantTVA: profil.montantTVA,
       montantTTC: profil.montantTTC,
     });
+    await // Acomptes déjà encaissés du même client : déduits du solde dès l'émission (voir src/lib/facturation/acompte.ts).
+    await await appliquerAcomptesSurFacture(tx, entrepriseId, nouvelleFacture.id);
 
     const prochaine = prochaineDateApres(profil.prochaineDateGeneration, profil.frequence);
     const termine = profil.dateFin != null && prochaine > profil.dateFin;

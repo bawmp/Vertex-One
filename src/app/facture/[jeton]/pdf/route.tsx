@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ jet
     montantHT: donnees.facture.montantHT,
     montantTVA: donnees.facture.montantTVA,
     montantTTC: donnees.facture.montantTTC,
-    montantRegle: donnees.paye,
+    montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits,
   });
 
   return new NextResponse(new Uint8Array(buffer), {

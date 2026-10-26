@@ -1,4 +1,5 @@
-import { eq, and, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, isNull, gte, lte, like, not, or } from "drizzle-orm";
+import { PREFIXE_REFERENCE_ACOMPTE } from "@/lib/facturation/acompte";
 import type { TransactionDrizzle } from "@/db/client";
 import { paiement, facture } from "@/db/schema";
 
@@ -65,6 +66,8 @@ export async function suggererCorrespondances(
         and(
           eq(paiement.entrepriseId, entrepriseId),
           isNull(paiement.rapprocheLe),
+          // Une déduction d'acompte n'est pas un mouvement bancaire : jamais proposée en rapprochement.
+          or(isNull(paiement.referenceTransaction), not(like(paiement.referenceTransaction, `${PREFIXE_REFERENCE_ACOMPTE}%`))),
           eq(paiement.montant, ligne.montant),
           gte(paiement.datePaiement, debutFenetre),
           lte(paiement.datePaiement, finFenetre)

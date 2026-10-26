@@ -10,6 +10,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroFacture } from "@/lib/facturation/numerotation";
+import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { getT } from "@/lib/i18n/langue";
@@ -183,6 +184,8 @@ export async function genererFactureDepuisHeures(projetId: string) {
       montantTVA: montants.montantTVA,
       montantTTC: montants.montantTTC,
     });
+    await // Acomptes déjà encaissés du même client : déduits du solde dès l'émission (voir src/lib/facturation/acompte.ts).
+    await await appliquerAcomptesSurFacture(tx, utilisateurConnecte.entrepriseId, nouvelleFacture.id);
   });
 
   revalidatePath(`/app/projets/${projetId}`);

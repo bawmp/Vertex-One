@@ -1,3 +1,4 @@
+import { numeroAcompteDeReference } from "@/lib/facturation/acompte";
 import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Download, CheckCircle2, XCircle, CreditCard } from "lucide-react";
@@ -151,7 +152,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
               {paiements.map((p) => (
                 <div key={p.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span className="tabular-nums font-medium">{formaterFCFA(p.montant)}</span>
-                  <Badge variant="success">{p.moyenPaiement}</Badge>
+                  <Badge variant="success">{numeroAcompteDeReference(p.referenceTransaction) ? `${t("Acompte")} ${numeroAcompteDeReference(p.referenceTransaction)}` : p.moyenPaiement}</Badge>
                 </div>
               ))}
               {solde > 0 && laFacture.statut !== "ANNULEE" ? (

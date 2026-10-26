@@ -21,6 +21,7 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Invoice number generated only at the exact moment of issue, never before, by an operation protected against duplicates",
   "TVA calculée ligne par ligne à 19,25 %, avec blocage de toute émission tant que le NIU de l'entreprise n'est pas renseigné":
     "VAT calculated line by line at 19.25%, with any issuing blocked until the company's NIU (tax ID) is entered",
+  "Un acompte encaissé se déduit tout seul de la facture du client, avec le reste à payer clairement indiqué": "A down payment received is automatically deducted from the customer's invoice, with the balance due clearly shown",
   "Acomptes, bons de commande, factures récurrentes et reçus de vente": "Down payments, purchase orders, recurring invoices and sales receipts",
   "Relance automatique des factures impayées, sans intervention manuelle": "Automatic reminders for unpaid invoices, with no manual intervention",
   "Un site relié à Vertex One y fait émettre automatiquement la facture de chaque paiement reçu : le client la reçoit à votre nom, avec votre logo, et elle est classée dans votre comptabilité": "A website connected to Vertex One has the invoice of every payment received issued automatically: the client receives it in your name, with your logo, and it is filed in your accounting",
