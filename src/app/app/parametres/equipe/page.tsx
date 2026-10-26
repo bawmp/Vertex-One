@@ -10,6 +10,7 @@ import { FormulaireInvitation } from "./formulaire-invitation";
 import { GestionServices } from "./gestion-services";
 import { MembresEquipe, ClientsPortail } from "./membres-equipe";
 import { BoutonAnnulerInvitation } from "./bouton-annuler-invitation";
+import { BoutonRenvoyerInvitation } from "./bouton-renvoyer-invitation";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageEquipe() {
@@ -117,6 +118,7 @@ export default async function PageEquipe() {
                   ) : (
                     <Badge variant="info">{t("En attente")}</Badge>
                   )}
+                  {!estUtilisee && !estExpiree ? <BoutonRenvoyerInvitation id={inv.id} /> : null}
                   {!estUtilisee ? <BoutonAnnulerInvitation id={inv.id} /> : null}
                   </div>
                 </div>

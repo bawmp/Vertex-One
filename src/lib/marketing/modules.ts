@@ -110,6 +110,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     icone: Users,
     classeFond: "bg-purple-500",
     capacites: [
+      m("Invitation envoyée par email à chaque collaborateur : il choisit son mot de passe, puis se connecte avec son adresse email"),
       m("Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)"),
       m("Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé"),
       m("Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé"),

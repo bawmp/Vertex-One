@@ -18,6 +18,7 @@ import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 import { getT } from "@/lib/i18n/langue";
 import { annulerInvitationsNonUtilisees } from "@/lib/invitations/annulation";
 import { m } from "@/lib/i18n/catalogue";
+import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
 
@@ -112,10 +113,10 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
 
   if (resultat?.erreur) return resultat;
 
-  // TODO Palier 0 (8bis) / envoi réel : notifier par email (Resend/Postmark)
-  // et WhatsApp plutôt que d'afficher le lien à copier-coller (voir la page
-  // équipe, qui affiche ce lien en attendant l'intégration d'envoi réel).
-  return { succes: `Invitation créée : /invitation/${jeton}` };
+  // L'invitation part par email à la personne invitée ; le lien reste affiché (et dans la liste des invitations) en secours.
+  const { envoye } = await envoyerEmailInvitation({ entrepriseId: utilisateurConnecte.entrepriseId, email, role: roleProposee, jeton, invitantId: utilisateurConnecte.utilisateurId, dureeHeures: DUREE_EXPIRATION_MS / 3_600_000 });
+  revalidatePath("/app/parametres/equipe");
+  return { succes: envoye ? t("Invitation envoyée par email à {email}. Lien de secours : /invitation/{jeton}", { email, jeton }) : t("Invitation créée, mais l'email n'a pas pu partir : transmettez ce lien à la personne : /invitation/{jeton}", { jeton }) };
 }
 
 const schemaAcceptation = z.object({
@@ -292,4 +293,24 @@ export async function renvoyerAccesCollegue(utilisateurId: string): Promise<Etat
 
   revalidatePath("/app/parametres/equipe");
   return { succes: t("Lien envoyé.") };
+}
+
+/** Renvoie par email une invitation encore valable (la personne ne l'a pas reçue, ou l'a perdue). Même lien : aucun nouveau jeton. */
+export async function renvoyerInvitationParEmail(invitationId: string): Promise<{ erreur?: string; succes?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "CREER")) return { erreur: t("Vous n'avez pas le droit d'inviter de nouveaux collaborateurs.") };
+
+  const inv = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [ligne] = await tx
+      .select({ email: invitation.email, roleProposee: invitation.roleProposee, jeton: invitation.jeton })
+      .from(invitation)
+      .where(and(eq(invitation.id, invitationId), eq(invitation.entrepriseId, utilisateurConnecte.entrepriseId), isNull(invitation.utiliseeLe), gt(invitation.expireLe, new Date())));
+    return ligne ?? null;
+  });
+  if (!inv) return { erreur: t("Invitation introuvable ou expirée.") };
+
+  const { envoye } = await envoyerEmailInvitation({ entrepriseId: utilisateurConnecte.entrepriseId, email: inv.email, role: inv.roleProposee, jeton: inv.jeton, invitantId: utilisateurConnecte.utilisateurId, dureeHeures: DUREE_EXPIRATION_MS / 3_600_000 });
+  return envoye ? { succes: t("Invitation renvoyée par email.") } : { erreur: t("L'email n'a pas pu partir. Transmettez le lien à la personne.") };
 }
