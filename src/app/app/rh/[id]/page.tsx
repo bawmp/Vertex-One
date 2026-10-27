@@ -17,6 +17,8 @@ import { BoutonPointage } from "./bouton-pointage";
 import { FormulaireDemandeConge } from "./formulaire-demande-conge";
 import { ListeDemandesConge } from "./liste-demandes-conge";
 import { FormulaireDossierRH } from "./formulaire-dossier-rh";
+import { BlocStagePro } from "./bloc-stage-pro";
+import { joursRestants as joursRestantsStage } from "@/lib/rh/stage";
 import { FormulaireEvaluation } from "./formulaire-evaluation";
 import { ListeEvaluations } from "./liste-evaluations";
 import { FormulairePolitiqueConge } from "./formulaire-politique-conge";
@@ -52,6 +54,9 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         typeContrat: dossierRH.typeContrat,
         dateEmbauche: dossierRH.dateEmbauche,
         dateFinContrat: dossierRH.dateFinContrat,
+        decisionStage: dossierRH.decisionStage,
+        dateDecisionStage: dossierRH.dateDecisionStage,
+        motifDecisionStage: dossierRH.motifDecisionStage,
         salaireBase: dossierRH.salaireBase,
         nombrePersonnesACharge: dossierRH.nombrePersonnesACharge,
         soldeConges: dossierRH.soldeConges,
@@ -212,6 +217,18 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
           ) : null}
         </div>
       </div>
+
+      {ligne.typeContrat === "STAGE" || ligne.decisionStage ? (
+        <BlocStagePro
+          dossierRHId={ligne.id}
+          finStage={ligne.dateFinContrat ? ligne.dateFinContrat.toISOString() : null}
+          joursRestants={ligne.dateFinContrat ? joursRestantsStage(ligne.dateFinContrat) : null}
+          decision={ligne.decisionStage}
+          dateDecision={ligne.dateDecisionStage ? ligne.dateDecisionStage.toISOString() : null}
+          motifDecision={ligne.motifDecisionStage}
+          peutDecider={utilisateurConnecte.role === "ADMIN"}
+        />
+      ) : null}
 
       <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardContent className="flex flex-col gap-3">

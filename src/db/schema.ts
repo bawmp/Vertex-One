@@ -702,9 +702,64 @@ export const dossierRH = pgTable(
     // nullable, même rétrocompatibilité que politiqueCongeId : sans shift,
     // le pointage reste marqué PRESENT comme avant cette tranche.
     shiftId: text("shift_id").references((): AnyPgColumn => shift.id, { onDelete: "set null" }),
+    // Stagiaire PROFESSIONNEL (2026-10-27) : un employé de contrat « STAGE » qui occupe déjà un poste, en période probatoire, rémunéré
+    // (`salaireBase`, jamais rempli automatiquement). La date de fin de stage est `dateFinContrat`. À la fin, l'Administrateur DÉCIDE :
+    // embauché (le contrat devient CDI/CDD, le compte est conservé) ou non retenu (le compte est désactivé). Renseignés seulement à la décision.
+    decisionStage: text("decision_stage"), // null | "EMBAUCHE" | "NON_RETENU"
+    dateDecisionStage: timestamp("date_decision_stage"),
+    motifDecisionStage: text("motif_decision_stage"),
   },
   (table) => [
     index("dossier_rh_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Fiche d'un stagiaire ACADÉMIQUE (2026-10-27) : un étudiant en stage de formation, sans compte Vertex One (à la différence du stagiaire professionnel,
+ * qui est un employé en période probatoire — voir `dossierRH.decisionStage`). L'indemnité mensuelle est une donnée de rémunération : visible de
+ * l'Administrateur seul, jamais remplie automatiquement. À la fin : terminé, interrompu, ou embauché (une invitation est alors créée, `invitationId`).
+ */
+export const stagiaireAcademique = pgTable(
+  "stagiaire_academique",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    telephone: text("telephone"),
+    email: text("email"),
+    etablissement: text("etablissement").notNull(),
+    filiere: text("filiere"),
+    niveau: text("niveau"),
+    tuteurEcoleNom: text("tuteur_ecole_nom"),
+    tuteurEcoleContact: text("tuteur_ecole_contact"),
+    conventionReference: text("convention_reference"),
+    mission: text("mission"),
+    serviceId: text("service_id").references(() => service.id, { onDelete: "set null" }),
+    // Le maître de stage (un employé de l'entreprise) : c'est aussi ce qui détermine qui voit la fiche parmi les Managers (portée « équipe »).
+    maitreStageId: text("maitre_stage_id").references(() => utilisateur.id),
+    dateDebut: timestamp("date_debut").notNull(),
+    dateFin: timestamp("date_fin").notNull(),
+    indemniteMensuelle: integer("indemnite_mensuelle"), // FCFA ; Administrateur seul
+    evaluation: text("evaluation"),
+    statut: text("statut").notNull().default("EN_COURS"), // "EN_COURS" | "TERMINE" | "INTERROMPU" | "EMBAUCHE"
+    decisionLe: timestamp("decision_le"),
+    motifDecision: text("motif_decision"),
+    invitationId: text("invitation_id").references(() => invitation.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("stagiaire_academique_entreprise_idx").on(table.entrepriseId),
+    index("stagiaire_academique_maitre_idx").on(table.maitreStageId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

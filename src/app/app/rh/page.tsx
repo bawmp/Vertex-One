@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and, ne } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -152,9 +152,17 @@ export default async function PageRH() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex items-center gap-2.5">
-        <Users className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <Users className="size-5" aria-hidden />
+          <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
+        </div>
+        {rhDisponible && (utilisateurConnecte.role === "ADMIN" || utilisateurConnecte.role === "MANAGER") ? (
+          <Link href="/app/rh/stagiaires" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <GraduationCap className="size-3.5" aria-hidden />
+            Stagiaires
+          </Link>
+        ) : null}
       </div>
 
       {demandesEnAttente.length > 0 ? (
