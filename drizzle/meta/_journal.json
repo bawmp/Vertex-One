@@ -911,6 +911,13 @@
       "when": 1791522000000,
       "tag": "0129_fiches_presence",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1791608400000,
+      "tag": "0130_invitation_date_fin",
+      "breakpoints": true
     }
   ]
 }

@@ -70,18 +70,36 @@ export default async function PageStagiaires() {
           <GraduationCap className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">Stagiaires</h1>
         </div>
-        {peut(utilisateurConnecte, "RH", "CREER") ? (
-          <Link href="/app/rh/stagiaires/nouveau" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
-            <Plus className="size-4" aria-hidden />
-            Stagiaire académique
-          </Link>
-        ) : null}
+        <div className="flex flex-wrap justify-end gap-2">
+          {peut(utilisateurConnecte, "PARAMETRES", "CREER") ? (
+            <Link href="/app/parametres/equipe?stage=pro" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+              <Plus className="size-4" aria-hidden />
+              Stagiaire professionnel
+            </Link>
+          ) : null}
+          {peut(utilisateurConnecte, "RH", "CREER") ? (
+            <Link href="/app/rh/stagiaires/nouveau" className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-sm font-medium hover:bg-muted/50">
+              <Plus className="size-4" aria-hidden />
+              Stagiaire académique
+            </Link>
+          ) : null}
+        </div>
+      </div>
+      <div className="grid gap-3 text-sm sm:grid-cols-2">
+        <div className="rounded-xl border bg-card p-4">
+          <p className="font-semibold">Stagiaire professionnel</p>
+          <p className="mt-1 text-muted-foreground">Une personne qui travaille déjà pour vous, en période probatoire : elle a un compte et un poste, est rémunérée, et ses présences se suivent comme celles d&apos;un employé. À la fin, vous décidez : l&apos;embaucher (CDI ou CDD) ou ne pas la retenir.</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="font-semibold">Stagiaire académique</p>
+          <p className="mt-1 text-muted-foreground">Un étudiant en stage de formation : une fiche (école, convention, tuteur, mission, maître de stage), sans compte. À la fin : stage terminé, interrompu, ou invitation d&apos;embauche s&apos;il est pris.</p>
+        </div>
       </div>
       {aTraiter > 0 ? <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">{aTraiter} stage(s) ont dépassé leur date de fin sans décision : ouvrez la fiche pour trancher.</p> : null}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Stagiaires professionnels — période probatoire ({pros.length})</h2>
-        <p className="text-xs text-muted-foreground">Employés de contrat « Stage » qui occupent déjà un poste. Ajoutez-en un par invitation (type de contrat Stage) ; à la fin, l&apos;Administrateur décide : embauché ou non retenu.</p>
+        <p className="text-xs text-muted-foreground">Employés de contrat « Stage » qui occupent déjà un poste. Ajoutez-en un avec « Stagiaire professionnel » (invitation par email, contrat Stage, date de fin obligatoire) ; à la fin, l&apos;Administrateur décide : embauché ou non retenu.</p>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {pros.map((p) => {

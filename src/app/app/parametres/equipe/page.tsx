@@ -13,7 +13,8 @@ import { BoutonAnnulerInvitation } from "./bouton-annuler-invitation";
 import { BoutonRenvoyerInvitation } from "./bouton-renvoyer-invitation";
 import { getT } from "@/lib/i18n/langue";
 
-export default async function PageEquipe() {
+export default async function PageEquipe({ searchParams }: { searchParams: Promise<{ stage?: string }> }) {
+  const { stage } = await searchParams;
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -69,7 +70,7 @@ export default async function PageEquipe() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-        <FormulaireInvitation collegues={collegues} />
+        <FormulaireInvitation collegues={collegues} stagePro={stage === "pro"} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">

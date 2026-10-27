@@ -14,9 +14,11 @@ import { modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
 
-export function FormulaireInvitation({ collegues }: { collegues: PersonneSelectionnable[] }) {
+export function FormulaireInvitation({ collegues, stagePro = false }: { collegues: PersonneSelectionnable[]; stagePro?: boolean }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerInvitation, null);
+  // Arrivée depuis « Stagiaire professionnel » (page Stagiaires) : contrat Stage déjà choisi, date de fin demandée.
+  const [contrat, setContrat] = useState(stagePro ? "STAGE" : "CDI");
   const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT">("EMPLOYE");
   // Par défaut : tous les modules du rôle ; l'Administrateur décoche ce qu'il veut retirer.
   const [modules, setModules] = useState<string[]>(modulesRestreignables("EMPLOYE"));
@@ -67,18 +69,26 @@ export function FormulaireInvitation({ collegues }: { collegues: PersonneSelecti
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="typeContratPropose">{t("Type de contrat")}</Label>
-            <Select id="typeContratPropose" name="typeContratPropose" defaultValue="CDI">
+            <Select id="typeContratPropose" name="typeContratPropose" value={contrat} onChange={(e) => setContrat(e.target.value)}>
               <option value="CDI">CDI</option>
               <option value="CDD">CDD</option>
-              <option value="STAGE">{t("Stage")}</option>
+              <option value="STAGE">{t("Stage professionnel (période probatoire)")}</option>
               <option value="PRESTATAIRE">{t("Prestataire")}</option>
             </Select>
+            {contrat === "STAGE" ? <p className="text-xs text-muted-foreground">{t("Le stagiaire professionnel a un compte et un poste ; à la fin du stage, vous décidez de l'embaucher ou non. Pour un étudiant sans compte, utilisez plutôt « Stagiaire académique ».")}</p> : null}
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="dateEmbauchePropose">{t("Date d'embauche réelle")}</Label>
+            <Label htmlFor="dateEmbauchePropose">{contrat === "STAGE" ? t("Début du stage") : t("Date d'embauche réelle")}</Label>
             <Input id="dateEmbauchePropose" name="dateEmbauchePropose" type="date" />
           </div>
+
+          {contrat === "STAGE" || contrat === "CDD" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="dateFinPropose">{contrat === "STAGE" ? t("Fin du stage") : t("Fin du CDD")}</Label>
+              <Input id="dateFinPropose" name="dateFinPropose" type="date" required />
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="managerPropose">{t("Manager (optionnel)")}</Label>

@@ -356,6 +356,8 @@ export const invitation = pgTable(
     postePropose: text("poste_propose"),
     typeContratPropose: text("type_contrat_propose"), // "CDI" | "CDD" | "STAGE" | "PRESTATAIRE"
     dateEmbauchePropose: timestamp("date_embauche_propose"), // saisie humaine, jamais déduite
+    // Fin du contrat (stage ou CDD) — copiée vers dossier_rh.date_fin_contrat à l'activation ; indispensable à un stagiaire professionnel (fin de stage).
+    dateFinPropose: timestamp("date_fin_propose"),
     // Manager proposé (2026-09-15) — copié vers utilisateur.managerId à
     // l'activation (accepterInvitation()), même patron que postePropose.
     // Pas de .references() : mirror volontaire de utilisateur.managerId,

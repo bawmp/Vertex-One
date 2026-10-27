@@ -28,6 +28,7 @@ const schemaInvitation = z.object({
   postePropose: z.string().trim().optional(),
   typeContratPropose: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]).optional(),
   dateEmbauchePropose: z.string().optional(),
+  dateFinPropose: z.string().optional(),
   // Assistance client (échange du 2026-09-13) — renseigné uniquement pour
   // inviter un Contact CRM précis au portail (roleProposee = "CLIENT"),
   // jamais pour un collaborateur interne.
@@ -61,6 +62,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     postePropose: formData.get("postePropose") || undefined,
     typeContratPropose: formData.get("typeContratPropose") || undefined,
     dateEmbauchePropose: formData.get("dateEmbauchePropose") || undefined,
+    dateFinPropose: formData.get("dateFinPropose") || undefined,
     contactId: formData.get("contactId") || undefined,
     managerPropose: formData.get("managerPropose") || undefined,
     modulesPropose: formData.get("restreindreModules") === "1" ? formData.getAll("modules").map(String) : undefined,
@@ -70,7 +72,13 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
-  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, contactId, managerPropose, modulesPropose } = analyse.data;
+  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, dateFinPropose, contactId, managerPropose, modulesPropose } = analyse.data;
+
+  // Un stage a toujours une fin : sans elle, aucun suivi de fin de stage ni décision n'est possible. Un CDD aussi.
+  const avecFin = roleProposee !== "CLIENT" && (typeContratPropose === "STAGE" || typeContratPropose === "CDD");
+  if (avecFin && !dateFinPropose) return { erreur: typeContratPropose === "STAGE" ? t("Indiquez la date de fin du stage.") : t("Indiquez la date de fin du CDD.") };
+  if (avecFin && dateFinPropose && Number.isNaN(new Date(dateFinPropose).getTime())) return { erreur: t("Date de fin invalide.") };
+  if (avecFin && dateFinPropose && dateEmbauchePropose && new Date(dateFinPropose) <= new Date(dateEmbauchePropose)) return { erreur: t("La fin doit être postérieure à la date d'embauche.") };
 
   // Seuls MANAGER/EMPLOYE sont concernés ; une sélection complète revient à "aucune restriction".
   let modulesAEnregistrer: string[] | undefined;
@@ -102,6 +110,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       postePropose,
       typeContratPropose,
       dateEmbauchePropose: dateEmbauchePropose ? new Date(dateEmbauchePropose) : undefined,
+      dateFinPropose: avecFin && dateFinPropose ? new Date(dateFinPropose) : undefined,
       contactId,
       managerPropose,
       modulesPropose: modulesAEnregistrer,
@@ -191,6 +200,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         // Date d'embauche réelle saisie par la personne qui a créé
         // l'invitation — jamais la date d'activation du compte.
         dateEmbauche: invitationValide.dateEmbauchePropose ?? new Date(),
+        dateFinContrat: invitationValide.dateFinPropose ?? undefined,
       });
     } else if (invitationValide.contactId) {
       // Portail client (échange du 2026-09-13) — lie le Contact CRM visé au
