@@ -3,9 +3,11 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { generateRandomString } from "better-auth/crypto";
 import { avecEntreprise } from "@/db/client";
-import { entreprise } from "@/db/schema";
+import { entreprise, invitation, utilisateur } from "@/db/schema";
+import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -156,4 +158,58 @@ export async function deciderStageProAction(dossierRHId: string, _etat: EtatStag
   revalidatePath(CHEMIN);
   revalidatePath("/app/rh");
   return { succes: d.decision === "EMBAUCHE" ? "Stagiaire embauché : son contrat est mis à jour." : "Stagiaire non retenu : son accès est désactivé." };
+}
+
+const DUREE_INVITATION_STAGIAIRE_MS = 72 * 60 * 60 * 1000; // même durée que creerInvitation()
+const schemaStagiairePro = z.object({
+  email: z.email("Adresse email invalide."),
+  poste: z.string().trim().min(2, "Le poste est requis.").max(120),
+  dateDebut: dateIso,
+  dateFin: dateIso,
+});
+
+/**
+ * Invite un stagiaire PROFESSIONNEL (compte + contrat Stage + fin de stage). Ouvert à l'Administrateur ET aux Managers (droit RH/CREER), mais borné :
+ * le rôle est toujours Employé et le contrat toujours Stage (jamais un Manager ni un autre contrat) ; un Manager en est d'office le responsable
+ * (`managerPropose`), donc le stagiaire entre dans sa portée « équipe ». Rien du rôle ni de l'entreprise ne vient du navigateur.
+ */
+export async function inviterStagiaireProAction(_etat: EtatStagiaire, formData: FormData): Promise<EtatStagiaire> {
+  const g = await garde("CREER");
+  if ("erreur" in g) return g;
+  const u = g.utilisateurConnecte;
+  const a = schemaStagiairePro.safeParse(Object.fromEntries(["email", "poste", "dateDebut", "dateFin"].map((k) => [k, String(formData.get(k) ?? "")])));
+  if (!a.success) return { erreur: a.error.issues[0]?.message ?? "Formulaire invalide." };
+  const { poste, dateDebut, dateFin } = a.data;
+  const email = a.data.email.toLowerCase();
+  if (dateFin <= dateDebut) return { erreur: "La fin du stage doit être postérieure à son début." };
+
+  // Responsable : le Manager lui-même ; pour l'Administrateur, celui qu'il a désigné s'il est de la même entreprise (sinon aucun).
+  let responsableId: string | undefined = u.role === "MANAGER" ? u.utilisateurId : undefined;
+  const demande = String(formData.get("responsableId") ?? "");
+  const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
+  const r = await avecEntreprise(u.entrepriseId, async (tx) => {
+    if (u.role === "ADMIN" && demande) {
+      const [resp] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, demande), eq(utilisateur.entrepriseId, u.entrepriseId)));
+      if (!resp) return { erreur: "Responsable introuvable." };
+      responsableId = resp.id;
+    }
+    await tx.insert(invitation).values({
+      entrepriseId: u.entrepriseId,
+      email,
+      roleProposee: "EMPLOYE",
+      postePropose: poste,
+      typeContratPropose: "STAGE",
+      dateEmbauchePropose: dateDebut,
+      dateFinPropose: dateFin,
+      managerPropose: responsableId,
+      jeton,
+      expireLe: new Date(Date.now() + DUREE_INVITATION_STAGIAIRE_MS),
+    });
+    return null;
+  });
+  if (r?.erreur) return { erreur: r.erreur };
+
+  const { envoye } = await envoyerEmailInvitation({ entrepriseId: u.entrepriseId, email, role: "EMPLOYE", jeton, invitantId: u.utilisateurId, dureeHeures: DUREE_INVITATION_STAGIAIRE_MS / 3_600_000 });
+  revalidatePath(CHEMIN);
+  return { succes: envoye ? `Invitation envoyée par email à ${email}. Le stagiaire crée son compte depuis le lien reçu.` : `Invitation créée, mais l'email n'a pas pu partir : transmettez ce lien à la personne : /invitation/${jeton}` };
 }

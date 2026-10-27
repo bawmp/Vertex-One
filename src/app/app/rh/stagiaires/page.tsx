@@ -71,8 +71,8 @@ export default async function PageStagiaires() {
           <h1 className="text-2xl font-semibold tracking-tight">Stagiaires</h1>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          {peut(utilisateurConnecte, "PARAMETRES", "CREER") ? (
-            <Link href="/app/parametres/equipe?stage=pro" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          {peut(utilisateurConnecte, "RH", "CREER") ? (
+            <Link href="/app/rh/stagiaires/nouveau-pro" className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
               <Plus className="size-4" aria-hidden />
               Stagiaire professionnel
             </Link>
@@ -99,7 +99,7 @@ export default async function PageStagiaires() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Stagiaires professionnels — période probatoire ({pros.length})</h2>
-        <p className="text-xs text-muted-foreground">Employés de contrat « Stage » qui occupent déjà un poste. Ajoutez-en un avec « Stagiaire professionnel » (invitation par email, contrat Stage, date de fin obligatoire) ; à la fin, l&apos;Administrateur décide : embauché ou non retenu.</p>
+        <p className="text-xs text-muted-foreground">Employés de contrat « Stage » qui occupent déjà un poste. Ajoutez-en un avec « Stagiaire professionnel » (invitation par email, date de fin obligatoire ; Administrateur ou Manager) ; à la fin, l&apos;Administrateur décide : embauché ou non retenu.</p>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {pros.map((p) => {
