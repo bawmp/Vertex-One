@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { entreprise, utilisateur, contact, deal, facture, interaction } from "@/db/schema";
+import { entreprise, utilisateur, contact, deal, emailEnvoye, facture, interaction } from "@/db/schema";
 import { marquerFacturesEnRetard } from "@/lib/facturation/relance";
 
 /**
@@ -29,7 +29,7 @@ describe("Palier 1 — relance des factures en retard", () => {
 
     const [u] = await db
       .insert(utilisateur)
-      .values({ entrepriseId, email: "admin-test-relance@vertexone.test", nomComplet: "Admin Test", role: "ADMIN" })
+      .values({ entrepriseId, email: `admin-test-relance-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@vertexone.test`, nomComplet: "Admin Test", role: "ADMIN" })
       .returning({ id: utilisateur.id });
     utilisateurId = u.id;
 
@@ -71,6 +71,7 @@ describe("Palier 1 — relance des factures en retard", () => {
     await avecEntreprise(entrepriseId, (tx) => tx.delete(interaction).where(eq(interaction.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(facture).where(eq(facture.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(deal).where(eq(deal.entrepriseId, entrepriseId)));
+    await avecEntreprise(entrepriseId, (tx) => tx.delete(emailEnvoye).where(eq(emailEnvoye.entrepriseId, entrepriseId)));
     await avecEntreprise(entrepriseId, (tx) => tx.delete(contact).where(eq(contact.entrepriseId, entrepriseId)));
     await db.delete(utilisateur).where(eq(utilisateur.id, utilisateurId));
     await db.delete(entreprise).where(eq(entreprise.id, entrepriseId));

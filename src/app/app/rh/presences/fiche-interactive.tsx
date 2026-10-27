@@ -54,7 +54,11 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
   const editable = fiche.modifiable;
 
   // Après une navigation (autre jour) ou une validation, la page serveur renvoie une nouvelle fiche : on repart de ses données.
-  useEffect(() => setSections(fiche.sections), [fiche]);
+  const [ficheVue, setFicheVue] = useState(fiche);
+  if (fiche !== ficheVue) {
+    setFicheVue(fiche);
+    setSections(fiche.sections);
+  }
   useEffect(() => () => Object.values(minuteries.current).forEach(clearTimeout), []);
 
   const totaux = useMemo(() => totauxDe(sections), [sections]);
