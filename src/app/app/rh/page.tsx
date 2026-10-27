@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and, ne } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -10,6 +10,7 @@ import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { tableauEquipe } from "@/lib/rh/equipe";
+import { droitSurFiche } from "@/lib/rh/presences";
 import { rapportEntreprise, type RapportEntreprise } from "@/lib/rh/rapports";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -147,6 +148,7 @@ export default async function PageRH() {
   });
 
   const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport } = donnees;
+  const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
   const t = traduire(utilisateurConnecte.langue);
 
@@ -158,10 +160,18 @@ export default async function PageRH() {
           <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
         </div>
         {rhDisponible && (utilisateurConnecte.role === "ADMIN" || utilisateurConnecte.role === "MANAGER") ? (
-          <Link href="/app/rh/stagiaires" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <GraduationCap className="size-3.5" aria-hidden />
-            Stagiaires
-          </Link>
+          <div className="flex items-center gap-4">
+            {aFichePresence ? (
+              <Link href="/app/rh/presences" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                <ClipboardCheck className="size-3.5" aria-hidden />
+                Présences
+              </Link>
+            ) : null}
+            <Link href="/app/rh/stagiaires" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <GraduationCap className="size-3.5" aria-hidden />
+              Stagiaires
+            </Link>
+          </div>
         ) : null}
       </div>
 

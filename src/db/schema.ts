@@ -202,6 +202,12 @@ export const entreprise = pgTable("entreprise", {
   // ne se voient (postes et candidatures) que si les DEUX ont activé ce réglage. La RLS reste strictement par entreprise : le partage passe
   // par src/lib/recrutement/partage.ts, qui rouvre une transaction DANS l'entreprise propriétaire après avoir vérifié le groupe et les deux réglages.
   recrutementPartageGroupe: boolean("recrutement_partage_groupe").notNull().default(false),
+  // Fiche de présence journalière (2026-10-27) : le gérant de la fiche (un Manager ou l'Administrateur ; l'Administrateur peut le changer à tout
+  // moment) fait l'appel chaque jour pour toute l'entreprise. Sans clé étrangère : l'identifiant est revérifié (même entreprise, actif, Administrateur
+  // ou Manager) à chaque usage.
+  gerantPresencesId: text("gerant_presences_id"),
+  // Même principe que le recrutement : deux entreprises du même groupe ne joignent leurs employés sur une fiche que si LES DEUX ont activé ce réglage.
+  presencesPartageesGroupe: boolean("presences_partagees_groupe").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -3405,10 +3411,69 @@ export const pointage = pgTable(
     heureArrivee: timestamp("heure_arrivee"),
     heureDepart: timestamp("heure_depart"),
     statut: statutPointage("statut").notNull().default("PRESENT"),
+    // Fiche de présence (2026-10-27) : remarque du gérant (justification d'une absence, d'un retard…) et qui a saisi la ligne, quand — absents quand
+    // l'employé a pointé lui-même (boutons « Je suis arrivé / parti »).
+    remarque: text("remarque"),
+    saisiParId: text("saisi_par_id").references(() => utilisateur.id),
+    saisiLe: timestamp("saisi_le"),
   },
   (table) => [
     index("pointage_entreprise_idx").on(table.entrepriseId),
     uniqueIndex("pointage_dossier_rh_date_unique").on(table.dossierRHId, table.date),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Fiches de présence (2026-10-27) — entreprises du groupe dont les employés sont JOINTS à la fiche de présence de cette entreprise (`entrepriseId`,
+ * la propriétaire de la fiche). Choisies par l'Administrateur de la propriétaire ; n'agissent que si l'entreprise partenaire a elle aussi activé
+ * `presencesPartageesGroupe` et appartient au même groupe (revérifié à chaque usage dans src/lib/rh/presences.ts). La RLS reste strictement par entreprise.
+ */
+export const jonctionPresence = pgTable(
+  "jonction_presence",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    partenaireId: text("partenaire_id")
+      .notNull()
+      .references(() => entreprise.id),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("jonction_presence_unique").on(table.entrepriseId, table.partenaireId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/** Fiche de présence d'un jour VALIDÉE par son gérant : plus modifiable, sauf par l'Administrateur qui peut la rouvrir. Une ligne par entreprise et par jour. */
+export const validationPresence = pgTable(
+  "validation_presence",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    date: timestamp("date").notNull(), // minuit, comme pointage.date
+    valideeParId: text("validee_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    valideeLe: timestamp("validee_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("validation_presence_jour_unique").on(table.entrepriseId, table.date),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

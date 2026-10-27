@@ -904,6 +904,13 @@
       "when": 1791435600000,
       "tag": "0128_stagiaires",
       "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1791522000000,
+      "tag": "0129_fiches_presence",
+      "breakpoints": true
     }
   ]
 }

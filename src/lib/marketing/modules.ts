@@ -114,6 +114,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Réglage « Les managers voient toute l'entreprise » : vos managers voient les données métier de toute l'entreprise, ou seulement celles de leur équipe"),
       m("Recrutement partagé entre les entreprises d'un même groupe : postes et candidatures visibles et gérables par les managers de chacune, sur activation des deux côtés"),
       m("Stagiaires professionnels (période probatoire, décision embauché ou non retenu) et académiques (école, convention, maître de stage, évaluation), avec l'indemnité réservée à l'Administrateur"),
+      m("Fiche de présence journalière tenue par un gérant (Manager) que l'Administrateur peut changer, avec PDF prêt à imprimer, et jonction possible des entreprises d'un même groupe pour gérer tous les employés au même endroit"),
       m("Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)"),
       m("Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé"),
       m("Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé"),
