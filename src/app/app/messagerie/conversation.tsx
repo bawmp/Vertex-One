@@ -10,6 +10,7 @@ import { FilDiscussion } from "./fil-discussion";
 import { LigneMessage } from "./ligne-message";
 import { cleJour, delaiProchaineLecture, fusionner, plusRecentChangement, type PersonneMentionnable } from "./utilitaires-conversation";
 import { useT } from "@/lib/i18n/contexte";
+import { appareilAbonneLocalement, EVENEMENT_NOUVEAU_MESSAGE } from "@/lib/messagerie/push-client";
 
 
 const PREMIERE_LECTURE_MS = 3000;
@@ -97,7 +98,7 @@ export function Conversation({
             setMessages((actuels) => fusionner(actuels, recus));
 
             // Onglet en arrière-plan : une notification du navigateur pour les nouveaux messages des autres.
-            if (!visible && typeof Notification !== "undefined" && Notification.permission === "granted") {
+            if (!visible && !appareilAbonneLocalement() && typeof Notification !== "undefined" && Notification.permission === "granted") {
               const nouveaux = recus.filter((m) => !m.supprime && m.auteurId !== moiId && !m.reactions.length);
               const dernier = nouveaux[nouveaux.length - 1];
               if (dernier) new Notification(dernier.auteurNom, { body: dernier.contenu || (dernier.piece ? `Pièce jointe : ${dernier.piece.nom}` : "Nouveau message"), tag: canalId });
@@ -114,12 +115,20 @@ export function Conversation({
     function reveil() {
       lecturesVides.current = 0;
     }
+    // Un message vient d'arriver (push reçu pendant que l'application est visible) : on relit tout de suite.
+    function immediat() {
+      lecturesVides.current = 0;
+      clearTimeout(minuteur);
+      void verifier();
+    }
     window.addEventListener("focus", reveil);
+    window.addEventListener(EVENEMENT_NOUVEAU_MESSAGE, immediat);
     minuteur = setTimeout(verifier, PREMIERE_LECTURE_MS);
     return () => {
       arrete = true;
       clearTimeout(minuteur);
       window.removeEventListener("focus", reveil);
+      window.removeEventListener(EVENEMENT_NOUVEAU_MESSAGE, immediat);
     };
   }, [canalId, moiId]);
 

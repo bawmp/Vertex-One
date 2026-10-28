@@ -28,7 +28,10 @@ import { FormulaireNouveauGroupe } from "./formulaire-nouveau-groupe";
 import { GestionGroupe } from "./gestion-groupe";
 import { PanneauPersonnes, type DmParCollegue } from "./panneau-personnes";
 import { RechercheMessages } from "./recherche-messages";
-import { ActiverNotifications } from "./activer-notifications";
+import { MesNotifications } from "./mes-notifications";
+import { SourdineCanal } from "./sourdine-canal";
+import { chargerEtatNotifications } from "@/lib/messagerie/reglages-notification";
+import { cleVapidPublique } from "@/lib/messagerie/push";
 import { getT } from "@/lib/i18n/langue";
 
 const Pastille = ({ nombre }: { nombre: number }) =>
@@ -100,6 +103,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
       await marquerCanalLu(tx, utilisateurConnecte.entrepriseId, choisi.id, utilisateurConnecte.utilisateurId);
       if (choisi.type === "PRIVE") membres = await membresDuCanal(tx, choisi.id);
     }
+    const etatNotifications = await chargerEtatNotifications(tx, utilisateurConnecte, choisi?.id ?? null);
     const interlocuteurChoisi = choisi?.type === "DIRECT" ? (collegues.find((c) => c.id === interlocuteurs[choisi.id]) ?? null) : null;
     return {
       canaux,
@@ -116,6 +120,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
       membres,
       interlocuteurChoisi,
       moiNom: moi?.nom ?? "",
+      etatNotifications,
     };
   });
 
@@ -128,7 +133,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
     );
   }
 
-  const { canaux, groupes, nonLus, collegues, dmParCollegue, nomsCanaux, projetsParId, choisi, messages, messageCibleId, candidats, membres, interlocuteurChoisi, moiNom } = donnees;
+  const { canaux, groupes, nonLus, collegues, dmParCollegue, nomsCanaux, projetsParId, choisi, messages, messageCibleId, candidats, membres, interlocuteurChoisi, moiNom, etatNotifications } = donnees;
   const peutEcrire = peut(utilisateurConnecte, "MESSAGERIE", "CREER");
   const idsMembres = new Set(membres.map((m) => m.id));
 
@@ -187,13 +192,20 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
             <PanneauPersonnes collegues={collegues} dmParCollegue={dmParCollegue} canalActifId={choisi?.id ?? null} />
           </div>
 
-          <ActiverNotifications />
+          <MesNotifications
+            niveauInitial={etatNotifications.niveau}
+            sonInitial={etatNotifications.son}
+            apercuInitial={etatNotifications.apercu}
+            appareils={etatNotifications.appareils}
+            clePublique={cleVapidPublique()}
+          />
         </aside>
 
         <section className="flex min-w-0 flex-col gap-2">
           {choisi ? (
             <>
               <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   {choisi.type === "DIRECT" ? (
                     <>
@@ -214,6 +226,8 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
                     </>
                   )}
                 </p>
+                <SourdineCanal canalId={choisi.id} sourdineInitiale={etatNotifications.canalEnSourdine} />
+                </div>
                 {choisi.type === "PRIVE" ? (
                   <GestionGroupe
                     canalId={choisi.id}

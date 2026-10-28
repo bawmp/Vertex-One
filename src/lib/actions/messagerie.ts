@@ -2,6 +2,7 @@
 
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { generateRandomString } from "better-auth/crypto";
 import { avecEntreprise } from "@/db/client";
@@ -14,6 +15,7 @@ import { CATEGORIES_FICHIER, nomAffichable, nomFichierSain, validerFichier } fro
 import { candidatsMentions, canalAccessible, marquerCanalLu, messagerieDisponible, reactionsDe, LONGUEUR_MAX_MESSAGE, type MessageAffiche, type ReactionAffichee } from "@/lib/messagerie/acces";
 import { emojiValide, extraireMentions } from "@/lib/messagerie/mentions";
 import { signalerMessagesANotifier } from "@/lib/messagerie/notifications";
+import { notifierNouveauMessage } from "@/lib/messagerie/push";
 import { getT } from "@/lib/i18n/langue";
 
 /**
@@ -47,7 +49,10 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
     piece = { octets, mime: verdict.format.mime, extension: verdict.format.extension, nom: nomAffichable((fichier as File).name), taille: octets.length };
   }
 
-  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  // Renseigné une fois le message enregistré : sert à prévenir les personnes concernées APRÈS la réponse (push, jamais bloquant).
+  let pourPush: Parameters<typeof notifierNouveauMessage>[0] | null = null;
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const leCanal = await canalAccessible(tx, utilisateurConnecte, canalId);
     if (!leCanal) return { erreur: t("Ce canal est introuvable.") };
 
@@ -125,6 +130,8 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
     // Message direct ou mention : l'entreprise est marquée pour que le worker envoie, si besoin, l'email de notification.
     if (aNotifier) await signalerMessagesANotifier(tx, utilisateurConnecte.entrepriseId);
 
+    pourPush = { entrepriseId: utilisateurConnecte.entrepriseId, canalId, messageId: cree.id, auteurId: utilisateurConnecte.utilisateurId, contenu, pieceNom: piece?.nom ?? null };
+
     const [auteur] = await tx.select({ nomComplet: utilisateur.nomComplet }).from(utilisateur).where(eq(utilisateur.id, utilisateurConnecte.utilisateurId));
     const message: MessageAffiche = {
       id: cree.id,
@@ -141,6 +148,13 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
     };
     return { message };
   });
+
+  // Notification push immédiate aux personnes concernées, application ouverte ou fermée (voir src/lib/messagerie/push.ts).
+  if (resultat.message && pourPush) {
+    const aPrevenir = pourPush;
+    after(() => notifierNouveauMessage(aPrevenir));
+  }
+  return resultat;
 }
 
 /**

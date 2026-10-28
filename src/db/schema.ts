@@ -2378,6 +2378,95 @@ export const lectureCanal = pgTable(
   ]
 ).enableRLS();
 
+// Notifications push de One Chat (2026-11) : un appareil (navigateur ou application installée) que la personne a autorisé à
+// la prévenir d'un nouveau message, même application fermée. Le point d'accès (endpoint) est une adresse secrète fournie par le
+// navigateur : elle ne sort jamais d'un Server Action et n'est jamais renvoyée à un autre utilisateur. Cloisonné par entreprise
+// comme toute donnée métier. Une adresse expirée (réponse 404/410 du service de push) est supprimée à l'envoi.
+export const abonnementPush = pgTable(
+  "abonnement_push",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    endpoint: text("endpoint").notNull(),
+    cleP256dh: text("cle_p256dh").notNull(),
+    cleAuth: text("cle_auth").notNull(),
+    // Appareil, pour que la personne reconnaisse ses abonnements (« Chrome · Windows »).
+    agent: text("agent"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("abonnement_push_entreprise_idx").on(table.entrepriseId),
+    index("abonnement_push_utilisateur_idx").on(table.utilisateurId),
+    uniqueIndex("abonnement_push_endpoint_unique").on(table.entrepriseId, table.endpoint),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Réglages de notification de One Chat d'une personne : niveau (TOUT, PRIVE_MENTIONS par défaut, DIRECTS_MENTIONS, AUCUNE),
+// son et aperçu du texte. Une ligne par utilisateur ; sans ligne, les valeurs par défaut s'appliquent.
+export const preferenceNotification = pgTable(
+  "preference_notification",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    niveau: text("niveau").notNull().default("PRIVE_MENTIONS"),
+    son: boolean("son").notNull().default(true),
+    // Faux : la notification dit seulement « Nouveau message » (rien du texte sur un écran verrouillé).
+    apercu: boolean("apercu").notNull().default(true),
+    misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("preference_notification_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("preference_notification_utilisateur_unique").on(table.utilisateurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Canal mis en sourdine par une personne : plus de notification pour ses messages, sauf si on la mentionne.
+export const canalSourdine = pgTable(
+  "canal_sourdine",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    canalId: text("canal_id")
+      .notNull()
+      .references(() => canal.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("canal_sourdine_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("canal_sourdine_utilisateur_canal_unique").on(table.utilisateurId, table.canalId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Rattaché soit à un Dossier, soit à un Projet, jamais aux deux (même
 // principe que Commentaire au Palier 2, contrôlé à la couche action, pas en
 // base — voir docs/palier-2-*, section 9 "écarts réels").

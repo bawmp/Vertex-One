@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { authClient } from "@/lib/auth-client";
+import { desabonnerCetAppareil } from "@/lib/messagerie/push-client";
 import type { Langue, Theme } from "@/lib/session";
 
 // Correspondance entre les valeurs stockées en base (clair/sombre/systeme,
@@ -35,6 +36,8 @@ export function useActionsCompte(langueInitiale?: Langue) {
 
   async function deconnexion() {
     setEnCours(true);
+    // Cet appareil ne doit plus recevoir les notifications de ce compte (appareil partagé, autre compte ensuite).
+    await desabonnerCetAppareil();
     await authClient.signOut();
     router.push("/connexion");
     router.refresh();

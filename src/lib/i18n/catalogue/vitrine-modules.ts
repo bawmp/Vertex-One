@@ -156,6 +156,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Mentions @nom avec auto-complétion, prévenues par email quand elles restent sans lecture": "@name mentions with auto-completion, notified by email when they remain unread",
   "Recherche dans les messages, limitée aux conversations auxquelles vous avez accès": "Message search, limited to the conversations you have access to",
   "Présence en ligne, compteur de messages non lus et notifications du navigateur": "Online presence, unread message counter and browser notifications",
+  "Notifications instantanées, même application fermée, réglables par chaque personne, avec mise en sourdine d'un canal": "Instant notifications, even with the app closed, adjustable by each person, with per-channel mute",
   "Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)": "Internal announcements feed, intranet style, with attachments (images, PDF, Word, Excel)",
   "Isolation stricte entre entreprises clientes": "Strict isolation between client companies",
 };

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { appareilAbonneLocalement, EVENEMENT_NOUVEAU_MESSAGE } from "@/lib/messagerie/push-client";
+import { GestionnairePush } from "./gestionnaire-push";
 
 const INTERVALLE_ACTIF_MS = 30_000;
 const INTERVALLE_ARRIERE_PLAN_MS = 90_000;
@@ -9,9 +11,11 @@ const INTERVALLE_ARRIERE_PLAN_MS = 90_000;
  * Badge des messages non lus dans le menu, sur toutes les pages de l'application. Interroge le serveur toutes les
  * 30 s (90 s onglet masqué) ; cet appel est aussi ce qui indique aux collègues que vous êtes en ligne. Le total
  * est repris dans le titre de l'onglet, et une notification du navigateur prévient quand il augmente pendant que
- * l'onglet est masqué (si la personne l'a autorisée).
+ * l'onglet est masqué (si la personne l'a autorisée et si cet appareil ne reçoit pas déjà les notifications push du
+ * service worker, pour ne jamais notifier deux fois). Monte aussi le gestionnaire push, qui relance une lecture immédiate à
+ * l'arrivée d'un message.
  */
-export function BadgeMessagerie() {
+export function BadgeMessagerie({ clePublique = null }: { clePublique?: string | null }) {
   const [total, setTotal] = useState(0);
   const precedent = useRef(0);
 
@@ -26,7 +30,7 @@ export function BadgeMessagerie() {
         const reponse = await fetch("/app/messagerie/non-lus", { cache: "no-store" });
         if (reponse.ok && !arrete) {
           const { total: nouveau } = (await reponse.json()) as { total: number };
-          if (nouveau > precedent.current && !visible && typeof Notification !== "undefined" && Notification.permission === "granted") {
+          if (nouveau > precedent.current && !visible && !appareilAbonneLocalement() && typeof Notification !== "undefined" && Notification.permission === "granted") {
             new Notification("One Chat", { body: nouveau === 1 ? "Vous avez 1 nouveau message" : `Vous avez ${nouveau} nouveaux messages`, tag: "one-chat-non-lus" });
           }
           precedent.current = nouveau;
@@ -39,18 +43,29 @@ export function BadgeMessagerie() {
       if (!arrete) minuteur = setTimeout(verifier, visible ? INTERVALLE_ACTIF_MS : INTERVALLE_ARRIERE_PLAN_MS);
     }
 
+    // Un message vient d'arriver (push reçu pendant que l'application est visible) : lecture immédiate.
+    function immediat() {
+      clearTimeout(minuteur);
+      void verifier();
+    }
+    window.addEventListener(EVENEMENT_NOUVEAU_MESSAGE, immediat);
+
     verifier();
     return () => {
       arrete = true;
       clearTimeout(minuteur);
+      window.removeEventListener(EVENEMENT_NOUVEAU_MESSAGE, immediat);
       document.title = titreBase;
     };
   }, []);
 
-  if (total <= 0) return null;
+  if (total <= 0) return <GestionnairePush clePublique={clePublique} />;
   return (
+    <>
+    <GestionnairePush clePublique={clePublique} />
     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white" aria-label={`${total} message${total > 1 ? "s" : ""} non lu${total > 1 ? "s" : ""}`}>
       {total > 99 ? "99+" : total}
     </span>
+    </>
   );
 }
