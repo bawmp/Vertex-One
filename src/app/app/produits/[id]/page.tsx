@@ -83,7 +83,6 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
       {peutModifier ? (
         <FormulaireModifierProduit
-          key={`${leProduit.nom}|${leProduit.description ?? ""}|${leProduit.prixVente}|${leProduit.prixAchat}`}
           produit={{ id: leProduit.id, nom: leProduit.nom, description: leProduit.description, prixVente: leProduit.prixVente, prixAchat: leProduit.prixAchat }}
           ouvertParDefaut={modifier === "1"}
         />

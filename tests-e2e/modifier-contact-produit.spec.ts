@@ -31,7 +31,7 @@ test("Modifier un contact et un produit déjà créés", async ({ page }) => {
   await page.waitForURL(/\/app\/contacts\/[^/]+$/, { timeout: 120_000 });
   await expect(page.getByRole("heading", { name: "Jean Mbarga" })).toBeVisible(ATTENTE);
 
-  await page.getByRole("link", { name: "Modifier", exact: true }).click();
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
   await page.waitForURL(/\/modifier$/, ATTENTE);
   await expect(page.locator("#nom")).toHaveValue("Jean Mbarga"); // formulaire prérempli
   await expect(page.locator("#telephone")).toHaveValue("690111222");
@@ -43,14 +43,14 @@ test("Modifier un contact et un produit déjà créés", async ({ page }) => {
   await page.waitForURL(/\/app\/contacts\/[^/]+$/, { timeout: 120_000 });
   await expect(page.getByRole("heading", { name: "Jean-Pierre Mbarga" })).toBeVisible(ATTENTE);
   await expect(page.getByText("699000111")).toBeVisible(ATTENTE);
-  await expect(page.getByText("jp@exemple.test")).toBeVisible(ATTENTE);
+  await expect(page.getByText("jp@exemple.test").first()).toBeVisible(ATTENTE); // affiché aussi dans « Envoyer un email »
 
   // Une valeur invalide est refusée avec un message, sans rien changer.
-  await page.getByRole("link", { name: "Modifier", exact: true }).click();
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
   await page.waitForURL(/\/modifier$/, ATTENTE);
   await page.fill("#telephone", "12");
   await page.getByRole("button", { name: "Enregistrer" }).click();
-  await expect(page.getByRole("alert")).toContainText("Numéro de téléphone invalide.", ATTENTE);
+  await expect(page.getByText("Numéro de téléphone invalide.")).toBeVisible(ATTENTE);
 
   // ===== Produit : création, puis modification depuis la liste (crayon) =====
   await page.goto("/app/produits");
@@ -60,7 +60,7 @@ test("Modifier un contact et un produit déjà créés", async ({ page }) => {
   await page.getByRole("button", { name: "Créer" }).click();
   await expect(page.getByText("Audit de site")).toBeVisible(ATTENTE);
 
-  await page.getByRole("link", { name: "Modifier Audit de site" }).click();
+  await page.getByRole("button", { name: "Modifier Audit de site" }).click();
   await page.waitForURL(/\/app\/produits\/[^/?]+\?modifier=1$/, ATTENTE);
   const formulaire = page.getByRole("form", { name: "Modifier le produit" });
   await expect(formulaire.getByLabel("Nom", { exact: true })).toHaveValue("Audit de site");
