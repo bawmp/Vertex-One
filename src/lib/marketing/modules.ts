@@ -59,6 +59,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Conversion en un clic d'une opportunité gagnée vers un devis puis une facture — aucune ressaisie"),
       m("Écrire à un client depuis sa fiche : l'email part réellement, au nom de l'entreprise, et reste dans l'historique du contact"),
       m("Suppression d'un lead, d'un contact ou d'un deal réservée à l'Administrateur, avec confirmation"),
+      m("Fiche contact modifiable à tout moment (nom, société, fonction, téléphone, email), dans la limite de vos droits"),
       m("Profil « immigration et mobilité internationale » : champs de contact prêts à l'emploi pour suivre les dossiers de visa"),
       m("Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel"),
       m("Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux"),

@@ -12,15 +12,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { FormulaireImageProduit } from "./formulaire-image-produit";
+import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { getT } from "@/lib/i18n/langue";
 
 // Fiche détail Produit (échange du 2026-09-08, comparaison avec la fiche
 // article Zoho Books) — page complète, cohérente avec toutes les autres
 // fiches détail de ce produit (Deals, Contacts, Projets, Factures...),
 // jamais une fenêtre modale (aucune de ce produit n'en est une).
-export default async function PageDetailProduit({ params }: { params: Promise<{ id: string }> }) {
+export default async function PageDetailProduit({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ modifier?: string }> }) {
   const t = await getT();
   const { id } = await params;
+  const { modifier } = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -78,6 +80,14 @@ export default async function PageDetailProduit({ params }: { params: Promise<{ 
           {leProduit.description ? <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{leProduit.description}</p> : null}
         </div>
       </div>
+
+      {peutModifier ? (
+        <FormulaireModifierProduit
+          key={`${leProduit.nom}|${leProduit.description ?? ""}|${leProduit.prixVente}|${leProduit.prixAchat}`}
+          produit={{ id: leProduit.id, nom: leProduit.nom, description: leProduit.description, prixVente: leProduit.prixVente, prixAchat: leProduit.prixAchat }}
+          ouvertParDefaut={modifier === "1"}
+        />
+      ) : null}
 
       <Tabs defaultValue="apercu">
         <TabsList>

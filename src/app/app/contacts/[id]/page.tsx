@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, inArray } from "drizzle-orm";
-import { Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet, Paperclip } from "lucide-react";
+import { Pencil, Phone, Mail, Building2, FolderOpen, Video, Briefcase, StickyNote, MessageCircle, Calendar, FileText, ClipboardList, Repeat, Receipt, Wallet, Paperclip } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { contact, compteClient, interaction, dossier, deal, dealContact, entreprise, contactChampValeur, document, devis, facture, bonCommandeVente, recuVente, factureAcompte, factureRecurrente } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -213,6 +213,12 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
 
       {peutModifier || peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? (
         <div className="flex flex-wrap items-start gap-2">
+          {peutModifier ? (
+            <Button variant="outline" size="sm" render={<Link href={`/app/contacts/${fiche.id}/modifier`} />} nativeButton={false}>
+              <Pencil data-icon="inline-start" aria-hidden />
+              {t("Modifier")}
+            </Button>
+          ) : null}
           {peutModifier ? <BoutonEcrireAuClient aUnEmail={!!fiche.email} /> : null}
           {peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? <BoutonSupprimerCrm type="contact" id={fiche.id} nom={fiche.nom} /> : null}
         </div>

@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { contact, interaction, contactChampValeur } from "@/db/schema";
+import { compteClient, contact, interaction, contactChampValeur } from "@/db/schema";
 import { listerChampsPersonnalisesContact } from "@/lib/actions/champ-personnalise-contact";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -90,6 +90,63 @@ export async function creerContact(_etat: EtatContact, formData: FormData): Prom
 
   revalidatePath("/app/contacts");
   redirect(`/app/contacts/${nouveauContactId}`);
+}
+
+const schemaModificationContact = z.object({
+  nom: z.string().trim().min(2, m("Le nom est trop court.")),
+  compteId: z.string().trim().optional(),
+  fonction: z.string().trim().optional(),
+  telephone: z.string().trim().min(6, m("Numéro de téléphone invalide.")),
+  email: z.email(m("Adresse email invalide.")).optional().or(z.literal("")),
+});
+
+/**
+ * Modifie les informations d'un Contact déjà enregistré (nom, société, fonction, téléphone, email). Droit MODIFIER sur le
+ * CRM et portée vérifiés côté serveur (un contact hors de sa portée est « introuvable », jamais modifiable en connaissant
+ * son identifiant) ; la société choisie est relue dans l'entreprise de la session (jamais une valeur du navigateur prise
+ * telle quelle). Les notes, les champs personnalisés et l'espace client gardent leurs propres éditeurs.
+ */
+export async function modifierContact(contactId: string, _etat: EtatContact, formData: FormData): Promise<EtatContact> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier ce contact.") };
+  }
+
+  const analyse = schemaModificationContact.safeParse({
+    nom: formData.get("nom"),
+    compteId: formData.get("compteId") || undefined,
+    fonction: formData.get("fonction") || undefined,
+    telephone: formData.get("telephone"),
+    email: formData.get("email") || "",
+  });
+  if (!analyse.success) {
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
+  }
+  const { nom, compteId, fonction, telephone, email } = analyse.data;
+
+  const erreur = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
+    const [existant] = await tx.select({ assigneAId: contact.assigneAId }).from(contact).where(and(eq(contact.id, contactId), eq(contact.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!existant || (visibles !== "TOUT" && !visibles.includes(existant.assigneAId))) return t("Contact introuvable.");
+
+    if (compteId) {
+      const [leCompte] = await tx.select({ id: compteClient.id }).from(compteClient).where(and(eq(compteClient.id, compteId), eq(compteClient.entrepriseId, utilisateurConnecte.entrepriseId)));
+      if (!leCompte) return t("Société introuvable.");
+    }
+
+    await tx
+      .update(contact)
+      .set({ nom, compteId: compteId || null, fonction: fonction || null, telephone, email: email || null })
+      .where(and(eq(contact.id, contactId), eq(contact.entrepriseId, utilisateurConnecte.entrepriseId)));
+    return null;
+  });
+  if (erreur) return { erreur };
+
+  revalidatePath("/app/contacts");
+  revalidatePath(`/app/contacts/${contactId}`);
+  redirect(`/app/contacts/${contactId}`);
 }
 
 const schemaInteraction = z.object({

@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock } from "lucide-react";
+import { Package, Lock, Pencil } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauProduit } from "./formulaire-nouveau-produit";
@@ -76,6 +77,11 @@ export default async function PageProduits() {
                   <p>{t("Vente : {prix}", { prix: formaterFCFA(p.prixVente) })}</p>
                   <p>{t("Achat : {prix}", { prix: formaterFCFA(p.prixAchat) })}</p>
                 </div>
+                {peut(utilisateurConnecte, "PRODUITS", "MODIFIER") ? (
+                  <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-primary" aria-label={t("Modifier {nom}", { nom: p.nom })} render={<Link href={`/app/produits/${p.id}?modifier=1`} />} nativeButton={false}>
+                    <Pencil className="size-4" aria-hidden />
+                  </Button>
+                ) : null}
                 {peut(utilisateurConnecte, "PRODUITS", "SUPPRIMER") ? <BoutonSupprimerProduit produitId={p.id} /> : null}
               </div>
             </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
@@ -68,6 +68,52 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
 
   revalidatePath("/app/produits");
   redirect("/app/produits");
+}
+
+const schemaModificationProduit = z.object({
+  nom: z.string().trim().min(2, m("Le nom est trop court.")),
+  description: z.string().trim().optional(),
+  prixVente: z.coerce.number(m("Le prix de vente doit être un nombre.")).int(m("Le prix de vente doit être un nombre entier.")).nonnegative(m("Le prix de vente ne peut pas être négatif.")),
+  prixAchat: z.coerce.number(m("Le prix d'achat doit être un nombre.")).int(m("Le prix d'achat doit être un nombre entier.")).nonnegative(m("Le prix d'achat ne peut pas être négatif.")),
+});
+
+/**
+ * Modifie un produit ou service déjà créé (nom, description, prix de vente et d'achat). Le TYPE (bien ou service) reste
+ * figé et le stock n'est jamais touché ici : les ventes et achats le font évoluer, et changer le type casserait le suivi.
+ * Les devis, factures et autres documents déjà établis gardent leur désignation et leur prix (copiés sur chaque ligne) :
+ * seuls les prochains documents reprennent les nouvelles valeurs. Le produit est cherché AVEC l'entreprise de la session.
+ */
+export async function modifierProduit(produitId: string, _etat: EtatProduit, formData: FormData): Promise<EtatProduit> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier ce produit.") };
+  }
+
+  const analyse = schemaModificationProduit.safeParse({
+    nom: formData.get("nom"),
+    description: formData.get("description") || undefined,
+    prixVente: formData.get("prixVente") || 0,
+    prixAchat: formData.get("prixAchat") || 0,
+  });
+  if (!analyse.success) {
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
+  }
+  const { nom, description, prixVente, prixAchat } = analyse.data;
+
+  const modifies = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx
+      .update(produit)
+      .set({ nom, description: description || null, prixVente, prixAchat })
+      .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .returning({ id: produit.id })
+  );
+  if (modifies.length === 0) return { erreur: t("Produit introuvable.") };
+
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  return null;
 }
 
 export type EtatImageProduit = { erreur?: string } | null;

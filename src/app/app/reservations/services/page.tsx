@@ -6,10 +6,8 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, serviceReservable } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponibleAddon } from "@/lib/plans";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauService } from "./formulaire-nouveau-service";
-import { BoutonDesactiverService } from "./bouton-desactiver-service";
+import { CarteService } from "./carte-service";
 
 export default async function PageServicesReservables() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -60,22 +58,7 @@ export default async function PageServicesReservables() {
 
       <div className="flex flex-col gap-3">
         {donnees.services.map((s, index) => (
-          <Card
-            key={s.id}
-            style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-            className={`animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both ${s.actif ? "" : "opacity-60"}`}
-          >
-            <CardContent className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{s.nom}</p>
-                <Badge variant="neutral">{s.dureeMinutes} min</Badge>
-                {s.dureeTamponMinutes > 0 ? <Badge variant="neutral">+{s.dureeTamponMinutes} min de battement</Badge> : null}
-                {s.prixFcfa > 0 ? <Badge variant="neutral">{new Intl.NumberFormat("fr-FR").format(s.prixFcfa)} FCFA</Badge> : null}
-                {!s.actif ? <Badge variant="warning">Désactivé</Badge> : null}
-              </div>
-              {s.actif ? <BoutonDesactiverService serviceId={s.id} /> : null}
-            </CardContent>
-          </Card>
+          <CarteService key={s.id} index={index} service={{ id: s.id, nom: s.nom, description: s.description, dureeMinutes: s.dureeMinutes, dureeTamponMinutes: s.dureeTamponMinutes, prixFcfa: s.prixFcfa, actif: s.actif }} />
         ))}
         {donnees.services.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Aucun service pour le moment.</p> : null}
       </div>

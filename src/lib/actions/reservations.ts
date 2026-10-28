@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
@@ -138,6 +138,54 @@ export async function creerServiceReservable(_etat: EtatReservationConfig, formD
   if (resultat?.erreur) return resultat;
 
   revalidatePath(`${CHEMIN}/services`);
+  return null;
+}
+
+/**
+ * Modifie un service déjà créé (nom, description, durée, battement, prix) — Administrateur seul, comme la création.
+ * Le service est cherché AVEC l'entreprise de la session : l'identifiant reçu du navigateur ne suffit jamais. Les
+ * réservations déjà prises ne bougent pas (leur durée et leur prix sont copiés dans `reservation`) : seul ce qui est
+ * proposé ensuite change.
+ */
+export async function modifierServiceReservable(formData: FormData): Promise<EtatReservationConfig> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN") {
+    return { erreur: "Seul l'Administrateur peut modifier un service." };
+  }
+
+  const analyse = schemaService.extend({ serviceId: z.string().min(1) }).safeParse({
+    serviceId: formData.get("serviceId"),
+    nom: formData.get("nom"),
+    description: formData.get("description") || "",
+    dureeMinutes: formData.get("dureeMinutes"),
+    dureeTamponMinutes: formData.get("dureeTamponMinutes") || 0,
+    prixFcfa: formData.get("prixFcfa") || 0,
+  });
+  if (!analyse.success) {
+    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+  const { serviceId, nom, description, dureeMinutes, dureeTamponMinutes, prixFcfa } = analyse.data;
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    if (!(await disponibleAddon(tx, monEntreprise, "RESERVATIONS"))) {
+      return { erreur: "Le module Réservations n'est pas activé pour votre entreprise." };
+    }
+
+    const modifies = await tx
+      .update(serviceReservable)
+      .set({ nom, description: description || null, dureeMinutes, dureeTamponMinutes, prixFcfa })
+      .where(and(eq(serviceReservable.id, serviceId), eq(serviceReservable.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .returning({ id: serviceReservable.id });
+    if (modifies.length === 0) return { erreur: "Service introuvable." };
+    return null;
+  });
+
+  if (resultat?.erreur) return resultat;
+
+  revalidatePath(`${CHEMIN}/services`);
+  revalidatePath(CHEMIN);
   return null;
 }
 

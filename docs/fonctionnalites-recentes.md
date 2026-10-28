@@ -389,3 +389,11 @@ Repères : `invitation.date_fin_propose` (migration 0130), `src/lib/actions/invi
 - **Fil de discussion** : le panneau glisse depuis la droite et affiche un squelette pendant le chargement.
 - **Accessibilité** : toutes les animations s'éteignent quand l'appareil demande de réduire les animations (`prefers-reduced-motion`).
 - **Code** : classes `animate-chat-*` dans `src/app/globals.css` ; `src/app/app/messagerie/{avatar-personne,ligne-message,compositeur,conversation,fil-discussion,panneau-personnes,page}.tsx`. Aucune migration.
+
+
+## Modifier un contact, un produit ou service du catalogue, un service de réservation (2026-10-28)
+
+- **Contact enregistré** : sur la fiche, bouton **« Modifier »** : formulaire prérempli (nom, société, fonction, téléphone, email). Les notes, les champs personnalisés et l'espace client gardent leurs éditeurs. Droit « modifier » du CRM requis ; un Employé ne modifie que ses contacts (portée), un Manager ceux de son équipe ; la société choisie doit être de votre entreprise.
+- **Produit ou service du catalogue** : un **crayon** sur chaque ligne de la liste, ou le bouton **« Modifier »** de la fiche : nom, description, prix de vente et prix d'achat. Le **type** (bien ou service) et le **stock** ne se changent pas ici (les ventes et achats pilotent le stock). Les devis et factures déjà établis gardent leur prix ; seuls les prochains documents reprennent les nouvelles valeurs. Administrateur et Manager ; l'Employé reste en lecture seule.
+- **Service de réservation (One Bookings → Services)** : bouton **« Modifier »** sur chaque service (nom, description, durée, battement, prix), Administrateur seul. Les réservations déjà prises gardent leur durée et leur prix.
+- **Code** : `modifierContact` (`src/lib/actions/contact.ts`, page `src/app/app/contacts/[id]/modifier/`), `modifierProduit` (`src/lib/actions/produit.ts`, `src/app/app/produits/[id]/formulaire-modifier-produit.tsx`), `modifierServiceReservable` (`src/lib/actions/reservations.ts`, `src/app/app/reservations/services/carte-service.tsx`) ; tests `tests/modifier-contact-produit.test.ts`, `tests/reservation-modifier-service.test.ts`, `tests-e2e/modifier-contact-produit.spec.ts`, `tests-e2e/reservations-modifier-service.spec.ts`. Aucune migration.
