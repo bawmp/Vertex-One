@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowDown, MessagesSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { basculerReaction, supprimerMessage } from "@/lib/actions/messagerie";
@@ -46,6 +47,11 @@ export function Conversation({
   const [filOuvertId, setFilOuvertId] = useState<string | null>(null);
   const [surbrillanceId, setSurbrillanceId] = useState<string | undefined>(messageCibleId);
   const [citation, setCitation] = useState<MessageAffiche | null>(null);
+  // Messages arrivés pendant que la conversation est ouverte (ils apparaissent avec une animation), et lecture d'un ancien
+  // passage : bouton « aller aux derniers messages » avec le nombre de nouveaux messages des autres.
+  const [nouveauxIds, setNouveauxIds] = useState<Set<string>>(() => new Set());
+  const [loinDuBas, setLoinDuBas] = useState(false);
+  const [nonVus, setNonVus] = useState(0);
 
   const defilement = useRef<HTMLDivElement>(null);
   const enBas = useRef(!messageCibleId);
@@ -54,16 +60,31 @@ export function Conversation({
   // Lectures consécutives sans rien de nouveau : sert à espacer les lectures d'une conversation calme.
   const lecturesVides = useRef(0);
 
+  const messagesRef = useRef(messagesInitiaux);
+
   const nomsConnus = [...candidats.map((c) => c.nom), moiNom];
 
   // Mémorise si la personne est en bas de la conversation : on ne la ramène en bas que dans ce cas,
   // pour ne pas lui faire perdre sa lecture d'anciens messages quand un nouveau arrive.
   const surDefilement = useCallback(() => {
     const el = defilement.current;
-    if (el) enBas.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (!el) return;
+    const bas = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    enBas.current = bas;
+    setLoinDuBas(!bas);
+    if (bas) setNonVus(0);
   }, []);
 
+  function descendre() {
+    const el = defilement.current;
+    if (!el) return;
+    enBas.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setNonVus(0);
+  }
+
   useEffect(() => {
+    messagesRef.current = messages;
     const el = defilement.current;
     if (el && enBas.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
@@ -98,6 +119,12 @@ export function Conversation({
             lecturesVides.current = 0;
             const plusRecent = plusRecentChangement(recus);
             if (plusRecent && (!curseur.current || plusRecent > curseur.current)) curseur.current = plusRecent;
+            const connus = new Set(messagesRef.current.map((m) => m.id));
+            const arrives = recus.filter((m) => !connus.has(m.id));
+            if (arrives.length > 0) {
+              setNouveauxIds((precedents) => new Set([...precedents, ...arrives.map((m) => m.id)]));
+              if (!enBas.current) setNonVus((n) => n + arrives.filter((m) => m.auteurId !== moiId && !m.supprime).length);
+            }
             setMessages((actuels) => fusionner(actuels, recus));
 
             // Onglet en arrière-plan : une notification du navigateur pour les nouveaux messages des autres.
@@ -195,8 +222,8 @@ export function Conversation({
   }
 
   return (
-    <div className="relative flex h-[70vh] min-h-96 flex-col overflow-hidden rounded-xl border border-border bg-card">
-      <div ref={defilement} onScroll={surDefilement} className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-4">
+    <div className="relative flex h-[70vh] min-h-96 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div ref={defilement} onScroll={surDefilement} className="flex flex-1 flex-col gap-0.5 overflow-y-auto bg-gradient-to-b from-background/40 to-muted/30 p-4">
         {plusAnciens ? (
           <Button type="button" variant="ghost" size="sm" disabled={chargementAnciens} onClick={chargerAnciens} className="mb-2 self-center">
             {chargementAnciens ? <Spinner /> : null}
@@ -204,7 +231,14 @@ export function Conversation({
           </Button>
         ) : null}
 
-        {messages.length === 0 ? <p className="m-auto text-sm text-muted-foreground">{t("Aucun message pour le moment. Écrivez le premier !")}</p> : null}
+        {messages.length === 0 ? (
+          <div className="m-auto flex flex-col items-center gap-3 text-center">
+            <span className="animate-chat-flotte flex size-16 items-center justify-center rounded-3xl bg-gradient-to-br from-marque-bleu-100 to-marque-orange-100 text-primary shadow-sm">
+              <MessagesSquare className="size-8" aria-hidden />
+            </span>
+            <p className="text-sm text-muted-foreground">{t("Aucun message pour le moment. Écrivez le premier !")}</p>
+          </div>
+        ) : null}
 
         {messages.map((m, i) => (
           <LigneMessage
@@ -217,6 +251,7 @@ export function Conversation({
             peutEcrire={peutEcrire}
             nomsConnus={nomsConnus}
             surbrillance={surbrillanceId === m.id}
+            nouveau={nouveauxIds.has(m.id)}
             surReaction={reagir}
             surSupprimer={supprimer}
             surOuvrirFil={setFilOuvertId}
@@ -225,6 +260,18 @@ export function Conversation({
           />
         ))}
         {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
+
+        {loinDuBas ? (
+          <button
+            type="button"
+            onClick={descendre}
+            aria-label={t("Aller aux derniers messages")}
+            className="animate-chat-entree sticky bottom-1 z-10 mt-2 flex items-center gap-1.5 self-end rounded-full border border-border bg-popover py-1.5 pr-3 pl-2.5 text-xs font-medium shadow-lg transition-transform duration-150 hover:-translate-y-0.5 active:scale-95"
+          >
+            <ArrowDown className={`size-4 ${nonVus > 0 ? "text-marque-orange" : "text-muted-foreground"}`} aria-hidden />
+            {nonVus > 0 ? (nonVus > 1 ? t("{n} nouveaux messages", { n: nonVus }) : t("{n} nouveau message", { n: nonVus })) : t("Derniers messages")}
+          </button>
+        ) : null}
       </div>
 
       {peutEcrire ? (
@@ -238,6 +285,7 @@ export function Conversation({
             lecturesVides.current = 0;
             enBas.current = true;
             if (!curseur.current || envoye.misAJourLe > curseur.current) curseur.current = envoye.misAJourLe;
+            setNouveauxIds((precedents) => new Set(precedents).add(envoye.id));
             setMessages((actuels) => fusionner(actuels, [envoye]));
           }}
         />

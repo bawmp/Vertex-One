@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { basculerReaction, supprimerMessage } from "@/lib/actions/messagerie";
 import type { MessageAffiche } from "@/lib/messagerie/acces";
 import { Compositeur } from "./compositeur";
@@ -93,21 +93,26 @@ export function FilDiscussion({
   const reponses = (messages ?? []).filter((m) => m.id !== racineId).length;
 
   return (
-    <aside aria-label={t("Fil de discussion")} className="absolute inset-y-0 right-0 z-30 flex w-full flex-col border-l border-border bg-card shadow-xl sm:w-96">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+    <aside aria-label={t("Fil de discussion")} className="animate-chat-glisse-droite absolute inset-y-0 right-0 z-30 flex w-full flex-col border-l border-border bg-card shadow-2xl sm:w-96">
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-gradient-to-r from-marque-bleu-50 to-transparent px-3 py-2.5">
         <div>
           <p className="text-sm font-semibold">{t("Fil de discussion")}</p>
           <p className="text-xs text-muted-foreground">{messages ? `${reponses} réponse${reponses > 1 ? "s" : ""}` : t("Chargement…")}</p>
         </div>
-        <button type="button" onClick={surFermer} aria-label={t("Fermer le fil")} className="rounded p-1 hover:bg-muted">
+        <button type="button" onClick={surFermer} aria-label={t("Fermer le fil")} className="rounded-full p-1.5 transition-colors hover:bg-muted">
           <X className="size-4" aria-hidden />
         </button>
       </div>
 
       <div ref={defilement} className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {messages === null ? (
-          <div className="m-auto">
-            <Spinner />
+          <div className="flex flex-col gap-4 p-1" aria-label={t("Chargement…")}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`flex items-end gap-2 ${i === 1 ? "flex-row-reverse" : ""}`}>
+                <Skeleton className="size-7 shrink-0 rounded-full" />
+                <Skeleton className={`h-10 rounded-2xl ${i === 1 ? "w-40" : "w-52"}`} />
+              </div>
+            ))}
           </div>
         ) : (
           messages.map((m, i) => (

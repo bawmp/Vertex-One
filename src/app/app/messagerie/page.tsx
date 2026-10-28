@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray } from "drizzle-orm";
 import { MessageSquare, Lock, Hash, FolderKanban, Users } from "lucide-react";
+import { AvatarPersonne } from "./avatar-personne";
 import { avecEntreprise } from "@/db/client";
 import { projet, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -35,7 +36,7 @@ import { cleVapidPublique } from "@/lib/messagerie/push";
 import { getT } from "@/lib/i18n/langue";
 
 const Pastille = ({ nombre }: { nombre: number }) =>
-  nombre > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white">{nombre > 99 ? "99+" : nombre}</span> : null;
+  nombre > 0 ? <span key={nombre} className="animate-chat-rebond flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white shadow-sm">{nombre > 99 ? "99+" : nombre}</span> : null;
 
 /**
  * One Chat : messagerie intégrée. Les canaux de projet suivent la portée des Projets ; « Général » et les canaux
@@ -152,7 +153,9 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
           className={`absolute inset-y-0 left-0 w-0.5 rounded-full bg-primary transition-transform duration-150 ${actif ? "scale-y-100" : "scale-y-0 group-hover/ligne:scale-y-100"}`}
         />
         <span className="flex min-w-0 items-center gap-2 transition-transform duration-150 group-hover/ligne:translate-x-1">
-          <Icone className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors ${actif ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground group-hover/ligne:bg-background"}`}>
+            <Icone className="size-3.5" aria-hidden />
+          </span>
           <span className="truncate">{c.nom}</span>
         </span>
         <Pastille nombre={actif ? 0 : (nonLus[c.id] ?? 0)} />
@@ -162,8 +165,10 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2.5">
-        <MessageSquare className="size-5" aria-hidden />
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-marque-bleu-700 text-primary-foreground shadow-sm">
+          <MessageSquare className="size-5" aria-hidden />
+        </span>
         <h1 className="text-2xl font-semibold tracking-tight">{t("One Chat")}</h1>
       </div>
 
@@ -204,25 +209,36 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
         <section className="flex min-w-0 flex-col gap-2">
           {choisi ? (
             <>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card px-3 py-2.5 shadow-xs">
                 <div className="flex items-center justify-between gap-2">
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2.5 text-sm text-muted-foreground">
                   {choisi.type === "DIRECT" ? (
                     <>
-                      <span className={`size-2.5 rounded-full ${interlocuteurChoisi?.enLigne ? "bg-emerald-500" : "bg-muted-foreground/30"}`} aria-hidden />
-                      <span className="font-medium text-foreground">{interlocuteurChoisi?.nom ?? t("Conversation directe")}</span>
-                      <span>· {interlocuteurChoisi?.enLigne ? t("en ligne") : t("hors ligne")}</span>
+                      <AvatarPersonne nom={interlocuteurChoisi?.nom ?? "?"} taille="md" enLigne={Boolean(interlocuteurChoisi?.enLigne)} libellePresence={interlocuteurChoisi?.enLigne ? t("En ligne") : t("Hors ligne")} />
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-sm font-semibold text-foreground">{interlocuteurChoisi?.nom ?? t("Conversation directe")}</span>
+                        <span className="text-xs">{interlocuteurChoisi?.enLigne ? t("en ligne") : t("hors ligne")}</span>
+                      </span>
                     </>
                   ) : choisi.type === "PRIVE" ? (
                     <>
-                      <Lock className="size-3.5" aria-hidden />
-                      <span className="font-medium text-foreground">{choisi.nom}</span>
-                      <span>{t("· groupe privé")}</span>
+                      <span className="flex size-9 items-center justify-center rounded-xl bg-marque-orange-100 text-marque-orange-700 dark:bg-marque-orange-900/50 dark:text-marque-orange-200">
+                        <Lock className="size-4" aria-hidden />
+                      </span>
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-sm font-semibold text-foreground">{choisi.nom}</span>
+                        <span className="text-xs">{t("· groupe privé")}</span>
+                      </span>
                     </>
                   ) : (
                     <>
-                      <span className="font-medium text-foreground">{choisi.nom}</span>
-                      {choisi.projetId && projetsParId[choisi.projetId] ? <span>{t("· projet {nom}", { nom: projetsParId[choisi.projetId] })}</span> : null}
+                      <span className="flex size-9 items-center justify-center rounded-xl bg-marque-bleu-100 text-marque-bleu-700 dark:bg-marque-bleu-800/60 dark:text-marque-bleu-100">
+                        <Hash className="size-4" aria-hidden />
+                      </span>
+                      <span className="flex flex-col leading-tight">
+                        <span className="text-sm font-semibold text-foreground">{choisi.nom}</span>
+                        {choisi.projetId && projetsParId[choisi.projetId] ? <span className="text-xs">{t("· projet {nom}", { nom: projetsParId[choisi.projetId] })}</span> : null}
+                      </span>
                     </>
                   )}
                 </p>

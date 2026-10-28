@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Paperclip, Send, X } from "lucide-react";
+import { Paperclip, Send, Smile, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,9 @@ import { attributAccept, CATEGORIES_FICHIER, formaterTaille, TAILLE_MAX_TOTAL_LI
 import type { PersonneMentionnable } from "./utilitaires-conversation";
 import { useT } from "@/lib/i18n/contexte";
 
+
+// Emojis proposés dans la zone de saisie (insérés tels quels dans le texte).
+const EMOJIS_SAISIE = ["😀", "😂", "🙂", "😉", "😍", "🥳", "😎", "🤔", "😅", "😢", "🙏", "👍", "👏", "💪", "🔥", "🎉", "✅", "❤️", "👀", "💡", "📌", "⏰", "🚀", "☕"];
 
 // « @ » suivi de quelques lettres (un prénom, éventuellement un nom) juste avant le curseur.
 const MOTIF_MENTION_EN_COURS = /(^|\s)@([^\s@]{0,30}(?: [^\s@]{0,30})?)$/u;
@@ -44,6 +47,7 @@ export function Compositeur({
   const [envoiEnCours, startEnvoi] = useTransition();
   const [suggestions, setSuggestions] = useState<PersonneMentionnable[]>([]);
   const [indexSuggestion, setIndexSuggestion] = useState(0);
+  const [emojisOuverts, setEmojisOuverts] = useState(false);
   const champTexte = useRef<HTMLTextAreaElement>(null);
   const champFichier = useRef<HTMLInputElement>(null);
 
@@ -72,6 +76,19 @@ export function Compositeur({
     requestAnimationFrame(() => {
       zone?.focus();
       zone?.setSelectionRange(avant.length, avant.length);
+    });
+  }
+
+  function insererEmoji(emoji: string) {
+    const zone = champTexte.current;
+    const debut = zone?.selectionStart ?? texte.length;
+    const fin = zone?.selectionEnd ?? texte.length;
+    if (texte.length - (fin - debut) + emoji.length > 4000) return;
+    setTexte(texte.slice(0, debut) + emoji + texte.slice(fin));
+    setEmojisOuverts(false);
+    requestAnimationFrame(() => {
+      zone?.focus();
+      zone?.setSelectionRange(debut + emoji.length, debut + emoji.length);
     });
   }
 
@@ -113,7 +130,7 @@ export function Compositeur({
   }
 
   return (
-    <div className="relative flex flex-col gap-1.5 border-t border-border p-3">
+    <div className="relative flex flex-col gap-2 border-t border-border bg-card/70 p-3 backdrop-blur-sm">
       {suggestions.length > 0 ? (
         <ul role="listbox" aria-label={t("Personnes à mentionner")} className="absolute bottom-full left-3 z-20 mb-1 w-64 animate-in overflow-hidden rounded-lg border border-border bg-popover shadow-md fade-in slide-in-from-bottom-1 duration-150 fill-mode-both">
           {suggestions.map((s, i) => (
@@ -135,12 +152,12 @@ export function Compositeur({
 
       {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
       {citation ? (
-        <div className="flex animate-in items-center gap-2 rounded-lg border-l-4 border-marque-orange bg-muted px-2.5 py-1.5 text-sm fade-in slide-in-from-bottom-1 duration-200 fill-mode-both">
+        <div className="flex animate-in items-center gap-2 rounded-xl border-l-4 border-marque-orange bg-muted px-3 py-2 text-sm shadow-xs fade-in slide-in-from-bottom-2 duration-200 fill-mode-both">
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold">{t("Réponse à {nom}", { nom: citation.auteurNom })}</p>
             <p className="truncate text-xs italic text-muted-foreground">{citation.contenu || (citation.piece ? `${t("Pièce jointe")} : ${citation.piece.nom}` : "")}</p>
           </div>
-          <button type="button" onClick={surRetirerCitation} aria-label={t("Annuler la réponse")}>
+          <button type="button" onClick={surRetirerCitation} aria-label={t("Annuler la réponse")} className="rounded-full p-1 transition-colors hover:bg-destructive/10">
             <X className="size-4 text-muted-foreground transition-colors hover:text-destructive" aria-hidden />
           </button>
         </div>
@@ -155,11 +172,33 @@ export function Compositeur({
           </button>
         </div>
       ) : null}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1 rounded-2xl border border-input bg-background p-1.5 shadow-xs transition-all duration-150 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
         <input ref={champFichier} type="file" accept={attributAccept(CATEGORIES_FICHIER)} onChange={choisirFichier} className="hidden" aria-label={t("Joindre un fichier")} />
-        <Button type="button" variant="outline" size="icon" onClick={() => champFichier.current?.click()} disabled={envoiEnCours} aria-label={t("Joindre un fichier")} title={`Image, PDF, Word ou Excel — ${TAILLE_MAX_TOTAL_LIBELLE} au plus`}>
+        <Button type="button" variant="ghost" size="icon" className="rounded-full text-muted-foreground" onClick={() => champFichier.current?.click()} disabled={envoiEnCours} aria-label={t("Joindre un fichier")} title={`Image, PDF, Word ou Excel — ${TAILLE_MAX_TOTAL_LIBELLE} au plus`}>
           <Paperclip aria-hidden />
         </Button>
+        <div className="relative">
+          <Button type="button" variant="ghost" size="icon" className="rounded-full text-muted-foreground" onClick={() => setEmojisOuverts((v) => !v)} disabled={envoiEnCours} aria-label={t("Insérer un emoji")} aria-expanded={emojisOuverts}>
+            <Smile aria-hidden />
+          </Button>
+          {emojisOuverts ? (
+            <div role="menu" aria-label={t("Insérer un emoji")} className="absolute bottom-full left-0 z-20 mb-2 grid w-64 animate-in grid-cols-8 gap-0.5 rounded-2xl border border-border bg-popover p-2 shadow-lg fade-in zoom-in-95 slide-in-from-bottom-2 duration-150">
+              {EMOJIS_SAISIE.map((emoji, i) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  role="menuitem"
+                  style={{ animationDelay: `${i * 12}ms` }}
+                  onClick={() => insererEmoji(emoji)}
+                  aria-label={emoji}
+                  className="animate-chat-pop rounded-lg p-1 text-lg leading-none transition-transform hover:scale-125 hover:bg-muted"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <Textarea
           ref={champTexte}
           value={texte}
@@ -191,14 +230,19 @@ export function Compositeur({
           rows={1}
           maxLength={4000}
           placeholder={placeholder}
-          className="max-h-32 min-h-9 flex-1 resize-none"
+          className="max-h-32 min-h-9 flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
           aria-label={parentId ? t("Votre réponse") : t("Votre message")}
         />
-        <Button type="button" onClick={envoyer} disabled={envoiEnCours || (!texte.trim() && !fichier)} aria-label={parentId ? t("Envoyer la réponse") : t("Envoyer le message")}>
+        <Button type="button" onClick={envoyer} disabled={envoiEnCours || (!texte.trim() && !fichier)} className="chat-bouton-envoi rounded-full px-4 transition-transform duration-150 active:scale-95" aria-label={parentId ? t("Envoyer la réponse") : t("Envoyer le message")}>
           {envoiEnCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
           {t("Envoyer")}
         </Button>
       </div>
+      {texte.length >= 3500 ? (
+        <p className={`self-end text-xs tabular-nums ${texte.length >= 3950 ? "font-medium text-destructive" : "text-muted-foreground"}`} aria-live="polite">
+          {texte.length} / 4000
+        </p>
+      ) : null}
     </div>
   );
 }

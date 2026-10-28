@@ -379,3 +379,13 @@ Repères : `invitation.date_fin_propose` (migration 0130), `src/lib/actions/invi
 - **Confidentialité** : on ne peut citer qu'un message de la même conversation ; si le message d'origine est supprimé, l'aperçu devient « Message supprimé » (le texte n'est plus affiché nulle part).
 - **Mise en place** : migration `0132` (colonne `cite_message_id`).
 - **Code** : `src/lib/actions/messagerie.ts` (`citeId`), `src/lib/messagerie/acces.ts` (`construireCitation`, `enrichir`), `src/app/app/messagerie/{ligne-message,compositeur,conversation}.tsx`, `src/lib/messagerie/push.ts` ; tests `tests/messagerie-groupes-reactions-fils-recherche.test.ts`, `tests/messagerie-push.test.ts`.
+
+
+## One Chat : interface modernisée et animée (2026-10-28)
+
+- **Quoi** : chaque personne a un **avatar aux initiales** (teinte stable dans la charte bleu et orange) avec un point de présence qui pulse quand elle est en ligne ; les messages sont des bulles arrondies (les vôtres en dégradé bleu marine), regroupées par auteur, avec l'heure au survol ; les nouveaux messages **arrivent en glissant**, les réactions **rebondissent**, les pastilles de non-lus aussi ; le séparateur de jour dit **« Aujourd'hui »**, **« Hier »** ou la date complète.
+- **Conversation** : un bouton flottant **« ↓ N nouveaux messages »** apparaît quand vous lisez l'historique pendant que d'autres messages arrivent ; l'en-tête du canal montre son icône (ou l'avatar et la présence de l'interlocuteur) ; une conversation vide affiche une illustration.
+- **Saisie** : champ arrondi qui s'illumine au clic, **sélecteur d'emojis** (insérés à l'endroit du curseur), bouton d'envoi animé, compteur de caractères près de la limite de 4 000.
+- **Fil de discussion** : le panneau glisse depuis la droite et affiche un squelette pendant le chargement.
+- **Accessibilité** : toutes les animations s'éteignent quand l'appareil demande de réduire les animations (`prefers-reduced-motion`).
+- **Code** : classes `animate-chat-*` dans `src/app/globals.css` ; `src/app/app/messagerie/{avatar-personne,ligne-message,compositeur,conversation,fil-discussion,panneau-personnes,page}.tsx`. Aucune migration.

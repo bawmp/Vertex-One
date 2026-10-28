@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Collegue } from "@/lib/messagerie/acces";
 import { useT } from "@/lib/i18n/contexte";
+import { AvatarPersonne } from "./avatar-personne";
 
 const INTERVALLE_MS = 30_000;
 
@@ -62,10 +63,10 @@ export function PanneauPersonnes({ collegues: initiaux, dmParCollegue, canalActi
               className={`absolute inset-y-0 left-0 w-0.5 rounded-full bg-primary transition-transform duration-150 ${actif ? "scale-y-100" : "scale-y-0 group-hover/ligne:scale-y-100"}`}
             />
             <span className="flex min-w-0 items-center gap-2 transition-transform duration-150 group-hover/ligne:translate-x-1">
-              <span className={`size-2.5 shrink-0 rounded-full ${c.enLigne ? "bg-emerald-500" : "bg-muted-foreground/30"}`} role="img" aria-label={c.enLigne ? t("En ligne") : t("Hors ligne")} />
+              <AvatarPersonne nom={c.nom} taille="sm" enLigne={c.enLigne} libellePresence={c.enLigne ? t("En ligne") : t("Hors ligne")} />
               <span className="truncate">{c.nom}</span>
             </span>
-            {nombre > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white">{nombre > 99 ? "99+" : nombre}</span> : null}
+            {nombre > 0 ? <span key={nombre} className="animate-chat-rebond flex h-5 min-w-5 items-center justify-center rounded-full bg-marque-orange px-1.5 text-xs font-semibold text-white shadow-sm">{nombre > 99 ? "99+" : nombre}</span> : null}
           </Link>
         );
       })}
