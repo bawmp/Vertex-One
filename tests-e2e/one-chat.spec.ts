@@ -59,6 +59,13 @@ test("One Chat : canal, pièce jointe, réaction, fil, recherche, message direct
   await fil.getByRole("button", { name: "Fermer le fil" }).click();
 
   // ===== Réponse à un message précis : Alice cite le croquis de Bob, Bob voit l'aperçu et peut y revenir =====
+  // (L'annulation se teste d'abord : une fois la réponse envoyée, « Voici le croquis » apparaît aussi dans l'aperçu d'Alice.)
+  await messageBob.hover();
+  await messageBob.getByRole("button", { name: "Répondre à ce message" }).click();
+  await expect(alice.getByText("Réponse à Bob Employé")).toBeVisible(ATTENTE);
+  await alice.getByRole("button", { name: "Annuler la réponse" }).click();
+  await expect(alice.getByText("Réponse à Bob Employé")).toHaveCount(0);
+
   await messageBob.hover();
   await messageBob.getByRole("button", { name: "Répondre à ce message" }).click();
   await expect(alice.getByText("Réponse à Bob Employé")).toBeVisible(ATTENTE);
@@ -69,12 +76,6 @@ test("One Chat : canal, pièce jointe, réaction, fil, recherche, message direct
   await expect(apercuChezBob).toBeVisible(ATTENTE);
   await apercuChezBob.click(); // ramène au message d'origine sans erreur
   await expect(bob.getByText("Merci, je regarde le croquis tout de suite")).toBeVisible(ATTENTE);
-  // Annuler une réponse en cours retire le bandeau sans rien envoyer.
-  await messageBob.hover();
-  await messageBob.getByRole("button", { name: "Répondre à ce message" }).click();
-  await expect(alice.getByText("Réponse à Bob Employé")).toBeVisible(ATTENTE);
-  await alice.getByRole("button", { name: "Annuler la réponse" }).click();
-  await expect(alice.getByText("Réponse à Bob Employé")).toHaveCount(0);
 
   // ===== Recherche : Alice retrouve le message de Bob =====
   await alice.getByLabel("Rechercher dans les messages").fill("croquis");

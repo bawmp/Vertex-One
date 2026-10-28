@@ -33,8 +33,9 @@ export async function creerEquipe(page: Page, browser: Browser, prefixe: string)
   await page.goto("/app/parametres/equipe");
   await page.fill("#email", emailEmploye);
   await page.getByRole("button", { name: "Inviter", exact: true }).click();
-  const texte = await page.getByText(/Invitation créée : \/invitation\//).innerText();
-  const lien = texte.replace("Invitation créée : ", "").trim();
+  // Deux formulations selon que l'email est parti (« …Lien de secours : /invitation/… ») ou non (« …transmettez ce lien … : /invitation/… »).
+  const texte = await page.getByText(/\/invitation\/[A-Za-z0-9_-]+/).first().innerText();
+  const lien = /\/invitation\/[A-Za-z0-9_-]+/.exec(texte)![0];
 
   const contexteEmploye = await browser.newContext();
   const employe = await contexteEmploye.newPage();
