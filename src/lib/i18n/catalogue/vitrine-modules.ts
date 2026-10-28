@@ -157,6 +157,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Recherche dans les messages, limitée aux conversations auxquelles vous avez accès": "Message search, limited to the conversations you have access to",
   "Présence en ligne, compteur de messages non lus et notifications du navigateur": "Online presence, unread message counter and browser notifications",
   "Notifications instantanées, même application fermée, réglables par chaque personne, avec mise en sourdine d'un canal": "Instant notifications, even with the app closed, adjustable by each person, with per-channel mute",
+  "Réponse à un message précis avec aperçu cliquable du message d'origine": "Reply to a specific message with a clickable preview of the original",
   "Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)": "Internal announcements feed, intranet style, with attachments (images, PDF, Word, Excel)",
   "Isolation stricte entre entreprises clientes": "Strict isolation between client companies",
 };

@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
-import { abonnementPush, canal, canalSourdine, membreCanal, mentionMessage, preferenceNotification, utilisateur } from "@/db/schema";
+import { abonnementPush, canal, canalSourdine, membreCanal, mentionMessage, messageCanal, preferenceNotification, utilisateur } from "@/db/schema";
 import { canalAccessible, estCanalPrive } from "@/lib/messagerie/acces";
 import type { Module } from "@/lib/permissions";
 import type { UtilisateurConnecte } from "@/lib/session";
@@ -94,6 +94,10 @@ export async function preparerEnvois(tx: TransactionDrizzle, m: MessagePourPush)
 
   const mentions = await tx.select({ utilisateurId: mentionMessage.utilisateurId }).from(mentionMessage).where(and(eq(mentionMessage.messageId, m.messageId), eq(mentionMessage.entrepriseId, m.entrepriseId)));
   const mentionnes = new Set(mentions.map((x) => x.utilisateurId));
+  // Auteur du message auquel celui-ci répond (citation) : prévenu comme pour une mention, avec un titre adapté.
+  const [leMessage] = await tx.select({ citeId: messageCanal.citeMessageId }).from(messageCanal).where(and(eq(messageCanal.id, m.messageId), eq(messageCanal.entrepriseId, m.entrepriseId)));
+  const [cite] = leMessage?.citeId ? await tx.select({ auteurId: messageCanal.auteurId }).from(messageCanal).where(and(eq(messageCanal.id, leMessage.citeId), eq(messageCanal.entrepriseId, m.entrepriseId))) : [];
+  const auteurCite = cite?.auteurId ?? null;
 
   // Candidats : les membres d'un canal privé ; pour un canal ouvert, les personnes qui ont choisi « tout » plus les mentionnées.
   let idsCandidats: string[];
@@ -141,7 +145,12 @@ export async function preparerEnvois(tx: TransactionDrizzle, m: MessagePourPush)
     const en = p.langue === "en";
     const auteurNom = auteur?.nom ?? (en ? "A colleague" : "Un collègue");
     const ou = leCanal.type === "DIRECT" ? "" : leCanal.type === "PRIVE" ? ` · ${leCanal.nom}` : ` · #${leCanal.nom}`;
-    const titre = mentionne ? (en ? `${auteurNom} mentioned you${ou}` : `${auteurNom} vous a mentionné(e)${ou}`) : `${auteurNom}${ou}`;
+    const repond = auteurCite === p.id;
+    const titre = mentionne
+      ? repond
+        ? en ? `${auteurNom} replied to your message${ou}` : `${auteurNom} a répondu à votre message${ou}`
+        : en ? `${auteurNom} mentioned you${ou}` : `${auteurNom} vous a mentionné(e)${ou}`
+      : `${auteurNom}${ou}`;
     const apercuTexte = m.contenu ? extrait(m.contenu) : m.pieceNom ? (en ? `Attachment: ${m.pieceNom}` : `Pièce jointe : ${m.pieceNom}`) : "";
     const corps = reglages?.apercu === false || !apercuTexte ? (en ? "New message" : "Nouveau message") : apercuTexte;
     const charge: ChargePush = {

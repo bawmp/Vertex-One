@@ -58,6 +58,7 @@ describe("One Chat — groupes privés, réactions, fils, recherche", () => {
       await avecEntreprise(id, async (tx) => {
         await tx.delete(reactionMessage).where(eq(reactionMessage.entrepriseId, id));
         await tx.delete(mentionMessage).where(eq(mentionMessage.entrepriseId, id));
+        await tx.update(messageCanal).set({ citeMessageId: null }).where(eq(messageCanal.entrepriseId, id));
         await tx.delete(lectureCanal).where(eq(lectureCanal.entrepriseId, id));
         // Les réponses de fil référencent leur message d'origine : d'abord les réponses, puis le reste.
         const reponses = await tx.select({ id: messageCanal.id, parentId: messageCanal.parentId }).from(messageCanal).where(eq(messageCanal.entrepriseId, id));
@@ -196,6 +197,45 @@ describe("One Chat — groupes privés, réactions, fils, recherche", () => {
     expect(nouveaux).toHaveLength(1);
     expect(nouveaux[0].id).toBe(racine.id);
     expect(nouveaux[0].nbReponses).toBe(3);
+  }, 90_000);
+
+  // ----- Réponse à un message précis (citation) -----
+
+  test("citation : le message cité s'affiche en aperçu court ; supprimé, il ne laisse aucun texte", async () => {
+    const [original] = await avecEntreprise(kiroId, (tx) =>
+      tx.insert(messageCanal).values({ entrepriseId: kiroId, canalId: generalId, auteurId: alice.utilisateurId, contenu: "On livre le devis vendredi ".repeat(12), creeLe: ilYa(20) }).returning({ id: messageCanal.id })
+    );
+    const [reponse] = await avecEntreprise(kiroId, (tx) =>
+      tx.insert(messageCanal).values({ entrepriseId: kiroId, canalId: generalId, auteurId: bob.utilisateurId, contenu: "D'accord pour vendredi", citeMessageId: original.id, creeLe: ilYa(19) }).returning({ id: messageCanal.id })
+    );
+    const avant = (await avecEntreprise(kiroId, (tx) => chargerMessages(tx, generalId, alice.utilisateurId, { limite: 200 }))).find((m) => m.id === reponse.id)!;
+    expect(avant.citation).toMatchObject({ id: original.id, auteurNom: "Alice", supprime: false, piece: false });
+    expect(avant.citation!.extrait.startsWith("On livre le devis vendredi")).toBe(true);
+    expect(avant.citation!.extrait.length).toBeLessThanOrEqual(140);
+    // La réponse reste dans la chronologie (ce n'est pas une réponse de fil).
+    expect(avant.parentId).toBeNull();
+
+    await avecEntreprise(kiroId, (tx) => tx.update(messageCanal).set({ contenu: "", supprimeLe: new Date(), misAJourLe: new Date() }).where(eq(messageCanal.id, original.id)));
+    const apres = (await avecEntreprise(kiroId, (tx) => chargerMessages(tx, generalId, alice.utilisateurId, { limite: 200 }))).find((m) => m.id === reponse.id)!;
+    expect(apres.citation).toMatchObject({ id: original.id, supprime: true, extrait: "" });
+    expect(JSON.stringify(apres.citation)).not.toContain("devis");
+  }, 90_000);
+
+  test("citation : un message cité d'un AUTRE canal (groupe privé) n'est jamais affiché, même si l'identifiant est connu", async () => {
+    const [dansGroupe] = await avecEntreprise(kiroId, (tx) => tx.select({ id: messageCanal.id }).from(messageCanal).where(eq(messageCanal.canalId, groupeId)));
+    const [piege] = await avecEntreprise(kiroId, (tx) =>
+      tx.insert(messageCanal).values({ entrepriseId: kiroId, canalId: generalId, auteurId: carl.utilisateurId, contenu: "Je cite ailleurs", citeMessageId: dansGroupe.id }).returning({ id: messageCanal.id })
+    );
+    const liste = await avecEntreprise(kiroId, (tx) => chargerMessages(tx, generalId, carl.utilisateurId, { limite: 200 }));
+    const vu = liste.find((m) => m.id === piege.id)!;
+    expect(vu.citation).toBeNull();
+    expect(JSON.stringify(liste)).not.toContain("secretissime");
+  }, 90_000);
+
+  test("citation : le message cité d'une autre entreprise est refusé par la base (cloisonnement)", async () => {
+    const [chezMbarga] = await avecEntreprise(mbargaId, (tx) => tx.select({ id: messageCanal.id }).from(messageCanal).where(eq(messageCanal.canalId, canalMbargaId)));
+    const lu = await avecEntreprise(kiroId, (tx) => tx.select({ id: messageCanal.id }).from(messageCanal).where(eq(messageCanal.id, chezMbarga.id)));
+    expect(lu).toHaveLength(0); // Kiro ne voit pas le message de Mbarga : l'action ne peut donc pas le retrouver pour le citer
   }, 90_000);
 
   // ----- Recherche -----

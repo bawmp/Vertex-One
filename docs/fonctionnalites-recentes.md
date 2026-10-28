@@ -369,3 +369,13 @@ Repères : `invitation.date_fin_propose` (migration 0130), `src/lib/actions/invi
 - **Sécurité** : seules les personnes qui peuvent réellement voir la conversation reçoivent une notification (un groupe privé reste privé, même pour l'Administrateur). À la déconnexion, l'appareil cesse de recevoir les messages de ce compte. L'email de secours (message direct ou mention non lu depuis 3 minutes) reste actif.
 - **Mise en place (administrateur technique)** : migration `0131` (tables `abonnement_push`, `preference_notification`, `canal_sourdine`, RLS + FORCE) ; variables `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (en local dans `.env.local`, et sur Vercel). Sans elles, le panneau l'indique et rien n'est envoyé.
 - **Code** : `src/lib/messagerie/push.ts` (qui, quoi, envoi), `src/lib/messagerie/push-client.ts` et `public/sw.js` (côté navigateur), `src/lib/actions/notifications-chat.ts`, `src/app/app/messagerie/{mes-notifications,sourdine-canal,gestionnaire-push}.tsx`, `src/app/manifest.ts` ; tests `tests/messagerie-push.test.ts`, `tests/sw-notifications.test.ts`, `tests-e2e/one-chat-notifications.spec.ts`.
+
+
+## One Chat : répondre à un message précis (2026-10-28)
+
+- **Quoi** : dans une conversation, survolez un message et cliquez sur la flèche **« Répondre à ce message »** : un bandeau « Réponse à … » s'affiche au-dessus du champ de saisie (croix pour annuler), et votre message part avec un **aperçu du message d'origine** (auteur et début du texte) au-dessus de son texte. Un clic sur cet aperçu **ramène au message d'origine** (mis en évidence quelques secondes), même s'il est loin dans l'historique.
+- **Différence avec le fil** : la réponse reste dans la conversation, à sa place, pour que tout le monde la voie ; le fil (« Répondre dans un fil ») garde les échanges de détail à part.
+- **Notification** : la personne dont vous citez le message est prévenue (« X a répondu à votre message »), même dans un canal ouvert ou en sourdine, selon ses réglages.
+- **Confidentialité** : on ne peut citer qu'un message de la même conversation ; si le message d'origine est supprimé, l'aperçu devient « Message supprimé » (le texte n'est plus affiché nulle part).
+- **Mise en place** : migration `0132` (colonne `cite_message_id`).
+- **Code** : `src/lib/actions/messagerie.ts` (`citeId`), `src/lib/messagerie/acces.ts` (`construireCitation`, `enrichir`), `src/app/app/messagerie/{ligne-message,compositeur,conversation}.tsx`, `src/lib/messagerie/push.ts` ; tests `tests/messagerie-groupes-reactions-fils-recherche.test.ts`, `tests/messagerie-push.test.ts`.

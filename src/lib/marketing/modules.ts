@@ -263,6 +263,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Recherche dans les messages, limitée aux conversations auxquelles vous avez accès"),
       m("Présence en ligne, compteur de messages non lus et notifications du navigateur"),
       m("Notifications instantanées, même application fermée, réglables par chaque personne, avec mise en sourdine d'un canal"),
+      m("Réponse à un message précis avec aperçu cliquable du message d'origine"),
       m("Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)"),
       m("Isolation stricte entre entreprises clientes"),
     ],

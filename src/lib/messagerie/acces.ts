@@ -13,6 +13,9 @@ export type CanalLigne = typeof canal.$inferSelect;
 export type PieceJointeAffichee = { nom: string; type: string; taille: number; image: boolean };
 export type ReactionAffichee = { emoji: string; total: number; moi: boolean };
 
+/** Aperçu du message auquel on répond : jamais le texte d'un message supprimé. */
+export type CitationAffichee = { id: string; auteurNom: string; extrait: string; piece: boolean; supprime: boolean };
+
 export type MessageAffiche = {
   id: string;
   auteurId: string;
@@ -24,6 +27,8 @@ export type MessageAffiche = {
   piece: PieceJointeAffichee | null;
   /** Message auquel celui-ci répond (fil de discussion), null pour un message de la chronologie. */
   parentId: string | null;
+  /** Message précis auquel celui-ci répond (citation), du même canal ; null sinon. */
+  citation: CitationAffichee | null;
   /** Nombre de réponses dans le fil de ce message (hors réponses supprimées). */
   nbReponses: number;
   reactions: ReactionAffichee[];
@@ -211,8 +216,20 @@ export async function candidatsMentions(tx: TransactionDrizzle, utilisateurConne
   return (await listerCollegues(tx, utilisateurConnecte)).map((c) => ({ id: c.id, nom: c.nom }));
 }
 
+const LONGUEUR_EXTRAIT_CITATION = 140;
+
+/** Aperçu court d'un message cité (texte, sinon nom de la pièce jointe). Un message supprimé n'en laisse rien. */
+export function construireCitation(c: { id: string; auteurNom: string; contenu: string; supprimeLe: Date | null; pieceNom: string | null }): CitationAffichee {
+  if (c.supprimeLe) return { id: c.id, auteurNom: c.auteurNom, extrait: "", piece: false, supprime: true };
+  const propre = c.contenu.replace(/\s+/g, " ").trim();
+  const extrait = propre.length > LONGUEUR_EXTRAIT_CITATION ? `${propre.slice(0, LONGUEUR_EXTRAIT_CITATION - 1)}…` : propre;
+  return { id: c.id, auteurNom: c.auteurNom, extrait, piece: Boolean(c.pieceNom), supprime: false };
+}
+
 const champsMessage = {
   id: messageCanal.id,
+  canalId: messageCanal.canalId,
+  citeMessageId: messageCanal.citeMessageId,
   auteurId: messageCanal.auteurId,
   auteurNom: utilisateur.nomComplet,
   contenu: messageCanal.contenu,
@@ -227,6 +244,8 @@ const champsMessage = {
 
 type LigneMessage = {
   id: string;
+  canalId: string;
+  citeMessageId: string | null;
   auteurId: string;
   auteurNom: string;
   contenu: string;
@@ -276,6 +295,18 @@ async function enrichir(tx: TransactionDrizzle, lignes: LigneMessage[], moiId: s
   ]);
   const nbReponses = new Map(reponses.map((r) => [r.parentId, r.total]));
 
+  // Messages cités : relus en base, et seulement s'ils sont du MÊME canal que le message qui les cite.
+  const idsCites = [...new Set(lignes.map((l) => l.citeMessageId).filter((id): id is string => Boolean(id)))];
+  const cites = new Map<string, { canalId: string; citation: CitationAffichee }>();
+  if (idsCites.length > 0) {
+    const lignesCitees = await tx
+      .select({ id: messageCanal.id, canalId: messageCanal.canalId, auteurNom: utilisateur.nomComplet, contenu: messageCanal.contenu, supprimeLe: messageCanal.supprimeLe, pieceNom: messageCanal.pieceJointeNom })
+      .from(messageCanal)
+      .innerJoin(utilisateur, eq(messageCanal.auteurId, utilisateur.id))
+      .where(inArray(messageCanal.id, idsCites));
+    for (const c of lignesCitees) cites.set(c.id, { canalId: c.canalId, citation: construireCitation(c) });
+  }
+
   return lignes.map((l) => ({
     id: l.id,
     auteurId: l.auteurId,
@@ -285,6 +316,7 @@ async function enrichir(tx: TransactionDrizzle, lignes: LigneMessage[], moiId: s
     supprime: Boolean(l.supprimeLe),
     piece: !l.supprimeLe && l.pieceNom && l.pieceType ? { nom: l.pieceNom, type: l.pieceType, taille: l.pieceTaille ?? 0, image: l.pieceType.startsWith("image/") } : null,
     parentId: l.parentId,
+    citation: !l.supprimeLe && l.citeMessageId && cites.get(l.citeMessageId)?.canalId === l.canalId ? cites.get(l.citeMessageId)!.citation : null,
     nbReponses: nbReponses.get(l.id) ?? 0,
     reactions: l.supprimeLe ? [] : (reactions.get(l.id) ?? []),
     creeLe: l.creeLe.toISOString(),

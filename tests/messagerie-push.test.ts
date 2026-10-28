@@ -112,6 +112,7 @@ describe("One Chat — notifications push (base réelle, service de push simulé
         await tx.delete(canalSourdine).where(eq(canalSourdine.entrepriseId, id));
         await tx.delete(mentionMessage).where(eq(mentionMessage.entrepriseId, id));
         await tx.delete(lectureCanal).where(eq(lectureCanal.entrepriseId, id));
+        await tx.update(messageCanal).set({ citeMessageId: null }).where(eq(messageCanal.entrepriseId, id));
         await tx.delete(messageCanal).where(eq(messageCanal.entrepriseId, id));
         await tx.delete(membreCanal).where(eq(membreCanal.entrepriseId, id));
         await tx.delete(canal).where(eq(canal.entrepriseId, id));
@@ -155,6 +156,19 @@ describe("One Chat — notifications push (base réelle, service de push simulé
     expect(endpointsPrevenus()).toEqual([ep("bob")]);
     expect(envois[0].charge.titre).toContain("vous a mentionné");
     await avecEntreprise(entrepriseA, (tx) => tx.delete(canalSourdine).where(eq(canalSourdine.entrepriseId, entrepriseA)));
+  }, 90_000);
+
+  test("répondre à un message précis prévient son auteur, même dans un canal ouvert, avec un titre adapté", async () => {
+    const original = await message(canalGeneral, "Qui prend le dossier ?", bob);
+    const [reponse] = await avecEntreprise(entrepriseA, (tx) =>
+      tx.insert(messageCanal).values({ entrepriseId: entrepriseA, canalId: canalGeneral, auteurId: alice.utilisateurId, contenu: "Moi", citeMessageId: original }).returning({ id: messageCanal.id })
+    );
+    // Ce que fait l'action envoyerMessage : l'auteur du message cité est prévenu comme une mention.
+    await avecEntreprise(entrepriseA, (tx) => tx.insert(mentionMessage).values({ entrepriseId: entrepriseA, messageId: reponse.id, utilisateurId: bob.utilisateurId }));
+    await notifier(canalGeneral, reponse.id, "Moi");
+    expect(endpointsPrevenus()).toEqual([ep("bob"), ep("carol")]);
+    expect(envois.find((e) => e.endpoint === ep("bob"))!.charge.titre).toContain("a répondu à votre message");
+    expect(envois.find((e) => e.endpoint === ep("carol"))!.charge.titre).not.toContain("répondu");
   }, 90_000);
 
   test("« aucune notification » : rien, même en cas de mention ; sans aperçu : texte masqué", async () => {

@@ -2249,6 +2249,9 @@ export const messageCanal = pgTable(
     // Fil de discussion : identifiant du message auquel celui-ci répond (un seul niveau — une réponse ne reçoit pas
     // de réponse). Les réponses n'apparaissent pas dans la chronologie du canal, seulement dans le fil.
     parentId: text("parent_id").references((): AnyPgColumn => messageCanal.id),
+    // Réponse à un message précis (citation affichée au-dessus du texte) : toujours un message du MÊME canal,
+    // vérifié à l'envoi. Indépendant du fil : le message reste dans la chronologie.
+    citeMessageId: text("cite_message_id").references((): AnyPgColumn => messageCanal.id),
     // Posé quand la notification par email d'un message direct a été traitée (envoyée ou inutile) : un message
     // n'est jamais notifié deux fois.
     notifieLe: timestamp("notifie_le"),
@@ -2258,6 +2261,7 @@ export const messageCanal = pgTable(
     index("message_canal_canal_cree_idx").on(table.canalId, table.creeLe),
     index("message_canal_canal_maj_idx").on(table.canalId, table.misAJourLe),
     index("message_canal_parent_idx").on(table.parentId),
+    index("message_canal_cite_idx").on(table.citeMessageId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

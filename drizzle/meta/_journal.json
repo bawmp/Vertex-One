@@ -925,6 +925,13 @@
       "when": 1791694800000,
       "tag": "0131_notifications_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1791781200000,
+      "tag": "0132_message_cite",
+      "breakpoints": true
     }
   ]
 }

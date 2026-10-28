@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquareReply, Paperclip, SmilePlus, Trash2 } from "lucide-react";
+import { MessageSquareReply, Paperclip, Reply, SmilePlus, Trash2 } from "lucide-react";
 import type { MessageAffiche } from "@/lib/messagerie/acces";
 import { decouperMentions, EMOJIS_REACTION } from "@/lib/messagerie/mentions";
 import { formaterTaille } from "@/lib/one-form/fichiers";
@@ -50,6 +50,27 @@ function TexteAvecMentions({ texte, noms }: { texte: string; noms: string[] }) {
   );
 }
 
+/** Aperçu du message auquel celui-ci répond ; un clic ramène à l'original (jamais le texte d'un message supprimé). */
+function BlocCitation({ citation, mien, surAllerA }: { citation: NonNullable<MessageAffiche["citation"]>; mien: boolean; surAllerA?: (messageId: string) => void }) {
+  const t = useT();
+  const contenu = (
+    <>
+      <span className="block truncate text-xs font-semibold">{citation.auteurNom}</span>
+      <span className="block truncate text-xs italic opacity-80">
+        {citation.supprime ? t("Message supprimé") : citation.extrait || (citation.piece ? t("Pièce jointe") : "")}
+      </span>
+    </>
+  );
+  const classes = `block w-full max-w-xs rounded-lg border-l-4 px-2 py-1 text-left ${mien ? "border-primary/60 bg-primary/10" : "border-marque-orange bg-muted"}`;
+  return surAllerA ? (
+    <button type="button" onClick={() => surAllerA(citation.id)} aria-label={t("Aller au message d'origine")} className={`${classes} transition-colors hover:bg-muted/80`}>
+      {contenu}
+    </button>
+  ) : (
+    <div className={classes}>{contenu}</div>
+  );
+}
+
 export function LigneMessage({
   message,
   precedent,
@@ -63,6 +84,8 @@ export function LigneMessage({
   surReaction,
   surSupprimer,
   surOuvrirFil,
+  surCiter,
+  surAllerA,
 }: {
   message: MessageAffiche;
   /** Message précédent du même fil d'affichage : sert à regrouper les messages consécutifs d'un même auteur. */
@@ -78,6 +101,10 @@ export function LigneMessage({
   surReaction: (messageId: string, emoji: string) => void;
   surSupprimer: (messageId: string) => void;
   surOuvrirFil?: (messageId: string) => void;
+  /** Répondre à CE message précis (citation dans la conversation). */
+  surCiter?: (message: MessageAffiche) => void;
+  /** Aller au message cité (défilement, ou ouverture de la zone de la conversation où il se trouve). */
+  surAllerA?: (messageId: string) => void;
 }) {
   const t = useT();
   const [selecteurOuvert, setSelecteurOuvert] = useState(false);
@@ -86,6 +113,7 @@ export function LigneMessage({
   const memeAuteur = precedent && !nouveauJour && precedent.auteurId === m.auteurId && new Date(m.creeLe).getTime() - new Date(precedent.creeLe).getTime() < 5 * 60_000;
   const peutSupprimer = !m.supprime && (mien || estAdmin);
   const peutRepondre = !m.supprime && peutEcrire && !dansUnFil && surOuvrirFil;
+  const peutCiter = !m.supprime && peutEcrire && !dansUnFil && surCiter;
 
   const barreOutils =
     !m.supprime && (peutEcrire || peutSupprimer) ? (
@@ -93,6 +121,11 @@ export function LigneMessage({
         {peutEcrire ? (
           <button type="button" onClick={() => setSelecteurOuvert((v) => !v)} aria-label={t("Réagir")} aria-expanded={selecteurOuvert} className="rounded p-0.5 hover:bg-muted">
             <SmilePlus className="size-4 text-muted-foreground" aria-hidden />
+          </button>
+        ) : null}
+        {peutCiter ? (
+          <button type="button" onClick={() => surCiter!(m)} aria-label={t("Répondre à ce message")} className="rounded p-0.5 hover:bg-muted">
+            <Reply className="size-4 text-muted-foreground" aria-hidden />
           </button>
         ) : null}
         {peutRepondre ? (
@@ -143,6 +176,7 @@ export function LigneMessage({
               <p className="rounded-2xl border border-dashed border-border px-3 py-1.5 text-sm italic text-muted-foreground">{t("Message supprimé")}</p>
             ) : (
               <>
+                {m.citation ? <BlocCitation citation={m.citation} mien={mien} surAllerA={surAllerA} /> : null}
                 <PieceJointe message={m} mien={mien} />
                 {m.contenu ? (
                   <p className={`whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 text-sm ${mien ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted"}`}>

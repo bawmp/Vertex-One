@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { basculerReaction, supprimerMessage } from "@/lib/actions/messagerie";
@@ -37,12 +38,14 @@ export function Conversation({
   messageCibleId?: string;
 }) {
   const t = useT();
+  const router = useRouter();
   const [messages, setMessages] = useState(messagesInitiaux);
   const [erreur, setErreur] = useState<string | null>(null);
   const [plusAnciens, setPlusAnciens] = useState(!messageCibleId && messagesInitiaux.length >= 50);
   const [chargementAnciens, setChargementAnciens] = useState(false);
   const [filOuvertId, setFilOuvertId] = useState<string | null>(null);
   const [surbrillanceId, setSurbrillanceId] = useState<string | undefined>(messageCibleId);
+  const [citation, setCitation] = useState<MessageAffiche | null>(null);
 
   const defilement = useRef<HTMLDivElement>(null);
   const enBas = useRef(!messageCibleId);
@@ -132,6 +135,19 @@ export function Conversation({
     };
   }, [canalId, moiId]);
 
+  // Clic sur une citation : on défile jusqu'au message d'origine s'il est chargé, sinon on ouvre la conversation centrée sur lui.
+  function allerAuMessage(messageId: string) {
+    const element = document.getElementById(`message-${messageId}`);
+    if (!element) {
+      router.push(`/app/messagerie?canal=${encodeURIComponent(canalId)}&message=${encodeURIComponent(messageId)}`);
+      return;
+    }
+    enBas.current = false;
+    element.scrollIntoView({ block: "center", behavior: "smooth" });
+    setSurbrillanceId(messageId);
+    setTimeout(() => setSurbrillanceId((courant) => (courant === messageId ? undefined : courant)), 3000);
+  }
+
   async function reagir(messageId: string, emoji: string) {
     setErreur(null);
     const resultat = await basculerReaction(messageId, emoji);
@@ -144,7 +160,16 @@ export function Conversation({
     setErreur(null);
     const resultat = await supprimerMessage(id);
     if (resultat.erreur) return setErreur(resultat.erreur);
-    setMessages((actuels) => actuels.map((m) => (m.id === id ? { ...m, contenu: null, supprime: true, piece: null, reactions: [] } : m)));
+    setMessages((actuels) =>
+      actuels.map((m) =>
+        m.id === id
+          ? { ...m, contenu: null, supprime: true, piece: null, reactions: [], citation: null }
+          : m.citation?.id === id
+            ? { ...m, citation: { ...m.citation, extrait: "", piece: false, supprime: true } }
+            : m
+      )
+    );
+    setCitation((courante) => (courante?.id === id ? null : courante));
   }
 
   async function chargerAnciens() {
@@ -195,6 +220,8 @@ export function Conversation({
             surReaction={reagir}
             surSupprimer={supprimer}
             surOuvrirFil={setFilOuvertId}
+            surCiter={setCitation}
+            surAllerA={allerAuMessage}
           />
         ))}
         {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
@@ -204,6 +231,8 @@ export function Conversation({
         <Compositeur
           canalId={canalId}
           candidats={candidats}
+          citation={citation}
+          surRetirerCitation={() => setCitation(null)}
           placeholder={t("Écrivez un message… (Entrée pour envoyer, @ pour mentionner)")}
           surEnvoye={(envoye) => {
             lecturesVides.current = 0;

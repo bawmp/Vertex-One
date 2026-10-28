@@ -12,7 +12,7 @@ import { peut, type Module } from "@/lib/permissions";
 import { idExterneCanal } from "@/lib/chat/client";
 import { effacerObjetStockage, televerserDocument } from "@/lib/documents/stockage";
 import { CATEGORIES_FICHIER, nomAffichable, nomFichierSain, validerFichier } from "@/lib/one-form/fichiers";
-import { candidatsMentions, canalAccessible, marquerCanalLu, messagerieDisponible, reactionsDe, LONGUEUR_MAX_MESSAGE, type MessageAffiche, type ReactionAffichee } from "@/lib/messagerie/acces";
+import { candidatsMentions, canalAccessible, construireCitation, marquerCanalLu, messagerieDisponible, reactionsDe, LONGUEUR_MAX_MESSAGE, type MessageAffiche, type ReactionAffichee } from "@/lib/messagerie/acces";
 import { emojiValide, extraireMentions } from "@/lib/messagerie/mentions";
 import { signalerMessagesANotifier } from "@/lib/messagerie/notifications";
 import { notifierNouveauMessage } from "@/lib/messagerie/push";
@@ -33,6 +33,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
 
   const canalId = String(formData.get("canalId") ?? "");
   const parentId = String(formData.get("parentId") ?? "") || null;
+  const citeId = String(formData.get("citeId") ?? "") || null;
   const contenu = String(formData.get("contenu") ?? "").trim();
   const fichier = formData.get("fichier");
   const aUnFichier = fichier instanceof File && fichier.size > 0;
@@ -66,6 +67,18 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
       if (!parent || parent.canalId !== canalId || parent.parentId || parent.supprimeLe) return { erreur: t("Ce message n'accepte pas de réponse.") };
     }
 
+    // Réponse à un message précis : il doit être de CE canal (jamais un identifiant pris tel quel) et ne pas être supprimé.
+    let cite: { id: string; auteurId: string; auteurNom: string; contenu: string; supprimeLe: Date | null; pieceNom: string | null } | null = null;
+    if (citeId) {
+      const [trouve] = await tx
+        .select({ id: messageCanal.id, auteurId: messageCanal.auteurId, auteurNom: utilisateur.nomComplet, contenu: messageCanal.contenu, supprimeLe: messageCanal.supprimeLe, pieceNom: messageCanal.pieceJointeNom, canalId: messageCanal.canalId })
+        .from(messageCanal)
+        .innerJoin(utilisateur, eq(messageCanal.auteurId, utilisateur.id))
+        .where(and(eq(messageCanal.id, citeId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
+      if (!trouve || trouve.canalId !== canalId || trouve.supprimeLe) return { erreur: t("Le message auquel vous répondez n'est plus disponible.") };
+      cite = trouve;
+    }
+
     let cle: string | null = null;
     if (piece) {
       const televersement = await televerserDocument({
@@ -87,6 +100,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
         auteurId: utilisateurConnecte.utilisateurId,
         contenu,
         parentId,
+        citeMessageId: cite?.id ?? null,
         pieceJointeCle: cle,
         pieceJointeNom: piece?.nom ?? null,
         pieceJointeType: piece?.mime ?? null,
@@ -105,9 +119,10 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
     // ou un projet hors portée ne fuit jamais vers quelqu'un qui n'y a pas accès).
     let aNotifier = leCanal.type === "DIRECT";
     // (Dans un message direct, l'email « vous a écrit » couvre déjà la personne : pas de mention en double.)
-    if (contenu && leCanal.type !== "DIRECT") {
-      const candidats = await candidatsMentions(tx, utilisateurConnecte, leCanal);
-      const ids = extraireMentions(contenu, candidats).filter((id) => id !== utilisateurConnecte.utilisateurId);
+    // Répondre à quelqu'un le prévient comme une mention (l'auteur du message cité), s'il peut voir le canal.
+    if ((contenu || cite) && leCanal.type !== "DIRECT") {
+      const candidats = contenu ? await candidatsMentions(tx, utilisateurConnecte, leCanal) : [];
+      const ids = [...new Set([...(contenu ? extraireMentions(contenu, candidats) : []), ...(cite ? [cite.auteurId] : [])])].filter((id) => id !== utilisateurConnecte.utilisateurId);
       if (ids.length > 0) {
         const personnes = await tx
           .select({ id: utilisateur.id, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises })
@@ -141,6 +156,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
       supprime: false,
       piece: piece ? { nom: piece.nom, type: piece.mime, taille: piece.taille, image: piece.mime.startsWith("image/") } : null,
       parentId,
+      citation: cite ? construireCitation(cite) : null,
       nbReponses: 0,
       reactions: [],
       creeLe: cree.creeLe.toISOString(),
@@ -214,6 +230,8 @@ export async function supprimerMessage(messageId: string): Promise<{ erreur?: st
       .update(messageCanal)
       .set({ contenu: "", supprimeLe: sql`now()`, misAJourLe: sql`now()`, pieceJointeCle: null, pieceJointeNom: null, pieceJointeType: null, pieceJointeTaille: null })
       .where(and(eq(messageCanal.id, messageId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
+    // Les messages qui le citent affichent désormais « supprimé » : ils « bougent » pour que les autres les relisent.
+    await tx.update(messageCanal).set({ misAJourLe: sql`now()` }).where(and(eq(messageCanal.citeMessageId, messageId), eq(messageCanal.entrepriseId, utilisateurConnecte.entrepriseId)));
     // Une réponse supprimée change le nombre de réponses de son message d'origine.
     if (leMessage.parentId) await tx.update(messageCanal).set({ misAJourLe: sql`now()` }).where(eq(messageCanal.id, leMessage.parentId));
     return { pieceCle: leMessage.pieceCle };

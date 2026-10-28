@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -25,12 +25,17 @@ export function Compositeur({
   candidats,
   placeholder,
   surEnvoye,
+  citation,
+  surRetirerCitation,
 }: {
   canalId: string;
   parentId?: string;
   candidats: PersonneMentionnable[];
   placeholder: string;
   surEnvoye: (message: MessageAffiche) => void;
+  /** Message auquel on est en train de répondre (aperçu au-dessus du champ), envoyé avec le message. */
+  citation?: MessageAffiche | null;
+  surRetirerCitation?: () => void;
 }) {
   const t = useT();
   const [texte, setTexte] = useState("");
@@ -41,6 +46,11 @@ export function Compositeur({
   const [indexSuggestion, setIndexSuggestion] = useState(0);
   const champTexte = useRef<HTMLTextAreaElement>(null);
   const champFichier = useRef<HTMLInputElement>(null);
+
+  // Choisir « Répondre » met le curseur dans le champ de saisie.
+  useEffect(() => {
+    if (citation) champTexte.current?.focus();
+  }, [citation]);
 
   function mettreAJourSuggestions(valeur: string, curseur: number) {
     const avant = valeur.slice(0, curseur);
@@ -88,6 +98,7 @@ export function Compositeur({
     const donnees = new FormData();
     donnees.set("canalId", canalId);
     if (parentId) donnees.set("parentId", parentId);
+    if (citation) donnees.set("citeId", citation.id);
     donnees.set("contenu", contenu);
     if (fichier) donnees.set("fichier", fichier);
     startEnvoi(async () => {
@@ -96,6 +107,7 @@ export function Compositeur({
       setTexte("");
       setSuggestions([]);
       retirerFichier();
+      surRetirerCitation?.();
       surEnvoye(resultat.message);
     });
   }
@@ -122,6 +134,17 @@ export function Compositeur({
       ) : null}
 
       {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}
+      {citation ? (
+        <div className="flex animate-in items-center gap-2 rounded-lg border-l-4 border-marque-orange bg-muted px-2.5 py-1.5 text-sm fade-in slide-in-from-bottom-1 duration-200 fill-mode-both">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold">{t("Réponse à {nom}", { nom: citation.auteurNom })}</p>
+            <p className="truncate text-xs italic text-muted-foreground">{citation.contenu || (citation.piece ? `${t("Pièce jointe")} : ${citation.piece.nom}` : "")}</p>
+          </div>
+          <button type="button" onClick={surRetirerCitation} aria-label={t("Annuler la réponse")}>
+            <X className="size-4 text-muted-foreground transition-colors hover:text-destructive" aria-hidden />
+          </button>
+        </div>
+      ) : null}
       {fichier ? (
         <div className="flex w-fit max-w-full animate-in items-center gap-2 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-sm fade-in slide-in-from-bottom-1 duration-200 fill-mode-both">
           <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden />
