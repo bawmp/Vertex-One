@@ -21,6 +21,7 @@ import { relireEtConfirmerFacture, type StatutRelectureAbonnement } from "@/lib/
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { lienEmail } from "@/lib/email/lien";
+import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
 import { getT } from "@/lib/i18n/langue";
 
 function urlBase(): string {
@@ -46,6 +47,7 @@ export async function marquerFacturePayee(factureId: string) {
     const { solde } = await lireSolde(tx, factureId, laFacture.montantTTC);
     if (solde <= 0) {
       await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, factureId));
+      await resoudrePromessesFacture(tx, utilisateurConnecte.entrepriseId, factureId);
       return;
     }
 
@@ -63,6 +65,7 @@ export async function marquerFacturePayee(factureId: string) {
       .returning({ id: paiement.id });
 
     await tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, factureId));
+    await resoudrePromessesFacture(tx, utilisateurConnecte.entrepriseId, factureId);
 
     // Palier 4, section 4 — même principe que l'écriture de facturation :
     // générée automatiquement, jamais ressaisie.
@@ -108,6 +111,7 @@ export async function annulerFacture(factureId: string, motif: string) {
     });
 
     await tx.update(facture).set({ statut: "ANNULEE" }).where(eq(facture.id, factureId));
+    await resoudrePromessesFacture(tx, utilisateurConnecte.entrepriseId, factureId); // une facture annulée annule sa promesse
   });
 
   revalidatePath(`/app/facturation/factures/${factureId}`);

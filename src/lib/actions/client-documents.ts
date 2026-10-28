@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, contact, entreprise, tentativePaiementFacture } from "@/db/schema";
+import { devis, facture, contact, entreprise, promessePaiement, tentativePaiementFacture } from "@/db/schema";
 import {
   obtenirOuCreerLien,
   trouverLien,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
+import { enregistrerPromesse } from "@/lib/facturation/promesse";
+import { aujourdhuiDouala, ajouterJours, noteNettoyee, verifierDatePromesse } from "@/lib/facturation/promesse-regles";
 
 /**
  * Actions du CLIENT depuis son lien public (devis/facture) — aucune session : la
@@ -281,6 +283,77 @@ export async function repondreFacturePublic(
         ? "Facture acceptée. Merci !"
         : "Votre contestation a bien été transmise. L'entreprise va vous recontacter.",
   };
+}
+
+/** Au plus ce nombre de déclarations de date par heure et par facture : le lien est connu de son destinataire, pas besoin de plus. */
+const PROMESSES_CLIENT_MAX_PAR_HEURE = 5;
+
+/**
+ * Le client annonce depuis son lien qu'il réglera sa facture à une date donnée (« Je paierai le… »). Mêmes règles que le reste des
+ * réponses du client : le jeton est l'unique autorisation, l'entreprise et la facture viennent de la ligne du lien, jamais d'une
+ * valeur du navigateur ; la date et l'adresse IP sont enregistrées côté serveur. Seulement après avoir ACCEPTÉ la facture (le client
+ * qui la conteste n'annonce pas de paiement), jamais sur une facture réglée ou annulée. La date doit être entre demain et 60 jours.
+ * Le montant promis est le solde restant (le client ne choisit pas de montant ici). Une promesse déjà en cours est remplacée. Tant
+ * qu'elle court, la relance automatique de la facture est suspendue. L'équipe est prévenue par email APRÈS la réponse (after()) ;
+ * le texte saisi par le client est échappé avant d'entrer dans l'email.
+ */
+export async function promettrePaiementPublic(jeton: string, datePromise: string, noteBrute?: string): Promise<EtatReponseClient> {
+  const lien = await trouverLien(jeton);
+  if (!lien?.factureId) return { erreur: "Ce lien n'est pas valide." };
+  const factureId = lien.factureId;
+
+  const aujourdhui = aujourdhuiDouala();
+  const erreurDate = verifierDatePromesse(datePromise, aujourdhui, ajouterJours(aujourdhui, 1));
+  if (erreurDate) return { erreur: erreurDate };
+  const note = noteNettoyee(noteBrute);
+  const ip = await adresseIP();
+
+  const resultat = await avecEntreprise(lien.entrepriseId, async (tx) => {
+    const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
+    if (!laFacture) return { erreur: "Cette facture est introuvable." };
+    if (laFacture.statut === "ANNULEE") return { erreur: "Cette facture a été annulée." };
+    if (laFacture.statut === "PAYEE") return { erreur: "Cette facture est déjà réglée." };
+    if (laFacture.reponseClient !== "ACCEPTEE") return { erreur: "Acceptez d'abord la facture pour annoncer une date de paiement." };
+
+    const recentes = await tx
+      .select({ id: promessePaiement.id })
+      .from(promessePaiement)
+      .where(and(eq(promessePaiement.factureId, factureId), eq(promessePaiement.source, "CLIENT"), gt(promessePaiement.creeLe, new Date(Date.now() - 3600_000))));
+    if (recentes.length >= PROMESSES_CLIENT_MAX_PAR_HEURE) return { erreur: "Vous avez modifié cette date plusieurs fois : réessayez dans une heure." };
+
+    const enregistree = await enregistrerPromesse(tx, {
+      entrepriseId: lien.entrepriseId,
+      factureId,
+      datePromise,
+      canal: "client",
+      source: "CLIENT",
+      note,
+      creeParId: null,
+      clientIp: ip,
+    });
+    if ("erreur" in enregistree) return { erreur: enregistree.erreur };
+
+    return {
+      destinataires: await adressesAAlerter(tx, lien.entrepriseId, [laFacture.assigneAId]),
+      numero: enregistree.numeroFacture,
+      montant: formaterFCFA(enregistree.promesse.montant),
+      clientNom: enregistree.nomClient ?? "Le client",
+    };
+  });
+  if ("erreur" in resultat) return { erreur: resultat.erreur };
+
+  const jourLisible = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${datePromise}T00:00:00Z`));
+  after(() =>
+    alerterParEmail(
+      resultat.destinataires,
+      `${resultat.clientNom} annonce un paiement le ${jourLisible} — facture ${resultat.numero}`,
+      `<p>${echapper(resultat.clientNom)} a annoncé depuis sa page de facture qu'il réglera <strong>${resultat.montant}</strong> (facture ${echapper(resultat.numero)}) le <strong>${jourLisible}</strong>.</p>${note ? `<p>Message : « ${echapper(note)} »</p>` : ""}<p>Les relances automatiques de cette facture sont suspendues jusqu'à cette date ; si le paiement n'arrive pas, elles reprennent et vous en êtes alerté.</p>`
+    )
+  );
+
+  revalidatePath(`/app/facturation/factures/${factureId}`);
+  revalidatePath("/app/facturation");
+  return { succes: `C'est noté : vous réglerez cette facture le ${jourLisible}. Merci !` };
 }
 
 /**

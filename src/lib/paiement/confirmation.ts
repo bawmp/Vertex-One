@@ -9,6 +9,7 @@ import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
 import { adressesAAlerter } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
+import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
 import { lireSolde, statutApresReglement } from "@/lib/facturation/solde";
 import { libelleMoyenPaiement, notifierPaiementFacture, type NotificationPaiementFacture } from "./recu-facture";
 import { lireReferenceExterne } from "./reference";
@@ -150,6 +151,8 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
     const { paye } = await lireSolde(tx, tentative.factureId, laFacture.montantTTC);
     await tx.update(facture).set({ statut: statutApresReglement(laFacture.statut, laFacture.montantTTC, paye) }).where(eq(facture.id, tentative.factureId));
     await tx.update(tentativePaiementFacture).set({ statut: "CONFIRME", confirmeLe: datePaiement }).where(eq(tentativePaiementFacture.id, idTentative));
+    // Une promesse de paiement en cours est tenue dès que les règlements couvrent le montant promis.
+    await resoudrePromessesFacture(tx, entrepriseId, tentative.factureId);
 
     // Notification à l'Administrateur (envoyée APRÈS la transaction) : seulement quand CET appel vient d'enregistrer le règlement —
     // jamais pour un rappel du prestataire sur une tentative déjà confirmée (le test de statut CONFIRME plus haut coupe court).

@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc } from "drizzle-orm";
-import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2, Download } from "lucide-react";
+import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2, Download, CalendarClock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, paiement, avoirFacture, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
+import { promessesAttendues, promessesEnCoursDesFactures } from "@/lib/facturation/promesse";
+import { formaterJourPromesse } from "@/lib/facturation/promesse-regles";
+import { EncartPromesses } from "./encart-promesses";
 import { memeClientVente } from "@/lib/facturation/client-document";
 import { recupererTableauDeBordFaco } from "@/lib/facturation/tableau-de-bord";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -49,6 +52,8 @@ export default async function PageFacturation() {
     avoirsVisibles,
     nomParClientId,
     tableauDeBord,
+    promessesParFacture,
+    promessesAttenduesListe,
   } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
       // Découplage Books/CRM (échange du 2026-09-07) — chaque document porte
       // désormais son propre assigneAId, la portée se filtre directement
@@ -98,6 +103,9 @@ export default async function PageFacturation() {
         (doc.compteId && nomCompteParId.get(doc.compteId)) || (doc.contactId && nomContactParId.get(doc.contactId)) || "Client";
 
       const tableauDeBord = await recupererTableauDeBordFaco(tx, utilisateurConnecte);
+      // Promesses de paiement : celle qui court sur chaque facture visible (badge), et celles attendues cette semaine (encart).
+      const promessesParFacture = Object.fromEntries(await promessesEnCoursDesFactures(tx, utilisateurConnecte.entrepriseId, f.map((fac) => fac.id)));
+      const promessesAttenduesListe = await promessesAttendues(tx, utilisateurConnecte.entrepriseId, { jours: 7, assigneAIds: visibles });
       const numeroFactureParId = Object.fromEntries(fBrut.map((fac) => [fac.id, fac.numero]));
 
       return {
@@ -115,6 +123,8 @@ export default async function PageFacturation() {
         // directement au client de la Facture liée, sans entrée dédiée.
         nomParClientId: Object.fromEntries([...d, ...f, ...bc, ...fr, ...rv, ...fa].map((doc) => [doc.id, nomClient(doc)])),
         tableauDeBord,
+        promessesParFacture,
+        promessesAttenduesListe,
       };
     });
 
@@ -132,6 +142,8 @@ export default async function PageFacturation() {
   return (
     <div className="flex flex-col gap-8">
       <TableauDeBord donnees={tableauDeBord} facturesClientVisibles={facturesVisibles} langue={utilisateurConnecte.langue} />
+
+      <EncartPromesses promesses={promessesAttenduesListe} />
 
       {peut(utilisateurConnecte, "PARAMETRES", "MODIFIER") ? <DeclencheurRelances /> : null}
 
@@ -197,6 +209,12 @@ export default async function PageFacturation() {
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
+                    {promessesParFacture[f.id] ? (
+                      <Badge variant="info" className="gap-1">
+                        <CalendarClock className="size-3" aria-hidden />
+                        {t("Promis le {date}", { date: formaterJourPromesse(promessesParFacture[f.id].datePromise, t.locale, "medium") })}
+                      </Badge>
+                    ) : null}
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? f.statut)}</Badge>
                   </span>
                 </Link>

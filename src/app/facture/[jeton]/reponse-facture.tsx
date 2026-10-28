@@ -8,8 +8,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { payerFacturePublic, recupererPaiementFactureEnAttentePublic, repondreFacturePublic, verifierPaiementFacturePublic } from "@/lib/actions/client-documents";
 import { BoutonDecision } from "@/components/formulaire/parcours-client";
 import { PaiementMobileMoney } from "@/components/formulaire/paiement-mobile-money";
+import { PromesseClient } from "./promesse-client";
 
-export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye, tranchesAutorisees, numero }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string }) {
+export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye, tranchesAutorisees, numero, promesse, jourMin, jourMax }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string; promesse: { datePromise: string; montant: number } | null; jourMin: string; jourMax: string }) {
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [contestation, setContestation] = useState(false);
@@ -80,7 +81,7 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye,
             <BoutonDecision icone={Clock} titre="Payer plus tard" detail="Ce lien reste valable jusqu'à l'échéance" onClick={() => setPlusTard(true)} />
           </div>
         )}
-        {plusTard ? <p className="animate-in rounded-xl bg-background p-3 text-sm shadow-xs duration-300 fade-in slide-in-from-top-1">Pas de problème : vous pouvez régler cette facture à tout moment depuis ce lien, avant son échéance.</p> : null}
+        {plusTard || promesse ? <PromesseClient jeton={jeton} promesse={promesse} jourMin={jourMin} jourMax={jourMax} nomEntreprise={nomEntreprise} /> : null}
         {erreur ? (
           <p role="alert" className="text-sm text-destructive">
             {erreur}

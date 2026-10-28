@@ -1,6 +1,6 @@
-import { eq, and, lt, notInArray, inArray } from "drizzle-orm";
+import { eq, and, lt, notExists, notInArray, inArray, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { facture, contact, entreprise } from "@/db/schema";
+import { facture, contact, entreprise, promessePaiement } from "@/db/schema";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritRelanceFacture } from "@/lib/email/gabarits";
 import { enteteLogoEmail } from "@/lib/email/logo";
@@ -26,6 +26,9 @@ export type ResultatRelance = {
  * email et par WhatsApp (voir src/lib/whatsapp/client.ts, Palier 6 — stub
  * documenté tant que WHATSAPP_ACCESS_TOKEN n'est pas configuré).
  *
+ * Une facture qui a une promesse de paiement EN COURS (le client a annoncé une date) est ignorée ici : pas de relance qui
+ * contredirait ce qu'il vient de dire. Voir src/lib/facturation/promesse.ts.
+ *
  * Disponible pour tous les forfaits, y compris Starter — la relance ne
  * dépend pas de disponible("PAIEMENTS_EN_LIGNE") (docs/palier-1-*, section 6).
  */
@@ -37,7 +40,10 @@ export async function marquerFacturesEnRetard(tx: TransactionDrizzle, entreprise
       and(
         eq(facture.entrepriseId, entrepriseId),
         lt(facture.dateEcheance, new Date()),
-        notInArray(facture.statut, ["PAYEE", "ANNULEE", "EN_RETARD"])
+        notInArray(facture.statut, ["PAYEE", "ANNULEE", "EN_RETARD"]),
+        // Promesse de paiement en cours : ni passage en retard ni relance tant qu'elle court. Quand elle échoit sans paiement,
+        // traiterPromessesEchues() la déclare non tenue (juste avant ce balayage) et la relance repart normalement.
+        notExists(tx.select({ un: sql`1` }).from(promessePaiement).where(and(eq(promessePaiement.factureId, facture.id), eq(promessePaiement.statut, "EN_COURS"))))
       )
     )
     .returning({ id: facture.id, numero: facture.numero, montantTTC: facture.montantTTC, dateEcheance: facture.dateEcheance, contactId: facture.contactId });

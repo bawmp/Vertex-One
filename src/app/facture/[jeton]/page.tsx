@@ -9,6 +9,7 @@ import { ReponseFacture } from "./reponse-facture";
 import { RedirectionEspaceClient } from "./redirection-espace-client";
 import { EtapesClient } from "@/components/formulaire/parcours-client";
 import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
+import { aujourdhuiDouala, ajouterJours, JOURS_MAX_PROMESSE } from "@/lib/facturation/promesse-regles";
 
 const formatDate = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(d);
 
@@ -30,7 +31,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
     );
   }
 
-  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe, paye, solde, tranchesAutorisees, acomptesDeduits } = donnees;
+  const { facture, lignes, client, entreprise, entrepriseId, espaceClientUrl, dernierPaiementLe, paye, solde, tranchesAutorisees, acomptesDeduits, promesse } = donnees;
   const payee = facture.statut === "PAYEE";
   // Redirection automatique seulement juste après le paiement (moins de 30 minutes) : rouvrir plus tard une facture réglée ne renvoie pas.
   const payeRecemment = payee && dernierPaiementLe !== null && Date.now() - dernierPaiementLe.getTime() < 30 * 60 * 1000;
@@ -103,7 +104,7 @@ export default async function PageFactureClient({ params, searchParams }: { para
         <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">Cette facture a été annulée : il n&apos;y a rien à régler.</p>
       ) : (
         <>
-          <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} solde={solde} dejaPaye={paye} tranchesAutorisees={tranchesAutorisees} numero={facture.numero} />
+          <ReponseFacture jeton={jeton} reponse={facture.reponseClient as "ACCEPTEE" | "CONTESTEE" | null} nomEntreprise={entreprise.nom} solde={solde} dejaPaye={paye} tranchesAutorisees={tranchesAutorisees} numero={facture.numero} promesse={promesse} jourMin={ajouterJours(aujourdhuiDouala(), 1)} jourMax={ajouterJours(aujourdhuiDouala(), JOURS_MAX_PROMESSE)} />
           {/* Il peut payer plus tard : son espace de suivi reste accessible sans attendre le paiement. */}
           {espaceClientUrl && facture.reponseClient === "ACCEPTEE" ? (
             <div className="flex flex-col items-center gap-1 text-center">

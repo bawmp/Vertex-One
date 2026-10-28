@@ -1,9 +1,9 @@
 import { numeroAcompteDeReference } from "@/lib/facturation/acompte";
 import { redirect, notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { Download, CheckCircle2, XCircle, CreditCard } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { facture, ligneFacture, contact, compteClient, paiement, entreprise, avoirFacture } from "@/db/schema";
+import { facture, ligneFacture, contact, compteClient, paiement, entreprise, avoirFacture, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -17,6 +17,9 @@ import { marquerFacturePayee, annulerFacture } from "@/lib/actions/facture";
 import { FormulaireEnvoiFacture } from "./formulaire-envoi-facture";
 import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
 import { BoutonPaiementEnLigne } from "./bouton-paiement-en-ligne";
+import { CartePromesse, type PromesseAffichee } from "./carte-promesse";
+import { historiquePromesses } from "@/lib/facturation/promesse";
+import { aujourdhuiDouala, ajouterJours, JOURS_MAX_PROMESSE, type StatutPromesse } from "@/lib/facturation/promesse-regles";
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { getT } from "@/lib/i18n/langue";
@@ -42,11 +45,29 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
 
     const jetonClient = await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { factureId: id });
 
-    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient };
+    // Promesses de paiement de la facture (celle qui court et l'historique), avec le nom de la personne qui les a notées.
+    const toutesPromesses = await historiquePromesses(tx, id);
+    const idsAuteurs = [...new Set(toutesPromesses.map((x) => x.creeParId).filter((a): a is string => Boolean(a)))];
+    // `utilisateur` reste en RLS permissive (Better-Auth) : le filtre entrepriseId est explicite.
+    const auteurs = idsAuteurs.length > 0 ? await tx.select({ id: utilisateur.id, nom: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.id, idsAuteurs))) : [];
+    const nomAuteur = new Map(auteurs.map((a) => [a.id, a.nom]));
+    const promesses: PromesseAffichee[] = toutesPromesses.map((x) => ({
+      id: x.id,
+      datePromise: x.datePromise,
+      montant: x.montant,
+      canal: x.canal,
+      source: x.source,
+      note: x.note,
+      statut: x.statut as StatutPromesse,
+      creeLe: x.creeLe.toISOString(),
+      auteurNom: x.creeParId ? (nomAuteur.get(x.creeParId) ?? null) : null,
+    }));
+
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses } = donnees;
 
   const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
   const resumeReponse =
@@ -99,6 +120,17 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
       ) : null}
 
       <EncartLienClient url={urlPubliqueFacture(jetonClient)} resume={resumeReponse} />
+
+      <CartePromesse
+        factureId={laFacture.id}
+        promesse={promesses.find((x) => x.statut === "EN_COURS") ?? null}
+        historique={promesses.filter((x) => x.statut !== "EN_COURS")}
+        peutModifier={peutModifier}
+        estReglee={estReglee}
+        solde={solde}
+        aujourdhui={aujourdhuiDouala()}
+        jourMax={ajouterJours(aujourdhuiDouala(), JOURS_MAX_PROMESSE)}
+      />
 
       <Card className="p-0">
         <div className="overflow-x-auto">

@@ -4,6 +4,7 @@ import {
   pgPolicy,
   text,
   timestamp,
+  date,
   time,
   json,
   boolean,
@@ -3341,6 +3342,56 @@ export const produit = pgTable(
   },
   (table) => [
     index("produit_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Promesse de paiement (2026-10-28) : un client annonce qu'il réglera une facture à une date donnée (au téléphone, sur WhatsApp,
+// ou lui-même depuis la page publique de la facture). Tant qu'elle court (EN_COURS), la relance automatique de cette facture est
+// suspendue ; elle devient TENUE dès que les règlements couvrent le montant promis, NON_TENUE si la date (plus un jour de grâce)
+// passe sans paiement (les relances reprennent et l'auteur est alerté), ANNULEE si elle est retirée ou remplacée par une autre.
+// Une seule promesse en cours par facture (index unique partiel), l'historique des anciennes reste.
+export const statutPromessePaiement = pgEnum("statut_promesse_paiement", ["EN_COURS", "TENUE", "NON_TENUE", "ANNULEE"]);
+
+export const promessePaiement = pgTable(
+  "promesse_paiement",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureId: text("facture_id")
+      .notNull()
+      .references(() => facture.id),
+    // Copié de la facture au moment de la promesse : l'historique du contact peut la retrouver sans jointure.
+    contactId: text("contact_id").references(() => contact.id),
+    // Jour (sans heure) auquel le client dit qu'il paiera, au format AAAA-MM-JJ.
+    datePromise: date("date_promise", { mode: "string" }).notNull(),
+    montant: integer("montant").notNull(),
+    // « appel », « whatsapp », « rendez-vous », « autre » (saisi par l'équipe) ou « client » (déclaré sur la page publique).
+    canal: text("canal").notNull(),
+    // « EQUIPE » ou « CLIENT » : qui a enregistré la promesse.
+    source: text("source").notNull().default("EQUIPE"),
+    note: text("note"),
+    statut: statutPromessePaiement("statut").notNull().default("EN_COURS"),
+    // Nul quand c'est le client qui l'a déclarée lui-même.
+    creeParId: text("cree_par_id").references(() => utilisateur.id),
+    // Adresse IP de la déclaration du client (lue côté serveur), nulle pour une promesse saisie par l'équipe.
+    clientIp: text("client_ip"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    resolueLe: timestamp("resolue_le"),
+    // Posé quand l'alerte « promesse non tenue » a été envoyée : jamais deux fois.
+    alerteLe: timestamp("alerte_le"),
+  },
+  (table) => [
+    index("promesse_paiement_entreprise_idx").on(table.entrepriseId),
+    index("promesse_paiement_facture_idx").on(table.factureId),
+    index("promesse_paiement_statut_date_idx").on(table.statut, table.datePromise),
+    uniqueIndex("promesse_paiement_en_cours_unique").on(table.factureId).where(sql`${table.statut} = 'EN_COURS'`),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
