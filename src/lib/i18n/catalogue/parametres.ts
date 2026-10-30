@@ -2,6 +2,8 @@
 export const PARAMETRES: Record<string, string> = {
   // Général
   "Régler mon abonnement ({montant})": "Pay my subscription ({montant})",
+  "Palier équipe": "Team tier",
+  "Utilisateurs actifs : {n}. À partir de {seuil} utilisateurs actifs, le prix passe à {prix} FCFA/mois pour toute l'équipe.": "Active users: {n}. From {seuil} active users, the price becomes {prix} FCFA/month for the whole team.",
   "Douze mois, toutes les fonctionnalités": "Twelve months, every feature",
   "Durée de l'abonnement": "Subscription length",
   "Mensuel": "Monthly",

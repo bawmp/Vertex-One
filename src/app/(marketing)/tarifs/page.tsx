@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES, valeursSite } from "@/lib/marketing/contenu";
+import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, PRIX_EQUIPE_FCFA, SEUIL_EQUIPE, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "../reveal";
 import { CompteurAnime } from "../compteur-anime";
 import { getTVisiteur } from "@/lib/i18n/langue";
@@ -26,7 +26,7 @@ export default async function PageTarifs() {
     <div className="mx-auto max-w-4xl px-6 py-20">
       <Reveal>
         <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-4xl font-semibold tracking-tight">{t("Un seul prix, tout inclus")}</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">{t("Un prix par entreprise, tout inclus")}</h1>
           <p className="mt-4 text-muted-foreground">
             {t("Pas de forfait Starter/Pro/Business, pas d'add-on à débloquer — un abonnement, tous les modules, toute votre équipe.")}
           </p>
@@ -50,6 +50,9 @@ export default async function PageTarifs() {
               ) : null}
               <p className="mt-3 text-sm text-muted-foreground">
                 {t("Ou {prix} FCFA pour 12 mois — {mois} mois offerts", { prix: PRIX_ABONNEMENT_ANNUEL_FCFA.toLocaleString(t.locale), mois: MOIS_OFFERTS_ANNUEL })}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("Équipe de {seuil} utilisateurs actifs ou plus : {prix} FCFA/mois pour toute l'entreprise", { seuil: SEUIL_EQUIPE, prix: PRIX_EQUIPE_FCFA.toLocaleString(t.locale) })}
               </p>
             </div>
 

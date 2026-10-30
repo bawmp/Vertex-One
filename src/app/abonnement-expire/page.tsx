@@ -7,6 +7,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { tarifPour } from "@/lib/abonnement/tarif";
+import { compterUtilisateursActifs } from "@/lib/abonnement/utilisateurs";
 import { BoutonPaiementAbonnement } from "../app/parametres/abonnement/bouton-paiement-abonnement";
 
 /**
@@ -29,7 +30,7 @@ export default async function PageAbonnementExpire() {
   if (monEntreprise?.statutAbonnement !== "suspendu") redirect("/app");
 
   const estAdmin = peut(utilisateurConnecte, "PARAMETRES", "MODIFIER");
-  const tarif = tarifPour(monEntreprise.creeLe, new Date());
+  const tarif = tarifPour(monEntreprise.creeLe, new Date(), await compterUtilisateursActifs(db, utilisateurConnecte.entrepriseId));
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

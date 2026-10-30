@@ -12,6 +12,7 @@ import { telephoneInternational } from "@/lib/paiement/telephone";
 import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { getT } from "@/lib/i18n/langue";
 import { montantEtMois, tarifPour, type TarifAbonnement } from "@/lib/abonnement/tarif";
+import { compterUtilisateursActifs } from "@/lib/abonnement/utilisateurs";
 
 // Prix : voir src/lib/abonnement/tarif.ts (prix mensuel, prix de lancement garanti 12 mois, formule annuelle). Historique : temporairement
 // ramené à 10 XAF le 2026-09-22/23 pour vérifier l'intégration Aangaraa Pay avec de l'argent réel, restauré à 50 000 le 2026-09-23, puis
@@ -54,11 +55,12 @@ export async function declencherPaiementAbonnement(
   if (operateur !== "MTN_Cameroon" && operateur !== "Orange_Cameroon") return { erreur: t("Choisissez votre opérateur Mobile Money.") };
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    // Le montant et la durée sont décidés ICI, depuis la date de création de l'entreprise (garantie de prix de lancement) : jamais un
+    // Le montant et la durée sont décidés ICI, depuis la date de création de l'entreprise (garantie de prix de lancement) et son nombre d'utilisateurs actifs (palier équipe) : jamais un
     // montant ni un nombre de mois venu du navigateur — `formule` n'est qu'un choix parmi deux valeurs, tout le reste retombe sur « mensuel ».
     const [monEntreprise] = await tx.select({ creeLe: entreprise.creeLe }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!monEntreprise) return { erreur: t("Impossible de récupérer le statut de l'abonnement.") };
-    const choix = montantEtMois(tarifPour(monEntreprise.creeLe, new Date()), formule);
+    const utilisateursActifs = await compterUtilisateursActifs(tx, utilisateurConnecte.entrepriseId);
+    const choix = montantEtMois(tarifPour(monEntreprise.creeLe, new Date(), utilisateursActifs), formule);
 
     const [tentative] = await tx
       .insert(tentativePaiementAbonnement)
@@ -171,6 +173,7 @@ export async function recupererStatutAbonnement(): Promise<StatutAbonnementAffic
       .orderBy(desc(tentativePaiementAbonnement.creeLe));
 
     const { creeLe, ...etat } = monEntreprise;
-    return { ...etat, paiements, tarif: tarifPour(creeLe, new Date()) };
+    const utilisateursActifs = await compterUtilisateursActifs(tx, utilisateurConnecte.entrepriseId);
+    return { ...etat, paiements, tarif: tarifPour(creeLe, new Date(), utilisateursActifs) };
   });
 }

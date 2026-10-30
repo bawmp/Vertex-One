@@ -1,5 +1,5 @@
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { COMPARATIF, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, OFFRE_LANCEMENT_JUSQU_AU, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES } from "@/lib/marketing/contenu";
+import { COMPARATIF, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, OFFRE_LANCEMENT_JUSQU_AU, PRIX_EQUIPE_FCFA, SEUIL_EQUIPE, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES } from "@/lib/marketing/contenu";
 
 /**
  * Construit le prompt système de Kyria à partir des faits réels déjà
@@ -24,7 +24,7 @@ ${OFFRE_LANCEMENT_OUVERTE ? `- Prix de lancement : toute entreprise inscrite jus
 ` : ""}- Essai gratuit de ${DUREE_ESSAI_JOURS} jours, sans carte bancaire.
 - Délai de grâce de ${DELAI_GRACE_HEURES} heures après l'échéance avant toute suspension d'accès.
 - Paiement par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay — les fonds sont reversés à l'entreprise avec un délai (ne cite aucun nombre de jours : il dépend du prestataire). Jamais instantané ni direct.
-- Employés et collaborateurs illimités, rôles attribués librement une fois l'abonnement souscrit.
+- Employés et collaborateurs illimités, rôles attribués librement une fois l'abonnement souscrit. Palier équipe : à partir de ${SEUIL_EQUIPE} utilisateurs actifs, ${PRIX_EQUIPE_FCFA.toLocaleString("fr-FR")} FCFA/mois pour toute l'entreprise (prix fixe, jamais par utilisateur).
 
 Modules disponibles :
 ${modules}

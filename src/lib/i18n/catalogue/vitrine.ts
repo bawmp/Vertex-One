@@ -107,8 +107,8 @@ export const VITRINE: Record<string, string> = {
   "La suite de gestion tout-en-un pour les entreprises de services en Afrique": "The all-in-one management suite for service businesses in Africa",
   "One CRM, One Books, One People, One Projects, One Bookings et plus — la même largeur fonctionnelle qu'un grand logiciel international, pensée Mobile Money-first, en français, sans les coûts d'implémentation.":
     "One CRM, One Books, One People, One Projects, One Bookings and more — the same functional breadth as a large international software, designed Mobile Money-first, in French, without the implementation costs.",
-  "Un seul prix,": "One price,",
-  "FCFA/mois — tous les modules inclus, aucun mur de forfait, invitez toute votre équipe sans coût supplémentaire.": "FCFA/month — every module included, no plan wall, invite your whole team at no extra cost.",
+  "Un prix par entreprise,": "One price per company,",
+  "FCFA/mois — tous les modules inclus, aucun mur de forfait, équipe illimitée : à partir de {seuil} utilisateurs actifs, {prix} FCFA/mois pour toute l'entreprise.": "FCFA/month — every module included, no plan wall, unlimited team: from {seuil} active users, {prix} FCFA/month for the whole company.",
   "Un module pour chaque partie de votre activité": "A module for every part of your business",
   "Tous inclus dans le même abonnement, dès le premier jour — aucun n'est verrouillé derrière un forfait supérieur.": "All included in the same subscription from day one — none is locked behind a higher plan.",
   "Pensé pour l'Afrique, pas adapté après coup": "Designed for Africa, not adapted as an afterthought",
@@ -124,7 +124,7 @@ export const VITRINE: Record<string, string> = {
 
   // Tarifs
   "Un seul abonnement à {prix} FCFA/mois, tous les modules inclus. Essai gratuit {jours} jours.": "A single subscription at {prix} FCFA/month, every module included. {jours}-day free trial.",
-  "Un seul prix, tout inclus": "One price, everything included",
+  "Un prix par entreprise, tout inclus": "One price per company, everything included",
   "Pas de forfait Starter/Pro/Business, pas d'add-on à débloquer — un abonnement, tous les modules, toute votre équipe.": "No Starter/Pro/Business plan, no add-on to unlock — one subscription, every module, your whole team.",
   "Abonnement Vertex One": "Vertex One subscription",
   "FCFA/mois": "FCFA/month",
@@ -141,7 +141,7 @@ export const VITRINE: Record<string, string> = {
   "Essai immédiat, aucun coût d'implémentation": "Immediate trial, no implementation cost",
   "Configuration en libre-service, ou implémentation confiée à un intégrateur, facturée en plus de l'abonnement selon la solution": "Self-service setup, or implementation handled by an integrator, billed on top of the subscription depending on the solution",
   "Modules inclus": "Modules included",
-  "Un seul prix, tous les modules inclus": "One price, every module included",
+  "Un prix par entreprise, tous les modules inclus": "One price per company, every module included",
   "Chaque application ou module vendu séparément, ou par palier": "Each application or module sold separately, or by tier",
   "Langue & conformité locale": "Language & local compliance",
   "Français, SYSCOHADA, prêt pour la facturation électronique 2026": "French, SYSCOHADA, ready for 2026 electronic invoicing",
@@ -158,8 +158,7 @@ export const VITRINE: Record<string, string> = {
   "Non — Aangaraa Pay, notre partenaire de paiement, reverse les fonds à l'entreprise avec un délai. Vertex One ne présente jamais ce paiement comme instantané ou direct.":
     "No — Aangaraa Pay, our payment partner, pays the funds out to the company with a delay. Vertex One never presents this payment as instant or direct.",
   "Puis-je inviter mon équipe ?": "Can I invite my team?",
-  "Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents.":
-    "Yes, with no limit on numbers. You assign a role to each invited employee or collaborator, and you choose the modules each one can access — for example a contractor who only sees projects and documents.",
+  "Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents. Le prix reste le même jusqu'à {seuilMoins} utilisateurs actifs ; à partir de {seuil}, il passe à {prixEquipe} FCFA/mois pour toute l'équipe.": "Yes, with no limit. You assign a role to each invited employee or collaborator, and you choose which modules each one can access — for example a contractor who only sees projects and documents. The price stays the same up to {seuilMoins} active users; from {seuil}, it becomes {prixEquipe} FCFA/month for the whole team.",
   "Mes clients peuvent-ils accepter un devis, payer et signer en ligne ?": "Can my clients accept a quote, pay and sign online?",
   "Oui, sans créer de compte. Ils reçoivent un lien : ils consultent le devis ou la facture, l'acceptent ou la refusent, puis règlent en Mobile Money tout de suite ou plus tard. Vos contrats se signent aussi en ligne, avec un code de vérification envoyé par email ; la copie signée, horodatée, est rangée dans le dossier du client et vous est envoyée.":
     "Yes, without creating an account. They receive a link: they view the quote or invoice, accept or decline it, then pay by Mobile Money right away or later. Your contracts are also signed online, with a verification code sent by email; the signed, time-stamped copy is filed in the client's file and sent to you.",
@@ -173,13 +172,14 @@ export const VITRINE: Record<string, string> = {
   "Non. Un seul prix, tous les modules inclus dès le premier jour — One CRM, One Books, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk et plus. Aucun module n'est verrouillé derrière un forfait supérieur.":
     "No. One price, every module included from day one — One CRM, One Books, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk and more. No module is locked behind a higher plan.",
   "Le prix change-t-il selon le nombre d'employés ?": "Does the price change with the number of employees?",
+  "Équipe de {seuil} utilisateurs actifs ou plus : {prix} FCFA/mois pour toute l'entreprise": "Teams of {seuil} or more active users: {prix} FCFA/month for the whole company",
   "Prix de lancement garanti {mois} mois": "Launch price guaranteed for {mois} months",
   "Ou {prix} FCFA pour 12 mois — {mois} mois offerts": "Or {prix} FCFA for 12 months — {mois} months free",
   "Y a-t-il un prix de lancement ?": "Is there a launch price?",
   "Oui. Toute entreprise qui s'inscrit jusqu'au {finOffre} garde le prix de lancement de {prix} FCFA/mois pendant {moisGarantie} mois à partir de son inscription, même si le prix évolue ensuite.": "Yes. Any company that signs up by {finOffre} keeps the launch price of {prix} FCFA/month for {moisGarantie} months from its sign-up date, even if the price changes later.",
   "Puis-je payer à l'année ?": "Can I pay yearly?",
   "Oui : {prixAnnuel} FCFA pour 12 mois, soit {moisOfferts} mois offerts. Un seul paiement Mobile Money au lieu de douze, et votre accès est couvert toute l'année.": "Yes: {prixAnnuel} FCFA for 12 months, i.e. {moisOfferts} months free. One Mobile Money payment instead of twelve, and your access is covered all year.",
-  "Non. Vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur.": "No. You invite as many employees and collaborators as needed, with no extra cost per user.",
+  "Pas avant {seuil} utilisateurs actifs : vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur. À partir de {seuil} utilisateurs actifs, le prix est de {prixEquipe} FCFA/mois pour toute l'entreprise — un prix fixe pour l'équipe, jamais un prix par utilisateur.": "Not before {seuil} active users: invite as many employees and collaborators as you need, with no extra cost per user. From {seuil} active users, the price is {prixEquipe} FCFA/month for the whole company — a fixed team price, never a per-user price.",
   "Comment se passe le paiement ?": "How does payment work?",
   "Par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay, un partenaire de paiement local. Les fonds sont reversés avec un délai — jamais présenté comme instantané.":
     "By Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay, a local payment partner. Funds are paid out with a delay — never presented as instant.",

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { BoutonPaiementAbonnement } from "./bouton-paiement-abonnement";
 import { getT } from "@/lib/i18n/langue";
+import { PRIX_MENSUEL_EQUIPE, SEUIL_EQUIPE } from "@/lib/abonnement/tarif";
 
 const LIBELLE_STATUT: Record<string, { texte: string; variant: "success" | "danger" | "brand" }> = {
   essai: { texte: "Essai gratuit", variant: "brand" },
@@ -65,6 +66,7 @@ export default async function PageAbonnement() {
                 {t("Prix de lancement garanti jusqu'au {date}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(statut.tarif.garantieJusquAu) })}
               </Badge>
             ) : null}
+            {statut.tarif.palierEquipe ? <Badge variant="brand">{t("Palier équipe")}</Badge> : null}
           </CardTitle>
           <CardDescription>
             {statut.statutAbonnement === "essai"
@@ -73,6 +75,13 @@ export default async function PageAbonnement() {
                 ? `Prochaine échéance dans ${joursRestants(dateReference)} jour(s).`
                 : t("Réglez votre abonnement pour réactiver immédiatement l'accès.")}
           </CardDescription>
+          <p className="text-xs text-muted-foreground">
+            {t("Utilisateurs actifs : {n}. À partir de {seuil} utilisateurs actifs, le prix passe à {prix} FCFA/mois pour toute l'équipe.", {
+              n: statut.tarif.utilisateursActifs,
+              seuil: SEUIL_EQUIPE,
+              prix: PRIX_MENSUEL_EQUIPE.toLocaleString(t.locale),
+            })}
+          </p>
         </CardHeader>
         {peutPayer ? (
           <CardContent>

@@ -1,5 +1,5 @@
 import { m } from "@/lib/i18n/catalogue";
-import { GARANTIE_LANCEMENT_MOIS, MOIS_OFFERTS_ANNUEL, OFFRE_LANCEMENT_JUSQU_AU, tarifPour } from "@/lib/abonnement/tarif";
+import { GARANTIE_LANCEMENT_MOIS, MOIS_OFFERTS_ANNUEL, OFFRE_LANCEMENT_JUSQU_AU, PRIX_MENSUEL_EQUIPE, SEUIL_EQUIPE, tarifPour } from "@/lib/abonnement/tarif";
 /**
  * Contenu partagé entre plusieurs pages du site vitrine (accueil + tarifs),
  * pour ne pas dupliquer la même FAQ ou le même tableau comparatif à deux
@@ -12,7 +12,8 @@ const TARIF_VISITEUR = tarifPour(new Date(), new Date());
 export const PRIX_ABONNEMENT_MENSUEL_FCFA = TARIF_VISITEUR.prixMensuel;
 export const PRIX_ABONNEMENT_ANNUEL_FCFA = TARIF_VISITEUR.montantAnnuel;
 export const OFFRE_LANCEMENT_OUVERTE = TARIF_VISITEUR.garantieJusquAu !== null;
-export { MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_JUSQU_AU };
+export const PRIX_EQUIPE_FCFA = PRIX_MENSUEL_EQUIPE;
+export { MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_JUSQU_AU, SEUIL_EQUIPE };
 export const DUREE_ESSAI_JOURS = 14;
 export const DELAI_GRACE_HEURES = 48;
 
@@ -29,7 +30,7 @@ export const COMPARATIF = {
   criteres: [
     { critere: m("Paiement"), vertexOne: m("Mobile Money natif (Orange Money, MTN MoMo), facturé en FCFA"), generaliste: m("Carte bancaire internationale, facturé en devise étrangère") },
     { critere: m("Mise en route"), vertexOne: m("Essai immédiat, aucun coût d'implémentation"), generaliste: m("Configuration en libre-service, ou implémentation confiée à un intégrateur, facturée en plus de l'abonnement selon la solution") },
-    { critere: m("Modules inclus"), vertexOne: m("Un seul prix, tous les modules inclus"), generaliste: m("Chaque application ou module vendu séparément, ou par palier") },
+    { critere: m("Modules inclus"), vertexOne: m("Un prix par entreprise, tous les modules inclus"), generaliste: m("Chaque application ou module vendu séparément, ou par palier") },
     { critere: m("Langue & conformité locale"), vertexOne: m("Français, SYSCOHADA, prêt pour la facturation électronique 2026"), generaliste: m("Interface multilingue générique, rarement pensée pour l'Afrique") },
     { critere: m("Support"), vertexOne: m("Support humain local"), generaliste: m("Support centralisé, souvent en décalage horaire") },
   ],
@@ -46,7 +47,7 @@ export const FAQ_ACCUEIL = [
   },
   {
     question: m("Puis-je inviter mon équipe ?"),
-    reponse: m("Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents."),
+    reponse: m("Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents. Le prix reste le même jusqu'à {seuilMoins} utilisateurs actifs ; à partir de {seuil}, il passe à {prixEquipe} FCFA/mois pour toute l'équipe."),
   },
   {
     question: m("Mes clients peuvent-ils accepter un devis, payer et signer en ligne ?"),
@@ -69,7 +70,7 @@ export const FAQ_TARIFS = [
   },
   {
     question: m("Le prix change-t-il selon le nombre d'employés ?"),
-    reponse: m("Non. Vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur."),
+    reponse: m("Pas avant {seuil} utilisateurs actifs : vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur. À partir de {seuil} utilisateurs actifs, le prix est de {prixEquipe} FCFA/mois pour toute l'entreprise — un prix fixe pour l'équipe, jamais un prix par utilisateur."),
   },
   {
     question: m("Comment se passe le paiement ?"),
@@ -102,6 +103,9 @@ export function valeursSite(locale: string): Record<string, string | number> {
     prixAnnuel: PRIX_ABONNEMENT_ANNUEL_FCFA.toLocaleString(locale),
     moisOfferts: MOIS_OFFERTS_ANNUEL,
     moisGarantie: GARANTIE_LANCEMENT_MOIS,
+    seuil: SEUIL_EQUIPE,
+    seuilMoins: SEUIL_EQUIPE - 1,
+    prixEquipe: PRIX_MENSUEL_EQUIPE.toLocaleString(locale),
     finOffre: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "Africa/Douala" }).format(OFFRE_LANCEMENT_JUSQU_AU),
   };
 }

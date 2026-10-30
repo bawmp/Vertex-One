@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, valeursSite } from "@/lib/marketing/contenu";
+import { COMPARATIF, FAQ_ACCUEIL, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_EQUIPE_FCFA, SEUIL_EQUIPE, DUREE_ESSAI_JOURS, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "./reveal";
 import { CompteurAnime } from "./compteur-anime";
 import { getTVisiteur } from "@/lib/i18n/langue";
@@ -144,7 +144,7 @@ export default async function PageAccueil() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-6 py-6 text-center sm:flex-row sm:justify-center sm:gap-3">
           <Check className="size-5 shrink-0 text-primary" aria-hidden />
           <p className="text-sm font-medium text-foreground sm:text-base">
-            {t("Un seul prix,")} <CompteurAnime valeur={PRIX_ABONNEMENT_MENSUEL_FCFA} /> {t("FCFA/mois — tous les modules inclus, aucun mur de forfait, invitez toute votre équipe sans coût supplémentaire.")}
+            {t("Un prix par entreprise,")} <CompteurAnime valeur={PRIX_ABONNEMENT_MENSUEL_FCFA} /> {t("FCFA/mois — tous les modules inclus, aucun mur de forfait, équipe illimitée : à partir de {seuil} utilisateurs actifs, {prix} FCFA/mois pour toute l'entreprise.", { seuil: SEUIL_EQUIPE, prix: PRIX_EQUIPE_FCFA.toLocaleString(t.locale) })}
           </p>
         </div>
       </section>
