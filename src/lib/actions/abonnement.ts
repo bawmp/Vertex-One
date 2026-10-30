@@ -13,15 +13,15 @@ import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/l
 import { getT } from "@/lib/i18n/langue";
 
 // Prix réel de l'abonnement plat mensuel (2026-09-14). Temporairement ramené à 10 XAF le 2026-09-22/23 pour
-// vérifier l'intégration Aangaraa Pay avec de l'argent réel — restauré à 50 000 le 2026-09-23, tests terminés.
-const PRIX_ABONNEMENT_MENSUEL = 50_000;
+// vérifier l'intégration Aangaraa Pay avec de l'argent réel — restauré à 50 000 le 2026-09-23, puis passé à 25 000 FCFA/mois le 2026-10-30 (décision de l'utilisateur).
+const PRIX_ABONNEMENT_MENSUEL = 25_000;
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
 
 /**
- * Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — même squelette que
+ * Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — même squelette que
  * genererLienPaiement() (src/lib/actions/facture.ts), mais un flux d'argent
  * différent : le tenant paie ici Vertex One lui-même, jamais un de ses
  * propres clients. Table (tentativePaiementAbonnement) et webhook

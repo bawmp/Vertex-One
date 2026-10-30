@@ -44,13 +44,13 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
 
 **Statut (2026-09-21) : Aangaraa Pay remplace CamPay** (choisi par le propriétaire le même jour, après CinetPay dont l'authentification restait bloquée). Intégration écrite d'après la documentation officielle et le SDK JavaScript fournis ; **aucun appel authentifié n'a encore été fait (pas de clé)** : l'appel de création de lien, la relecture d'un statut et l'adresse de la page de paiement restent à vérifier avec une vraie clé. Le même compte sert **deux usages** :
 1. Paiement des factures client par les clients d'un tenant (`docs/crm-roadmap-post-commercialisation.md`, section 36).
-2. **Abonnement plateforme** — chaque tenant paie 50 000 FCFA/mois à Vertex One lui-même (section 37) : essai gratuit de 14 jours, délai de grâce de 48h après échéance avant suspension d'accès.
+2. **Abonnement plateforme** — chaque tenant paie 25 000 FCFA/mois à Vertex One lui-même (section 37) : essai gratuit de 14 jours, délai de grâce de 48h après échéance avant suspension d'accès.
 
 - [ ] Créer le compte marchand et l'application sur aangaraa-pay.com, obtenir l'`app_key`
 - [ ] **⚠️ Protéger l'`app_key`** : elle autorise aussi les **retraits** de fonds (`/aangaraa-pay/withdrawal`) vers n'importe quel numéro. La mettre uniquement dans `.env.local` et dans les variables Vercel, jamais dans une conversation ni dans le dépôt. **Demander à Aangaraa Pay** si les retraits peuvent être restreints (code PIN, liste d'adresses, numéros autorisés) et si la clé peut être renouvelée.
 - [ ] Renseigner `AANGARAA_PAY_APP_KEY` dans `.env.local` puis dans Vercel (Production), et **redéployer**. Vérifier que `BETTER_AUTH_URL` vaut `https://vertexone.cm` : l'adresse de notification en est déduite (`/api/paiements/aangaraa/notify`, transmise à chaque paiement, rien à saisir dans un tableau de bord).
 - [ ] **Vérifier avec la vraie clé, en petit montant** (un lien de paiement ne déplace aucun argent tant que personne ne paie) : (a) la création d'un lien renvoie bien `data.payment_url` ; (b) **l'adresse où s'ouvre ce lien** — sinon renseigner `AANGARAA_PAY_URL_PAGE` ; (c) après un vrai paiement de test, la notification arrive et la relecture `/aangaraa_check_status` donne `SUCCESSFUL` avec notre `transaction_id`. Si la forme de la réponse diffère de ce que le code attend, **aucun paiement n'est confirmé** (le code échoue vers « inconnu ») : ajuster `analyserReponseStatut()`.
-- [ ] Vérifier de bout en bout : (a) une facture depuis son lien public (« Payer maintenant »), (b) l'abonnement depuis `/app/parametres/abonnement` (50 000 FCFA). La facture passe à « payée », un règlement apparaît.
+- [ ] Vérifier de bout en bout : (a) une facture depuis son lien public (« Payer maintenant »), (b) l'abonnement depuis `/app/parametres/abonnement` (25 000 FCFA). La facture passe à « payée », un règlement apparaît.
 - [ ] **Demander à Aangaraa Pay** (à ne pas supposer) : le **délai de reversement** des fonds vers l'entreprise (non publié — aucun nombre de jours n'est annoncé sur le site ni dans Kyria tant que ce n'est pas confirmé) ; s'il **rappelle** la notification en cas d'échec ; s'il existe un **bac à sable** ; s'il signe ses notifications ; comment relire un statut à partir de notre référence ; les plafonds par transaction. Les **frais publiés** : encaissement MTN 1,70 %, Orange 1,50 % ; retrait MTN 1,30 %, Orange 2,10 %.
 - [ ] Vérifier que le worker (`npm run worker`) tourne en production — la tâche planifiée quotidienne `verifier-abonnements` (8h) envoie les rappels d'échéance et suspend l'accès en cas de non-paiement.
 
@@ -82,7 +82,7 @@ Aucun changement de code nécessaire — `src/lib/documents/stockage.ts` détect
   ```
   ANTHROPIC_API_KEY="..."
   ```
-- [ ] Une fois la clé en place, vérifier une vraie conversation (ex. "combien coûte l'abonnement ?" doit répondre 50 000 FCFA/mois, "le paiement est-il instantané ?" doit répondre non) — jamais vérifié avec une vraie clé dans l'environnement de développement.
+- [ ] Une fois la clé en place, vérifier une vraie conversation (ex. "combien coûte l'abonnement ?" doit répondre 25 000 FCFA/mois, "le paiement est-il instantané ?" doit répondre non) — jamais vérifié avec une vraie clé dans l'environnement de développement.
 - [ ] Avant un trafic important : ajouter une limitation de débit sur `/api/kyria` (aucune pour l'instant, voir roadmap section 41) — un chat public sans authentification est exposé aux abus/coûts incontrôlés sans ce garde-fou.
 
 ## 6. Anti-spam One Form — Cloudflare Turnstile

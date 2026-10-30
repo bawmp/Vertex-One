@@ -51,7 +51,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
   let idEntreprise: string;
   let idAdmin: string;
 
-  // Abonnement plat 50 000 FCFA/mois, essai gratuit de 14 jours (2026-09-14)
+  // Abonnement plat 25 000 FCFA/mois, essai gratuit de 14 jours (2026-09-14)
   // — abonnementEcheanceLe démarre égale à essaiFinLe : le premier paiement
   // est dû exactement quand l'essai se termine, jamais avant.
   const essaiFinLe = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);

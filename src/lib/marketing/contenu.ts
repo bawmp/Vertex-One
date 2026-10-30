@@ -10,7 +10,7 @@ import { m } from "@/lib/i18n/catalogue";
 // importer ici. Garder synchronisé avec les deux endroits si le prix change
 // (voir aussi docs/mise-en-production-checklist.md et
 // docs/crm-roadmap-post-commercialisation.md, section 37).
-export const PRIX_ABONNEMENT_MENSUEL_FCFA = 50_000;
+export const PRIX_ABONNEMENT_MENSUEL_FCFA = 25_000;
 export const DUREE_ESSAI_JOURS = 14;
 export const DELAI_GRACE_HEURES = 48;
 

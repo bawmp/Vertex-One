@@ -5,7 +5,7 @@ const JOUR_MS = 24 * 60 * 60 * 1000;
 const HEURE_MS = 60 * 60 * 1000;
 
 /**
- * Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — logique pure, pas de
+ * Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — logique pure, pas de
  * base de données requise. Une assertion par ligne de la table d'états
  * documentée dans src/lib/abonnement/etat.ts.
  */

@@ -178,7 +178,7 @@ export function BoutonPaiementAbonnement() {
       }}
       className="flex w-full max-w-md animate-in flex-col gap-5 text-left duration-500 fade-in slide-in-from-bottom-2"
     >
-      <RecapMontant etiquette={t("Abonnement Vertex One")} designation={t("Un mois, toutes les fonctionnalités")} montant="50 000 FCFA" />
+      <RecapMontant etiquette={t("Abonnement Vertex One")} designation={t("Un mois, toutes les fonctionnalités")} montant="25 000 FCFA" />
 
       <ChoixCartes
         etiquette={t("Opérateur Mobile Money")}
@@ -210,7 +210,7 @@ export function BoutonPaiementAbonnement() {
 
       <Button type="submit" size="lg" disabled={enCours || !telephoneValide} className="h-12 w-full text-base">
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
-        {t("Régler mon abonnement (50 000 FCFA)")}
+        {t("Régler mon abonnement (25 000 FCFA)")}
       </Button>
 
       <BandeauPaiementSecurise libelle={t("Paiement sécurisé")} moyens={["MTN Mobile Money", "Orange Money"]} />

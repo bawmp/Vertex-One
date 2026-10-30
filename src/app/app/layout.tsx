@@ -356,7 +356,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     .innerJoin(entreprise, eq(entreprise.id, utilisateur.entrepriseId))
     .where(eq(utilisateur.id, utilisateurConnecte.utilisateurId));
 
-  // Abonnement plat 50 000 FCFA/mois (2026-09-14) — un tenant suspendu ne
+  // Abonnement plat 25 000 FCFA/mois (2026-09-14) — un tenant suspendu ne
   // voit jamais la sidebar/le contenu, redirigé vers une page hors de
   // /app/* (pour ne jamais être elle-même interceptée par cette même
   // redirection). En dehors de la suspension, une bannière non bloquante

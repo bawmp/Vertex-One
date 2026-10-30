@@ -1,4 +1,4 @@
-// Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — remplace les
+// Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — remplace les
 // forfaits starter/pro/business et les add-ons à la carte : une entreprise
 // qui n'est pas suspendue a accès à tout. Axe indépendant de peut()/portee()
 // (src/lib/permissions.ts) : celui-ci définit ce que l'ENTREPRISE a le droit

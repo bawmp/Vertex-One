@@ -123,7 +123,7 @@ Trois modules méritent une décision explicite de "construire vs. intégrer", c
 
 **Révisé le 2026-09-14** — remplace le modèle par paliers (Starter/Pro/Business + add-ons) décrit initialement dans cette section par un **abonnement plat unique**, à la demande explicite de l'utilisateur : plus simple à vendre et à comprendre pour ce segment, sans arbitrage à faire entre paliers ni fonctionnalité verrouillée qui complique le discours commercial.
 
-- **50 000 FCFA/mois par entreprise** (pas par utilisateur), payable par Mobile Money — débloque absolument tout le produit dès l'inscription : CRM, Facturation, Paiements en ligne automatisés, Projets/Dossiers, Chat interne, Signature électronique, Comptabilité complète, RH, ainsi que Marketing/Réservations/Recrutement/Assistance client (anciens modules complémentaires à l'unité, désormais inclus).
+- **25 000 FCFA/mois par entreprise** (pas par utilisateur), payable par Mobile Money — débloque absolument tout le produit dès l'inscription : CRM, Facturation, Paiements en ligne automatisés, Projets/Dossiers, Chat interne, Signature électronique, Comptabilité complète, RH, ainsi que Marketing/Réservations/Recrutement/Assistance client (anciens modules complémentaires à l'unité, désormais inclus).
 - **Essai gratuit de 14 jours**, tout déverrouillé, avant tout paiement exigé.
 - **Délai de grâce de 48h après l'échéance** avant suspension d'accès — le paiement Mobile Money passe par une confirmation asynchrone (webhook), une tolérance technique évite de couper un client qui vient de payer.
 - Une fois abonnée, l'entreprise est libre d'attribuer les rôles à ses collaborateurs invités sans restriction liée à un palier.

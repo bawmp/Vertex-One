@@ -1,7 +1,7 @@
 /** Paramètres : abonnement, entreprise, équipe, modèles d'email, import de données. */
 export const PARAMETRES: Record<string, string> = {
   // Général
-  "Régler mon abonnement (50 000 FCFA)": "Pay my subscription (50,000 FCFA)",
+  "Régler mon abonnement (25 000 FCFA)": "Pay my subscription (25,000 FCFA)",
   "Vérifiez votre téléphone et validez la demande de paiement.": "Check your phone and confirm the payment request.",
   "Choisissez votre opérateur Mobile Money.": "Choose your Mobile Money operator.",
   "Paiement confirmé — votre abonnement est actif.": "Payment confirmed — your subscription is active.",
@@ -42,7 +42,7 @@ export const PARAMETRES: Record<string, string> = {
   Réessayer: "Try again",
   "Impossible de déclencher le paiement pour le moment.": "Unable to start the payment right now.",
   "Impossible de récupérer le statut de l'abonnement.": "Unable to retrieve the subscription status.",
-  "Vertex One — 50 000 FCFA/mois": "Vertex One — 50,000 FCFA/month",
+  "Vertex One — 25 000 FCFA/mois": "Vertex One — 25,000 FCFA/month",
   "Réglez votre abonnement pour réactiver immédiatement l'accès.": "Pay your subscription to reactivate access immediately.",
   "Historique des paiements": "Payment history",
   "Aucune tentative de paiement pour le moment.": "No payment attempts yet.",

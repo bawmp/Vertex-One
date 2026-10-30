@@ -5,7 +5,7 @@ import { entreprise, utilisateur, tentativePaiementAbonnement, journalActionPlat
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
 import { EMAIL_DEMO } from "@/lib/demo";
 
-const PRIX_ABONNEMENT_MENSUEL = 50_000;
+const PRIX_ABONNEMENT_MENSUEL = 25_000;
 
 // Depuis l'abonnement plat (2026-09-14), tous les modules sont inclus : aucun n'est « activé » ni vendu séparément
 // (disponibleAddon() renvoie toujours true, la table addonActif reste vide). L'usage réel — au moins une ligne créée

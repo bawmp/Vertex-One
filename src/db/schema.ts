@@ -108,7 +108,7 @@ export const entreprise = pgTable("entreprise", {
   // les entreprises : il ne traite que celles dont ce champ est renseigné et assez ancien.
   messagesANotifierDepuis: timestamp("messages_a_notifier_depuis"),
   statutAbonnement: text("statut_abonnement").notNull().default("essai"), // essai | actif | suspendu — désormais piloté par les dates ci-dessous (échange du 2026-09-14), voir src/lib/abonnement/etat.ts
-  // Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — remplace les
+  // Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — remplace les
   // paliers/add-ons : essaiFinLe fixe la fin de l'essai gratuit de 14 jours ;
   // abonnementEcheanceLe est la prochaine date d'échéance de paiement (=
   // essaiFinLe tant qu'aucun paiement confirmé n'a eu lieu, puis reculée de

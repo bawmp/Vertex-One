@@ -58,7 +58,7 @@ export default async function PageAbonnement() {
       <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {t("Vertex One — 50 000 FCFA/mois")}
+            {t("Vertex One — 25 000 FCFA/mois")}
             <Badge variant={libelleStatut.variant}>{libelleStatut.texte}</Badge>
           </CardTitle>
           <CardDescription>

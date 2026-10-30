@@ -4,7 +4,7 @@ import { entreprise } from "@/db/schema";
 
 /**
  * Tâche planifiée quotidienne (voir crontab à la racine) — échange du
- * 2026-09-14, abonnement plat 50 000 FCFA/mois. Ne traite aucune entreprise
+ * 2026-09-14, abonnement plat 25 000 FCFA/mois. Ne traite aucune entreprise
  * elle-même : distribue un job "traiter-abonnement-entreprise" par
  * entreprise, même patron que verifier-relances.ts (l'échec d'une seule
  * entreprise n'affecte jamais les autres, retry automatique indépendant).

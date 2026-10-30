@@ -1,5 +1,5 @@
 /**
- * Abonnement plat unique 50 000 FCFA/mois (2026-09-14) — logique pure de
+ * Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — logique pure de
  * l'état essai/actif/suspendu, isolée pour rester testable directement en
  * Vitest (pas de "server-only", même patron que src/lib/aangaraa/utilitaires.ts).
  *
