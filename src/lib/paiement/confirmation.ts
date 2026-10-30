@@ -211,7 +211,8 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
     const [monEntreprise] = await tx.select({ nom: entreprise.nom, abonnementEcheanceLe: entreprise.abonnementEcheanceLe }).from(entreprise).where(eq(entreprise.id, entrepriseId));
     if (!monEntreprise) return;
 
-    const nouvelleEcheance = prochaineEcheanceApresPaiement(monEntreprise.abonnementEcheanceLe, new Date());
+    // Les mois couverts viennent de la tentative (fixés par le serveur à sa création : 1, ou 12 pour la formule annuelle).
+    const nouvelleEcheance = prochaineEcheanceApresPaiement(monEntreprise.abonnementEcheanceLe, new Date(), tentative.mois);
     const dateConfirmation = new Date();
 
     // statutAbonnement repasse à "actif" immédiatement — un tenant suspendu retrouve l'accès à l'instant où le paiement est

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES, valeursSite } from "@/lib/marketing/contenu";
+import { FAQ_TARIFS, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES, valeursSite } from "@/lib/marketing/contenu";
 import { Reveal } from "../reveal";
 import { CompteurAnime } from "../compteur-anime";
 import { getTVisiteur } from "@/lib/i18n/langue";
@@ -43,6 +43,14 @@ export default async function PageTarifs() {
                 <span className="text-lg font-normal text-muted-foreground"> {t("FCFA/mois")}</span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground">{t("Essai gratuit {jours} jours, sans carte bancaire", { jours: DUREE_ESSAI_JOURS })}</p>
+              {OFFRE_LANCEMENT_OUVERTE ? (
+                <p className="mt-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  {t("Prix de lancement garanti {mois} mois", { mois: GARANTIE_LANCEMENT_MOIS })}
+                </p>
+              ) : null}
+              <p className="mt-3 text-sm text-muted-foreground">
+                {t("Ou {prix} FCFA pour 12 mois — {mois} mois offerts", { prix: PRIX_ABONNEMENT_ANNUEL_FCFA.toLocaleString(t.locale), mois: MOIS_OFFERTS_ANNUEL })}
+              </p>
             </div>
 
             <ul className="flex w-full flex-col gap-2.5 text-left text-sm">
@@ -87,7 +95,7 @@ export default async function PageTarifs() {
       <Reveal className="mt-16">
         <h2 className="text-center text-xl font-semibold">{t("Questions sur la facturation")}</h2>
         <Accordion className="mt-8">
-          {FAQ_TARIFS.map((item) => (
+          {FAQ_TARIFS.filter((item) => OFFRE_LANCEMENT_OUVERTE || !item.reponse.includes("{finOffre}")).map((item) => (
             <AccordionItem key={item.question} value={item.question}>
               <AccordionTrigger>{t(item.question)}</AccordionTrigger>
               <AccordionContent>{t(item.reponse, valeursSite(t.locale))}</AccordionContent>

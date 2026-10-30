@@ -1,16 +1,18 @@
 import { m } from "@/lib/i18n/catalogue";
+import { GARANTIE_LANCEMENT_MOIS, MOIS_OFFERTS_ANNUEL, OFFRE_LANCEMENT_JUSQU_AU, tarifPour } from "@/lib/abonnement/tarif";
 /**
  * Contenu partagé entre plusieurs pages du site vitrine (accueil + tarifs),
  * pour ne pas dupliquer la même FAQ ou le même tableau comparatif à deux
  * endroits qui finiraient par diverger.
  */
 
-// Dupliqué depuis PRIX_ABONNEMENT_MENSUEL (src/lib/actions/abonnement.ts) —
-// ce fichier porte "use server" et n'exporte pas sa constante, impossible à
-// importer ici. Garder synchronisé avec les deux endroits si le prix change
-// (voir aussi docs/mise-en-production-checklist.md et
-// docs/crm-roadmap-post-commercialisation.md, section 37).
-export const PRIX_ABONNEMENT_MENSUEL_FCFA = 25_000;
+// Les prix viennent d'une seule source : src/lib/abonnement/tarif.ts (partagée avec le paiement). Ce qu'affiche le site est ce que
+// paie une entreprise qui s'inscrit AUJOURD'HUI (prix de lancement tant que l'offre est ouverte, prix standard ensuite).
+const TARIF_VISITEUR = tarifPour(new Date(), new Date());
+export const PRIX_ABONNEMENT_MENSUEL_FCFA = TARIF_VISITEUR.prixMensuel;
+export const PRIX_ABONNEMENT_ANNUEL_FCFA = TARIF_VISITEUR.montantAnnuel;
+export const OFFRE_LANCEMENT_OUVERTE = TARIF_VISITEUR.garantieJusquAu !== null;
+export { MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_JUSQU_AU };
 export const DUREE_ESSAI_JOURS = 14;
 export const DELAI_GRACE_HEURES = 48;
 
@@ -78,6 +80,14 @@ export const FAQ_TARIFS = [
     reponse: m("Vous êtes notifié avant l'échéance de votre essai de {jours} jours. Sans renouvellement, un délai de grâce de {heures} heures s'applique avant la suspension de l'accès — vos données restent intactes."),
   },
   {
+    question: m("Y a-t-il un prix de lancement ?"),
+    reponse: m("Oui. Toute entreprise qui s'inscrit jusqu'au {finOffre} garde le prix de lancement de {prix} FCFA/mois pendant {moisGarantie} mois à partir de son inscription, même si le prix évolue ensuite."),
+  },
+  {
+    question: m("Puis-je payer à l'année ?"),
+    reponse: m("Oui : {prixAnnuel} FCFA pour 12 mois, soit {moisOfferts} mois offerts. Un seul paiement Mobile Money au lieu de douze, et votre accès est couvert toute l'année."),
+  },
+  {
     question: m("J'ai plusieurs entreprises (filiales) — le prix est-il dégressif ?"),
     reponse: m("Non. Vous pouvez relier vos entreprises en groupe pour les voir d'un coup d'œil, mais chacune reste un abonnement Vertex One à part entière, à {prix} FCFA/mois, avec son propre essai et sa propre échéance. Aucune remise groupée, aucune facture unique pour l'instant."),
   },
@@ -85,5 +95,13 @@ export const FAQ_TARIFS = [
 
 /** Valeurs des {paramètres} des textes du site (durée d'essai, délai de grâce, prix) : `t(item.reponse, valeursSite(t.locale))`. */
 export function valeursSite(locale: string): Record<string, string | number> {
-  return { jours: DUREE_ESSAI_JOURS, heures: DELAI_GRACE_HEURES, prix: PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString(locale) };
+  return {
+    jours: DUREE_ESSAI_JOURS,
+    heures: DELAI_GRACE_HEURES,
+    prix: PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString(locale),
+    prixAnnuel: PRIX_ABONNEMENT_ANNUEL_FCFA.toLocaleString(locale),
+    moisOfferts: MOIS_OFFERTS_ANNUEL,
+    moisGarantie: GARANTIE_LANCEMENT_MOIS,
+    finOffre: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "Africa/Douala" }).format(OFFRE_LANCEMENT_JUSQU_AU),
+  };
 }

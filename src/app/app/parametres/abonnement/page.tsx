@@ -58,8 +58,13 @@ export default async function PageAbonnement() {
       <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {t("Vertex One — 25 000 FCFA/mois")}
+            {t("Vertex One — {prix} FCFA/mois", { prix: statut.tarif.prixMensuel.toLocaleString(t.locale) })}
             <Badge variant={libelleStatut.variant}>{libelleStatut.texte}</Badge>
+            {statut.tarif.garantieJusquAu ? (
+              <Badge variant="neutral">
+                {t("Prix de lancement garanti jusqu'au {date}", { date: new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(statut.tarif.garantieJusquAu) })}
+              </Badge>
+            ) : null}
           </CardTitle>
           <CardDescription>
             {statut.statutAbonnement === "essai"
@@ -71,7 +76,7 @@ export default async function PageAbonnement() {
         </CardHeader>
         {peutPayer ? (
           <CardContent>
-            <BoutonPaiementAbonnement />
+            <BoutonPaiementAbonnement montantMensuel={statut.tarif.montantMensuel} montantAnnuel={statut.tarif.montantAnnuel} />
           </CardContent>
         ) : null}
       </Card>

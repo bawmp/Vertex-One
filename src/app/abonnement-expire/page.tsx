@@ -6,6 +6,7 @@ import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { tarifPour } from "@/lib/abonnement/tarif";
 import { BoutonPaiementAbonnement } from "../app/parametres/abonnement/bouton-paiement-abonnement";
 
 /**
@@ -19,7 +20,7 @@ export default async function PageAbonnementExpire() {
   if (!utilisateurConnecte) redirect("/connexion");
 
   const [monEntreprise] = await db
-    .select({ nom: entreprise.nom, statutAbonnement: entreprise.statutAbonnement })
+    .select({ nom: entreprise.nom, statutAbonnement: entreprise.statutAbonnement, creeLe: entreprise.creeLe })
     .from(entreprise)
     .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
@@ -28,6 +29,7 @@ export default async function PageAbonnementExpire() {
   if (monEntreprise?.statutAbonnement !== "suspendu") redirect("/app");
 
   const estAdmin = peut(utilisateurConnecte, "PARAMETRES", "MODIFIER");
+  const tarif = tarifPour(monEntreprise.creeLe, new Date());
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -41,7 +43,7 @@ export default async function PageAbonnementExpire() {
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">
           {estAdmin ? (
-            <BoutonPaiementAbonnement />
+            <BoutonPaiementAbonnement montantMensuel={tarif.montantMensuel} montantAnnuel={tarif.montantAnnuel} />
           ) : (
             <p className="text-center text-sm text-muted-foreground">Contactez l&apos;administrateur de votre entreprise pour renouveler l&apos;abonnement.</p>
           )}

@@ -8,6 +8,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Champ } from "@/components/formulaire/champ";
 import { ChoixCartes } from "@/components/formulaire/choix-cartes";
 import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, EcranPaiementReussi, RecapMontant } from "@/components/formulaire/ecrans-paiement";
+import { formaterFCFA } from "@/lib/facturation/calcul";
+import { MOIS_OFFERTS_ANNUEL } from "@/lib/abonnement/tarif";
 import { declencherPaiementAbonnement, lireRaisonEchecAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
 import { messageEchecPaiement } from "@/lib/aangaraa/messages-echec";
 import { useT } from "@/lib/i18n/contexte";
@@ -41,12 +43,13 @@ const DUREE_MAX_SONDAGE_MS = 2 * 60 * 1000; // 2 minutes — au-delà, le client
  * l'application — un simple message texte laissait l'utilisateur bloqué visuellement sur cette page même une fois
  * l'abonnement réactivé.
  */
-export function BoutonPaiementAbonnement() {
+export function BoutonPaiementAbonnement({ montantMensuel, montantAnnuel }: { montantMensuel: number; montantAnnuel: number }) {
   const t = useT();
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [telephone, setTelephone] = useState("");
   const [operateur, setOperateur] = useState<Operateur>("Orange_Cameroon");
+  const [formule, setFormule] = useState<"mensuel" | "annuel">("mensuel");
   const [erreur, setErreur] = useState<string | null>(null);
   const [raisonEchec, setRaisonEchec] = useState<string | null>(null);
   const [etape, setEtape] = useState<Etape>("formulaire");
@@ -123,7 +126,7 @@ export function BoutonPaiementAbonnement() {
     setErreur(null);
     setRaisonEchec(null);
     startTransition(async () => {
-      const resultat = await declencherPaiementAbonnement(telephone, operateur);
+      const resultat = await declencherPaiementAbonnement(telephone, operateur, formule);
       if (resultat.erreur || !resultat.tentativeId) {
         setErreur(resultat.erreur ?? t("Impossible de déclencher le paiement pour le moment."));
         return;
@@ -132,6 +135,8 @@ export function BoutonPaiementAbonnement() {
       sonder(resultat.tentativeId, Date.now());
     });
   }
+
+  const montant = formule === "annuel" ? montantAnnuel : montantMensuel;
 
   if (etape === "confirme") {
     return (
@@ -178,7 +183,22 @@ export function BoutonPaiementAbonnement() {
       }}
       className="flex w-full max-w-md animate-in flex-col gap-5 text-left duration-500 fade-in slide-in-from-bottom-2"
     >
-      <RecapMontant etiquette={t("Abonnement Vertex One")} designation={t("Un mois, toutes les fonctionnalités")} montant="25 000 FCFA" />
+      <RecapMontant
+        etiquette={t("Abonnement Vertex One")}
+        designation={formule === "annuel" ? t("Douze mois, toutes les fonctionnalités") : t("Un mois, toutes les fonctionnalités")}
+        montant={formaterFCFA(montant)}
+      />
+
+      <ChoixCartes
+        etiquette={t("Durée de l'abonnement")}
+        valeur={formule}
+        onChange={(v) => setFormule(v === "annuel" ? "annuel" : "mensuel")}
+        desactive={enCours}
+        options={[
+          { valeur: "mensuel", libelle: t("Mensuel"), detail: t("{montant} par mois", { montant: formaterFCFA(montantMensuel) }) },
+          { valeur: "annuel", libelle: t("Annuel"), detail: t("{montant} pour 12 mois — {mois} mois offerts", { montant: formaterFCFA(montantAnnuel), mois: MOIS_OFFERTS_ANNUEL }) },
+        ]}
+      />
 
       <ChoixCartes
         etiquette={t("Opérateur Mobile Money")}
@@ -210,7 +230,7 @@ export function BoutonPaiementAbonnement() {
 
       <Button type="submit" size="lg" disabled={enCours || !telephoneValide} className="h-12 w-full text-base">
         {enCours ? <Spinner data-icon="inline-start" /> : <CreditCard data-icon="inline-start" aria-hidden />}
-        {t("Régler mon abonnement (25 000 FCFA)")}
+        {t("Régler mon abonnement ({montant})", { montant: formaterFCFA(montant) })}
       </Button>
 
       <BandeauPaiementSecurise libelle={t("Paiement sécurisé")} moyens={["MTN Mobile Money", "Orange Money"]} />

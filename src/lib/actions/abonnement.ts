@@ -11,10 +11,11 @@ import { referenceExterne } from "@/lib/paiement/reference";
 import { telephoneInternational } from "@/lib/paiement/telephone";
 import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { getT } from "@/lib/i18n/langue";
+import { montantEtMois, tarifPour, type TarifAbonnement } from "@/lib/abonnement/tarif";
 
-// Prix réel de l'abonnement plat mensuel (2026-09-14). Temporairement ramené à 10 XAF le 2026-09-22/23 pour
-// vérifier l'intégration Aangaraa Pay avec de l'argent réel — restauré à 50 000 le 2026-09-23, puis passé à 25 000 FCFA/mois le 2026-10-30 (décision de l'utilisateur).
-const PRIX_ABONNEMENT_MENSUEL = 25_000;
+// Prix : voir src/lib/abonnement/tarif.ts (prix mensuel, prix de lancement garanti 12 mois, formule annuelle). Historique : temporairement
+// ramené à 10 XAF le 2026-09-22/23 pour vérifier l'intégration Aangaraa Pay avec de l'argent réel, restauré à 50 000 le 2026-09-23, puis
+// passé à 25 000 FCFA/mois le 2026-10-30 (décision de l'utilisateur).
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -38,7 +39,8 @@ function urlBase(): string {
  */
 export async function declencherPaiementAbonnement(
   telephoneBrut: string,
-  operateur: "MTN_Cameroon" | "Orange_Cameroon"
+  operateur: "MTN_Cameroon" | "Orange_Cameroon",
+  formule: "mensuel" | "annuel" = "mensuel"
 ): Promise<{ declenche?: boolean; tentativeId?: string; erreur?: string }> {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -52,16 +54,22 @@ export async function declencherPaiementAbonnement(
   if (operateur !== "MTN_Cameroon" && operateur !== "Orange_Cameroon") return { erreur: t("Choisissez votre opérateur Mobile Money.") };
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Le montant et la durée sont décidés ICI, depuis la date de création de l'entreprise (garantie de prix de lancement) : jamais un
+    // montant ni un nombre de mois venu du navigateur — `formule` n'est qu'un choix parmi deux valeurs, tout le reste retombe sur « mensuel ».
+    const [monEntreprise] = await tx.select({ creeLe: entreprise.creeLe }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    if (!monEntreprise) return { erreur: t("Impossible de récupérer le statut de l'abonnement.") };
+    const choix = montantEtMois(tarifPour(monEntreprise.creeLe, new Date()), formule);
+
     const [tentative] = await tx
       .insert(tentativePaiementAbonnement)
-      .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: PRIX_ABONNEMENT_MENSUEL })
+      .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: choix.montant, mois: choix.mois })
       .returning({ id: tentativePaiementAbonnement.id });
 
     const resultat = await initierPaiementDirect({
       telephone,
       operateur,
       reference: referenceExterne("ABONNEMENT", tentative.id),
-      montant: PRIX_ABONNEMENT_MENSUEL,
+      montant: choix.montant,
       description: t("Abonnement Vertex One"),
       notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
       returnUrl: `${urlBase()}/app/parametres/abonnement`,
@@ -140,7 +148,8 @@ export type StatutAbonnementAffichage = {
   statutAbonnement: string;
   essaiFinLe: Date;
   abonnementEcheanceLe: Date;
-  paiements: { id: string; montant: number; statut: string; creeLe: Date; confirmeLe: Date | null }[];
+  paiements: { id: string; montant: number; mois: number; statut: string; creeLe: Date; confirmeLe: Date | null }[];
+  tarif: TarifAbonnement;
 };
 
 export async function recupererStatutAbonnement(): Promise<StatutAbonnementAffichage | null> {
@@ -150,17 +159,18 @@ export async function recupererStatutAbonnement(): Promise<StatutAbonnementAffic
 
   return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
-      .select({ statutAbonnement: entreprise.statutAbonnement, essaiFinLe: entreprise.essaiFinLe, abonnementEcheanceLe: entreprise.abonnementEcheanceLe })
+      .select({ statutAbonnement: entreprise.statutAbonnement, essaiFinLe: entreprise.essaiFinLe, abonnementEcheanceLe: entreprise.abonnementEcheanceLe, creeLe: entreprise.creeLe })
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!monEntreprise) return null;
 
     const paiements = await tx
-      .select({ id: tentativePaiementAbonnement.id, montant: tentativePaiementAbonnement.montant, statut: tentativePaiementAbonnement.statut, creeLe: tentativePaiementAbonnement.creeLe, confirmeLe: tentativePaiementAbonnement.confirmeLe })
+      .select({ id: tentativePaiementAbonnement.id, montant: tentativePaiementAbonnement.montant, mois: tentativePaiementAbonnement.mois, statut: tentativePaiementAbonnement.statut, creeLe: tentativePaiementAbonnement.creeLe, confirmeLe: tentativePaiementAbonnement.confirmeLe })
       .from(tentativePaiementAbonnement)
       .where(eq(tentativePaiementAbonnement.entrepriseId, utilisateurConnecte.entrepriseId))
       .orderBy(desc(tentativePaiementAbonnement.creeLe));
 
-    return { ...monEntreprise, paiements };
+    const { creeLe, ...etat } = monEntreprise;
+    return { ...etat, paiements, tarif: tarifPour(creeLe, new Date()) };
   });
 }

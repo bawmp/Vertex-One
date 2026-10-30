@@ -1,5 +1,5 @@
 import { MODULES_MARKETING } from "@/lib/marketing/modules";
-import { COMPARATIF, PRIX_ABONNEMENT_MENSUEL_FCFA, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES } from "@/lib/marketing/contenu";
+import { COMPARATIF, PRIX_ABONNEMENT_MENSUEL_FCFA, PRIX_ABONNEMENT_ANNUEL_FCFA, MOIS_OFFERTS_ANNUEL, GARANTIE_LANCEMENT_MOIS, OFFRE_LANCEMENT_OUVERTE, OFFRE_LANCEMENT_JUSQU_AU, DUREE_ESSAI_JOURS, DELAI_GRACE_HEURES } from "@/lib/marketing/contenu";
 
 /**
  * Construit le prompt système de Kyria à partir des faits réels déjà
@@ -19,7 +19,9 @@ export function construirePromptSystemeKyria(): string {
 
 Faits réels sur Vertex One (ne jamais en inventer d'autres, ne jamais contredire ceux-ci) :
 - Abonnement unique : ${PRIX_ABONNEMENT_MENSUEL_FCFA.toLocaleString("fr-FR")} FCFA/mois, TOUS les modules inclus, aucun forfait ni add-on séparé.
-- Essai gratuit de ${DUREE_ESSAI_JOURS} jours, sans carte bancaire.
+- Formule annuelle : ${PRIX_ABONNEMENT_ANNUEL_FCFA.toLocaleString("fr-FR")} FCFA pour 12 mois (${MOIS_OFFERTS_ANNUEL} mois offerts), en un seul paiement Mobile Money.
+${OFFRE_LANCEMENT_OUVERTE ? `- Prix de lancement : toute entreprise inscrite jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(OFFRE_LANCEMENT_JUSQU_AU)} garde ce prix pendant ${GARANTIE_LANCEMENT_MOIS} mois à partir de son inscription, même si le prix évolue ensuite (ne promets rien au-delà).
+` : ""}- Essai gratuit de ${DUREE_ESSAI_JOURS} jours, sans carte bancaire.
 - Délai de grâce de ${DELAI_GRACE_HEURES} heures après l'échéance avant toute suspension d'accès.
 - Paiement par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay — les fonds sont reversés à l'entreprise avec un délai (ne cite aucun nombre de jours : il dépend du prestataire). Jamais instantané ni direct.
 - Employés et collaborateurs illimités, rôles attribués librement une fois l'abonnement souscrit.

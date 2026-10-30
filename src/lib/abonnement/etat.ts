@@ -12,7 +12,6 @@ export type EvenementAbonnement = "ESSAI_J3" | "ESSAI_TERMINE" | "ECHEANCE_J3" |
 
 const GRACE_MS = 48 * 60 * 60 * 1000;
 const RAPPEL_ANTICIPE_MS = 3 * 24 * 60 * 60 * 1000;
-const CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function calculerEtatAbonnement(
   entreprise: { essaiFinLe: Date; abonnementEcheanceLe: Date },
@@ -56,7 +55,8 @@ export function calculerEtatAbonnement(
  * gratuits en plus de ce qui est dû, et payer en retard ne fait repartir le
  * cycle que depuis aujourd'hui, jamais depuis l'ancienne échéance dépassée.
  */
-export function prochaineEcheanceApresPaiement(abonnementEcheanceLe: Date, maintenant: Date): Date {
+export function prochaineEcheanceApresPaiement(abonnementEcheanceLe: Date, maintenant: Date, mois = 1): Date {
   const base = maintenant.getTime() > abonnementEcheanceLe.getTime() ? maintenant : abonnementEcheanceLe;
-  return new Date(base.getTime() + CYCLE_MS);
+  // Un cycle = 30 jours ; la formule annuelle (12 mois) couvre 365 jours, pas 360.
+  return new Date(base.getTime() + Math.round((mois * 365) / 12) * 24 * 60 * 60 * 1000);
 }

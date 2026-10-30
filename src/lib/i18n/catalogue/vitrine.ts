@@ -173,6 +173,12 @@ export const VITRINE: Record<string, string> = {
   "Non. Un seul prix, tous les modules inclus dès le premier jour — One CRM, One Books, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk et plus. Aucun module n'est verrouillé derrière un forfait supérieur.":
     "No. One price, every module included from day one — One CRM, One Books, One People, One Projects, One Docs, One Bookings, One Recruit, One Desk and more. No module is locked behind a higher plan.",
   "Le prix change-t-il selon le nombre d'employés ?": "Does the price change with the number of employees?",
+  "Prix de lancement garanti {mois} mois": "Launch price guaranteed for {mois} months",
+  "Ou {prix} FCFA pour 12 mois — {mois} mois offerts": "Or {prix} FCFA for 12 months — {mois} months free",
+  "Y a-t-il un prix de lancement ?": "Is there a launch price?",
+  "Oui. Toute entreprise qui s'inscrit jusqu'au {finOffre} garde le prix de lancement de {prix} FCFA/mois pendant {moisGarantie} mois à partir de son inscription, même si le prix évolue ensuite.": "Yes. Any company that signs up by {finOffre} keeps the launch price of {prix} FCFA/month for {moisGarantie} months from its sign-up date, even if the price changes later.",
+  "Puis-je payer à l'année ?": "Can I pay yearly?",
+  "Oui : {prixAnnuel} FCFA pour 12 mois, soit {moisOfferts} mois offerts. Un seul paiement Mobile Money au lieu de douze, et votre accès est couvert toute l'année.": "Yes: {prixAnnuel} FCFA for 12 months, i.e. {moisOfferts} months free. One Mobile Money payment instead of twelve, and your access is covered all year.",
   "Non. Vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur.": "No. You invite as many employees and collaborators as needed, with no extra cost per user.",
   "Comment se passe le paiement ?": "How does payment work?",
   "Par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay, un partenaire de paiement local. Les fonds sont reversés avec un délai — jamais présenté comme instantané.":

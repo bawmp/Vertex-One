@@ -178,6 +178,33 @@ describe("Aangaraa Pay — abonnement à Vertex One", () => {
     const [apres] = await db.select().from(entreprise).where(eq(entreprise.id, idA));
     expect(apres.statutAbonnement).toBe("suspendu");
   }, 180_000);
+
+  test("un paiement annuel accepté repousse l'échéance de 365 jours ; un paiement mensuel de 30", async () => {
+    const JOUR = 86_400_000;
+    await db.update(entreprise).set({ statutAbonnement: "actif", abonnementEcheanceLe: new Date(Date.now() + 10 * JOUR) }).where(eq(entreprise.id, idA));
+    const [avant] = await db.select().from(entreprise).where(eq(entreprise.id, idA));
+
+    const [annuel] = await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idA, montant: 250000, mois: 12 }).returning({ id: tentativePaiementAbonnement.id }));
+    verifierTransaction.mockResolvedValue(accepte(`abo_${annuel.id}`, 250000));
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
+    const [apresAnnuel] = await db.select().from(entreprise).where(eq(entreprise.id, idA));
+    expect(Math.round((apresAnnuel.abonnementEcheanceLe.getTime() - avant.abonnementEcheanceLe.getTime()) / JOUR)).toBe(365);
+
+    const [mensuel] = await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idA, montant: 25000, mois: 1 }).returning({ id: tentativePaiementAbonnement.id }));
+    verifierTransaction.mockResolvedValue(accepte(`abo_${mensuel.id}`, 25000));
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
+    const [apresMensuel] = await db.select().from(entreprise).where(eq(entreprise.id, idA));
+    expect(Math.round((apresMensuel.abonnementEcheanceLe.getTime() - apresAnnuel.abonnementEcheanceLe.getTime()) / JOUR)).toBe(30);
+  }, 180_000);
+
+  test("un paiement de 25 000 pour une tentative annuelle (250 000) n'active rien : douze mois ne s'obtiennent pas au prix d'un", async () => {
+    await db.update(entreprise).set({ statutAbonnement: "suspendu", abonnementEcheanceLe: new Date(Date.now() - 5 * 86_400_000) }).where(eq(entreprise.id, idB));
+    const [t] = await avecEntreprise(idB, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idB, montant: 250000, mois: 12 }).returning({ id: tentativePaiementAbonnement.id }));
+    verifierTransaction.mockResolvedValue(accepte(`abo_${t.id}`, 25000));
+    await traiterNotificationPaiement({ payToken: PAY_TOKEN });
+    const [apres] = await db.select().from(entreprise).where(eq(entreprise.id, idB));
+    expect(apres.statutAbonnement).toBe("suspendu");
+  }, 180_000);
 });
 
 describe("Aangaraa Pay — raison d'un échec d'abonnement", () => {

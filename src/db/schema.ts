@@ -1796,6 +1796,9 @@ export const tentativePaiementAbonnement = pgTable(
       .notNull()
       .references(() => entreprise.id),
     montant: integer("montant").notNull(),
+    // Mois couverts par ce paiement (2026-10-31) : 1 (mensuel) ou 12 (formule annuelle). Fixé par le serveur à la création de la
+    // tentative, jamais lu depuis le navigateur : la confirmation en tire la nouvelle échéance (voir prochaineEcheanceApresPaiement).
+    mois: integer("mois").notNull().default(1),
     statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
     // Paiement direct (2026-09-22) : Aangaraa Pay n'appelle notify_url qu'une fois, immédiatement (transaction encore
     // PENDING) — jamais une seconde fois quand le client valide réellement sur son téléphone. Le payToken est donc
