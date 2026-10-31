@@ -8,7 +8,14 @@ Règle d'or : une démonstration ne sert pas à tout montrer. Elle sert à **ré
 
 ## 0. Avant de commencer
 
-**Votre entreprise de démonstration.** Créez-en une par secteur, en la nommant **« DEMO Mobilité »** et **« DEMO Agence »** (le mot DEMO au début : la Console interne l'exclut ainsi des chiffres d'acquisition). Créez-la avec le lien du secteur (voir section 6) pour avoir le bon vocabulaire. Remplissez-la avec 3 clients, 1 devis accepté, 1 facture payée en partie, 1 facture en retard : le tableau doit déjà raconter une histoire. **Ne l'appelez jamais « TEST »** : vos outils de nettoyage suppriment ces entreprises.
+**Votre démonstration.**
+- **Agences et services : utilisez l'entreprise de démonstration publique « Atelier Kalyss »** (bouton « Voir la démo » du site, ou connexion directe). Elle est déjà remplie : comptes clients, contacts, leads et opportunités, devis, factures, paiements, projets, messagerie. Rien à préparer.
+- **Mobilité et voyage : créez une seconde entreprise « DEMO Mobilité ».** Atelier Kalyss est une agence (vocabulaire « Compte client » et « Projet ») : elle ne montre ni le vocabulaire « Dossier » et « Démarche », ni les champs Nationalité, Pays de destination, Type de visa, ni les pièces privées d'un passeport. Créez-la avec le lien `…/inscription?secteur=immigration`, puis remplissez-la avec 3 dossiers, 1 devis accepté, 1 facture payée en partie et 1 facture en retard. **Nommez-la « DEMO Mobilité »** : le mot DEMO au début l'exclut des chiffres de la Console interne. N'écrivez jamais « TEST » : vos outils de nettoyage suppriment ces entreprises.
+
+**Avant chaque démonstration avec Atelier Kalyss** (c'est un compte public et partagé) :
+- Connectez-vous **10 minutes avant** et vérifiez que les données sont intactes : un autre visiteur a pu modifier ou supprimer des éléments depuis votre dernière utilisation.
+- Ne saisissez jamais de vraies informations de prospect dedans : tout le monde peut les voir. Créez les exemples pendant la démonstration avec des noms fictifs.
+- À la fin, **ne laissez pas** le prospect créer son espace dans Atelier Kalyss : il crée le sien avec votre lien de suivi (voir la section 6).
 
 **Les cinq questions de qualification** (5 minutes, avant de montrer quoi que ce soit) :
 1. Combien de clients ou de dossiers suivez-vous en ce moment ?
