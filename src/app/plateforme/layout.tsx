@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, LayoutDashboard, Building2, ArrowLeft, Users } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, Building2, ArrowLeft, Users, TrendingUp } from "lucide-react";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { estStaffPlateforme, estProprietairePlateforme } from "@/lib/plateforme/acces";
 import { LogoEntreprise } from "@/components/logo-entreprise";
@@ -37,6 +37,10 @@ export default async function LayoutPlateforme({ children }: { children: React.R
             <Link href="/plateforme/entreprises" className="flex items-center gap-1.5 hover:text-white">
               <Building2 className="size-3.5" aria-hidden />
               Entreprises
+            </Link>
+            <Link href="/plateforme/acquisition" className="flex items-center gap-1.5 hover:text-white">
+              <TrendingUp className="size-3.5" aria-hidden />
+              Acquisition
             </Link>
             {proprietaire ? (
               <Link href="/plateforme/equipe" className="flex items-center gap-1.5 hover:text-white">

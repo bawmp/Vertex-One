@@ -3,11 +3,13 @@ import { Wordmark } from "@/components/wordmark";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { SelecteurLangue } from "@/components/selecteur-langue";
 import { PanneauMarque } from "@/components/auth/panneau-marque";
+import { CaptureOrigine } from "@/components/capture-origine";
 
 export default async function LayoutAuth({ children }: { children: React.ReactNode }) {
   const t = await getTVisiteur();
   return (
     <div className="min-h-screen grid md:grid-cols-2">
+      <CaptureOrigine />
       <div className="relative hidden md:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-10 text-white">
         <div aria-hidden className="auth-motif-points pointer-events-none absolute inset-0" />
         <div

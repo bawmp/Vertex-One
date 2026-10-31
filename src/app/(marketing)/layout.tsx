@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
 import { EnTeteMarketing } from "./en-tete";
 import { KyriaChat } from "./kyria/kyria-chat";
+import { CaptureOrigine } from "@/components/capture-origine";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -24,6 +25,7 @@ export default async function LayoutMarketing({ children }: { children: React.Re
   const t = await getTVisiteur();
   return (
     <div className="flex min-h-screen flex-col">
+      <CaptureOrigine />
       <EnTeteMarketing />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-border bg-muted/30">

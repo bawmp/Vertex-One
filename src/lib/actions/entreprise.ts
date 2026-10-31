@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { COOKIE_ORIGINE, ORIGINE_DIRECTE, lireOrigine } from "@/lib/acquisition/origine";
 import { hashPassword } from "better-auth/crypto";
 import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { db, avecEntreprise } from "@/db/client";
@@ -48,6 +49,10 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
 
   const motDePasseHash = await hashPassword(motDePasse);
 
+  // D'où vient cette inscription (lien de campagne, parrainage, référent) : lu dans le cookie posé par le navigateur, re-nettoyé ici —
+  // donnée de suivi commercial seulement, voir src/lib/acquisition/origine.ts.
+  const origine = lireOrigine((await cookies()).get(COOKIE_ORIGINE)?.value) ?? ORIGINE_DIRECTE;
+
   let idEntreprise: string;
   let idAdmin: string;
 
@@ -60,7 +65,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
     const resultat = await db.transaction(async (tx) => {
       const [nouvelleEntreprise] = await tx
         .insert(entreprise)
-        .values({ nom: nomEntreprise, secteurProfil, essaiFinLe, abonnementEcheanceLe: essaiFinLe })
+        .values({ nom: nomEntreprise, secteurProfil, essaiFinLe, abonnementEcheanceLe: essaiFinLe, origineSource: origine.source, origineSupport: origine.support, origineCampagne: origine.campagne, origineParrain: origine.parrain })
         .returning({ id: entreprise.id });
 
       const [nouvelUtilisateur] = await tx

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Briefcase, Building2, Globe2, Hammer, Layers, Mail, Scale, ShieldCheck, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,12 @@ export default function PageInscription() {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerEntreprise, null);
   const [secteur, setSecteur] = useState("generique");
+
+  // Un lien de campagne peut présélectionner le secteur (?secteur=immigration) : le visiteur n'a plus à le choisir, mais peut le changer.
+  useEffect(() => {
+    const demande = new URLSearchParams(window.location.search).get("secteur");
+    if (demande && ["agence", "artisan", "cabinet", "immigration", "generique"].includes(demande)) setSecteur(demande);
+  }, []);
   const [motDePasse, setMotDePasse] = useState("");
   const [renseignes, setRenseignes] = useState(0);
 

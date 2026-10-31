@@ -134,6 +134,13 @@ export const entreprise = pgTable("entreprise", {
   // src/worker/tasks/traiter-abonnement-entreprise.ts). NULL = aucun rappel
   // encore envoyé, ou remis à zéro après un paiement confirmé (nouveau cycle).
   dernierRappelAbonnementEnvoye: text("dernier_rappel_abonnement_envoye"),
+  // D'où vient cette entreprise (2026-10-31) : lu à l'inscription depuis le cookie posé par un lien de campagne
+  // (?utm_source=…&utm_medium=…&utm_campaign=…, ou ?ref=CODE pour un parrainage) — voir src/lib/acquisition/origine.ts.
+  // Donnée de suivi commercial uniquement, jamais utilisée pour un droit d'accès ; nettoyée (a-z0-9_.- , 60 caractères).
+  origineSource: text("origine_source"),
+  origineSupport: text("origine_support"),
+  origineCampagne: text("origine_campagne"),
+  origineParrain: text("origine_parrain"),
   creeLe: timestamp("cree_le").notNull().defaultNow(),
   // Palier 1 — mentions légales obligatoires avant le premier devis (voir
   // docs/palier-1-*, section 2). niu/rccm/adresse restent nullable ici :
