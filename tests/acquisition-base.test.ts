@@ -62,4 +62,12 @@ describe("Acquisition — lecture réelle par la console interne", () => {
     const relances = essaisARelancer(lignes, new Date());
     expect(relances.map((r) => r.nom)).toEqual([nomEssai]); // la payante n'est jamais listée
   }, 180_000);
+
+  test("la carte « revenu mensuel » du tableau de bord et la page Acquisition donnent le même chiffre (une seule définition)", async () => {
+    const { recupererKpiPlateforme } = await import("@/lib/plateforme/donnees");
+    const kpi = await recupererKpiPlateforme();
+    const attendu = synthese(await recupererAcquisition(), new Date()).mrr;
+    expect(Number.isInteger(kpi.mrr)).toBe(true);
+    expect(kpi.mrr).toBe(attendu);
+  }, 180_000);
 });

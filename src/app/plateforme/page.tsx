@@ -43,11 +43,11 @@ export default async function PagePlateformeAccueil() {
         </Card>
         <Card>
           <CardHeader className="flex items-center justify-between gap-2 pb-2">
-            <CardDescription>MRR estimé</CardDescription>
+            <CardDescription>Revenu mensuel réel</CardDescription>
             <Wallet2 className="size-4 text-muted-foreground" aria-hidden />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">{formaterFCFA(kpi.mrrEstime)}</p>
+            <p className="text-2xl font-semibold tabular-nums">{formaterFCFA(kpi.mrr)}</p>
           </CardContent>
         </Card>
         <Card>

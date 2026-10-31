@@ -4,8 +4,8 @@ import { dbPlateforme } from "@/db/plateforme";
 import { entreprise, utilisateur, tentativePaiementAbonnement, journalActionPlateforme, groupe } from "@/db/schema";
 import { calculerEtatAbonnement, type EvenementAbonnement } from "@/lib/abonnement/etat";
 import { EMAIL_DEMO } from "@/lib/demo";
-
-const PRIX_ABONNEMENT_MENSUEL = 25_000;
+import { recupererAcquisition } from "@/lib/plateforme/acquisition";
+import { synthese } from "@/lib/acquisition/stats";
 
 // Depuis l'abonnement plat (2026-09-14), tous les modules sont inclus : aucun n'est « activé » ni vendu séparément
 // (disponibleAddon() renvoie toujours true, la table addonActif reste vide). L'usage réel — au moins une ligne créée
@@ -109,7 +109,9 @@ export async function recupererKpiPlateforme() {
   return {
     total: lignes.length,
     parStatut,
-    mrrEstime: parStatut.actif * PRIX_ABONNEMENT_MENSUEL,
+    // Revenu mensuel RÉEL (2026-10-31) : dernier paiement d'abonnement confirmé ÷ mois couverts, pour les abonnements en cours — même
+    // définition que la page Acquisition. L'ancienne formule (actifs × 25 000) ignorait la formule annuelle et le palier équipe.
+    mrr: synthese(await recupererAcquisition(), maintenant).mrr,
     inscriptionsRecentes,
     attention,
   };
