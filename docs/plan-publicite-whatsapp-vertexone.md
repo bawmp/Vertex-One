@@ -52,7 +52,7 @@ Les libellés de l'interface changent de temps en temps : suivez l'idée, pas la
 - **Texte principal** (version A) : « Cabinets de visa et agences de voyage : gardez chaque dossier au même endroit, envoyez vos devis par lien et faites-vous payer par Orange Money ou MTN MoMo. Essai gratuit 14 jours. Écrivez-nous pour une démonstration de 15 minutes. »
 - **Texte principal** (version B, avec le prix) : « Vertex One pour les cabinets de visa : dossiers, devis, factures et paiement Mobile Money au même endroit. 25 000 FCFA par mois, tous les modules inclus, essai gratuit 14 jours. Écrivez-nous. »
 - **Titre** : « Vos dossiers de visa, enfin sous contrôle »
-- **Message prérempli** : « Bonjour, je voudrais voir une démonstration de Vertex One pour mon cabinet de visa / mon agence de voyage. »
+- **Message prérempli** : « Bonjour, je voudrais voir une démonstration de Vertex One pour mon cabinet de visa ou mon agence de voyage. »
 
 ### Campagne 2 — Agences et services
 
@@ -60,7 +60,7 @@ Les libellés de l'interface changent de temps en temps : suivez l'idée, pas la
 - **Texte principal** (version A) : « Agences et prestataires : devis, facture, paiement Mobile Money et relances automatiques au même endroit. Essai gratuit 14 jours. Écrivez-nous pour une démonstration de 15 minutes. »
 - **Texte principal** (version B) : « Arrêtez de relancer vos clients à la main. Vertex One envoie vos factures par lien, encaisse en Mobile Money et relance tout seul. 25 000 FCFA par mois, essai gratuit 14 jours. »
 - **Titre** : « Vos factures payées sans relancer »
-- **Message prérempli** : « Bonjour, je voudrais voir une démonstration de Vertex One pour mon agence. »
+- **Message prérempli** : « Bonjour, je voudrais voir une démonstration de Vertex One pour mon entreprise de services. »
 
 **Test A/B** : mettez les deux versions de texte dans chaque ensemble ; Meta montrera plus souvent la meilleure.
 
@@ -131,3 +131,6 @@ secteur: Vous êtes plutôt dans quel domaine ? [Visa et voyage | Agence ou serv
 - **Un seul numéro, une seule histoire** : le prospect qui clique sur « mobilité » doit tomber sur une réponse qui parle de dossiers de visa, pas d'un discours générique.
 - **Le prix de lancement a une date** (31 mars 2027) : utilisez-la pour conclure.
 - **Notez tout** : sans suivi, vous ne saurez pas pourquoi 10 clients seront venus ou non.
+
+
+**Mise à jour (2026-11-01)** : ne PAS ajouter l'étape de qualification « secteur » de la section 8 : les étapes s'appliquent à toutes les conversations de Vertex Technology et changeraient son parcours habituel. À la place, Kyria déduit le secteur du message prérempli (d'où les deux formulations distinctes). Texte à AJOUTER à la fin de la Description : `Desktopiche-kyria-ajout-vertexone.txt`.
