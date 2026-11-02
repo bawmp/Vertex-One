@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { archiverDepot, creerDepot, definirDepotPrincipal, renommerDepot, transfererStock, type ResultatDepot } from "@/lib/produits/depots";
+import { archiverDepot, creerDepot, definirDepotPrincipal, listerDepots, renommerDepot, transfererStock, type ResultatDepot } from "@/lib/produits/depots";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
@@ -57,4 +57,20 @@ export async function transfererStockProduit(produitId: string, _etat: EtatDepot
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
   revalidatePath(`/app/produits/${produitId}`);
   return { message: t("{n} transféré(s) de {depuis} vers {vers}.", { n: resultat.quantite, depuis: resultat.depuis, vers: resultat.vers }) };
+}
+
+export type DepotChoix = { id: string; nom: string; principal: boolean };
+
+/**
+ * Dépôts proposés dans les formulaires de documents : liste vide (rien à choisir) pour une entreprise de services ou qui n'a qu'un
+ * seul dépôt. Lecture seule, session et entreprise venues du serveur ; droit de voir les produits.
+ */
+export async function lireDepotsFormulaire(): Promise<DepotChoix[]> {
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte || !peut(utilisateurConnecte, "PRODUITS", "VOIR")) return [];
+  return avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return [];
+    const depots = await listerDepots(tx, utilisateurConnecte.entrepriseId);
+    return depots.length < 2 ? [] : depots.map((d) => ({ id: d.id, nom: d.nom, principal: d.principal }));
+  });
 }

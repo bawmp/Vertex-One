@@ -1,7 +1,7 @@
 import { sql, inArray, eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { depot, produit, mouvementStock, stockDepot } from "@/db/schema";
-import { assurerDepotPrincipal, deplacerStockDepot, resorberEcart } from "./depots";
+import { assurerDepotPrincipal, deplacerStockDepot, resoudreDepotDocument, resorberEcart } from "./depots";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 
@@ -18,7 +18,7 @@ export function nouveauCoutMoyen(stockAvant: number, coutAvant: number, quantite
 }
 
 /** D'où vient un mouvement de vente ou d'achat : le document qui l'a provoqué (pour retrouver sa fiche) et la personne, s'il y en a une. */
-export type ContexteMouvement = { documentType?: string; documentId?: string; utilisateurId?: string | null };
+export type ContexteMouvement = { documentType?: string; documentId?: string; utilisateurId?: string | null; /** Dépôt choisi sur le document (priorité 1.3) ; absent = le dépôt principal. */ depotId?: string | null };
 
 /**
  * Catalogue Produits/Tarifs (échange du 2026-09-07, zoho-books-full-spec.md
@@ -49,7 +49,7 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
 
   if (produitsSuivis.length === 0) return;
   // Les documents (ventes, achats) touchent toujours le dépôt principal ; les transferts et corrections choisissent le leur.
-  const principal = await assurerDepotPrincipal(tx, entrepriseId);
+  const depotCible = await resoudreDepotDocument(tx, entrepriseId, contexte?.depotId);
 
   for (const { id } of produitsSuivis) {
     const quantite = quantitesParProduit.get(id)!;
@@ -68,14 +68,14 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
       })
       .where(eq(produit.id, id))
       .returning({ stockActuel: produit.stockActuel });
-    await deplacerStockDepot(tx, entrepriseId, id, principal.id, sens * quantite);
+    await deplacerStockDepot(tx, entrepriseId, id, depotCible, sens * quantite);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: id,
       type: sens === -1 ? "VENTE" : "ACHAT",
       quantite: sens * quantite,
       stockApres: apres.stockActuel,
-      depotId: principal.id,
+      depotId: depotCible,
       documentType: contexte?.documentType,
       documentId: contexte?.documentId,
       creeParId: contexte?.utilisateurId ?? null,

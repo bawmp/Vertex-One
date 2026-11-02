@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerBonCommandeAchat } from "@/lib/actions/bon-commande-achat";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
+import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
 type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
@@ -168,6 +169,8 @@ export function FormulaireBonCommande({
               <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
             </div>
           </div>
+
+          <ChoixDepotDocument sens="entree" />
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

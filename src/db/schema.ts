@@ -1237,6 +1237,8 @@ export const devis = pgTable(
   "devis",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -1316,6 +1318,8 @@ export const facture = pgTable(
   "facture",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -1407,6 +1411,8 @@ export const bonCommandeVente = pgTable(
   "bon_commande_vente",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -1490,6 +1496,8 @@ export const factureRecurrente = pgTable(
   "facture_recurrente",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -1572,6 +1580,8 @@ export const recuVente = pgTable(
   "recu_vente",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -3231,6 +3241,8 @@ export const factureFournisseur = pgTable(
   "facture_fournisseur",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),
@@ -3344,6 +3356,8 @@ export const bonCommandeAchat = pgTable(
   "bon_commande_achat",
   {
     id: text("id").primaryKey().$defaultFn(() => createId()),
+    // Dépôt d'où sort (vente) ou où entre (achat) le stock de ce document ; nul = le dépôt principal (priorité 1.3, 2026-11-02).
+    depotId: text("depot_id").references(() => depot.id),
     entrepriseId: text("entreprise_id")
       .notNull()
       .references(() => entreprise.id),

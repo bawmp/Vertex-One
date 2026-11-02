@@ -9,6 +9,7 @@ import { SectionFormulaire } from "@/components/formulaire/cadre-formulaire";
 import { creerDevis } from "@/lib/actions/devis";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { useT } from "@/lib/i18n/contexte";
+import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
 type Ligne = { cle: number; produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
@@ -123,6 +124,8 @@ export function FormulaireDevis({
           </span>
         </div>
       </div>
+
+      <ChoixDepotDocument sens="sortie" />
 
       {etat?.erreur ? (
         <p role="alert" className="animate-in rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive fade-in slide-in-from-top-1">

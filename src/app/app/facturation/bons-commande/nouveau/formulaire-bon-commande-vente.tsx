@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { creerBonCommandeVente } from "@/lib/actions/bon-commande-vente";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { useT } from "@/lib/i18n/contexte";
+import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
 type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
@@ -159,6 +160,8 @@ export function FormulaireBonCommandeVente({
               <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
             </div>
           </div>
+
+          <ChoixDepotDocument sens="sortie" />
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

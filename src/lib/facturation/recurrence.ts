@@ -81,6 +81,7 @@ export async function genererFacturesRecurrentesDues(tx: TransactionDrizzle, ent
         compteId: profil.compteId,
         assigneAId: profil.assigneAId,
         factureRecurrenteId: profil.id,
+        depotId: profil.depotId,
         montantHT: profil.montantHT,
         montantTVA: profil.montantTVA,
         montantTTC: profil.montantTTC,
@@ -100,7 +101,7 @@ export async function genererFacturesRecurrentesDues(tx: TransactionDrizzle, ent
       }))
     );
 
-    await decrementerStockVente(tx, entrepriseId, lignes, { documentType: "FACTURE", documentId: nouvelleFacture.id });
+    await decrementerStockVente(tx, entrepriseId, lignes, { documentType: "FACTURE", documentId: nouvelleFacture.id, depotId: profil.depotId });
 
     await genererEcrituresFactureEmise(tx, {
       id: nouvelleFacture.id,

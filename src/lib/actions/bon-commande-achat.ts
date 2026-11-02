@@ -12,6 +12,7 @@ import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroBonCommandeAchat } from "@/lib/facturation/numerotation";
 import { genererEcrituresFactureFournisseur } from "@/lib/comptabilite/ecritures";
 import { incrementerStockAchat } from "@/lib/produits/stock";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 
 const CHEMIN = "/app/achats";
 
@@ -38,6 +39,11 @@ export async function creerBonCommandeAchat(_etat: EtatBonCommandeAchat, formDat
   }
 
   const fournisseurId = String(formData.get("fournisseurId") ?? "");
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: verifDepot.erreur };
+  const depotChoisi = verifDepot.depotId;
+
   const compteComptableId = String(formData.get("compteComptableId") ?? "");
   if (!fournisseurId || !compteComptableId) {
     return { erreur: "Formulaire invalide." };
@@ -63,6 +69,7 @@ export async function creerBonCommandeAchat(_etat: EtatBonCommandeAchat, formDat
     const [nouveauBC] = await tx
       .insert(bonCommandeAchat)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         fournisseurId,
@@ -116,6 +123,7 @@ export async function convertirBonCommandeEnFactureFournisseur(bonCommandeAchatI
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero: numeroFactureFournisseur.trim(),
         fournisseurId: leBC.fournisseurId,
+        depotId: leBC.depotId,
         compteComptableId: leBC.compteComptableId,
         dateFacture: new Date(),
         dateEcheance: new Date(dateEcheance),
@@ -142,7 +150,7 @@ export async function convertirBonCommandeEnFactureFournisseur(bonCommandeAchatI
     // Catalogue Produits/Tarifs (échange du 2026-09-07) — la conversion en
     // Facture fournisseur est le moment où l'achat est réalisé, pas la
     // création du Bon de commande (voir schema.ts).
-    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignesBC, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
+    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignesBC, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: leBC.depotId });
 
     await tx
       .update(bonCommandeAchat)

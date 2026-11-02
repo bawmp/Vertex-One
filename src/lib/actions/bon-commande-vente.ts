@@ -14,6 +14,7 @@ import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -46,6 +47,11 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: t(verifDepot.erreur) };
+  const depotChoisi = verifDepot.depotId;
+
   if (!dealId && !contactId) return { erreur: t("Formulaire invalide.") };
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
@@ -76,6 +82,7 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
     const [bc] = await tx
       .insert(bonCommandeVente)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         dealId: client.dealId,
@@ -148,6 +155,7 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
         compteId: leBCV.compteId,
         assigneAId: leBCV.assigneAId,
         montantHT: leBCV.montantHT,
+        depotId: leBCV.depotId,
         montantTVA: leBCV.montantTVA,
         montantTTC: leBCV.montantTTC,
         dateEcheance,
@@ -166,7 +174,7 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
       }))
     );
 
-    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignesBCV, { documentType: "FACTURE", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
+    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignesBCV, { documentType: "FACTURE", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: leBCV.depotId });
 
     await tx
       .update(bonCommandeVente)

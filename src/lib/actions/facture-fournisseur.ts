@@ -11,6 +11,7 @@ import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererEcrituresFactureFournisseur, genererEcrituresPaiementEffectue } from "@/lib/comptabilite/ecritures";
 import { defaireMouvementsDocument, incrementerStockAchat } from "@/lib/produits/stock";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 import { contrePasserEcritures, ecrituresDeLaFactureFournisseur } from "@/lib/comptabilite/contre-passation";
 
 const CHEMIN = "/app/achats";
@@ -40,6 +41,11 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
 
   const numero = String(formData.get("numero") ?? "").trim();
   const fournisseurId = String(formData.get("fournisseurId") ?? "");
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: verifDepot.erreur };
+  const depotChoisi = verifDepot.depotId;
+
   const compteComptableId = String(formData.get("compteComptableId") ?? "");
   const dateFacture = String(formData.get("dateFacture") ?? "");
   const dateEcheance = String(formData.get("dateEcheance") ?? "");
@@ -66,6 +72,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
     const [nouvelleFacture] = await tx
       .insert(factureFournisseur)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         fournisseurId,
@@ -94,7 +101,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
 
     // Catalogue Produits/Tarifs (échange du 2026-09-07) — un achat facturé
     // augmente le stock des BIEN suivis, jamais au stade Bon de commande.
-    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
+    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: depotChoisi });
 
     await genererEcrituresFactureFournisseur(tx, {
       id: nouvelleFacture.id,

@@ -10,6 +10,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -45,6 +46,11 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: t(verifDepot.erreur) };
+  const depotChoisi = verifDepot.depotId;
+
   const libelle = String(formData.get("libelle") ?? "").trim();
   const frequence = String(formData.get("frequence") ?? "");
   const dateDebut = String(formData.get("dateDebut") ?? "");
@@ -79,6 +85,7 @@ export async function creerFactureRecurrente(_etat: EtatFactureRecurrente, formD
     const [profil] = await tx
       .insert(factureRecurrente)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         dealId: client.dealId,
         contactId: client.contactId,

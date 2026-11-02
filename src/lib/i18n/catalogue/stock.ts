@@ -170,4 +170,7 @@ export const STOCK: Record<string, string> = {
   "Le stock de certains produits est encore suivi : on ne peut pas désactiver la gestion de stock.": "Some products still have their stock tracked: stock management cannot be turned off.",
   "Entreprise introuvable.": "Company not found.",
   "Document annulé": "Document cancelled",
+  "Dépôt d'où sort le stock": "Warehouse the stock leaves from",
+  "Dépôt où entre le stock": "Warehouse the stock goes into",
+  "Seuls les produits dont le stock est suivi sont concernés.": "Only products with tracked stock are affected.",
 };

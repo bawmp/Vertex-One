@@ -12,6 +12,7 @@ import { creerRecuVente } from "@/lib/actions/recu-vente";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
+import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
 type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
 
@@ -185,6 +186,8 @@ export function FormulaireRecuVente({
               <span className="tabular-nums">{formaterFCFA(montants.montantTTC)}</span>
             </div>
           </div>
+
+          <ChoixDepotDocument sens="sortie" />
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
 

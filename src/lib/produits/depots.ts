@@ -162,3 +162,24 @@ export async function transfererStock(tx: TransactionDrizzle, entrepriseId: stri
   ]);
   return { ok: true, quantite, depuis: source.nom, vers: cible.nom };
 }
+
+/**
+ * Dépôt choisi sur un document (priorité 1.3, 2026-11-02). Vide = le dépôt principal (on stocke alors `null`). Un identifiant fourni doit
+ * être un dépôt ACTIF de CETTE entreprise : jamais un dépôt d'une autre, ni un dépôt archivé.
+ */
+export async function verifierDepotDocument(tx: TransactionDrizzle, entrepriseId: string, depotId: string | undefined): Promise<{ ok: true; depotId: string | null } | { ok: false; erreur: string }> {
+  if (!depotId) return { ok: true, depotId: null };
+  const [d] = await tx.select({ id: depot.id, actif: depot.actif }).from(depot).where(and(eq(depot.id, depotId), eq(depot.entrepriseId, entrepriseId)));
+  if (!d) return { ok: false, erreur: m("Dépôt introuvable.") };
+  if (!d.actif) return { ok: false, erreur: m("Un dépôt archivé ne peut pas recevoir ni envoyer de stock.") };
+  return { ok: true, depotId: d.id };
+}
+
+/** Le dépôt réellement touché au moment du mouvement : celui du document s'il est encore actif, sinon le dépôt principal. */
+export async function resoudreDepotDocument(tx: TransactionDrizzle, entrepriseId: string, depotId: string | null | undefined): Promise<string> {
+  if (depotId) {
+    const [d] = await tx.select({ id: depot.id }).from(depot).where(and(eq(depot.id, depotId), eq(depot.entrepriseId, entrepriseId), eq(depot.actif, true)));
+    if (d) return d.id;
+  }
+  return (await assurerDepotPrincipal(tx, entrepriseId)).id;
+}

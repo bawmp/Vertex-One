@@ -22,6 +22,7 @@ import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { lienEmail } from "@/lib/email/lien";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -55,6 +56,11 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
   const dateValidite = String(formData.get("dateValidite") ?? "");
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: t(verifDepot.erreur) };
+  const depotChoisi = verifDepot.depotId;
+
 
   const lignesBrutes = formData.getAll("designation").map((_, i) => ({
     produitId: formData.getAll("produitId")[i] || undefined,
@@ -86,6 +92,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
     const [ligneDevisCree] = await tx
       .insert(devis)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         dealId: client.dealId,

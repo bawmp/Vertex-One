@@ -13,6 +13,7 @@ import { genererNumeroRecuVente } from "@/lib/facturation/numerotation";
 import { genererEcrituresRecuVente } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
+import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
 import { contrePasserEcritures, ecrituresDuTicket } from "@/lib/comptabilite/contre-passation";
 import { defaireMouvementsDocument } from "@/lib/produits/stock";
@@ -48,6 +49,11 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
 
   const dealId = String(formData.get("dealId") ?? "") || undefined;
   const contactId = String(formData.get("contactId") ?? "") || undefined;
+  // Dépôt choisi sur le formulaire (vide = dépôt principal) : vérifié ici, jamais cru tel quel (dépôt actif de CETTE entreprise).
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: t(verifDepot.erreur) };
+  const depotChoisi = verifDepot.depotId;
+
   const moyenPaiement = String(formData.get("moyenPaiement") ?? "");
   const referenceTransaction = String(formData.get("referenceTransaction") ?? "").trim();
   if (!dealId && !contactId) return { erreur: t("Formulaire invalide.") };
@@ -84,6 +90,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
     const [recu] = await tx
       .insert(recuVente)
       .values({
+        depotId: depotChoisi,
         entrepriseId: utilisateurConnecte.entrepriseId,
         numero,
         dealId: client.dealId,
@@ -112,7 +119,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
       }))
     );
 
-    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "RECU_VENTE", documentId: recu.id, utilisateurId: utilisateurConnecte.utilisateurId });
+    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "RECU_VENTE", documentId: recu.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: depotChoisi });
 
     await genererEcrituresRecuVente(tx, {
       id: recu.id,
