@@ -974,6 +974,13 @@
       "when": 1792299600000,
       "tag": "0138_comptes_personnalises",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1792386000000,
+      "tag": "0139_cout_moyen_stock",
+      "breakpoints": true
     }
   ]
 }

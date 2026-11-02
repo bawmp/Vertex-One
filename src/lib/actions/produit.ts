@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { produit } from "@/db/schema";
+import { produit, mouvementStock } from "@/db/schema";
 import { activerSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -53,19 +53,27 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
   const { type, nom, description, prixVente, prixAchat, suiviStock, stockInitial } = analyse.data;
   const suiviStockReel = type === "BIEN" && suiviStock;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx.insert(produit).values({
-      entrepriseId: utilisateurConnecte.entrepriseId,
-      type,
-      nom,
-      description,
-      prixVente,
-      prixAchat,
-      suiviStock: suiviStockReel,
-      stockActuel: suiviStockReel ? (stockInitial ?? 0) : 0,
-      creeParId: utilisateurConnecte.utilisateurId,
-    })
-  );
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [cree] = await tx
+      .insert(produit)
+      .values({
+        entrepriseId: utilisateurConnecte.entrepriseId,
+        type,
+        nom,
+        description,
+        prixVente,
+        prixAchat,
+        suiviStock: suiviStockReel,
+        stockActuel: suiviStockReel ? (stockInitial ?? 0) : 0,
+        coutMoyen: suiviStockReel ? prixAchat : 0,
+        creeParId: utilisateurConnecte.utilisateurId,
+      })
+      .returning({ id: produit.id });
+    // Le stock saisi à la création est le stock de départ : il ouvre l'historique du produit.
+    if (suiviStockReel && (stockInitial ?? 0) > 0) {
+      await tx.insert(mouvementStock).values({ entrepriseId: utilisateurConnecte.entrepriseId, produitId: cree.id, type: "INITIAL", quantite: stockInitial!, stockApres: stockInitial!, creeParId: utilisateurConnecte.utilisateurId });
+    }
+  });
 
   revalidatePath("/app/produits");
   redirect("/app/produits");

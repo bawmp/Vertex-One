@@ -45,6 +45,7 @@ export const PLAN_COMPTABLE_SYSCOHADA: { numero: string; libelle: string; classe
 
   // Classe 6 — Comptes de charges
   { numero: "601000", libelle: "Achats de marchandises", classe: 6 },
+  { numero: "603000", libelle: "Variations des stocks de biens achetés", classe: 6 },
   { numero: "604000", libelle: "Achats stockés de matières et fournitures", classe: 6 },
   { numero: "605000", libelle: "Autres achats", classe: 6 },
   { numero: "622000", libelle: "Locations et charges locatives", classe: 6 },

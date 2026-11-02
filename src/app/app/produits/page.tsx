@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
@@ -44,6 +44,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl font-semibold tracking-tight">{t("Produits")}</h1>
         </div>
         <div className="flex items-center gap-2">
+          {tousLesProduits.some((p) => p.suiviStock) ? (
+            <Button variant="outline" size="sm" render={<Link href="/app/produits/valorisation" />} nativeButton={false}>
+              <Coins data-icon="inline-start" aria-hidden />
+              {t("Valeur du stock")}
+            </Button>
+          ) : null}
           {peut(utilisateurConnecte, "PRODUITS", "MODIFIER") && produits.some((p) => p.suiviStock) ? (
             <Button variant="outline" size="sm" render={<Link href="/app/produits/inventaire" />} nativeButton={false}>
               <ClipboardCheck data-icon="inline-start" aria-hidden />

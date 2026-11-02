@@ -3357,6 +3357,9 @@ export const produit = pgTable(
     stockActuel: integer("stock_actuel").notNull().default(0),
     // Seuil d'alerte (2026-11-02) : « prévenez-moi quand il en reste ce nombre ou moins ». Nul = pas d'alerte pour ce produit.
     seuilAlerte: integer("seuil_alerte"),
+    // Coût moyen pondéré par unité (2026-11-02), en FCFA hors taxe : recalculé à chaque achat facturé, base de la valeur du stock.
+    // Une vente sort le stock à ce coût sans le modifier. Au démarrage du suivi, il vaut le prix d'achat du produit.
+    coutMoyen: integer("cout_moyen").notNull().default(0),
     // Fiche détail Produit (échange du 2026-09-08, comparaison avec la
     // fiche article Zoho Books) — image optionnelle, jamais d'URL publique
     // stockée (même patron que `document` : une clé R2, résolue en URL

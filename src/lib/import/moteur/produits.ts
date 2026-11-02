@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { produit } from "@/db/schema";
+import { produit, mouvementStock } from "@/db/schema";
 import { montant, normaliser } from "../valeurs";
 import { m } from "@/lib/i18n/catalogue";
 import { avertir, erreur, lots, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
@@ -54,11 +54,17 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
       prixAchat: prixAchat ?? 0,
       suiviStock,
       stockActuel: suiviStock ? Math.max(0, stock ?? 0) : 0,
+      coutMoyen: suiviStock ? (prixAchat ?? 0) : 0,
       creeParId: utilisateurId,
     });
   }
 
-  for (const lot of lots(aCreer)) await tx.insert(produit).values(lot);
+  for (const lot of lots(aCreer)) {
+    const crees = await tx.insert(produit).values(lot).returning({ id: produit.id, stockActuel: produit.stockActuel, suiviStock: produit.suiviStock });
+    // Le stock importé est le stock de départ : il apparaît dans l'historique du produit comme tel.
+    const departs = crees.filter((c) => c.suiviStock && c.stockActuel > 0).map((c) => ({ entrepriseId, produitId: c.id, type: "INITIAL" as const, quantite: c.stockActuel, stockApres: c.stockActuel, creeParId: utilisateurId }));
+    if (departs.length > 0) await tx.insert(mouvementStock).values(departs);
+  }
   rapport.crees = aCreer.length;
   if (prixAbsents > 0) avertir(rapport, 0, m("{n} article(s) sans prix de vente : prix mis à 0, à compléter."), { n: prixAbsents });
   return rapport;
