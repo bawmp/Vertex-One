@@ -29,16 +29,22 @@ function Resultat({ etat }: { etat: EtatStock }) {
  * seule question : « combien en avez-vous ? »). Sinon trois grandes cartes — j'en ai reçu, j'en ai perdu, j'ai compté — puis la
  * quantité, la raison, et un aperçu du stock obtenu avant d'enregistrer. Les contrôles sont refaits côté serveur.
  */
-export function AjusterStock({ produitId, suiviStock, stockActuel }: { produitId: string; suiviStock: boolean; stockActuel: number }) {
+export type DepotChoix = { id: string; nom: string; principal: boolean; quantite: number };
+
+export function AjusterStock({ produitId, suiviStock, stockActuel, depots = [] }: { produitId: string; suiviStock: boolean; stockActuel: number; depots?: DepotChoix[] }) {
   const t = useT();
   const [enCours, startTransition] = useTransition();
   const [etat, setEtat] = useState<EtatStock>(null);
   const [mode, setMode] = useState<Mode>("AJOUT");
   const [quantite, setQuantite] = useState("");
   const [cle, setCle] = useState(0);
+  const plusieursDepots = depots.length > 1;
+  const [depotId, setDepotId] = useState(() => depots.find((d) => d.principal)?.id ?? depots[0]?.id ?? "");
+  // Avec plusieurs dépôts, l'aperçu part de ce que contient le dépôt choisi, pas du total.
+  const base = plusieursDepots ? (depots.find((d) => d.id === depotId)?.quantite ?? 0) : stockActuel;
 
   const nombre = quantite.trim() === "" ? null : Number(quantite);
-  const apercu = nombre === null || !Number.isFinite(nombre) ? null : mode === "AJOUT" ? stockActuel + nombre : mode === "RETRAIT" ? stockActuel - nombre : nombre;
+  const apercu = nombre === null || !Number.isFinite(nombre) ? null : mode === "AJOUT" ? base + nombre : mode === "RETRAIT" ? base - nombre : nombre;
 
   function envoyer(e: React.FormEvent<HTMLFormElement>, action: (id: string, etat: EtatStock, donnees: FormData) => Promise<EtatStock>) {
     e.preventDefault();
@@ -99,6 +105,15 @@ export function AjusterStock({ produitId, suiviStock, stockActuel }: { produitId
             ]}
           />
 
+          {plusieursDepots ? (
+            <ChampSelect label={t("Dépôt")} name="depotId" value={depotId} onChange={(e) => setDepotId(e.target.value)}>
+              {depots.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nom} ({d.quantite})
+                </option>
+              ))}
+            </ChampSelect>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label={libelleQuantite} name="quantite" type="number" min={mode === "INVENTAIRE" ? 0 : 1} step={1} required inputMode="numeric" value={quantite} onChange={(e) => setQuantite(e.target.value)} />
             {mode !== "INVENTAIRE" ? (
@@ -117,7 +132,7 @@ export function AjusterStock({ produitId, suiviStock, stockActuel }: { produitId
           <Champ label={t("Remarque (facultatif)")} name="note" maxLength={300} />
 
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {t("Stock actuel : {n}", { n: stockActuel })}
+            {plusieursDepots ? t("Dans ce dépôt : {n}", { n: base }) : t("Stock actuel : {n}", { n: stockActuel })}
             {apercu !== null ? <> → <span className={apercu < 0 ? "font-medium text-destructive" : "font-medium text-foreground"}>{t("après : {n}", { n: apercu })}</span></> : null}
           </p>
 

@@ -1,9 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
-import { ArrowLeft, Package, Lock, User, Clock, ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, ShoppingCart, Truck, Flag } from "lucide-react";
+import { ArrowLeft, Package, Lock, User, Clock, ArrowDownToLine, ArrowUpFromLine, ArrowRightLeft, ClipboardCheck, ShoppingCart, Truck, Flag } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { produit, compteComptable, utilisateur, mouvementStock } from "@/db/schema";
+import { stockParDepot } from "@/lib/produits/depots";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { recupererTransactionsProduit } from "@/lib/produits/transactions";
@@ -15,6 +16,7 @@ import { FormulaireImageProduit } from "./formulaire-image-produit";
 import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
+import { TransfertStock } from "./transfert-stock";
 import { niveauStock } from "@/lib/produits/niveau-stock";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE } from "@/lib/produits/motifs-stock";
 import { getT } from "@/lib/i18n/langue";
@@ -59,11 +61,15 @@ export default async function PageDetailProduit({ params, searchParams }: { para
     const idsAuteurs = [...new Set(mouvements.map((mv) => mv.creeParId).filter((v): v is string => Boolean(v)))];
     const auteurs = idsAuteurs.length > 0 ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(inArray(utilisateur.id, idsAuteurs)) : [];
 
-    return { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    const depots = leProduit.type === "BIEN" && leProduit.suiviStock ? await stockParDepot(tx, utilisateurConnecte.entrepriseId, id) : [];
+
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots } = donnees;
+  const depotsActifs = depots.filter((d) => d.actif);
+  const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
 
   return (
@@ -171,7 +177,28 @@ export default async function PageDetailProduit({ params, searchParams }: { para
               </Card>
             ) : null}
 
-            {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} /> : null}
+            {leProduit.suiviStock && depotsActifs.length > 1 ? (
+              <Card>
+                <CardContent className="flex flex-col gap-2">
+                  <h2 className="text-sm font-medium text-muted-foreground">{t("Répartition par dépôt")}</h2>
+                  <div className="flex flex-col divide-y divide-border text-sm">
+                    {depots.map((d) => (
+                      <div key={d.depotId} className="flex items-center justify-between gap-3 py-1.5">
+                        <span className="flex items-center gap-2">
+                          {d.nom}
+                          {d.principal ? <Badge variant="brand">{t("Principal")}</Badge> : null}
+                          {!d.actif ? <Badge variant="neutral">{t("Archivé")}</Badge> : null}
+                        </span>
+                        <span className="tabular-nums font-medium">{d.quantite}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, principal: d.principal, quantite: d.quantite }))} /> : null}
+            {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
 
             {leProduit.suiviStock ? (
@@ -183,11 +210,11 @@ export default async function PageDetailProduit({ params, searchParams }: { para
                   <Card className="p-0">
                     <div className="flex flex-col divide-y divide-border">
                       {mouvements.map((mv) => {
-                        const Icone = mv.type === "VENTE" ? ShoppingCart : mv.type === "ACHAT" ? Truck : mv.type === "AJOUT" ? ArrowDownToLine : mv.type === "RETRAIT" ? ArrowUpFromLine : mv.type === "INVENTAIRE" ? ClipboardCheck : Flag;
+                        const Icone = mv.type === "TRANSFERT_SORTIE" || mv.type === "TRANSFERT_ENTREE" ? ArrowRightLeft : mv.type === "VENTE" ? ShoppingCart : mv.type === "ACHAT" ? Truck : mv.type === "AJOUT" ? ArrowDownToLine : mv.type === "RETRAIT" ? ArrowUpFromLine : mv.type === "INVENTAIRE" ? ClipboardCheck : Flag;
                         const titre =
-                          mv.type === "VENTE" ? t("Vente") : mv.type === "ACHAT" ? t("Achat reçu") : mv.type === "AJOUT" ? t("Entrée de stock") : mv.type === "RETRAIT" ? t("Sortie de stock") : mv.type === "INVENTAIRE" ? t("Inventaire") : t("Stock de départ");
+                          mv.type === "VENTE" ? t("Vente") : mv.type === "ACHAT" ? t("Achat reçu") : mv.type === "AJOUT" ? t("Entrée de stock") : mv.type === "RETRAIT" ? t("Sortie de stock") : mv.type === "INVENTAIRE" ? t("Inventaire") : mv.type === "TRANSFERT_SORTIE" ? t("Transfert (sortie)") : mv.type === "TRANSFERT_ENTREE" ? t("Transfert (entrée)") : t("Stock de départ");
                         const motifs: Record<string, string> = { ...MOTIFS_AJOUT, ...MOTIFS_RETRAIT, ...MOTIFS_INVENTAIRE };
-                        const detail = [mv.motif && motifs[mv.motif] ? t(motifs[mv.motif]) : null, mv.note, mv.creeParId ? nomsAuteurs.get(mv.creeParId) : null].filter(Boolean).join(" · ");
+                        const detail = [depotsActifs.length > 1 && mv.depotId ? nomsDepots.get(mv.depotId) : null, mv.motif && motifs[mv.motif] ? t(motifs[mv.motif]) : null, mv.note, mv.creeParId ? nomsAuteurs.get(mv.creeParId) : null].filter(Boolean).join(" · ");
                         const lien = mv.documentType === "FACTURE" && mv.documentId ? `/app/facturation/factures/${mv.documentId}` : mv.documentType === "FACTURE_FOURNISSEUR" ? "/app/achats#factures-fournisseurs" : mv.documentType === "RECU_VENTE" ? "/app/facturation#tickets-de-vente" : null;
                         return (
                           <div key={mv.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">

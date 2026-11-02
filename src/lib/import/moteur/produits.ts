@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { produit, mouvementStock } from "@/db/schema";
+import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { montant, normaliser } from "../valeurs";
 import { m } from "@/lib/i18n/catalogue";
 import { avertir, erreur, lots, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
@@ -63,7 +64,11 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
     const crees = await tx.insert(produit).values(lot).returning({ id: produit.id, stockActuel: produit.stockActuel, suiviStock: produit.suiviStock });
     // Le stock importé est le stock de départ : il apparaît dans l'historique du produit comme tel.
     const departs = crees.filter((c) => c.suiviStock && c.stockActuel > 0).map((c) => ({ entrepriseId, produitId: c.id, type: "INITIAL" as const, quantite: c.stockActuel, stockApres: c.stockActuel, creeParId: utilisateurId }));
-    if (departs.length > 0) await tx.insert(mouvementStock).values(departs);
+    if (departs.length > 0) {
+      const principal = await assurerDepotPrincipal(tx, entrepriseId);
+      await tx.insert(mouvementStock).values(departs.map((d) => ({ ...d, depotId: principal.id })));
+      for (const d of departs) await deplacerStockDepot(tx, entrepriseId, d.produitId, principal.id, d.quantite);
+    }
   }
   rapport.crees = aCreer.length;
   if (prixAbsents > 0) avertir(rapport, 0, m("{n} article(s) sans prix de vente : prix mis à 0, à compléter."), { n: prixAbsents });

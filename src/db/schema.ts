@@ -3384,7 +3384,33 @@ export const produit = pgTable(
 // Historique du stock (2026-11-02) : chaque variation de `produit.stock_actuel` laisse une ligne, jamais une valeur écrasée sans trace.
 // `quantite` est signée (+ entrée, − sortie) et `stock_apres` fige le stock obtenu, pour relire l'historique sans tout rejouer.
 // VENTE/ACHAT viennent des documents (documentType + documentId), les autres types des corrections faites à la main.
-export const typeMouvementStock = pgEnum("type_mouvement_stock", ["INITIAL", "VENTE", "ACHAT", "AJOUT", "RETRAIT", "INVENTAIRE"]);
+export const typeMouvementStock = pgEnum("type_mouvement_stock", ["INITIAL", "VENTE", "ACHAT", "AJOUT", "RETRAIT", "INVENTAIRE", "TRANSFERT_SORTIE", "TRANSFERT_ENTREE"]);
+
+// Dépôts (2026-11-02) : boutique, entrepôt… Un seul est « principal » (celui qui reçoit les ventes et achats des documents) ; il existe
+// toujours, créé à la demande. `produit.stock_actuel` reste le TOTAL de tous les dépôts : la répartition vit dans `stock_depot`.
+export const depot = pgTable(
+  "depot",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id, { onDelete: "cascade" }),
+    nom: text("nom").notNull(),
+    principal: boolean("principal").notNull().default(false),
+    actif: boolean("actif").notNull().default(true),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("depot_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("depot_entreprise_nom_unique").on(table.entrepriseId, table.nom),
+    uniqueIndex("depot_principal_unique").on(table.entrepriseId).where(sql`${table.principal}`),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
 
 export const mouvementStock = pgTable(
   "mouvement_stock",
@@ -3407,10 +3433,40 @@ export const mouvementStock = pgTable(
     // Nul quand le mouvement vient d'une tâche automatique (facture récurrente générée par le worker).
     creeParId: text("cree_par_id").references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
+    // Dépôt concerné ; nul pour l'historique d'avant les dépôts (il portait sur le dépôt principal).
+    depotId: text("depot_id").references(() => depot.id),
   },
   (table) => [
     index("mouvement_stock_entreprise_idx").on(table.entrepriseId),
     index("mouvement_stock_produit_date_idx").on(table.produitId, table.creeLe),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Quantité d'un produit dans un dépôt (2026-11-02). La somme des quantités d'un produit égale `produit.stock_actuel` ; tout écart
+// (ancien code, import) est résorbé sur le dépôt principal à la lecture (voir src/lib/produits/depots.ts).
+export const stockDepot = pgTable(
+  "stock_depot",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    depotId: text("depot_id")
+      .notNull()
+      .references(() => depot.id),
+    quantite: integer("quantite").notNull().default(0),
+  },
+  (table) => [
+    index("stock_depot_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("stock_depot_produit_depot_unique").on(table.produitId, table.depotId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

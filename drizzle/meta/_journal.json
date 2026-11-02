@@ -981,6 +981,13 @@
       "when": 1792386000000,
       "tag": "0139_cout_moyen_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1792472400000,
+      "tag": "0140_depots",
+      "breakpoints": true
     }
   ]
 }

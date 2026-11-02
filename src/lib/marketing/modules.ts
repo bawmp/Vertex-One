@@ -97,6 +97,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Aperçu avant envoi d'un devis ou d'une facture : l'email tel que le client le recevra (destinataire, objet, message) à côté du vrai PDF joint, et envoi depuis cet aperçu"),
       m("Souche de chaque email envoyé à vos clients (destinataire, message, pièces jointes, date, auteur), consultable et filtrable dans Paramètres"),
       m("Stock : suivi par produit, historique de chaque mouvement (ventes, achats, casse, perte, vol), correction en quelques clics et inventaire physique avec l'écart calculé tout seul"),
+      m("Plusieurs dépôts (boutique, entrepôt…) : stock par dépôt, transferts entre dépôts avec historique, inventaire dépôt par dépôt ; le dépôt principal reçoit les ventes et achats de vos documents"),
       m("Valeur du stock au coût moyen pondéré, mis à jour à chaque achat, et écriture de variation de stock en un clic dans la comptabilité (inventaire intermittent SYSCOHADA)"),
       m("Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe"),
       m("Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur"),

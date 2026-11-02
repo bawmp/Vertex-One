@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { produit, mouvementStock } from "@/db/schema";
+import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { activerSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -71,7 +72,9 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
       .returning({ id: produit.id });
     // Le stock saisi à la création est le stock de départ : il ouvre l'historique du produit.
     if (suiviStockReel && (stockInitial ?? 0) > 0) {
-      await tx.insert(mouvementStock).values({ entrepriseId: utilisateurConnecte.entrepriseId, produitId: cree.id, type: "INITIAL", quantite: stockInitial!, stockApres: stockInitial!, creeParId: utilisateurConnecte.utilisateurId });
+      const principal = await assurerDepotPrincipal(tx, utilisateurConnecte.entrepriseId);
+      await deplacerStockDepot(tx, utilisateurConnecte.entrepriseId, cree.id, principal.id, stockInitial!);
+      await tx.insert(mouvementStock).values({ entrepriseId: utilisateurConnecte.entrepriseId, produitId: cree.id, type: "INITIAL", quantite: stockInitial!, stockApres: stockInitial!, depotId: principal.id, creeParId: utilisateurConnecte.utilisateurId });
     }
   });
 
@@ -198,9 +201,9 @@ export async function corrigerStockProduit(produitId: string, _etat: EtatStock, 
   const note = String(formData.get("note") ?? "").trim().slice(0, 300) || undefined;
   let correction: CorrectionStock;
   if (mode === "INVENTAIRE") {
-    correction = { mode, compte: Number(formData.get("quantite")), note };
+    correction = { mode, compte: Number(formData.get("quantite")), note, depotId: String(formData.get("depotId") ?? "") || undefined };
   } else if (mode === "AJOUT" || mode === "RETRAIT") {
-    correction = { mode, quantite: Number(formData.get("quantite")), motif: String(formData.get("motif") ?? ""), note };
+    correction = { mode, quantite: Number(formData.get("quantite")), motif: String(formData.get("motif") ?? ""), note, depotId: String(formData.get("depotId") ?? "") || undefined };
   } else {
     return { erreur: t("Choisissez ce que vous voulez faire du stock.") };
   }
@@ -249,6 +252,7 @@ export async function enregistrerInventaire(_etat: EtatStock, formData: FormData
     comptes.push({ produitId: cle.slice("compte_".length), compte: Number(texte) });
   }
   if (comptes.length === 0) return { erreur: t("Saisissez au moins une quantité comptée.") };
+  const depotId = String(formData.get("depotId") ?? "") || undefined;
   if (comptes.length > 500) return { erreur: t("Trop de produits d'un coup : enregistrez par groupes de 500 au plus.") };
 
   const bilan = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -256,7 +260,7 @@ export async function enregistrerInventaire(_etat: EtatStock, formData: FormData
     let inchanges = 0;
     const refuses: string[] = [];
     for (const { produitId, compte } of comptes) {
-      const r = await corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, { mode: "INVENTAIRE", compte, note: undefined }, utilisateurConnecte.utilisateurId);
+      const r = await corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, { mode: "INVENTAIRE", compte, note: undefined, depotId }, utilisateurConnecte.utilisateurId);
       if (!r.ok) refuses.push(r.erreur);
       else if (r.ecart === 0) inchanges++;
       else corriges++;

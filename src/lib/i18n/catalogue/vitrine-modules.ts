@@ -52,6 +52,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients": "Your logo and identity on quotes, invoices, emails and the pages sent to your clients",
   "Stock : suivi par produit, historique de chaque mouvement (ventes, achats, casse, perte, vol), correction en quelques clics et inventaire physique avec l'écart calculé tout seul":
     "Stock: tracking per product, history of every movement (sales, purchases, breakage, loss, theft), corrections in a few clicks and a physical stock count with the difference calculated for you",
+  "Plusieurs dépôts (boutique, entrepôt…) : stock par dépôt, transferts entre dépôts avec historique, inventaire dépôt par dépôt ; le dépôt principal reçoit les ventes et achats de vos documents":
+    "Multiple warehouses (shop, warehouse…): stock per warehouse, transfers between warehouses with history, stock counts warehouse by warehouse; the main warehouse receives the sales and purchases of your documents",
   "Valeur du stock au coût moyen pondéré, mis à jour à chaque achat, et écriture de variation de stock en un clic dans la comptabilité (inventaire intermittent SYSCOHADA)":
     "Stock value at weighted average cost, updated on every purchase, and a one-click stock variation entry in the accounts (SYSCOHADA periodic inventory)",
   "Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe":

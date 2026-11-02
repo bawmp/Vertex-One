@@ -1,6 +1,7 @@
 import { sql, inArray, eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { produit, mouvementStock } from "@/db/schema";
+import { depot, produit, mouvementStock, stockDepot } from "@/db/schema";
+import { assurerDepotPrincipal, deplacerStockDepot, resorberEcart } from "./depots";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 
@@ -46,6 +47,10 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
   const ids = [...quantitesParProduit.keys()];
   const produitsSuivis = await tx.select({ id: produit.id }).from(produit).where(and(inArray(produit.id, ids), eq(produit.suiviStock, true)));
 
+  if (produitsSuivis.length === 0) return;
+  // Les documents (ventes, achats) touchent toujours le dépôt principal ; les transferts et corrections choisissent le leur.
+  const principal = await assurerDepotPrincipal(tx, entrepriseId);
+
   for (const { id } of produitsSuivis) {
     const quantite = quantitesParProduit.get(id)!;
     if (quantite === 0) continue;
@@ -63,12 +68,14 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
       })
       .where(eq(produit.id, id))
       .returning({ stockActuel: produit.stockActuel });
+    await deplacerStockDepot(tx, entrepriseId, id, principal.id, sens * quantite);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: id,
       type: sens === -1 ? "VENTE" : "ACHAT",
       quantite: sens * quantite,
       stockApres: apres.stockActuel,
+      depotId: principal.id,
       documentType: contexte?.documentType,
       documentId: contexte?.documentId,
       creeParId: contexte?.utilisateurId ?? null,
@@ -91,8 +98,8 @@ export function incrementerStockAchat(tx: TransactionDrizzle, entrepriseId: stri
 }
 
 export type CorrectionStock =
-  | { mode: "AJOUT" | "RETRAIT"; quantite: number; motif: string; note?: string }
-  | { mode: "INVENTAIRE"; compte: number; note?: string };
+  | { mode: "AJOUT" | "RETRAIT"; quantite: number; motif: string; note?: string; depotId?: string }
+  | { mode: "INVENTAIRE"; compte: number; note?: string; depotId?: string };
 
 export type ResultatCorrection = { ok: true; stockAvant: number; stockApres: number; ecart: number } | { ok: false; erreur: string };
 
@@ -112,19 +119,29 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
   if (!p) return { ok: false, erreur: m("Produit introuvable.") };
   if (p.type !== "BIEN" || !p.suiviStock) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
 
+  // Dépôt visé (le principal par défaut) et ce qu'il contient : un retrait ou un inventaire se mesure sur CE dépôt, pas sur le total.
+  await resorberEcart(tx, entrepriseId, p.id);
+  const visee = correction.depotId
+    ? (await tx.select({ id: depot.id, actif: depot.actif }).from(depot).where(and(eq(depot.id, correction.depotId), eq(depot.entrepriseId, entrepriseId))))[0]
+    : await assurerDepotPrincipal(tx, entrepriseId).then((d) => ({ id: d.id, actif: true }));
+  if (!visee) return { ok: false, erreur: m("Dépôt introuvable.") };
+  if (!visee.actif) return { ok: false, erreur: m("Un dépôt archivé ne peut pas recevoir ni envoyer de stock.") };
+  const [dansDepot] = await tx.select({ quantite: stockDepot.quantite }).from(stockDepot).where(and(eq(stockDepot.produitId, p.id), eq(stockDepot.depotId, visee.id)));
+  const quantiteDepot = dansDepot?.quantite ?? 0;
+
   let delta: number;
   let type: "AJOUT" | "RETRAIT" | "INVENTAIRE";
   let motif: string;
   if (correction.mode === "INVENTAIRE") {
     if (!Number.isInteger(correction.compte) || correction.compte < 0) return { ok: false, erreur: m("La quantité comptée doit être un nombre entier, zéro ou plus.") };
-    delta = correction.compte - p.stockActuel;
+    delta = correction.compte - quantiteDepot;
     type = "INVENTAIRE";
     motif = "INVENTAIRE";
   } else {
     if (!Number.isInteger(correction.quantite) || correction.quantite <= 0) return { ok: false, erreur: m("La quantité doit être un nombre entier supérieur à zéro.") };
     const motifs: Record<string, string> = correction.mode === "AJOUT" ? MOTIFS_AJOUT : MOTIFS_RETRAIT;
     if (!(correction.motif in motifs)) return { ok: false, erreur: m("Choisissez la raison de cette correction.") };
-    if (correction.mode === "RETRAIT" && correction.quantite > p.stockActuel) return { ok: false, erreur: m("Vous ne pouvez pas retirer plus que le stock disponible.") };
+    if (correction.mode === "RETRAIT" && correction.quantite > quantiteDepot) return { ok: false, erreur: m("Vous ne pouvez pas retirer plus que le stock disponible.") };
     delta = correction.mode === "AJOUT" ? correction.quantite : -correction.quantite;
     type = correction.mode;
     motif = correction.motif;
@@ -133,6 +150,7 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
 
   const stockApres = p.stockActuel + delta;
   await tx.update(produit).set({ stockActuel: stockApres }).where(eq(produit.id, p.id));
+  await deplacerStockDepot(tx, entrepriseId, p.id, visee.id, delta);
   await tx.insert(mouvementStock).values({
     entrepriseId,
     produitId: p.id,
@@ -141,6 +159,7 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
     stockApres,
     motif,
     note: correction.note?.trim() || null,
+    depotId: visee.id,
     creeParId: utilisateurId,
   });
   return { ok: true, stockAvant: p.stockActuel, stockApres, ecart: delta };
@@ -159,7 +178,9 @@ export async function activerSuiviStock(tx: TransactionDrizzle, entrepriseId: st
   if (p.suiviStock) return { ok: false, erreur: m("Le suivi du stock est déjà activé pour ce produit.") };
 
   await tx.update(produit).set({ suiviStock: true, stockActuel: stockInitial, coutMoyen: p.prixAchat }).where(eq(produit.id, p.id));
-  await tx.insert(mouvementStock).values({ entrepriseId, produitId: p.id, type: "INITIAL", quantite: stockInitial, stockApres: stockInitial, creeParId: utilisateurId });
+  const principal = await assurerDepotPrincipal(tx, entrepriseId);
+  if (stockInitial > 0) await deplacerStockDepot(tx, entrepriseId, p.id, principal.id, stockInitial);
+  await tx.insert(mouvementStock).values({ entrepriseId, produitId: p.id, type: "INITIAL", quantite: stockInitial, stockApres: stockInitial, depotId: principal.id, creeParId: utilisateurId });
   return { ok: true, stockAvant: 0, stockApres: stockInitial, ecart: stockInitial };
 }
 

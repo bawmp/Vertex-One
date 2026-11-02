@@ -15,7 +15,7 @@ export type LigneInventaire = { id: string; nom: string; stockActuel: number };
  * Inventaire physique : une ligne par produit suivi, on tape ce qu'on a compté. L'écart avec le stock du système apparaît tout de
  * suite (vert si en plus, rouge si en moins) ; seules les lignes remplies sont enregistrées, chacune dans l'historique du produit.
  */
-export function FormulaireInventaire({ lignes }: { lignes: LigneInventaire[] }) {
+export function FormulaireInventaire({ lignes, depotId }: { lignes: LigneInventaire[]; depotId?: string }) {
   const t = useT();
   const [comptes, setComptes] = useState<Record<string, string>>({});
   const [recherche, setRecherche] = useState("");
@@ -28,6 +28,7 @@ export function FormulaireInventaire({ lignes }: { lignes: LigneInventaire[] }) 
   function enregistrer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const donnees = new FormData();
+    if (depotId) donnees.set("depotId", depotId);
     for (const [id, valeur] of Object.entries(comptes)) if (valeur.trim() !== "") donnees.set(`compte_${id}`, valeur);
     setEtat(null);
     startTransition(async () => {
