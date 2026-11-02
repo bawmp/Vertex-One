@@ -3650,6 +3650,9 @@ export const mouvementStock = pgTable(
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     // Dépôt concerné ; nul pour l'historique d'avant les dépôts (il portait sur le dépôt principal).
     depotId: text("depot_id").references(() => depot.id),
+    // Coût moyen pondéré du produit juste après ce mouvement (2026-11-02, priorité 2.6) : rempli par un déclencheur de la base à chaque
+    // insertion, pour valoriser le stock à une date passée.
+    coutMoyenApres: integer("cout_moyen_apres"),
   },
   (table) => [
     index("mouvement_stock_entreprise_idx").on(table.entrepriseId),

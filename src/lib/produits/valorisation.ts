@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { compteComptable, ecritureComptable, entreprise, journalManuel, produit } from "@/db/schema";
+import { compteComptable, depot, ecritureComptable, entreprise, journalManuel, mouvementStock, produit, stockDepot } from "@/db/schema";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
 import { m } from "@/lib/i18n/catalogue";
@@ -35,13 +35,64 @@ async function soldeCompte311(tx: TransactionDrizzle, entrepriseId: string, jusq
   return lignes.reduce((s, l) => s + l.debit - l.credit, 0);
 }
 
-export async function lireValorisation(tx: TransactionDrizzle, entrepriseId: string, jusquau: Date = new Date()): Promise<Valorisation> {
+/**
+ * Valeur du stock à une date, au global ou pour un seul dépôt. Pour « maintenant » sans dépôt, c'est le stock et le coût moyen courants.
+ * Pour une date passée, la quantité est reconstituée à partir de l'état actuel en défaisant les mouvements postérieurs à la date, et le
+ * coût moyen est celui enregistré juste après le dernier mouvement antérieur (colonne `cout_moyen_apres`, remplie par la base ; pour
+ * l'historique d'avant la priorité 2.6, c'est le coût moyen du jour de la migration, faute de mieux). Un dépôt donné ne change pas le
+ * calcul du coût : le coût moyen est celui du produit, tous dépôts confondus.
+ */
+export async function lireValorisation(tx: TransactionDrizzle, entrepriseId: string, jusquau: Date = new Date(), depotId: string | null = null, maintenant: Date = new Date()): Promise<Valorisation> {
+  const passe = jusquau.getTime() < maintenant.getTime();
   const produits = await tx
-    .select({ id: produit.id, nom: produit.nom, stockActuel: produit.stockActuel, coutMoyen: produit.coutMoyen })
+    .select({ id: produit.id, nom: produit.nom, stockActuel: produit.stockActuel, coutMoyen: produit.coutMoyen, suiviStock: produit.suiviStock })
     .from(produit)
-    .where(and(eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)))
+    .where(and(eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN")))
     .orderBy(asc(produit.nom));
-  const lignes = produits.map((p) => ({ ...p, valeur: valeurLigne(p.stockActuel, p.coutMoyen) }));
+
+  const stockAu = new Map<string, number>(produits.map((p) => [p.id, p.stockActuel]));
+  const coutAu = new Map<string, number>(produits.map((p) => [p.id, p.coutMoyen]));
+
+  let principalCible = false;
+  if (depotId) {
+    const [cible] = await tx.select({ id: depot.id, principal: depot.principal }).from(depot).where(and(eq(depot.id, depotId), eq(depot.entrepriseId, entrepriseId)));
+    if (!cible) return { lignes: [], total: 0, soldeComptable: await soldeCompte311(tx, entrepriseId, jusquau), ecart: 0 };
+    principalCible = cible.principal;
+    const quantites = await tx.select({ produitId: stockDepot.produitId, depotId: stockDepot.depotId, quantite: stockDepot.quantite }).from(stockDepot).where(eq(stockDepot.entrepriseId, entrepriseId));
+    const autres = new Map<string, number>();
+    const dedans = new Map<string, number>();
+    for (const q of quantites) {
+      if (q.depotId === depotId) dedans.set(q.produitId, q.quantite);
+      else autres.set(q.produitId, (autres.get(q.produitId) ?? 0) + q.quantite);
+    }
+    for (const p of produits) {
+      // Le dépôt principal reçoit tout ce que les autres dépôts ne portent pas (stock d'avant les dépôts compris).
+      stockAu.set(p.id, cible.principal ? p.stockActuel - (autres.get(p.id) ?? 0) : (dedans.get(p.id) ?? 0));
+    }
+  }
+
+  if (passe) {
+    const filtreDepot = depotId ? (principalCible ? or(eq(mouvementStock.depotId, depotId), isNull(mouvementStock.depotId)) : eq(mouvementStock.depotId, depotId)) : undefined;
+    const apres = await tx
+      .select({ produitId: mouvementStock.produitId, total: sql<number>`coalesce(sum(${mouvementStock.quantite}), 0)::int` })
+      .from(mouvementStock)
+      .where(and(eq(mouvementStock.entrepriseId, entrepriseId), gt(mouvementStock.creeLe, jusquau), filtreDepot))
+      .groupBy(mouvementStock.produitId);
+    for (const a of apres) if (stockAu.has(a.produitId)) stockAu.set(a.produitId, (stockAu.get(a.produitId) ?? 0) - a.total);
+
+    const couts = await tx.execute(
+      sql`select distinct on (produit_id) produit_id as "produitId", cout_moyen_apres as "cout" from mouvement_stock where entreprise_id = ${entrepriseId} and cree_le <= ${jusquau.toISOString()}::timestamp and cout_moyen_apres is not null order by produit_id, cree_le desc, id desc`
+    );
+    for (const c of couts.rows as { produitId: string; cout: number }[]) if (coutAu.has(c.produitId)) coutAu.set(c.produitId, c.cout);
+  }
+
+  const lignes = produits
+    .filter((p) => (depotId || passe ? (stockAu.get(p.id) ?? 0) !== 0 || (!depotId && p.suiviStock) : p.suiviStock))
+    .map((p) => {
+      const stock = stockAu.get(p.id) ?? 0;
+      const cout = coutAu.get(p.id) ?? 0;
+      return { id: p.id, nom: p.nom, stockActuel: stock, coutMoyen: cout, valeur: valeurLigne(stock, cout) };
+    });
   const total = lignes.reduce((s, l) => s + l.valeur, 0);
   const soldeComptable = await soldeCompte311(tx, entrepriseId, jusquau);
   return { lignes, total, soldeComptable, ecart: total - soldeComptable };

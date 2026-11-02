@@ -191,4 +191,10 @@ export const STOCK: Record<string, string> = {
   "Le suivi du stock est arrêté pour ce produit.": "Stock tracking is stopped for this product.",
   "Fin du suivi du stock": "End of stock tracking",
   "Stock insuffisant pour « {produit} » dans le dépôt « {depot} » : {disponible} disponible(s), {demande} demandé(s).": "Not enough stock for \"{produit}\" in warehouse \"{depot}\": {disponible} available, {demande} requested.",
+  "Choisir la date et le dépôt": "Choose the date and warehouse",
+  "Valeur au": "Value as of",
+  "Tous les dépôts": "All warehouses",
+  "Afficher": "Show",
+  "Revenir à aujourd'hui": "Back to today",
+  "Valeur reconstituée à partir de l'historique des mouvements de stock.": "Value rebuilt from the stock movement history.",
 };
