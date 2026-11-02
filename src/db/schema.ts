@@ -3046,6 +3046,66 @@ export const journalManuel = pgTable(
   ]
 ).enableRLS();
 
+// Immobilisations et amortissements (2026-11-02, priorité 2.5) : registre des biens durables de l'entreprise (matériel, mobilier,
+// informatique, transport) et dotation annuelle passée en comptabilité. Amortissement linéaire au prorata du mois d'acquisition ; une
+// dotation par bien et par année (index unique), jamais deux fois.
+export const immobilisation = pgTable(
+  "immobilisation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    libelle: text("libelle").notNull(),
+    compteActif: text("compte_actif").notNull(),
+    dateAcquisition: timestamp("date_acquisition").notNull(),
+    valeurAcquisition: integer("valeur_acquisition").notNull(),
+    valeurResiduelle: integer("valeur_residuelle").notNull().default(0),
+    dureeAnnees: integer("duree_annees").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("immobilisation_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const dotationAmortissement = pgTable(
+  "dotation_amortissement",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    immobilisationId: text("immobilisation_id")
+      .notNull()
+      .references(() => immobilisation.id),
+    annee: integer("annee").notNull(),
+    montant: integer("montant").notNull(),
+    journalManuelId: text("journal_manuel_id")
+      .notNull()
+      .references(() => journalManuel.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dotation_amortissement_bien_annee_unique").on(table.immobilisationId, table.annee),
+    index("dotation_amortissement_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+
 /**
  * Budgets (Zoho Books > Comptable > "Budgets", échange du 2026-09-07) — un
  * montant budgété par compte sur une période (pas de ventilation mensuelle,

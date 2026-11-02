@@ -84,6 +84,7 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Year-end closing: expenses and income cleared into the result, balance sheet accounts carried forward, accounts locked; accountant file (general ledger, trial balance, journals, balance sheet, income statement, VAT) in a single ZIP",
   "Comptes de tiers : grand livre de chaque client et fournisseur avec lettrage automatique des factures soldées, et balance âgée par retard d'échéance, avec export CSV":
     "Third-party accounts: ledger of each customer and supplier with automatic matching of settled invoices, and aged balance by days overdue, with CSV export",
+  "Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic": "Fixed asset register with straight-line depreciation and yearly depreciation charges posted to the books in one click",
   "Régularisations de fin d'exercice guidées (charges à payer, produits à recevoir, constatés d'avance, provisions) avec extourne automatique au 1er janvier": "Guided year-end adjustments (accrued expenses, accrued income, prepayments, provisions) with automatic reversal on 1 January",
   "États financiers par rubriques SYSCOHADA : bilan (brut, amortissements, net) et compte de résultat avec ses soldes intermédiaires, en PDF, vérifiés équilibrés":
     "Financial statements by SYSCOHADA headings: balance sheet (gross, depreciation, net) and income statement with its intermediate balances, as PDF, checked for balance",

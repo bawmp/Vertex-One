@@ -1037,6 +1037,13 @@
       "when": 1793077200000,
       "tag": "0147_reouverture_et_comptes",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1793163600000,
+      "tag": "0148_immobilisations",
+      "breakpoints": true
     }
   ]
 }
