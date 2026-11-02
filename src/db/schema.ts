@@ -3558,6 +3558,28 @@ export const avoirFournisseur = pgTable(
 // fournisseur pour l'intégration réelle du mouvement de stock.
 export const typeProduit = pgEnum("type_produit", ["BIEN", "SERVICE"]);
 
+// Famille de variantes (2026-11-02, priorité 3.5) : un modèle vendu en plusieurs tailles, couleurs… Chaque variante est un PRODUIT à part
+// entière (son stock, son prix, ses lots) rattaché à la famille ; les devis, factures et achats n'ont donc rien de nouveau à savoir.
+export const familleProduit = pgTable(
+  "famille_produit",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("famille_produit_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const produit = pgTable(
   "produit",
   {
@@ -3579,6 +3601,11 @@ export const produit = pgTable(
     stockCible: integer("stock_cible"),
     // Lots et dates de péremption (2026-11-02, priorité 3.4) : le stock du produit est découpé en lots (voir `lot_stock`).
     suiviLots: boolean("suivi_lots").notNull().default(false),
+    // Variantes et unités (2026-11-02, priorité 3.5) : la famille et le libellé de la variante (« M / Rouge »), l'unité de base (« pièce »,
+    // « kg »). Le stock est toujours compté dans l'unité de base ; les conditionnements (carton de 12) ne servent qu'à saisir et à afficher.
+    familleId: text("famille_id").references(() => familleProduit.id),
+    variante: text("variante"),
+    unite: text("unite"),
     // Dernier niveau signalé par email (BAS ou RUPTURE) ; nul tant que le stock est correct. Évite d'alerter chaque jour pour le même produit.
     alerteStockNiveau: text("alerte_stock_niveau"),
     fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
@@ -3696,6 +3723,32 @@ export const lotStock = pgTable(
   (table) => [
     uniqueIndex("lot_stock_produit_numero_unique").on(table.produitId, table.numeroLot),
     index("lot_stock_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Conditionnement d'un produit (2026-11-02, priorité 3.5) : « carton » = 12 unités de base. Jamais un second stock : une saisie en cartons est
+// convertie en unités de base, et l'affichage décompose le stock (« 2 cartons et 3 pièces »).
+export const conditionnementProduit = pgTable(
+  "conditionnement_produit",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    nom: text("nom").notNull(),
+    quantiteBase: integer("quantite_base").notNull(),
+  },
+  (table) => [
+    uniqueIndex("conditionnement_produit_nom_unique").on(table.produitId, table.nom),
+    index("conditionnement_produit_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
