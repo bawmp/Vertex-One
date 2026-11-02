@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
-import { activerSuiviStock, corrigerStock, type CorrectionStock } from "@/lib/produits/stock";
+import { activerSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
@@ -259,4 +259,21 @@ export async function enregistrerInventaire(_etat: EtatStock, formData: FormData
   revalidatePath("/app/produits");
   if (bilan.refuses.length > 0) return { erreur: t("{n} ligne(s) refusée(s) : {raison}", { n: bilan.refuses.length, raison: t(bilan.refuses[0]) }) };
   return { message: t("Inventaire enregistré : {corriges} produit(s) corrigé(s), {inchanges} déjà exact(s).", { corriges: bilan.corriges, inchanges: bilan.inchanges }) };
+}
+
+/** Fixe ou retire le seuil d'alerte de stock bas d'un produit suivi (champ vide = pas d'alerte). */
+export async function definirSeuilAlerteProduit(produitId: string, _etat: EtatStock, formData: FormData): Promise<EtatStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
+
+  const texte = String(formData.get("seuil") ?? "").trim();
+  const seuil = texte === "" ? null : Number(texte);
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => definirSeuilAlerte(tx, utilisateurConnecte.entrepriseId, produitId, seuil));
+  if (!resultat.ok) return { erreur: t(resultat.erreur) };
+
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  return { message: resultat.seuil === null ? t("L'alerte de stock bas est retirée.") : t("Alerte enregistrée : vous serez prévenu à {n} ou moins.", { n: resultat.seuil }) };
 }

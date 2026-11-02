@@ -14,6 +14,8 @@ import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { FormulaireImageProduit } from "./formulaire-image-produit";
 import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { AjusterStock } from "./ajuster-stock";
+import { SeuilAlerte } from "./seuil-alerte";
+import { niveauStock } from "@/lib/produits/niveau-stock";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE } from "@/lib/produits/motifs-stock";
 import { getT } from "@/lib/i18n/langue";
 
@@ -161,12 +163,16 @@ export default async function PageDetailProduit({ params, searchParams }: { para
               <Card>
                 <CardContent className="flex items-baseline justify-between gap-3">
                   <span className="text-sm text-muted-foreground">{t("Stock actuel")}</span>
-                  <span className="text-3xl font-semibold tabular-nums">{leProduit.stockActuel}</span>
+                  <span className="flex items-center gap-3">
+                    {niveauStock(leProduit) === "RUPTURE" ? <Badge variant="danger">{t("Épuisé")}</Badge> : niveauStock(leProduit) === "BAS" ? <Badge variant="warning">{t("Stock bas")}</Badge> : null}
+                    <span className="text-3xl font-semibold tabular-nums">{leProduit.stockActuel}</span>
+                  </span>
                 </CardContent>
               </Card>
             ) : null}
 
             {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} /> : null}
+            {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
 
             {leProduit.suiviStock ? (
               <div className="flex flex-col gap-2">

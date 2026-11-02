@@ -441,3 +441,11 @@ Repères : `invitation.date_fin_propose` (migration 0130), `src/lib/actions/invi
 - **Mise en place (administrateur technique)** : migration `0136` (table `mouvement_stock`, RLS + FORCE) **à appliquer en production AVANT de pousser le code**. L'historique commence à la mise en service : les mouvements passés n'y sont pas reconstitués.
 - **Code** : `src/lib/produits/stock.ts` (mouvements, `corrigerStock`, `activerSuiviStock`; **tout mouvement passe par là**), `motifs-stock.ts`, actions `corrigerStockProduit` / `activerSuiviStockProduit` / `enregistrerInventaire` (`src/lib/actions/produit.ts`), `src/app/app/produits/[id]/ajuster-stock.tsx`, `src/app/app/produits/inventaire/`. Tests : `tests/stock-historique.test.ts` (mouvements signés, plafonds, motifs, inventaire, activation, **fuite entre entreprises**).
 - **Pas encore** : seuils et alertes (étape 2), valorisation et dépôts (étape 5), remise en stock à l'annulation d'une facture.
+
+
+## Stock : alertes de stock bas (2026-11-02, étape 2 sur 5)
+
+- **Quoi** : chaque produit suivi peut avoir un **seuil d'alerte** (« prévenez-moi à partir de N »). Fiche produit → onglet **Stock** → carte « Alerte de stock bas ». Dans la liste des produits, le badge devient orange « Stock bas : N » à partir du seuil, rouge « Épuisé » à zéro (même sans seuil : zéro en rayon est toujours signalé). Un bandeau en haut de la liste dit combien de produits sont à réapprovisionner, avec un lien « Voir ces produits » (filtre `?filtre=a-reapprovisionner`).
+- **Règles** : seuil entier de 0 à 1 000 000, champ vide = pas d'alerte ; réservé aux biens dont le suivi est activé ; droit `PRODUITS/MODIFIER` ; le produit est relu sous la protection par entreprise (jamais celui d'une autre). Règle pure `src/lib/produits/niveau-stock.ts` (`niveauStock`, `aReapprovisionner`).
+- **Mise en place (administrateur technique)** : migration `0137` (colonne `produit.seuil_alerte`, nullable) **à appliquer en production AVANT de pousser le code**, avec la `0136` si elle n'y est pas encore. Tests : `tests/stock-alertes.test.ts`.
+- **Pas encore** : alerte par email ou notification quand un produit franchit son seuil.

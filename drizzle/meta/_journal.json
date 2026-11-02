@@ -960,6 +960,13 @@
       "when": 1792126800000,
       "tag": "0136_mouvement_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1792213200000,
+      "tag": "0137_seuil_alerte_stock",
+      "breakpoints": true
     }
   ]
 }

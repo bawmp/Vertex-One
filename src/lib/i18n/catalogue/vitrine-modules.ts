@@ -52,6 +52,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients": "Your logo and identity on quotes, invoices, emails and the pages sent to your clients",
   "Stock : suivi par produit, historique de chaque mouvement (ventes, achats, casse, perte, vol), correction en quelques clics et inventaire physique avec l'écart calculé tout seul":
     "Stock: tracking per product, history of every movement (sales, purchases, breakage, loss, theft), corrections in a few clicks and a physical stock count with the difference calculated for you",
+  "Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe":
+    "Low-stock alert: set a threshold per product, the list flags those to restock (low or out of stock) and a filter groups them",
   "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur": "Purchasing: supplier records and purchase orders, directly convertible into a supplier invoice",
   "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique":
     "Tracking of overdue supplier invoices, separate from tracking client unpaid invoices; an invoice is marked paid or cancelled while keeping its history",

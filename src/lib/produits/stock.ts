@@ -141,3 +141,18 @@ export async function activerSuiviStock(tx: TransactionDrizzle, entrepriseId: st
   await tx.insert(mouvementStock).values({ entrepriseId, produitId: p.id, type: "INITIAL", quantite: stockInitial, stockApres: stockInitial, creeParId: utilisateurId });
   return { ok: true, stockAvant: 0, stockApres: stockInitial, ecart: stockInitial };
 }
+
+/**
+ * Fixe (ou retire, avec `null`) le seuil d'alerte d'un bien suivi. Le produit est relu dans la transaction de l'entreprise (RLS) :
+ * jamais le produit d'une autre. Un seuil est un entier de 0 à 1 000 000.
+ */
+export async function definirSeuilAlerte(tx: TransactionDrizzle, entrepriseId: string, produitId: string, seuil: number | null): Promise<{ ok: true; seuil: number | null } | { ok: false; erreur: string }> {
+  if (seuil !== null && (!Number.isInteger(seuil) || seuil < 0 || seuil > 1_000_000)) return { ok: false, erreur: m("Le seuil doit être un nombre entier, zéro ou plus.") };
+  const modifies = await tx
+    .update(produit)
+    .set({ seuilAlerte: seuil })
+    .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)))
+    .returning({ id: produit.id });
+  if (modifies.length === 0) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
+  return { ok: true, seuil };
+}

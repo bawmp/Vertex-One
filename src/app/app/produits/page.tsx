@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil, ClipboardCheck } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
@@ -11,11 +11,13 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { aReapprovisionner, niveauStock } from "@/lib/produits/niveau-stock";
 import { FormulaireNouveauProduit } from "./formulaire-nouveau-produit";
 import { BoutonSupprimerProduit } from "./bouton-supprimer-produit";
 import { getT } from "@/lib/i18n/langue";
 
-export default async function PageProduits() {
+export default async function PageProduits({ searchParams }: { searchParams: Promise<{ filtre?: string }> }) {
+  const { filtre } = await searchParams;
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -29,7 +31,10 @@ export default async function PageProduits() {
     );
   }
 
-  const produits = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select().from(produit).orderBy(desc(produit.creeLe)));
+  const tousLesProduits = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select().from(produit).orderBy(desc(produit.creeLe)));
+  const nbAReapprovisionner = tousLesProduits.filter(aReapprovisionner).length;
+  const filtreActif = filtre === "a-reapprovisionner";
+  const produits = filtreActif ? tousLesProduits.filter(aReapprovisionner) : tousLesProduits;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -48,6 +53,22 @@ export default async function PageProduits() {
           {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
         </div>
       </div>
+
+      {nbAReapprovisionner > 0 || filtreActif ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-600/20 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            {nbAReapprovisionner > 0
+              ? nbAReapprovisionner === 1
+                ? t("1 produit est à réapprovisionner (stock bas ou épuisé).")
+                : t("{n} produits sont à réapprovisionner (stock bas ou épuisé).", { n: nbAReapprovisionner })
+              : t("Aucun produit à réapprovisionner.")}
+          </span>
+          <Link href={filtreActif ? "/app/produits" : "/app/produits?filtre=a-reapprovisionner"} className="font-medium underline underline-offset-4">
+            {filtreActif ? t("Voir tous les produits") : t("Voir ces produits")}
+          </Link>
+        </div>
+      ) : null}
 
       <Card className="p-0">
         <div className="flex flex-col divide-y divide-border">
@@ -71,7 +92,7 @@ export default async function PageProduits() {
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium">{p.nom}</p>
                     <Badge variant="neutral">{p.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
-                    {p.suiviStock ? <Badge variant="info">{t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
+                    {p.suiviStock ? <Badge variant={niveauStock(p) === "RUPTURE" ? "danger" : niveauStock(p) === "BAS" ? "warning" : "info"}>{niveauStock(p) === "RUPTURE" ? t("Épuisé") : niveauStock(p) === "BAS" ? t("Stock bas : {n}", { n: p.stockActuel }) : t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
                   </div>
                   {/* Description potentiellement longue (ex. décomposition d'un
                       montant en plusieurs frais) — jamais tronquée à une seule
@@ -94,7 +115,7 @@ export default async function PageProduits() {
               </div>
             </div>
           ))}
-          {produits.length === 0 ? <EtatVide icone={Package} titre={t("Aucun produit pour le moment.")} description={t("Ajoutez vos produits et services pour les reprendre dans vos devis.")} /> : null}
+          {produits.length === 0 && !filtreActif ? <EtatVide icone={Package} titre={t("Aucun produit pour le moment.")} description={t("Ajoutez vos produits et services pour les reprendre dans vos devis.")} /> : null}
         </div>
       </Card>
     </div>
