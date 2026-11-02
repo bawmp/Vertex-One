@@ -2860,6 +2860,36 @@ export const ecritureComptable = pgTable(
   ]
 ).enableRLS();
 
+// Clôture d'exercice (2026-11-02) : un exercice (année civile) clôturé laisse une trace — son résultat, l'écriture de clôture
+// (journal manuel qui solde les comptes de charges et de produits vers 120000/129000) et qui l'a faite. Une seule clôture par exercice.
+export const clotureExercice = pgTable(
+  "cloture_exercice",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    annee: integer("annee").notNull(),
+    dateCloture: timestamp("date_cloture").notNull(),
+    // Positif = bénéfice, négatif = perte (FCFA).
+    resultatNet: integer("resultat_net").notNull(),
+    journalManuelId: text("journal_manuel_id"),
+    cloturePar: text("cloture_par")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("cloture_exercice_entreprise_annee_unique").on(table.entrepriseId, table.annee),
+    index("cloture_exercice_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 /**
  * Journal manuel (Zoho Books > Comptable > "Journaux manuels", échange du
  * 2026-09-07) — une écriture comptable saisie à la main (correction,

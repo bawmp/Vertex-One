@@ -70,6 +70,8 @@ export const VITRINE_MODULES: Record<string, string> = {
     "VAT return by period: output VAT, input VAT, carried-forward credit and VAT payable, with the detail of the entries and a CSV export for your accountant",
   "Ajoutez vos propres comptes au plan comptable SYSCOHADA : visibles de votre seule entreprise, utilisables dans vos journaux, dépenses et budgets":
     "Add your own accounts to the SYSCOHADA chart of accounts: visible only to your company, usable in your journals, expenses and budgets",
+  "Clôture d'exercice : charges et produits soldés dans le résultat, comptes de bilan reportés à nouveau, comptabilité verrouillée ; dossier de l'expert-comptable (grand livre, balance, journaux, bilan, résultat, TVA) en un seul fichier ZIP":
+    "Year-end closing: expenses and income cleared into the result, balance sheet accounts carried forward, accounts locked; accountant file (general ledger, trial balance, journals, balance sheet, income statement, VAT) in a single ZIP",
   "Verrouillage d'une période comptable une fois clôturée": "Locking of an accounting period once closed",
   "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé": "Accounting remains reserved for the Administrator — never visible to an ordinary employee",
 

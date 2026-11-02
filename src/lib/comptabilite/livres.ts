@@ -88,7 +88,7 @@ export type LigneLivre = {
   journal: CodeJournal;
 };
 
-async function lireLignes(tx: TransactionDrizzle, entrepriseId: string, conditionsSup: ReturnType<typeof and>[]): Promise<LigneLivre[]> {
+export async function lireLignes(tx: TransactionDrizzle, entrepriseId: string, conditionsSup: ReturnType<typeof and>[]): Promise<LigneLivre[]> {
   const lignes = await tx
     .select({
       id: ecritureComptable.id,
