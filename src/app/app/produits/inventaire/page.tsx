@@ -9,6 +9,8 @@ import { listerDepots, resorberEcart } from "@/lib/produits/depots";
 import { buttonVariants } from "@/components/ui/button";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { StockDesactive } from "@/components/stock-desactive";
+import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { FormulaireInventaire } from "./formulaire-inventaire";
 import { getT } from "@/lib/i18n/langue";
 
@@ -26,6 +28,8 @@ export default async function PageInventaire({ searchParams }: { searchParams: P
       </div>
     );
   }
+
+  if (!(await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => gestionStockActive(tx, utilisateurConnecte.entrepriseId)))) return <StockDesactive peutActiver={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")} />;
 
   const { lignes, depots, depotChoisi } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const depots = await listerDepots(tx, utilisateurConnecte.entrepriseId);

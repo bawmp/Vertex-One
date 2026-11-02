@@ -12,12 +12,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { creerProduit } from "@/lib/actions/produit";
 import { useT } from "@/lib/i18n/contexte";
 
-export function FormulaireNouveauProduit() {
+export function FormulaireNouveauProduit({ gereStock = false }: { gereStock?: boolean }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerProduit, null);
   const [ouvert, setOuvert] = useState(false);
-  const [type, setType] = useState<"BIEN" | "SERVICE">("SERVICE");
-  const [suiviStock, setSuiviStock] = useState(false);
+  const [type, setType] = useState<"BIEN" | "SERVICE">(gereStock ? "BIEN" : "SERVICE");
+  const [suiviStock, setSuiviStock] = useState(gereStock);
 
   if (!ouvert) {
     return (
@@ -67,7 +67,7 @@ export function FormulaireNouveauProduit() {
             <Textarea id="description" name="description" rows={2} />
           </div>
 
-          {type === "BIEN" ? (
+          {type === "BIEN" && gereStock ? (
             <div className="flex flex-col gap-3 rounded-lg border border-dashed p-3">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="suiviStock" checked={suiviStock} onChange={(e) => setSuiviStock(e.target.checked)} className="size-4" />

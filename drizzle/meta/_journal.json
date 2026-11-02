@@ -995,6 +995,13 @@
       "when": 1792558800000,
       "tag": "0141_cloture_exercice",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1792645200000,
+      "tag": "0142_gere_stock",
+      "breakpoints": true
     }
   ]
 }

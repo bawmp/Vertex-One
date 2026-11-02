@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { produit, mouvementStock } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
+import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
 import { activerSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -52,9 +53,9 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
     return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { type, nom, description, prixVente, prixAchat, suiviStock, stockInitial } = analyse.data;
-  const suiviStockReel = type === "BIEN" && suiviStock;
-
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Une entreprise de services ne suit pas de stock : la case éventuellement envoyée par le navigateur est ignorée.
+    const suiviStockReel = type === "BIEN" && suiviStock && (await gestionStockActive(tx, utilisateurConnecte.entrepriseId));
     const [cree] = await tx
       .insert(produit)
       .values({
@@ -208,7 +209,7 @@ export async function corrigerStockProduit(produitId: string, _etat: EtatStock, 
     return { erreur: t("Choisissez ce que vous voulez faire du stock.") };
   }
 
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, correction, utilisateurConnecte.utilisateurId));
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ((await gestionStockActive(tx, utilisateurConnecte.entrepriseId)) ? corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, correction, utilisateurConnecte.utilisateurId) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)));
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
 
   revalidatePath(`/app/produits/${produitId}`);
@@ -225,7 +226,7 @@ export async function activerSuiviStockProduit(produitId: string, _etat: EtatSto
   if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
 
   const quantite = Number(formData.get("quantite") || 0);
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => activerSuiviStock(tx, utilisateurConnecte.entrepriseId, produitId, quantite, utilisateurConnecte.utilisateurId));
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ((await gestionStockActive(tx, utilisateurConnecte.entrepriseId)) ? activerSuiviStock(tx, utilisateurConnecte.entrepriseId, produitId, quantite, utilisateurConnecte.utilisateurId) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)));
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
 
   revalidatePath(`/app/produits/${produitId}`);
@@ -259,6 +260,7 @@ export async function enregistrerInventaire(_etat: EtatStock, formData: FormData
     let corriges = 0;
     let inchanges = 0;
     const refuses: string[] = [];
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return { corriges, inchanges, refuses: [MESSAGE_STOCK_DESACTIVE] };
     for (const { produitId, compte } of comptes) {
       const r = await corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, { mode: "INVENTAIRE", compte, note: undefined, depotId }, utilisateurConnecte.utilisateurId);
       if (!r.ok) refuses.push(r.erreur);
@@ -282,7 +284,7 @@ export async function definirSeuilAlerteProduit(produitId: string, _etat: EtatSt
 
   const texte = String(formData.get("seuil") ?? "").trim();
   const seuil = texte === "" ? null : Number(texte);
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => definirSeuilAlerte(tx, utilisateurConnecte.entrepriseId, produitId, seuil));
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ((await gestionStockActive(tx, utilisateurConnecte.entrepriseId)) ? definirSeuilAlerte(tx, utilisateurConnecte.entrepriseId, produitId, seuil) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)));
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
 
   revalidatePath(`/app/produits/${produitId}`);

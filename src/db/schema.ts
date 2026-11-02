@@ -99,7 +99,10 @@ export const invitationGroupe = pgTable("invitation_groupe", {
 export const entreprise = pgTable("entreprise", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   nom: text("nom").notNull(),
-  secteurProfil: text("secteur_profil").notNull(), // "agence" | "artisan" | "cabinet" | "generique"
+  secteurProfil: text("secteur_profil").notNull(), // "agence" | "artisan" | "cabinet" | "immigration" | "commerce" | "generique"
+  // Entreprise de produits (2026-11-02) : active le stock (suivi par produit, historique, inventaire, dépôts, valeur, alertes). Une entreprise
+  // de services n'en voit rien. Choisie à l'inscription (secteur « Commerce ») ou dans Paramètres → Entreprise.
+  gereStock: boolean("gere_stock").notNull().default(false),
   // Groupe (2026-09-15) — lien organisationnel optionnel vers d'autres
   // entreprises, aucun partage de données (voir le commentaire sur `groupe`).
   groupeId: text("groupe_id").references(() => groupe.id),

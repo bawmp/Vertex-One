@@ -4,7 +4,8 @@ import { desc } from "drizzle-orm";
 import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
-import { produit } from "@/db/schema";
+import { entreprise, produit } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -31,9 +32,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
     );
   }
 
-  const tousLesProduits = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select().from(produit).orderBy(desc(produit.creeLe)));
-  const nbAReapprovisionner = tousLesProduits.filter(aReapprovisionner).length;
-  const filtreActif = filtre === "a-reapprovisionner";
+  const { tousLesProduits, gereStock } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ({
+    tousLesProduits: await tx.select().from(produit).orderBy(desc(produit.creeLe)),
+    gereStock: (await tx.select({ g: entreprise.gereStock }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)))[0]?.g === true,
+  }));
+  const nbAReapprovisionner = gereStock ? tousLesProduits.filter(aReapprovisionner).length : 0;
+  const filtreActif = gereStock && filtre === "a-reapprovisionner";
   const produits = filtreActif ? tousLesProduits.filter(aReapprovisionner) : tousLesProduits;
 
   return (
@@ -44,23 +48,25 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl font-semibold tracking-tight">{t("Produits")}</h1>
         </div>
         <div className="flex items-center gap-2">
+          {gereStock ? (
           <Button variant="outline" size="sm" render={<Link href="/app/produits/depots" />} nativeButton={false}>
             <Warehouse data-icon="inline-start" aria-hidden />
             {t("Dépôts")}
           </Button>
-          {tousLesProduits.some((p) => p.suiviStock) ? (
+          ) : null}
+          {gereStock && tousLesProduits.some((p) => p.suiviStock) ? (
             <Button variant="outline" size="sm" render={<Link href="/app/produits/valorisation" />} nativeButton={false}>
               <Coins data-icon="inline-start" aria-hidden />
               {t("Valeur du stock")}
             </Button>
           ) : null}
-          {peut(utilisateurConnecte, "PRODUITS", "MODIFIER") && produits.some((p) => p.suiviStock) ? (
+          {gereStock && peut(utilisateurConnecte, "PRODUITS", "MODIFIER") && produits.some((p) => p.suiviStock) ? (
             <Button variant="outline" size="sm" render={<Link href="/app/produits/inventaire" />} nativeButton={false}>
               <ClipboardCheck data-icon="inline-start" aria-hidden />
               {t("Faire l'inventaire")}
             </Button>
           ) : null}
-          {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
+          {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit gereStock={gereStock} /> : null}
         </div>
       </div>
 
@@ -102,7 +108,7 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium">{p.nom}</p>
                     <Badge variant="neutral">{p.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
-                    {p.suiviStock ? <Badge variant={niveauStock(p) === "RUPTURE" ? "danger" : niveauStock(p) === "BAS" ? "warning" : "info"}>{niveauStock(p) === "RUPTURE" ? t("Épuisé") : niveauStock(p) === "BAS" ? t("Stock bas : {n}", { n: p.stockActuel }) : t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
+                    {gereStock && p.suiviStock ? <Badge variant={niveauStock(p) === "RUPTURE" ? "danger" : niveauStock(p) === "BAS" ? "warning" : "info"}>{niveauStock(p) === "RUPTURE" ? t("Épuisé") : niveauStock(p) === "BAS" ? t("Stock bas : {n}", { n: p.stockActuel }) : t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
                   </div>
                   {/* Description potentiellement longue (ex. décomposition d'un
                       montant en plusieurs frais) — jamais tronquée à une seule

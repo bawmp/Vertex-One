@@ -17,7 +17,7 @@ import { m } from "@/lib/i18n/catalogue";
 
 const schemaInscription = z.object({
   nomEntreprise: z.string().trim().min(2, m("Le nom de l'entreprise est trop court.")),
-  secteurProfil: z.enum(["agence", "artisan", "cabinet", "immigration", "generique"]),
+  secteurProfil: z.enum(["agence", "artisan", "cabinet", "immigration", "commerce", "generique"]),
   nomComplet: z.string().trim().min(2, m("Le nom complet est trop court.")),
   email: z.email(m("Adresse email invalide.")),
   motDePasse: z.string().min(8, m("Le mot de passe doit contenir au moins 8 caractères.")),
@@ -65,7 +65,7 @@ export async function creerEntreprise(_etat: EtatInscription, formData: FormData
     const resultat = await db.transaction(async (tx) => {
       const [nouvelleEntreprise] = await tx
         .insert(entreprise)
-        .values({ nom: nomEntreprise, secteurProfil, essaiFinLe, abonnementEcheanceLe: essaiFinLe, origineSource: origine.source, origineSupport: origine.support, origineCampagne: origine.campagne, origineParrain: origine.parrain })
+        .values({ nom: nomEntreprise, secteurProfil, gereStock: secteurProfil === "commerce", essaiFinLe, abonnementEcheanceLe: essaiFinLe, origineSource: origine.source, origineSupport: origine.support, origineCampagne: origine.campagne, origineParrain: origine.parrain })
         .returning({ id: entreprise.id });
 
       const [nouvelUtilisateur] = await tx

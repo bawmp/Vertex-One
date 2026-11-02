@@ -5,6 +5,7 @@ import { ArrowLeft, Package, Lock, User, Clock, ArrowDownToLine, ArrowUpFromLine
 import { avecEntreprise } from "@/db/client";
 import { produit, compteComptable, utilisateur, mouvementStock } from "@/db/schema";
 import { stockParDepot } from "@/lib/produits/depots";
+import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { recupererTransactionsProduit } from "@/lib/produits/transactions";
@@ -61,13 +62,14 @@ export default async function PageDetailProduit({ params, searchParams }: { para
     const idsAuteurs = [...new Set(mouvements.map((mv) => mv.creeParId).filter((v): v is string => Boolean(v)))];
     const auteurs = idsAuteurs.length > 0 ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(inArray(utilisateur.id, idsAuteurs)) : [];
 
-    const depots = leProduit.type === "BIEN" && leProduit.suiviStock ? await stockParDepot(tx, utilisateurConnecte.entrepriseId, id) : [];
+    const gereStock = await gestionStockActive(tx, utilisateurConnecte.entrepriseId);
+    const depots = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await stockParDepot(tx, utilisateurConnecte.entrepriseId, id) : [];
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock } = donnees;
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
@@ -107,7 +109,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
       <Tabs defaultValue="apercu">
         <TabsList>
           <TabsTrigger value="apercu">{t("Vue d'ensemble")}</TabsTrigger>
-          {leProduit.type === "BIEN" ? <TabsTrigger value="stock">{t("Stock")}</TabsTrigger> : null}
+          {gereStock && leProduit.type === "BIEN" ? <TabsTrigger value="stock">{t("Stock")}</TabsTrigger> : null}
           <TabsTrigger value="transactions">{t("Transactions")}</TabsTrigger>
           <TabsTrigger value="historique">{t("Historique")}</TabsTrigger>
         </TabsList>
@@ -163,7 +165,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
           ) : null}
         </TabsPanel>
 
-        {leProduit.type === "BIEN" ? (
+        {gereStock && leProduit.type === "BIEN" ? (
           <TabsPanel value="stock" className="flex flex-col gap-4">
             {leProduit.suiviStock ? (
               <Card>

@@ -11,6 +11,7 @@ import { disponible } from "@/lib/plans";
 import { dateDouala } from "@/lib/comptabilite/livres";
 import { constaterVariationStock } from "@/lib/produits/valorisation";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -33,6 +34,7 @@ export async function enregistrerVariationStock(_etat: EtatValorisation, formDat
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return { ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const;
     return constaterVariationStock(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, date);
   });
   if (!resultat.ok) return { erreur: t(resultat.erreur) };

@@ -7,6 +7,8 @@ import { stockDepot } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { listerDepots } from "@/lib/produits/depots";
+import { StockDesactive } from "@/components/stock-desactive";
+import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { GestionDepots } from "./gestion-depots";
 import { getT } from "@/lib/i18n/langue";
 
@@ -23,6 +25,8 @@ export default async function PageDepots() {
       </div>
     );
   }
+
+  if (!(await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => gestionStockActive(tx, utilisateurConnecte.entrepriseId)))) return <StockDesactive peutActiver={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")} />;
 
   const lignes = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const depots = await listerDepots(tx, utilisateurConnecte.entrepriseId);

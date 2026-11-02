@@ -11,6 +11,8 @@ import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { lireValorisation } from "@/lib/produits/valorisation";
 import { Card } from "@/components/ui/card";
+import { StockDesactive } from "@/components/stock-desactive";
+import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { ConstaterVariation } from "./constater-variation";
 import { getT } from "@/lib/i18n/langue";
 
@@ -32,6 +34,8 @@ export default async function PageValorisation() {
       </div>
     );
   }
+
+  if (!(await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => gestionStockActive(tx, utilisateurConnecte.entrepriseId)))) return <StockDesactive peutActiver={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")} />;
 
   const comptaVisible = peut(utilisateurConnecte, "COMPTABILITE", "CREER");
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {

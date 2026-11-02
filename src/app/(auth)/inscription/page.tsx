@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Briefcase, Building2, Globe2, Hammer, Layers, Mail, Scale, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, Briefcase, Building2, Globe2, Hammer, Layers, Mail, Scale, ShieldCheck, Store, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Champ } from "@/components/formulaire/champ";
@@ -19,7 +19,7 @@ export default function PageInscription() {
   // Un lien de campagne peut présélectionner le secteur (?secteur=immigration) : le visiteur n'a plus à le choisir, mais peut le changer.
   useEffect(() => {
     const demande = new URLSearchParams(window.location.search).get("secteur");
-    if (demande && ["agence", "artisan", "cabinet", "immigration", "generique"].includes(demande)) setSecteur(demande);
+    if (demande && ["agence", "artisan", "cabinet", "immigration", "commerce", "generique"].includes(demande)) setSecteur(demande);
   }, []);
   const [motDePasse, setMotDePasse] = useState("");
   const [renseignes, setRenseignes] = useState(0);
@@ -65,6 +65,7 @@ export default function PageInscription() {
                 { valeur: "artisan", libelle: t("Artisan"), icone: Hammer },
                 { valeur: "cabinet", libelle: t("Cabinet"), icone: Scale },
                 { valeur: "immigration", libelle: t("Immigration et mobilité internationale"), icone: Globe2 },
+                { valeur: "commerce", libelle: t("Commerce : vente de produits"), icone: Store },
                 { valeur: "generique", libelle: t("Autre"), icone: Layers },
               ]}
             />

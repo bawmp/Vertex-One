@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FormulaireInfosLegales } from "./formulaire-infos-legales";
 import { FormulaireGroupe } from "./formulaire-groupe";
 import { FormulaireNom } from "./formulaire-nom";
+import { CarteGestionStock } from "./carte-gestion-stock";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageInfosLegales() {
@@ -59,6 +60,16 @@ export default async function PageInfosLegales() {
         </CardHeader>
         <CardContent>
           <FormulaireInfosLegales entreprise={monEntreprise} />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
+        <CardHeader>
+          <CardTitle>{t("Produits et stock")}</CardTitle>
+          <CardDescription>{t("Vendez-vous des produits que vous stockez ? Sinon, laissez désactivé.")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CarteGestionStock active={monEntreprise.gereStock} />
         </CardContent>
       </Card>
 
