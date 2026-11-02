@@ -1,7 +1,7 @@
 import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, FileSpreadsheet, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -186,6 +186,7 @@ const MODULES_MENU: ItemMenu[] = [
           { libelle: m("Balance"), href: "/app/comptabilite/livres?vue=balance", Icone: Scale, module: "COMPTABILITE" },
           { libelle: m("Journaux par période"), href: "/app/comptabilite/livres?vue=journaux", Icone: BookCopy, module: "COMPTABILITE" },
           { libelle: m("Journaux manuels"), href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
+          { libelle: m("États financiers"), href: "/app/comptabilite/etats", Icone: FileSpreadsheet, module: "COMPTABILITE" },
           { libelle: m("Clients et fournisseurs"), href: "/app/comptabilite/tiers", Icone: Users2, module: "COMPTABILITE" },
           { libelle: m("Déclaration de TVA"), href: "/app/comptabilite/tva", Icone: Percent, module: "COMPTABILITE" },
           { libelle: m("Plan comptable"), href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },

@@ -16,7 +16,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 
 - [x] **P2.1 Comptes de tiers : grand livre auxiliaire clients et fournisseurs, balance âgée, lettrage des règlements** (L).
 - [x] **P2.2 Annulation d'une clôture d'exercice** (M), avec trace, réservée à l'Administrateur.
-- [ ] **P2.3 États financiers SYSCOHADA officiels** (bilan, compte de résultat, annexes) et **export PDF** (L).
+- [x] **P2.3 États financiers SYSCOHADA officiels** (bilan, compte de résultat, annexes) et **export PDF** (L).
 - [ ] **P2.4 Régularisations de fin d'exercice** (L) : charges à payer, produits constatés d'avance, provisions.
 - [ ] **P2.5 Immobilisations et amortissements** (L) : registre, plans, dotations automatiques.
 - [ ] **P2.6 Valeur du stock à une date passée, et par dépôt** (M) : nécessaire pour clôturer un exercice plusieurs semaines après sa fin.

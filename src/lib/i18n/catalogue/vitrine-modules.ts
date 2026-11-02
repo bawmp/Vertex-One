@@ -84,6 +84,8 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Year-end closing: expenses and income cleared into the result, balance sheet accounts carried forward, accounts locked; accountant file (general ledger, trial balance, journals, balance sheet, income statement, VAT) in a single ZIP",
   "Comptes de tiers : grand livre de chaque client et fournisseur avec lettrage automatique des factures soldées, et balance âgée par retard d'échéance, avec export CSV":
     "Third-party accounts: ledger of each customer and supplier with automatic matching of settled invoices, and aged balance by days overdue, with CSV export",
+  "États financiers par rubriques SYSCOHADA : bilan (brut, amortissements, net) et compte de résultat avec ses soldes intermédiaires, en PDF, vérifiés équilibrés":
+    "Financial statements by SYSCOHADA headings: balance sheet (gross, depreciation, net) and income statement with its intermediate balances, as PDF, checked for balance",
   "Verrouillage d'une période comptable une fois clôturée": "Locking of an accounting period once closed",
   "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé": "Accounting remains reserved for the Administrator — never visible to an ordinary employee",
 

@@ -159,8 +159,8 @@ describe("Clôture — base réelle", () => {
     const zip = await avecEntreprise(A, (tx) => construireDossierExpert(tx, A, 2023, maintenant));
     expect(zip).not.toBeNull();
     const texte = zip!.toString("utf8");
-    for (const nom of ["LISEZMOI.txt", "grand-livre.csv", "balance.csv", "journaux.csv", "plan-comptable.csv", "compte-de-resultat.csv", "bilan.csv", "tva.csv"]) expect(texte).toContain(nom);
-    expect(zip!.readUInt16LE(zip!.length - 22 + 10)).toBe(8);
+    for (const nom of ["LISEZMOI.txt", "grand-livre.csv", "balance.csv", "journaux.csv", "plan-comptable.csv", "compte-de-resultat.csv", "bilan.csv", "tva.csv", "etats-financiers.pdf"]) expect(texte).toContain(nom);
+    expect(zip!.readUInt16LE(zip!.length - 22 + 10)).toBe(9);
     // Le compte de résultat 2023 est lu SANS l'écriture de clôture : produits 10 000, charges 4 000, résultat 6 000.
     expect(texte).toContain("TOTAL DES PRODUITS;10000");
     expect(texte).toContain("TOTAL DES CHARGES;4000");

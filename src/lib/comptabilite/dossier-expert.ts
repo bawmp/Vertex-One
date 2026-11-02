@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { asc, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, entreprise } from "@/db/schema";
@@ -8,6 +10,8 @@ import { lignesExerciceSansCloture, periodeExercice } from "./cloture";
 import { construireBalance, dateDouala, lireBalancePeriode, lireGrandLivre, lireJournaux, type LigneLivre } from "./livres";
 import { csvBalance, csvGrandLivre, csvJournaux, type TableauCsv } from "./livres-export";
 import { calculerTva, lireDeclarationTva } from "./tva";
+import { lireEtatsFinanciers } from "./etats-donnees";
+import { EtatsFinanciersPDF } from "@/lib/pdf/etats-financiers";
 
 const csv = (t: TableauCsv) => ecrireCsv(t.entetes, t.lignes);
 const n = String;
@@ -92,6 +96,7 @@ export async function construireDossierExpert(tx: TransactionDrizzle, entreprise
     "- plan-comptable.csv : le plan comptable (SYSCOHADA et comptes personnalisés) avec le solde de chaque compte à la fin de l'exercice.",
     "- compte-de-resultat.csv : produits, charges et résultat de l'exercice (hors écriture de clôture).",
     "- bilan.csv : actif et passif à la fin de l'exercice.",
+    "- etats-financiers.pdf : le bilan (actif en brut / amortissements / net, passif) et le compte de résultat avec ses soldes intermédiaires, présentés par rubriques SYSCOHADA.",
     "- tva.csv : chiffre d'affaires, TVA collectée, TVA déductible et TVA à payer mois par mois.",
     "",
     "Ces états sont générés automatiquement à partir des écritures de l'entreprise : ils sont à faire valider par votre comptable avant tout dépôt officiel auprès de la DGI.",
@@ -109,5 +114,7 @@ export async function construireDossierExpert(tx: TransactionDrizzle, entreprise
     { nom: "bilan.csv", contenu: csv(bilanCsv) },
     { nom: "tva.csv", contenu: csv(tvaCsv) },
   ];
+  const etats = await lireEtatsFinanciers(tx, entrepriseId, annee);
+  if (etats) fichiers.push({ nom: "etats-financiers.pdf", contenu: await renderToBuffer(createElement(EtatsFinanciersPDF, { etats, genereLe: maintenant }) as Parameters<typeof renderToBuffer>[0]) });
   return creerZip(fichiers, maintenant);
 }

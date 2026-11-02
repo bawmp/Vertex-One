@@ -24,7 +24,7 @@ export async function GET(requete: Request) {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return "forfait" as const;
     const zip = await construireDossierExpert(tx, utilisateurConnecte.entrepriseId, annee);
-    if (zip) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "DOSSIER_EXPERT_COMPTABLE", nombreLignes: 8 });
+    if (zip) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "DOSSIER_EXPERT_COMPTABLE", nombreLignes: 9 });
     return zip;
   });
   if (archive === "forfait") return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
