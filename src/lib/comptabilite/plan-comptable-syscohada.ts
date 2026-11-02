@@ -13,10 +13,17 @@ export const PLAN_COMPTABLE_SYSCOHADA: { numero: string; libelle: string; classe
   { numero: "120000", libelle: "Résultat net de l'exercice (bénéfice)", classe: 1 },
   { numero: "129000", libelle: "Résultat net de l'exercice (perte)", classe: 1 },
   { numero: "161000", libelle: "Emprunts et dettes assimilées", classe: 1 },
+  { numero: "191000", libelle: "Provisions pour litiges", classe: 1 },
 
   // Classe 2 — Comptes d'actif immobilisé
   { numero: "218000", libelle: "Autres immobilisations corporelles (matériel, mobilier)", classe: 2 },
+  { numero: "244000", libelle: "Matériel et mobilier", classe: 2 },
+  { numero: "244100", libelle: "Matériel informatique", classe: 2 },
+  { numero: "245000", libelle: "Matériel de transport", classe: 2 },
   { numero: "281800", libelle: "Amortissements des autres immobilisations corporelles", classe: 2 },
+  { numero: "284000", libelle: "Amortissements du matériel et mobilier", classe: 2 },
+  { numero: "284100", libelle: "Amortissements du matériel informatique", classe: 2 },
+  { numero: "284500", libelle: "Amortissements du matériel de transport", classe: 2 },
 
   // Classe 3 — Comptes de stocks
   { numero: "311000", libelle: "Marchandises", classe: 3 },
@@ -24,6 +31,10 @@ export const PLAN_COMPTABLE_SYSCOHADA: { numero: string; libelle: string; classe
   // Classe 4 — Comptes de tiers
   { numero: "401000", libelle: "Fournisseurs", classe: 4 },
   { numero: "411000", libelle: "Clients", classe: 4 },
+  { numero: "408000", libelle: "Fournisseurs, factures non parvenues", classe: 4 },
+  { numero: "418000", libelle: "Clients, produits à recevoir", classe: 4 },
+  { numero: "476000", libelle: "Charges constatées d'avance", classe: 4 },
+  { numero: "477000", libelle: "Produits constatés d'avance", classe: 4 },
   // Ajouté pour les Factures d'acompte (Retainer Invoices, échange du
   // 2026-09-07) : une avance encaissée avant livraison n'est jamais du
   // chiffre d'affaires ni une créance client, mais une dette envers le
@@ -55,6 +66,7 @@ export const PLAN_COMPTABLE_SYSCOHADA: { numero: string; libelle: string; classe
   { numero: "645000", libelle: "Charges sociales (CNPS)", classe: 6 },
   { numero: "661000", libelle: "Charges d'intérêts", classe: 6 },
   { numero: "681000", libelle: "Dotations aux amortissements", classe: 6 },
+  { numero: "691000", libelle: "Dotations aux provisions d'exploitation", classe: 6 },
 
   // Classe 7 — Comptes de produits
   { numero: "706000", libelle: "Prestations de services", classe: 7 },

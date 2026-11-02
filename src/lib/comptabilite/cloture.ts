@@ -1,8 +1,9 @@
-import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { clotureExercice, compteComptable, ecritureComptable, entreprise, journalManuel } from "@/db/schema";
+import { clotureExercice, compteComptable, ecritureComptable, entreprise, journalManuel, reouvertureExercice } from "@/db/schema";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { verifierDateNonVerrouillee } from "./verrouillage";
+import { contrePasserEcritures } from "./contre-passation";
 import { calculerBalance, type LigneBalance } from "./etats-financiers";
 import { dateDouala, lireLignes, type LigneLivre } from "./livres";
 import { lireValorisation } from "@/lib/produits/valorisation";
@@ -111,6 +112,8 @@ export async function cloturerExercice(tx: TransactionDrizzle, entrepriseId: str
   const idParNumero = new Map(comptes.map((c) => [c.numero, c.id]));
   if (numerosNecessaires.some((n) => !idParNumero.has(n))) return { ok: false, erreur: m("Un compte nécessaire à la clôture est introuvable : contactez le support.") };
 
+  const [etat] = await tx.select({ verrou: entreprise.dateVerrouillageComptable }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  const monVerrouAvant = etat?.verrou ?? null;
   const libelle = `Clôture de l'exercice ${annee}`;
   const numero = await genererNumeroJournalManuel(tx, entrepriseId);
   const [journal] = await tx.insert(journalManuel).values({ entrepriseId, numero, libelle, dateEcriture: periode.au, creeParId: utilisateurId }).returning({ id: journalManuel.id });
@@ -120,7 +123,7 @@ export async function cloturerExercice(tx: TransactionDrizzle, entrepriseId: str
 
   const insere = await tx
     .insert(clotureExercice)
-    .values({ entrepriseId, annee, dateCloture: maintenant, resultatNet: apercu.plan.resultatNet, journalManuelId: journal.id, cloturePar: utilisateurId })
+    .values({ entrepriseId, annee, dateCloture: maintenant, resultatNet: apercu.plan.resultatNet, journalManuelId: journal.id, verrouAvant: monVerrouAvant, cloturePar: utilisateurId })
     .onConflictDoNothing()
     .returning({ id: clotureExercice.id });
   if (insere.length === 0) throw new Error("Exercice déjà clôturé en parallèle : annulation de la transaction.");
@@ -148,4 +151,47 @@ export async function lignesExerciceSansCloture(tx: TransactionDrizzle, entrepri
   const conditions = [gte(ecritureComptable.dateEcriture, periode.du), lte(ecritureComptable.dateEcriture, periode.au)];
   if (c?.journalManuelId) conditions.push(or(isNull(ecritureComptable.journalManuelId), ne(ecritureComptable.journalManuelId, c.journalManuelId))!);
   return lireLignes(tx, entrepriseId, conditions);
+}
+
+export type ResultatReouverture = { ok: true; resultatAnnule: number } | { ok: false; erreur: string };
+
+/**
+ * Rouvre le DERNIER exercice clôturé (priorité 2.2, 2026-11-02), par exemple pour corriger une écriture oubliée. L'écriture de clôture
+ * est **contre-passée à la date de fin de l'exercice** (jamais supprimée : l'historique montre la clôture puis son annulation), le
+ * verrouillage d'avant la clôture est rétabli, la clôture est retirée (l'exercice peut être clôturé de nouveau plus tard) et une
+ * trace garde qui l'a rouvert, quand, pourquoi et le résultat annulé. On ne rouvre jamais un exercice si un exercice POSTÉRIEUR est
+ * clôturé : on remonte dans l'ordre inverse. Tout ou rien (une transaction).
+ */
+export async function rouvrirExercice(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string, annee: number, motifBrut: string): Promise<ResultatReouverture> {
+  const motif = motifBrut.replace(/\s+/g, " ").trim();
+  if (motif.length < 5 || motif.length > 300) return { ok: false, erreur: m("Indiquez pourquoi vous rouvrez cet exercice (5 à 300 caractères).") };
+  const periode = periodeExercice(annee);
+  if (!periode) return { ok: false, erreur: m("Exercice invalide.") };
+
+  const clotures = await tx.select().from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId)).orderBy(desc(clotureExercice.annee));
+  const cible = clotures.find((c) => c.annee === annee);
+  if (!cible) return { ok: false, erreur: m("Cet exercice n'est pas clôturé.") };
+  if (clotures[0].annee !== annee) return { ok: false, erreur: m("Rouvrez d'abord l'exercice le plus récent : on remonte dans l'ordre inverse.") };
+  if (!cible.journalManuelId) return { ok: false, erreur: m("L'écriture de clôture est introuvable : contactez le support.") };
+
+  // 1. Le verrou d'avant la clôture revient (sinon l'écriture d'annulation, datée de la fin de l'exercice, serait refusée).
+  await tx.update(entreprise).set({ dateVerrouillageComptable: cible.verrouAvant }).where(eq(entreprise.id, entrepriseId));
+  // 2. L'écriture de clôture est contre-passée à la fin de l'exercice.
+  const nb = await contrePasserEcritures(tx, entrepriseId, eq(ecritureComptable.journalManuelId, cible.journalManuelId), `Réouverture de l'exercice ${annee}`, periode.au);
+  if (nb === 0) return { ok: false, erreur: m("L'écriture de clôture a déjà été annulée.") };
+  // 3. La clôture est retirée, la réouverture est tracée.
+  await tx.delete(clotureExercice).where(eq(clotureExercice.id, cible.id));
+  await tx.insert(reouvertureExercice).values({ entrepriseId, annee, motif, resultatAnnule: cible.resultatNet, rouvertPar: utilisateurId });
+  return { ok: true, resultatAnnule: cible.resultatNet };
+}
+
+/** Historique des réouvertures (les plus récentes d'abord) pour la page de clôture. */
+export async function listerReouvertures(tx: TransactionDrizzle, entrepriseId: string) {
+  return tx.select().from(reouvertureExercice).where(eq(reouvertureExercice.entrepriseId, entrepriseId)).orderBy(desc(reouvertureExercice.rouvertLe));
+}
+
+/** Le dernier exercice clôturé (le seul qu'on puisse rouvrir), ou null. */
+export async function dernierExerciceCloture(tx: TransactionDrizzle, entrepriseId: string): Promise<number | null> {
+  const [c] = await tx.select({ annee: clotureExercice.annee }).from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId)).orderBy(desc(clotureExercice.annee)).limit(1);
+  return c?.annee ?? null;
 }

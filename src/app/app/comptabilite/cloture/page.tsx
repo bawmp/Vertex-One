@@ -8,11 +8,12 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
-import { apercuCloture, exercicesConnus } from "@/lib/comptabilite/cloture";
+import { apercuCloture, dernierExerciceCloture, exercicesConnus, listerReouvertures } from "@/lib/comptabilite/cloture";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonCloture } from "./bouton-cloture";
+import { BoutonReouverture } from "./bouton-reouverture";
 import { getT } from "@/lib/i18n/langue";
 
 export default async function PageCloture() {
@@ -39,7 +40,7 @@ export default async function PageCloture() {
       const ap = await apercuCloture(tx, utilisateurConnecte.entrepriseId, a);
       if (ap) apercus.push(ap);
     }
-    return { apercus, verrou: monEntreprise.verrou };
+    return { apercus, verrou: monEntreprise.verrou, dernier: await dernierExerciceCloture(tx, utilisateurConnecte.entrepriseId), reouvertures: await listerReouvertures(tx, utilisateurConnecte.entrepriseId) };
   });
 
   if (!donnees) {
@@ -83,10 +84,13 @@ export default async function PageCloture() {
           </div>
           <div className="flex flex-col gap-3 p-4 text-sm">
             {a.dejaCloture ? (
-              <p className="flex items-center gap-2">
-                <CircleCheck className="size-4 text-emerald-600" aria-hidden />
-                Clôturé le {jour(a.dejaCloture.dateCloture)} — {a.dejaCloture.resultatNet >= 0 ? "bénéfice" : "perte"} de {formaterFCFA(Math.abs(a.dejaCloture.resultatNet))}.
-              </p>
+              <>
+                <p className="flex items-center gap-2">
+                  <CircleCheck className="size-4 text-emerald-600" aria-hidden />
+                  Clôturé le {jour(a.dejaCloture.dateCloture)} — {a.dejaCloture.resultatNet >= 0 ? "bénéfice" : "perte"} de {formaterFCFA(Math.abs(a.dejaCloture.resultatNet))}.
+                </p>
+                {peutCloturer && donnees.dernier === a.annee ? <BoutonReouverture annee={a.annee} /> : null}
+              </>
             ) : (
               <>
                 <dl className="flex flex-col gap-1">
@@ -122,6 +126,24 @@ export default async function PageCloture() {
           </div>
         </Card>
       ))}
+
+      {donnees.reouvertures.length > 0 ? (
+        <Card className="p-0">
+          <div className="border-b bg-muted/40 px-4 py-2.5">
+            <h2 className="text-sm font-semibold">Historique des réouvertures</h2>
+          </div>
+          <ul className="divide-y divide-border text-sm">
+            {donnees.reouvertures.map((r) => (
+              <li key={r.id} className="flex flex-col gap-0.5 px-4 py-2.5">
+                <span className="font-medium">
+                  Exercice {r.annee} rouvert le {jour(r.rouvertLe)} — résultat annulé : {r.resultatAnnule >= 0 ? "bénéfice" : "perte"} de {formaterFCFA(Math.abs(r.resultatAnnule))}
+                </span>
+                <span className="text-muted-foreground">Motif : {r.motif}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
     </div>
   );
 }

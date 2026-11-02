@@ -24,4 +24,11 @@ export const COMPTABILITE: Record<string, string> = {
   "Exercice invalide.": "Invalid financial year.",
   "Cet exercice est déjà clôturé.": "This financial year is already closed.",
   "Un compte nécessaire à la clôture est introuvable : contactez le support.": "An account needed for closing is missing: please contact support.",
+  "Cochez la case de confirmation avant de continuer.": "Tick the confirmation box before continuing.",
+  "Exercice {annee} rouvert : l'écriture de clôture est annulée et la comptabilité est de nouveau modifiable.": "Year {annee} reopened: the closing entry is cancelled and the accounts can be edited again.",
+  "Indiquez pourquoi vous rouvrez cet exercice (5 à 300 caractères).": "Say why you are reopening this year (5 to 300 characters).",
+  "Cet exercice n'est pas clôturé.": "This financial year is not closed.",
+  "Rouvrez d'abord l'exercice le plus récent : on remonte dans l'ordre inverse.": "Reopen the most recent year first: go back in reverse order.",
+  "L'écriture de clôture est introuvable : contactez le support.": "The closing entry cannot be found: please contact support.",
+  "L'écriture de clôture a déjà été annulée.": "The closing entry has already been cancelled.",
 };

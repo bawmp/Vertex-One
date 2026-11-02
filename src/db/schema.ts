@@ -2966,6 +2966,8 @@ export const clotureExercice = pgTable(
     // Positif = bénéfice, négatif = perte (FCFA).
     resultatNet: integer("resultat_net").notNull(),
     journalManuelId: text("journal_manuel_id"),
+    // Date de verrouillage comptable AVANT la clôture : rétablie si l'exercice est rouvert (priorité 2.2).
+    verrouAvant: timestamp("verrou_avant"),
     cloturePar: text("cloture_par")
       .notNull()
       .references(() => utilisateur.id),
@@ -2974,6 +2976,33 @@ export const clotureExercice = pgTable(
   (table) => [
     uniqueIndex("cloture_exercice_entreprise_annee_unique").on(table.entrepriseId, table.annee),
     index("cloture_exercice_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Réouverture d'un exercice clôturé (2026-11-02, priorité 2.2) : trace de qui l'a rouvert, quand, pourquoi, et du résultat annulé. Seul le
+// dernier exercice clôturé peut être rouvert ; l'écriture de clôture est contre-passée, jamais supprimée.
+export const reouvertureExercice = pgTable(
+  "reouverture_exercice",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    annee: integer("annee").notNull(),
+    motif: text("motif").notNull(),
+    resultatAnnule: integer("resultat_annule").notNull(),
+    rouvertPar: text("rouvert_par")
+      .notNull()
+      .references(() => utilisateur.id),
+    rouvertLe: timestamp("rouvert_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("reouverture_exercice_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
