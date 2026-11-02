@@ -87,10 +87,12 @@ export default async function PageDocumentsFinanciers() {
             <FolderOpen className="size-5" aria-hidden />
             <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <FormulaireNouveauClasseur />
-            <FormulaireTeleverserDocument />
-          </div>
+          {peut(utilisateurConnecte, "COMPTABILITE", "CREER") ? (
+            <div className="flex items-center gap-2">
+              <FormulaireNouveauClasseur />
+              <FormulaireTeleverserDocument />
+            </div>
+          ) : null}
         </div>
         <p className="mt-1 text-muted-foreground">
           Reçus, factures fournisseurs et relevés bancaires, rattachables à une facture ou un paiement — la saisie du

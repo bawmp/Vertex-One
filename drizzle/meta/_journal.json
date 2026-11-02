@@ -1051,6 +1051,13 @@
       "when": 1793250000000,
       "tag": "0149_cout_moyen_historique",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1793336400000,
+      "tag": "0150_role_comptable",
+      "breakpoints": true
     }
   ]
 }

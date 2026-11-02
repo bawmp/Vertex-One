@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq, ne, and, asc } from "drizzle-orm";
+import { eq, ne, and, asc, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { ArrowLeft, LifeBuoy } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { utilisateur, contact, categorieTicketSupport, ticketSupport, messageTicketSupport } from "@/db/schema";
@@ -64,7 +65,7 @@ export default async function PageTicketSupport({ params }: { params: Promise<{ 
 
     const agents =
       utilisateurConnecte.role === "ADMIN"
-        ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
+        ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), ne(utilisateur.statut, "SUPPRIME")))
         : [];
 
     return { leTicket, messages, agents };

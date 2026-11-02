@@ -1,7 +1,7 @@
 // Palier 0 — voir docs/palier-0-roles-permissions-specification-technique.md, section 4.
 // Matrice définie dans le code, pas éditable par le client en v1.
 
-export type RoleSysteme = "ADMIN" | "MANAGER" | "EMPLOYE" | "CLIENT";
+export type RoleSysteme = "ADMIN" | "MANAGER" | "EMPLOYE" | "CLIENT" | "COMPTABLE";
 export type Module =
   | "CRM"
   | "FACTURATION"
@@ -195,6 +195,31 @@ export const MATRICE_PERMISSIONS: Record<RoleSysteme, Record<Module, { actions: 
     // via son Contact lié, sans jamais appeler peut()/portee() (voir
     // src/lib/portail/acces.ts). Cette ligne reste inutilisée en pratique.
     SUPPORT: { actions: [], portee: "PROPRE" },
+    PARAMETRES: { actions: [], portee: "PROPRE" },
+  },
+  // Comptable externe (2026-11-02, priorité 2.7) : un expert-comptable invité par l'Administrateur. Lecture seule, et seulement sur la
+  // comptabilité (livres, balance, états financiers, tiers, TVA, exports) : aucun autre module, aucune écriture. Ce n'est ni un
+  // collègue (absent des listes d'équipe, du chat et des affectations) ni un utilisateur facturé.
+  COMPTABLE: {
+    CRM: { actions: [], portee: "PROPRE" },
+    FACTURATION: { actions: [], portee: "PROPRE" },
+    DOSSIERS: { actions: [], portee: "PROPRE" },
+    PROJETS: { actions: [], portee: "PROPRE" },
+    DOCUMENTS: { actions: [], portee: "PROPRE" },
+    MESSAGERIE: { actions: [], portee: "PROPRE" },
+    ANNONCES: { actions: [], portee: "PROPRE" },
+    SIGNATURE: { actions: [], portee: "PROPRE" },
+    CONTRATS: { actions: [], portee: "PROPRE" },
+    COMPTABILITE: { actions: ["VOIR"], portee: "TOUT" },
+    ACHATS: { actions: [], portee: "PROPRE" },
+    PRODUITS: { actions: [], portee: "PROPRE" },
+    RH: { actions: [], portee: "PROPRE" },
+    MARKETING: { actions: [], portee: "PROPRE" },
+    RESERVATIONS: { actions: [], portee: "PROPRE" },
+    RECRUTEMENT: { actions: [], portee: "PROPRE" },
+    SUPPORT: { actions: [], portee: "PROPRE" },
+    ONE_FORM: { actions: [], portee: "PROPRE" },
+    ONE_VAULT: { actions: [], portee: "PROPRE" },
     PARAMETRES: { actions: [], portee: "PROPRE" },
   },
 };

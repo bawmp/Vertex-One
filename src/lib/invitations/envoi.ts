@@ -14,7 +14,7 @@ export function composerEmailInvitation(params: { nomEntreprise: string; nomInvi
   const entreprise = echapperHtml(params.nomEntreprise);
   const invitant = echapperHtml(params.nomInvitant);
   const portail = params.role === "CLIENT";
-  const poste = params.role === "MANAGER" ? "Manager" : "Employé";
+  const poste = params.role === "MANAGER" ? "Manager" : params.role === "COMPTABLE" ? "comptable externe (consultation de la comptabilité uniquement)" : "Employé";
   return {
     subject: portail ? `${params.nomEntreprise.replace(/[\r\n]/g, " ")} vous donne accès à votre espace client` : `${params.nomEntreprise.replace(/[\r\n]/g, " ")} vous invite à rejoindre son équipe sur Vertex One`,
     html: `

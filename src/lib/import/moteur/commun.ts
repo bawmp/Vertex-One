@@ -1,4 +1,5 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import type { TransactionDrizzle } from "@/db/client";
 import { utilisateur } from "@/db/schema";
 import { normaliser } from "../valeurs";
@@ -74,7 +75,7 @@ export async function chargerEquipe(tx: TransactionDrizzle, entrepriseId: string
   const lignes = await tx
     .select({ id: utilisateur.id, email: utilisateur.email, nom: utilisateur.nomComplet })
     .from(utilisateur)
-    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT")));
+    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES])));
   return lignes;
 }
 

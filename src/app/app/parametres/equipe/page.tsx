@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { and, eq, desc, ne, inArray } from "drizzle-orm";
+import { and, eq, desc, ne, inArray, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { avecEntreprise } from "@/db/client";
 import { invitation, utilisateur, service } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -38,7 +39,7 @@ export default async function PageEquipe({ searchParams }: { searchParams: Promi
       // manager d'un nouvel invité, pas seulement les comptes déjà rôle
       // MANAGER (une vraie hiérarchie n'a pas besoin de correspondre au
       // rôle système à 4 niveaux).
-      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), eq(utilisateur.statut, "ACTIF"))).orderBy(utilisateur.nomComplet),
+      tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), eq(utilisateur.statut, "ACTIF"))).orderBy(utilisateur.nomComplet),
       tx.select({ id: service.id, nom: service.nom }).from(service),
       // Manager/Employé de l'entreprise — filtre entrepriseId explicite (utilisateur reste en RLS permissive).
       // Inclut les comptes désactivés (départ, voir src/lib/actions/depart.ts) : sinon un Administrateur ne peut
@@ -46,7 +47,7 @@ export default async function PageEquipe({ searchParams }: { searchParams: Promi
       tx
         .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet, email: utilisateur.email, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises, statut: utilisateur.statut })
         .from(utilisateur)
-        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE"]), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), inArray(utilisateur.role, ["MANAGER", "EMPLOYE", "COMPTABLE"]), inArray(utilisateur.statut, ["ACTIF", "DESACTIVE"])))
         .orderBy(utilisateur.nomComplet),
       // Clients du portail (role CLIENT) de CETTE entreprise : l'Administrateur peut retirer leur accès.
       tx
@@ -74,7 +75,7 @@ export default async function PageEquipe({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
-        <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE", statut: m.statut as "ACTIF" | "DESACTIVE" }))} />
+        <MembresEquipe membres={membres.map((m) => ({ ...m, role: m.role as "MANAGER" | "EMPLOYE" | "COMPTABLE", statut: m.statut as "ACTIF" | "DESACTIVE" }))} />
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">

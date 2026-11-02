@@ -114,6 +114,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Ajoutez vos propres comptes au plan comptable SYSCOHADA : visibles de votre seule entreprise, utilisables dans vos journaux, dépenses et budgets"),
       m("Clôture d'exercice : charges et produits soldés dans le résultat, comptes de bilan reportés à nouveau, comptabilité verrouillée ; dossier de l'expert-comptable (grand livre, balance, journaux, bilan, résultat, TVA) en un seul fichier ZIP"),
       m("Comptes de tiers : grand livre de chaque client et fournisseur avec lettrage automatique des factures soldées, et balance âgée par retard d'échéance, avec export CSV"),
+      m("Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier"),
       m("Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin"),
       m("Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic"),
       m("Régularisations de fin d'exercice guidées (charges à payer, produits à recevoir, constatés d'avance, provisions) avec extourne automatique au 1er janvier"),

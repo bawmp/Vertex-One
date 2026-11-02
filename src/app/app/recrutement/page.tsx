@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, and, ne, inArray } from "drizzle-orm";
+import { eq, and, ne, inArray, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { Briefcase, Lock, ListChecks, Settings, Download } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, candidature, posteOuvert, utilisateur } from "@/db/schema";
@@ -71,7 +72,7 @@ export default async function PageRecrutement() {
     const agents = await tx
       .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
       .from(utilisateur)
-      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), ne(utilisateur.statut, "SUPPRIME")))
       .orderBy(utilisateur.nomComplet);
 
     return { actif: true as const, candidatures, agents };

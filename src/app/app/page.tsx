@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { and, eq, ne, lt, gte, notInArray, sql } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { Wallet, AlertTriangle, Users, ClipboardList, FolderClock, UserPlus, FileText, Receipt, CheckCircle2, Circle, ArrowRight, Sparkles } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { paiement, facture, deal, entreprise, tache, contact, devis, utilisateur } from "@/db/schema";
@@ -19,6 +21,8 @@ export default async function PageTableauDeBord() {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) return null;
+  // Un comptable externe n'a que la comptabilité : pas de tableau de bord d'entreprise.
+  if (utilisateurConnecte.role === "COMPTABLE") redirect("/app/comptabilite");
 
   // Docs/palier-1-*, section 8 — trois indicateurs, vue entreprise entière
   // (le document ne filtre pas ces requêtes par portee()).
@@ -64,7 +68,7 @@ export default async function PageTableauDeBord() {
       const [{ nbMembres }] = await tx
         .select({ nbMembres: sql<number>`count(*)::int` })
         .from(utilisateur)
-        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")));
+        .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), ne(utilisateur.statut, "SUPPRIME")));
       const prenom = (moi?.nomComplet ?? "").trim().split(/\s+/)[0] ?? "";
       const etapes = { contact: nbContacts > 0, document: nbDevis + nbFactures > 0, equipe: nbMembres > 1 };
 

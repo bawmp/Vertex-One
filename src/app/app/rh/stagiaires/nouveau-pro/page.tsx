@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { ArrowLeft, GraduationCap, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur } from "@/db/schema";
@@ -29,7 +30,7 @@ export default async function PageNouveauStagiairePro() {
     return tx
       .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
       .from(utilisateur)
-      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), eq(utilisateur.statut, "ACTIF")));
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), eq(utilisateur.statut, "ACTIF")));
   });
   if (!donnees) redirect("/app/rh/stagiaires");
 

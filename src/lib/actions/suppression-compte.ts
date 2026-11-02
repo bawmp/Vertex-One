@@ -30,7 +30,7 @@ export async function supprimerCompte(utilisateurId: string): Promise<{ erreur?:
       .from(utilisateur)
       .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
     if (!cible || cible.statut === "SUPPRIME") return { erreur: t("Compte introuvable.") };
-    if (!["MANAGER", "EMPLOYE", "CLIENT"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être supprimé ici.") };
+    if (!["MANAGER", "EMPLOYE", "CLIENT", "COMPTABLE"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être supprimé ici.") };
 
     // Ses invitations restées sans suite (en attente ou expirées) sont annulées : le lien ne doit plus rien permettre.
     const enAttente = await tx
@@ -76,7 +76,7 @@ export async function definirActivationCompte(utilisateurId: string, actif: bool
       .from(utilisateur)
       .where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
     if (!cible || (cible.statut !== "ACTIF" && cible.statut !== "DESACTIVE")) return { erreur: t("Compte introuvable.") };
-    if (!["MANAGER", "EMPLOYE", "CLIENT"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être désactivé ici.") };
+    if (!["MANAGER", "EMPLOYE", "CLIENT", "COMPTABLE"].includes(cible.role)) return { erreur: t("Un compte Administrateur ne peut pas être désactivé ici.") };
 
     await tx
       .update(utilisateur)

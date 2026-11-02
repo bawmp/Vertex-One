@@ -1,4 +1,5 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, sql, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import type { db } from "@/db/client";
 import { utilisateur } from "@/db/schema";
 
@@ -14,6 +15,6 @@ export async function compterUtilisateursActifs(executeur: Pick<typeof db, "sele
   const [ligne] = await executeur
     .select({ n: sql<number>`count(*)::int` })
     .from(utilisateur)
-    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT")));
+    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES])));
   return ligne?.n ?? 0;
 }

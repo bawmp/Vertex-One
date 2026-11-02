@@ -1,4 +1,5 @@
-import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, ne, or, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { db, avecEntreprise } from "@/db/client";
 import { demandeConge, dossierRH, entreprise, jonctionPresence, pointage, service, shift, utilisateur, validationPresence } from "@/db/schema";
 import type { UtilisateurConnecte } from "@/lib/session";
@@ -151,7 +152,7 @@ async function lireSection(entrepriseId: string, entrepriseNom: string, propre: 
         .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
         .leftJoin(service, eq(utilisateur.serviceId, service.id))
         .leftJoin(shift, eq(dossierRH.shiftId, shift.id))
-        .where(and(eq(dossierRH.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT"), lte(dossierRH.dateEmbauche, finJour), or(isNull(dossierRH.dateDepart), gte(dossierRH.dateDepart, jour))))
+        .where(and(eq(dossierRH.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), lte(dossierRH.dateEmbauche, finJour), or(isNull(dossierRH.dateDepart), gte(dossierRH.dateDepart, jour))))
     ).map((d) => ({ dossierRHId: d.dossierRHId, utilisateurId: d.utilisateurId, nom: d.nom, poste: d.poste, service: d.serviceNom ?? null, shiftDebut: d.shiftDebut ? d.shiftDebut.slice(0, 5) : null, shiftTolerance: d.shiftTolerance ?? 0 }));
     if (dossiers.length === 0) return { entrepriseId, entrepriseNom, propre, lignes: [] };
 

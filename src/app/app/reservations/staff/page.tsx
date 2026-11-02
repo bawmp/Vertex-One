@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, ne, and } from "drizzle-orm";
+import { eq, ne, and, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { ArrowLeft, Lock, Users } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, intervenantReservation, disponibiliteReservation } from "@/db/schema";
@@ -34,7 +35,7 @@ export default async function PageStaffReservations() {
     const utilisateurs = await tx
       .select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet })
       .from(utilisateur)
-      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
+      .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), ne(utilisateur.statut, "SUPPRIME")))
       .orderBy(utilisateur.nomComplet);
 
     const intervenants = await tx.select().from(intervenantReservation).where(eq(intervenantReservation.entrepriseId, utilisateurConnecte.entrepriseId));

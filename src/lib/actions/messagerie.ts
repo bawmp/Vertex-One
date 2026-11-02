@@ -1,6 +1,7 @@
 "use server";
 
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, sql, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -127,7 +128,7 @@ export async function envoyerMessage(formData: FormData): Promise<{ message?: Me
         const personnes = await tx
           .select({ id: utilisateur.id, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises })
           .from(utilisateur)
-          .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT"), inArray(utilisateur.id, ids)));
+          .where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), inArray(utilisateur.id, ids)));
         const mentionnables: string[] = [];
         for (const p of personnes) {
           const pseudo = { utilisateurId: p.id, entrepriseId: utilisateurConnecte.entrepriseId, role: p.role, modulesAutorises: p.modulesAutorises as Module[] | null } as UtilisateurConnecte;
@@ -282,7 +283,7 @@ async function collèguesValides(tx: Parameters<Parameters<typeof avecEntreprise
   const lignes = await tx
     .select({ id: utilisateur.id })
     .from(utilisateur)
-    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT"), inArray(utilisateur.id, ids)));
+    .where(and(eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), inArray(utilisateur.id, ids)));
   return lignes.map((l) => l.id);
 }
 

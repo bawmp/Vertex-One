@@ -1,0 +1,1 @@
+ALTER TYPE "public"."role_systeme" ADD VALUE IF NOT EXISTS 'COMPTABLE';

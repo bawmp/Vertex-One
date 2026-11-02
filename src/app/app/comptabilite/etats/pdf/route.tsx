@@ -17,7 +17,7 @@ import { EtatsFinanciersPDF } from "@/lib/pdf/etats-financiers";
 export async function GET(requete: Request) {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) return new NextResponse("Non authentifié", { status: 401 });
-  if (utilisateurConnecte.role !== "ADMIN" || !peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse("Réservé à l'administrateur", { status: 403 });
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse("Réservé à l'administrateur et au comptable externe", { status: 403 });
 
   const annee = Number(new URL(requete.url).searchParams.get("annee"));
   if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return new NextResponse("Exercice invalide", { status: 400 });

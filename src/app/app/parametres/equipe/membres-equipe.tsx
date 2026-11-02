@@ -14,9 +14,9 @@ import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
 
 
-export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE"; modulesAutorises: string[] | null; statut: "ACTIF" | "DESACTIVE" };
+export type MembreEquipe = { id: string; nomComplet: string; email: string; role: "MANAGER" | "EMPLOYE" | "COMPTABLE"; modulesAutorises: string[] | null; statut: "ACTIF" | "DESACTIVE" };
 
-const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé" } as const;
+const LIBELLE_ROLE = { MANAGER: "Manager", EMPLOYE: "Employé", COMPTABLE: "Comptable externe" } as const;
 
 /** Désactive un compte actif (accès coupé, mot de passe conservé) ou réactive un compte désactivé. */
 function BoutonActivation({ id, actif, onErreur }: { id: string; actif: boolean; onErreur: (message: string) => void }) {
@@ -123,6 +123,7 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
   const [enCoursAcces, startTransitionAcces] = useTransition();
   const [messageAcces, setMessageAcces] = useState<{ texte: string; erreur: boolean } | null>(null);
 
+  const externe = membre.role === "COMPTABLE";
   const restreint = membre.modulesAutorises !== null;
   const desactive = membre.statut === "DESACTIVE";
 
@@ -158,21 +159,23 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
         <div className="flex items-center gap-2">
           {desactive ? <Badge variant="danger">{t("Désactivé")}</Badge> : null}
           <Badge variant="neutral">{LIBELLE_ROLE[membre.role]}</Badge>
-          <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : t("Tous les modules")}</Badge>
+          {externe ? <Badge variant="neutral">{t("Comptabilité (lecture seule)")}</Badge> : <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : t("Tous les modules")}</Badge>}
           <Button type="button" variant="ghost" size="xs" disabled={enCoursAcces} onClick={renvoyerAcces}>
             {enCoursAcces ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
             {desactive ? t("Réactiver et renvoyer un accès") : t("Renvoyer un accès")}
           </Button>
-          <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert((v) => !v)}>
-            <KeyRound data-icon="inline-start" aria-hidden />
-            {t("Accès")}
-          </Button>
+          {externe ? null : (
+            <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert((v) => !v)}>
+              <KeyRound data-icon="inline-start" aria-hidden />
+              {t("Accès")}
+            </Button>
+          )}
           <BoutonActivation id={membre.id} actif={!desactive} onErreur={(m) => setMessageAcces({ texte: m, erreur: true })} />
           <BoutonSupprimer id={membre.id} nom={membre.nomComplet} onErreur={(m) => setMessageAcces({ texte: m, erreur: true })} />
         </div>
       </div>
       {messageAcces ? <p className={`text-xs ${messageAcces.erreur ? "text-destructive" : "text-emerald-700 dark:text-emerald-400"}`}>{messageAcces.texte}</p> : null}
-      {ouvert ? (
+      {ouvert && !externe ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <SelecteurModules role={membre.role} valeurs={valeurs} onChange={setValeurs} />
           {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}

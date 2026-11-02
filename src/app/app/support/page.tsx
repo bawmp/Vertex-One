@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { eq, and, ne, inArray, desc } from "drizzle-orm";
+import { eq, and, ne, inArray, desc, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { LifeBuoy, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, categorieTicketSupport, ticketSupport } from "@/db/schema";
@@ -66,7 +67,7 @@ export default async function PageSupport() {
       .orderBy(desc(ticketSupport.creeLe));
 
     const tousLesUtilisateurs = estAdmin
-      ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), ne(utilisateur.role, "CLIENT"), ne(utilisateur.statut, "SUPPRIME")))
+      ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), ne(utilisateur.statut, "SUPPRIME")))
       : [];
 
     return { actif: true as const, categories, tickets, tousLesUtilisateurs };

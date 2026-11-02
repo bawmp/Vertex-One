@@ -20,7 +20,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 - [x] **P2.4 Régularisations de fin d'exercice** (L) : charges à payer, produits constatés d'avance, provisions.
 - [x] **P2.5 Immobilisations et amortissements** (L) : registre, plans, dotations automatiques.
 - [x] **P2.6 Valeur du stock à une date passée, et par dépôt** (M) : nécessaire pour clôturer un exercice plusieurs semaines après sa fin.
-- [ ] **P2.7 Rôle « comptable externe »** (M) : accès en lecture aux seuls livres, sans voir le reste de l'entreprise.
+- [x] **P2.7 Rôle « comptable externe »** (M) : accès en lecture aux seuls livres, sans voir le reste de l'entreprise.
 
 ## Priorité 3 — Stock avancé
 

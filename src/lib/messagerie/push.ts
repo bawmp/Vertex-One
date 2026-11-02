@@ -1,5 +1,6 @@
 import webpush from "web-push";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { abonnementPush, canal, canalSourdine, membreCanal, mentionMessage, messageCanal, preferenceNotification, utilisateur } from "@/db/schema";
 import { canalAccessible, estCanalPrive } from "@/lib/messagerie/acces";
@@ -118,7 +119,7 @@ export async function preparerEnvois(tx: TransactionDrizzle, m: MessagePourPush)
   const personnes = await tx
     .select({ id: utilisateur.id, role: utilisateur.role, modulesAutorises: utilisateur.modulesAutorises, langue: utilisateur.langue })
     .from(utilisateur)
-    .where(and(eq(utilisateur.entrepriseId, m.entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT"), inArray(utilisateur.id, idsCandidats)));
+    .where(and(eq(utilisateur.entrepriseId, m.entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]), inArray(utilisateur.id, idsCandidats)));
   if (personnes.length === 0) return [];
   const ids = personnes.map((p) => p.id);
 

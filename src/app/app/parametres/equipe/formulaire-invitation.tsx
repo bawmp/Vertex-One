@@ -19,7 +19,7 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
   const [etat, action, enCours] = useActionState(creerInvitation, null);
   // Arrivée depuis « Stagiaire professionnel » (page Stagiaires) : contrat Stage déjà choisi, date de fin demandée.
   const [contrat, setContrat] = useState(stagePro ? "STAGE" : "CDI");
-  const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT">("EMPLOYE");
+  const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT" | "COMPTABLE">("EMPLOYE");
   // Par défaut : tous les modules du rôle ; l'Administrateur décoche ce qu'il veut retirer.
   const [modules, setModules] = useState<string[]>(modulesRestreignables("EMPLOYE"));
 
@@ -43,18 +43,20 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
               required
               defaultValue="EMPLOYE"
               onChange={(e) => {
-                const suivant = e.target.value as "MANAGER" | "EMPLOYE" | "CLIENT";
+                const suivant = e.target.value as "MANAGER" | "EMPLOYE" | "CLIENT" | "COMPTABLE";
                 setRole(suivant);
-                if (suivant !== "CLIENT") setModules(modulesRestreignables(suivant));
+                if (suivant === "MANAGER" || suivant === "EMPLOYE") setModules(modulesRestreignables(suivant));
               }}
             >
               <option value="MANAGER">{t("Manager")}</option>
               <option value="EMPLOYE">{t("Employé")}</option>
+              <option value="COMPTABLE">{t("Comptable externe")}</option>
               <option value="CLIENT">{t("Client")}</option>
             </Select>
+            {role === "COMPTABLE" ? <p className="text-xs text-muted-foreground">{t("Un expert-comptable invité : il consulte la comptabilité (livres, balance, états financiers, TVA, exports) en lecture seule, sans rien voir d'autre ni rien modifier. Il ne compte pas parmi vos utilisateurs.")}</p> : null}
           </div>
 
-          {role !== "CLIENT" ? (
+          {role === "MANAGER" || role === "EMPLOYE" ? (
             <div className="flex flex-col gap-2">
               <Label>{t("Modules accessibles")}</Label>
               <input type="hidden" name="restreindreModules" value="1" />
@@ -62,6 +64,8 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
             </div>
           ) : null}
 
+          {role !== "COMPTABLE" ? (
+            <>
           <div className="flex flex-col gap-2">
             <Label htmlFor="postePropose">{t("Poste")}</Label>
             <Input id="postePropose" name="postePropose" placeholder={t("Ex : Chargé de clientèle")} />
@@ -94,6 +98,8 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
             <Label htmlFor="managerPropose">{t("Manager (optionnel)")}</Label>
             <SelecteurPersonne id="managerPropose" name="managerPropose" personnes={collegues} placeholder={t("Rechercher un manager…")} />
           </div>
+            </>
+          ) : null}
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
           {etat?.succes ? (

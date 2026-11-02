@@ -24,7 +24,7 @@ const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/pali
 
 const schemaInvitation = z.object({
   email: z.email(),
-  roleProposee: z.enum(["MANAGER", "EMPLOYE", "CLIENT"]),
+  roleProposee: z.enum(["MANAGER", "EMPLOYE", "CLIENT", "COMPTABLE"]),
   postePropose: z.string().trim().optional(),
   typeContratPropose: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]).optional(),
   dateEmbauchePropose: z.string().optional(),
@@ -75,14 +75,14 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
   const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, dateFinPropose, contactId, managerPropose, modulesPropose } = analyse.data;
 
   // Un stage a toujours une fin : sans elle, aucun suivi de fin de stage ni décision n'est possible. Un CDD aussi.
-  const avecFin = roleProposee !== "CLIENT" && (typeContratPropose === "STAGE" || typeContratPropose === "CDD");
+  const avecFin = roleProposee !== "CLIENT" && roleProposee !== "COMPTABLE" && (typeContratPropose === "STAGE" || typeContratPropose === "CDD");
   if (avecFin && !dateFinPropose) return { erreur: typeContratPropose === "STAGE" ? t("Indiquez la date de fin du stage.") : t("Indiquez la date de fin du CDD.") };
   if (avecFin && dateFinPropose && Number.isNaN(new Date(dateFinPropose).getTime())) return { erreur: t("Date de fin invalide.") };
   if (avecFin && dateFinPropose && dateEmbauchePropose && new Date(dateFinPropose) <= new Date(dateEmbauchePropose)) return { erreur: t("La fin doit être postérieure à la date d'embauche.") };
 
   // Seuls MANAGER/EMPLOYE sont concernés ; une sélection complète revient à "aucune restriction".
   let modulesAEnregistrer: string[] | undefined;
-  if (modulesPropose && roleProposee !== "CLIENT") {
+  if (modulesPropose && roleProposee !== "CLIENT" && roleProposee !== "COMPTABLE") {
     const retenus = filtrerModulesAutorises(roleProposee, modulesPropose);
     if (retenus.length < modulesRestreignables(roleProposee).length) modulesAEnregistrer = retenus;
   }
@@ -191,7 +191,8 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
       password: motDePasseHash,
     });
 
-    if (invitationValide.roleProposee !== "CLIENT") {
+    // Un comptable externe n'est pas un salarié : pas de dossier RH, comme un client du portail.
+    if (invitationValide.roleProposee === "MANAGER" || invitationValide.roleProposee === "EMPLOYE") {
       await tx.insert(dossierRH).values({
         entrepriseId: invitationValide.entrepriseId,
         utilisateurId: nouvelUtilisateur.id,
@@ -235,7 +236,7 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
     headers: await headers(),
   });
 
-  redirect(invitationValide.roleProposee === "CLIENT" ? "/portail" : "/app");
+  redirect(invitationValide.roleProposee === "CLIENT" ? "/portail" : invitationValide.roleProposee === "COMPTABLE" ? "/app/comptabilite" : "/app");
 }
 
 /**

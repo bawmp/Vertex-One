@@ -76,4 +76,7 @@ export const COMPTABILITE: Record<string, string> = {
   "Contrepartie d'acquisition inconnue.": "Unknown acquisition counterpart account.",
   "Bien introuvable.": "Asset not found.",
   "Ce bien a déjà des dotations passées en comptabilité : il ne peut plus être retiré du registre.": "This asset already has depreciation posted in the books: it can no longer be removed from the register.",
+  "Comptable externe": "External accountant",
+  "Comptabilité (lecture seule)": "Accounting (read-only)",
+  "Un expert-comptable invité : il consulte la comptabilité (livres, balance, états financiers, TVA, exports) en lecture seule, sans rien voir d'autre ni rien modifier. Il ne compte pas parmi vos utilisateurs.": "An invited chartered accountant: they view the accounting (ledgers, trial balance, financial statements, VAT, exports) read-only, see nothing else and change nothing. They do not count among your users.",
 };

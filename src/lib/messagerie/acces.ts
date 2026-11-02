@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, or, sql, notInArray } from "drizzle-orm";
+import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import type { TransactionDrizzle } from "@/db/client";
 import { canal, entreprise, lectureCanal, membreCanal, messageCanal, reactionMessage, utilisateur } from "@/db/schema";
 import { peut } from "@/lib/permissions";
@@ -128,7 +129,7 @@ export async function listerCollegues(tx: TransactionDrizzle, utilisateurConnect
       and(
         eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId),
         eq(utilisateur.statut, "ACTIF"),
-        ne(utilisateur.role, "CLIENT"),
+        notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES]),
         ne(utilisateur.id, utilisateurConnecte.utilisateurId)
       )
     )
@@ -162,7 +163,7 @@ export async function ouvrirConversationDirecte(tx: TransactionDrizzle, utilisat
   const [autre] = await tx
     .select({ id: utilisateur.id })
     .from(utilisateur)
-    .where(and(eq(utilisateur.id, autreId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.statut, "ACTIF"), ne(utilisateur.role, "CLIENT")));
+    .where(and(eq(utilisateur.id, autreId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId), eq(utilisateur.statut, "ACTIF"), notInArray(utilisateur.role, [...ROLES_NON_COLLEGUES])));
   if (!autre) return null;
 
   const paire = [utilisateurConnecte.utilisateurId, autre.id].sort().join("-");
