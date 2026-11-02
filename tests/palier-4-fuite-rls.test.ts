@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
+import { Client } from "pg";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, dossier, document, demandeSignature, signataire, contrat, ecritureComptable, compteComptable } from "@/db/schema";
 
@@ -44,13 +45,20 @@ describe("Palier 4 — isolation RLS entre entreprises (signature/contrats/compt
     utilisateurKiroId = uKiro.id;
     utilisateurMbargaId = uMbarga.id;
 
-    // Référentiel global — une seule ligne suffit pour lier les écritures de test.
-    const [compte] = await db
-      .insert(compteComptable)
-      .values({ numero: "999999", libelle: "TEST Compte transitoire", classe: 9 })
-      .onConflictDoNothing({ target: compteComptable.numero })
-      .returning({ id: compteComptable.id });
-    compteId = compte?.id ?? (await db.select().from(compteComptable).where(eq(compteComptable.numero, "999999")))[0].id;
+    // Référentiel global — une seule ligne suffit pour lier les écritures de test. Depuis les comptes personnalisés (0138), le rôle
+    // applicatif ne peut plus créer de compte du référentiel (seulement les siens) : la ligne globale est créée par le rôle propriétaire.
+    let [compte] = await db.select().from(compteComptable).where(eq(compteComptable.numero, "999999"));
+    if (!compte) {
+      const proprietaire = new Client({ connectionString: process.env.DATABASE_URL_MIGRATIONS });
+      await proprietaire.connect();
+      try {
+        await proprietaire.query("insert into compte_comptable (id, numero, libelle, classe) select $1, '999999', 'TEST Compte transitoire', 9 where not exists (select 1 from compte_comptable where numero = '999999' and entreprise_id is null)", [`test-compte-${Date.now()}`]);
+      } finally {
+        await proprietaire.end();
+      }
+      [compte] = await db.select().from(compteComptable).where(eq(compteComptable.numero, "999999"));
+    }
+    compteId = compte.id;
 
     const [docM, dS, sM, cM, eM] = await avecEntreprise(mbargaId, async (tx) => {
       const [pr] = await tx

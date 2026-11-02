@@ -62,6 +62,10 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Journaux manuels, rapprochement bancaire par import de relevé, et budgets comparés au réalisé par compte": "Manual journals, bank reconciliation by statement import, and budgets compared with actuals per account",
   "Grand livre, balance générale et journaux par période (du ... au ...), avec solde reporté, contrôle d'équilibre et export CSV pour votre comptable":
     "General ledger, trial balance and journals by period (from ... to ...), with brought-forward balance, balance check and CSV export for your accountant",
+  "Déclaration de TVA par période : TVA collectée, TVA déductible, crédit reporté et TVA à payer, avec le détail des écritures et un export CSV pour votre comptable":
+    "VAT return by period: output VAT, input VAT, carried-forward credit and VAT payable, with the detail of the entries and a CSV export for your accountant",
+  "Ajoutez vos propres comptes au plan comptable SYSCOHADA : visibles de votre seule entreprise, utilisables dans vos journaux, dépenses et budgets":
+    "Add your own accounts to the SYSCOHADA chart of accounts: visible only to your company, usable in your journals, expenses and budgets",
   "Verrouillage d'une période comptable une fois clôturée": "Locking of an accounting period once closed",
   "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé": "Accounting remains reserved for the Administrator — never visible to an ordinary employee",
 

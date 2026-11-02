@@ -103,6 +103,8 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Comptabilité : plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise"),
       m("Journaux manuels, rapprochement bancaire par import de relevé, et budgets comparés au réalisé par compte"),
       m("Grand livre, balance générale et journaux par période (du ... au ...), avec solde reporté, contrôle d'équilibre et export CSV pour votre comptable"),
+      m("Déclaration de TVA par période : TVA collectée, TVA déductible, crédit reporté et TVA à payer, avec le détail des écritures et un export CSV pour votre comptable"),
+      m("Ajoutez vos propres comptes au plan comptable SYSCOHADA : visibles de votre seule entreprise, utilisables dans vos journaux, dépenses et budgets"),
       m("Verrouillage d'une période comptable une fois clôturée"),
       m("La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé"),
     ],

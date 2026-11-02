@@ -22,7 +22,7 @@ export function dateDouala(texte: string | undefined | null, finDeJournee: boole
 
 const jourTexte = (d: Date) => new Date(d.getTime() + 60 * 60 * 1000).toISOString().slice(0, 10);
 
-export type NomPeriode = "mois" | "trimestre" | "annee" | "annee-derniere";
+export type NomPeriode = "mois" | "mois-dernier" | "trimestre" | "annee" | "annee-derniere";
 
 /** Périodes proposées en un clic, calculées à l'heure de Douala. */
 export function periodePredefinie(nom: NomPeriode, maintenant: Date): { du: string; au: string } {
@@ -32,6 +32,11 @@ export function periodePredefinie(nom: NomPeriode, maintenant: Date): { du: stri
   const dernierJour = (a: number, m: number) => new Date(Date.UTC(a, m, 0)).getUTCDate();
   const iso = (a: number, m: number, j: number) => `${a}-${String(m).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
   if (nom === "mois") return { du: iso(annee, mois, 1), au: iso(annee, mois, dernierJour(annee, mois)) };
+  if (nom === "mois-dernier") {
+    const a = mois === 1 ? annee - 1 : annee;
+    const m = mois === 1 ? 12 : mois - 1;
+    return { du: iso(a, m, 1), au: iso(a, m, dernierJour(a, m)) };
+  }
   if (nom === "trimestre") {
     const debut = Math.floor((mois - 1) / 3) * 3 + 1;
     return { du: iso(annee, debut, 1), au: iso(annee, debut + 2, dernierJour(annee, debut + 2)) };

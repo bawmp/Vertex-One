@@ -1,4 +1,5 @@
 import "server-only";
+import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { compteComptable } from "@/db/schema";
 import { PLAN_COMPTABLE_SYSCOHADA } from "./plan-comptable-syscohada";
@@ -13,7 +14,7 @@ export async function importerPlanComptable(): Promise<{ inseres: number; total:
   const resultat = await db
     .insert(compteComptable)
     .values(PLAN_COMPTABLE_SYSCOHADA)
-    .onConflictDoNothing({ target: compteComptable.numero })
+    .onConflictDoNothing({ target: compteComptable.numero, where: sql`${compteComptable.entrepriseId} IS NULL` })
     .returning({ id: compteComptable.id });
 
   return { inseres: resultat.length, total: PLAN_COMPTABLE_SYSCOHADA.length };

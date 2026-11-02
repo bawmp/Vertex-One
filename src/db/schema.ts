@@ -2786,12 +2786,28 @@ export const contrat = pgTable(
 // "toute table porte entrepriseId" (CLAUDE.md) : la nomenclature SYSCOHADA
 // est identique pour toutes les entreprises camerounaises, en lecture seule
 // pour l'application — comme un enum étendu, jamais une donnée à isoler.
-export const compteComptable = pgTable("compte_comptable", {
-  id: text("id").primaryKey().$defaultFn(() => createId()),
-  numero: text("numero").notNull().unique(), // ex: "411000" (Clients), "706000" (Prestations)
-  libelle: text("libelle").notNull(),
-  classe: integer("classe").notNull(), // 1 à 8, classification SYSCOHADA
-});
+export const compteComptable = pgTable(
+  "compte_comptable",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    numero: text("numero").notNull(), // ex: "411000" (Clients), "706000" (Prestations)
+    libelle: text("libelle").notNull(),
+    classe: integer("classe").notNull(), // 1 à 8, classification SYSCOHADA
+    // Compte personnalisé (2026-11-02) : nul = compte du référentiel SYSCOHADA, visible de toutes les entreprises ; renseigné =
+    // compte créé par CETTE entreprise, visible d'elle seule (lecture : globaux + les siens ; écriture : les siens uniquement).
+    // Un numéro personnalisé ne peut jamais reprendre un numéro du référentiel (contrôlé à la création).
+    entrepriseId: text("entreprise_id").references(() => entreprise.id),
+  },
+  (table) => [
+    uniqueIndex("compte_comptable_numero_global_unique").on(table.numero).where(sql`${table.entrepriseId} IS NULL`),
+    uniqueIndex("compte_comptable_numero_entreprise_unique").on(table.entrepriseId, table.numero).where(sql`${table.entrepriseId} IS NOT NULL`),
+    index("compte_comptable_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("compte_lecture", { for: "select", using: sql`${table.entrepriseId} IS NULL OR ${table.entrepriseId} = nullif(current_setting('app.entreprise_id', true), '')` }),
+    pgPolicy("compte_creation", { for: "insert", withCheck: sql`${table.entrepriseId} = nullif(current_setting('app.entreprise_id', true), '')` }),
+    pgPolicy("compte_modification", { for: "update", using: sql`${table.entrepriseId} = nullif(current_setting('app.entreprise_id', true), '')`, withCheck: sql`${table.entrepriseId} = nullif(current_setting('app.entreprise_id', true), '')` }),
+    pgPolicy("compte_suppression", { for: "delete", using: sql`${table.entrepriseId} = nullif(current_setting('app.entreprise_id', true), '')` }),
+  ]
+).enableRLS();
 
 export const ecritureComptable = pgTable(
   "ecriture_comptable",

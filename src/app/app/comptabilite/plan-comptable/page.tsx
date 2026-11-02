@@ -10,6 +10,9 @@ import { disponible } from "@/lib/plans";
 import { calculerBalance } from "@/lib/comptabilite/etats-financiers";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AjouterCompte } from "./ajouter-compte";
+import { ActionsCompte } from "./actions-compte";
 
 // Zoho Books > Comptable > "Plan comptable" (échange du 2026-09-07). Lecture
 // seule et référentiel SYSCOHADA fixe : compteComptable est une table
@@ -86,8 +89,9 @@ export default async function PagePlanComptable() {
         <h1 className="text-2xl font-semibold tracking-tight">Plan comptable</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        Référentiel SYSCOHADA — commun à toutes les classes de comptes, pas de compte personnalisé. Le solde affiché est propre à votre entreprise.
+        Référentiel SYSCOHADA, auquel vous pouvez ajouter vos propres comptes. Le solde affiché est propre à votre entreprise.
       </p>
+      {peut(utilisateurConnecte, "COMPTABILITE", "CREER") ? <AjouterCompte /> : null}
 
       {[...comptesParClasse.keys()]
         .sort((a, b) => a - b)
@@ -102,7 +106,11 @@ export default async function PagePlanComptable() {
                       <span className="font-mono text-xs text-muted-foreground">{c.numero}</span>
                       <span className="ml-2">{c.libelle}</span>
                     </span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">{formaterFCFA(soldeParNumero.get(c.numero) ?? 0)}</span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      {c.entrepriseId ? <Badge variant="brand">Personnalisé</Badge> : null}
+                      <span className="tabular-nums text-muted-foreground">{formaterFCFA(soldeParNumero.get(c.numero) ?? 0)}</span>
+                      {c.entrepriseId && peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? <ActionsCompte compteId={c.id} libelle={c.libelle} /> : null}
+                    </span>
                   </div>
                 ))}
               </div>
