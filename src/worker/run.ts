@@ -41,6 +41,8 @@ async function main() {
   const { default: verifierMessagesANotifier } = await import("./tasks/verifier-messages-a-notifier");
   const { default: notifierMessagesEntreprise } = await import("./tasks/notifier-messages-entreprise");
   const { default: reconcilierAbonnements } = await import("./tasks/reconcilier-abonnements");
+  const { default: verifierAlertesStock } = await import("./tasks/verifier-alertes-stock");
+  const { default: alertesStockEntreprise } = await import("./tasks/alertes-stock-entreprise");
 
   const runner = await run({
     connectionString: process.env.DATABASE_URL_WORKER,
@@ -60,6 +62,8 @@ async function main() {
       "verifier-messages-a-notifier": verifierMessagesANotifier,
       "notifier-messages-entreprise": notifierMessagesEntreprise,
       "reconcilier-abonnements": reconcilierAbonnements,
+      "verifier-alertes-stock": verifierAlertesStock,
+      "alertes-stock-entreprise": alertesStockEntreprise,
     },
   });
 

@@ -10,6 +10,9 @@ import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { lireAReapprovisionner } from "@/lib/produits/reapprovisionnement";
 import { getT } from "@/lib/i18n/langue";
 import { FormulaireReappro } from "./formulaire-reappro";
+import { ReglageAlertes } from "./reglage-alertes";
+import { entreprise } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function PageReapprovisionnement() {
   const t = await getT();
@@ -25,7 +28,11 @@ export default async function PageReapprovisionnement() {
     );
   }
 
-  const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ((await gestionStockActive(tx, utilisateurConnecte.entrepriseId)) ? lireAReapprovisionner(tx, utilisateurConnecte.entrepriseId) : null));
+  const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return null;
+    const [reglage] = await tx.select({ alertes: entreprise.alertesStockEmail }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    return { ...(await lireAReapprovisionner(tx, utilisateurConnecte.entrepriseId)), alertes: reglage?.alertes ?? true };
+  });
   if (!donnees) return <StockDesactive peutActiver={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")} />;
 
   const peutCommander = peut(utilisateurConnecte, "ACHATS", "CREER");
@@ -43,6 +50,8 @@ export default async function PageReapprovisionnement() {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{t("Les produits en rupture ou sous leur seuil d'alerte, avec la quantité à commander pour revenir au stock visé. Un clic crée les bons de commande, un par fournisseur.")}</p>
       </div>
+
+      {peut(utilisateurConnecte, "PARAMETRES", "MODIFIER") ? <ReglageAlertes actif={donnees.alertes} /> : null}
 
       {donnees.lignes.length === 0 ? (
         <EtatVide icone={CircleCheck} titre={t("Rien à commander.")} description={t("Aucun produit n'est en rupture ni sous son seuil d'alerte.")} />

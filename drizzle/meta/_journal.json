@@ -1065,6 +1065,13 @@
       "when": 1793422800000,
       "tag": "0151_reapprovisionnement",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1793509200000,
+      "tag": "0152_alertes_stock_email",
+      "breakpoints": true
     }
   ]
 }

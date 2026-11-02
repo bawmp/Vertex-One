@@ -103,6 +103,8 @@ export const entreprise = pgTable("entreprise", {
   // Entreprise de produits (2026-11-02) : active le stock (suivi par produit, historique, inventaire, dépôts, valeur, alertes). Une entreprise
   // de services n'en voit rien. Choisie à l'inscription (secteur « Commerce ») ou dans Paramètres → Entreprise.
   gereStock: boolean("gere_stock").notNull().default(false),
+  // Alertes de stock bas par email (2026-11-02, priorité 3.2) : activées par défaut, l'Administrateur peut les couper.
+  alertesStockEmail: boolean("alertes_stock_email").notNull().default(true),
   // Interdire la vente en rupture (priorité 1.4, 2026-11-02) : refuse un ticket de vente, une conversion de commande ou une acceptation de
   // devis par l'équipe quand le dépôt concerné n'a pas assez d'un produit suivi. Faux = stock négatif toléré, comme avant.
   bloquerVenteRupture: boolean("bloquer_vente_rupture").notNull().default(false),
@@ -3575,6 +3577,8 @@ export const produit = pgTable(
     // Réapprovisionnement (2026-11-02, priorité 3.1) : stock visé après une commande (nul = le double du seuil) et fournisseur habituel,
     // proposé à la création du bon de commande.
     stockCible: integer("stock_cible"),
+    // Dernier niveau signalé par email (BAS ou RUPTURE) ; nul tant que le stock est correct. Évite d'alerter chaque jour pour le même produit.
+    alerteStockNiveau: text("alerte_stock_niveau"),
     fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
     // Coût moyen pondéré par unité (2026-11-02), en FCFA hors taxe : recalculé à chaque achat facturé, base de la valeur du stock.
     // Une vente sort le stock à ce coût sans le modifier. Au démarrage du suivi, il vaut le prix d'achat du produit.

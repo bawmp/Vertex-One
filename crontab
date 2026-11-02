@@ -34,3 +34,7 @@
 # (2026-09-23) — le sondage client (bouton-paiement-abonnement.tsx) peut manquer une confirmation si l'onglet est
 # déchargé pendant que le client valide sur son téléphone ; ce filet de sécurité ne dépend d'aucun navigateur.
 * * * * * reconcilier-abonnements
+
+# Quotidiennement a 7h30 : alertes de stock bas / rupture par email, un recapitulatif par entreprise qui gere un stock
+# (priorite 3.2, 2026-11-02). Un produit nest signale quune fois par niveau ; le retour a la normale rearme lalerte.
+30 7 * * * verifier-alertes-stock

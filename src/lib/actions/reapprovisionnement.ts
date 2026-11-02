@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
+import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { creerBonsDeCommande, definirReapprovisionnement, type DemandeCommande } from "@/lib/produits/reapprovisionnement";
@@ -51,4 +53,22 @@ export async function definirReapprovisionnementProduit(produitId: string, _etat
   revalidatePath(`/app/produits/${produitId}`);
   revalidatePath("/app/produits/reapprovisionnement");
   return { message: t("Réapprovisionnement enregistré.") };
+}
+
+/** Active ou coupe les alertes de stock bas par email de l'entreprise. Réservé à qui modifie les paramètres (l'Administrateur). */
+export async function definirAlertesStockEmail(actif: boolean): Promise<EtatReappro> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) return { erreur: t("Seul l'Administrateur peut changer ce réglage.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return { ok: false } as const;
+    await tx.update(entreprise).set({ alertesStockEmail: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    return { ok: true } as const;
+  });
+  if (!resultat.ok) return { erreur: t(MESSAGE_STOCK_DESACTIVE) };
+
+  revalidatePath("/app/produits/reapprovisionnement");
+  return { message: actif ? t("Alertes de stock par email activées.") : t("Alertes de stock par email désactivées.") };
 }

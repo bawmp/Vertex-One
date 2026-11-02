@@ -226,4 +226,9 @@ export const STOCK: Record<string, string> = {
   "Le plan comptable ne contient pas le compte 601000 : contactez le support.": "The chart of accounts does not contain account 601000: please contact support.",
   "Le stock visé doit être un nombre entier, zéro ou plus.": "The target stock must be a whole number, zero or more.",
   "Fournisseur introuvable.": "Supplier not found.",
+  "Recevoir un email quand un produit passe en stock bas ou en rupture": "Get an email when a product goes low on stock or out of stock",
+  "Un récapitulatif chaque matin, aux administrateurs, sans répétition tant que la situation ne change pas.": "One summary every morning, to administrators, with no repeat as long as the situation does not change.",
+  "Seul l'Administrateur peut changer ce réglage.": "Only the Administrator can change this setting.",
+  "Alertes de stock par email activées.": "Stock email alerts turned on.",
+  "Alertes de stock par email désactivées.": "Stock email alerts turned off.",
 };
