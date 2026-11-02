@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
@@ -38,7 +38,15 @@ export default async function PageProduits() {
           <Package className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{t("Produits")}</h1>
         </div>
-        {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
+        <div className="flex items-center gap-2">
+          {peut(utilisateurConnecte, "PRODUITS", "MODIFIER") && produits.some((p) => p.suiviStock) ? (
+            <Button variant="outline" size="sm" render={<Link href="/app/produits/inventaire" />} nativeButton={false}>
+              <ClipboardCheck data-icon="inline-start" aria-hidden />
+              {t("Faire l'inventaire")}
+            </Button>
+          ) : null}
+          {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit /> : null}
+        </div>
       </div>
 
       <Card className="p-0">

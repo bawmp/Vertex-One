@@ -81,7 +81,7 @@ export async function accepterDevisEtCreerFacture(
   // Catalogue Produits/Tarifs (échange du 2026-09-07) — une vente facturée
   // diminue le stock des BIEN suivis, jamais au stade Devis (simple
   // intention, pas encore une transaction réalisée), voir schema.ts.
-  await decrementerStockVente(tx, lignesDuDevis);
+  await decrementerStockVente(tx, entrepriseId, lignesDuDevis, { documentType: "FACTURE", documentId: nouvelleFacture.id });
 
   // Palier 4, section 4 : la comptabilité se construit toute seule à
   // mesure que l'entreprise facture — jamais un écran de saisie séparé à

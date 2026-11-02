@@ -1,9 +1,9 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
-import { ArrowLeft, Package, Lock, User, Clock } from "lucide-react";
+import { desc, eq, inArray } from "drizzle-orm";
+import { ArrowLeft, Package, Lock, User, Clock, ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, ShoppingCart, Truck, Flag } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { produit, compteComptable, utilisateur } from "@/db/schema";
+import { produit, compteComptable, utilisateur, mouvementStock } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { recupererTransactionsProduit } from "@/lib/produits/transactions";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsPanel } from "@/components/ui/tabs";
 import { FormulaireImageProduit } from "./formulaire-image-produit";
 import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
+import { AjusterStock } from "./ajuster-stock";
+import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE } from "@/lib/produits/motifs-stock";
 import { getT } from "@/lib/i18n/langue";
 
 // Fiche détail Produit (échange du 2026-09-08, comparaison avec la fiche
@@ -49,11 +51,17 @@ export default async function PageDetailProduit({ params, searchParams }: { para
       recupererTransactionsProduit(tx, utilisateurConnecte, id),
     ]);
 
-    return { leProduit, createur, compteVente, transactions };
+    const mouvements = leProduit.type === "BIEN"
+      ? await tx.select().from(mouvementStock).where(eq(mouvementStock.produitId, id)).orderBy(desc(mouvementStock.creeLe)).limit(100)
+      : [];
+    const idsAuteurs = [...new Set(mouvements.map((mv) => mv.creeParId).filter((v): v is string => Boolean(v)))];
+    const auteurs = idsAuteurs.length > 0 ? await tx.select({ id: utilisateur.id, nomComplet: utilisateur.nomComplet }).from(utilisateur).where(inArray(utilisateur.id, idsAuteurs)) : [];
+
+    return { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs } = donnees;
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
 
   return (
@@ -91,6 +99,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
       <Tabs defaultValue="apercu">
         <TabsList>
           <TabsTrigger value="apercu">{t("Vue d'ensemble")}</TabsTrigger>
+          {leProduit.type === "BIEN" ? <TabsTrigger value="stock">{t("Stock")}</TabsTrigger> : null}
           <TabsTrigger value="transactions">{t("Transactions")}</TabsTrigger>
           <TabsTrigger value="historique">{t("Historique")}</TabsTrigger>
         </TabsList>
@@ -145,6 +154,69 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             </Card>
           ) : null}
         </TabsPanel>
+
+        {leProduit.type === "BIEN" ? (
+          <TabsPanel value="stock" className="flex flex-col gap-4">
+            {leProduit.suiviStock ? (
+              <Card>
+                <CardContent className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">{t("Stock actuel")}</span>
+                  <span className="text-3xl font-semibold tabular-nums">{leProduit.stockActuel}</span>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} /> : null}
+
+            {leProduit.suiviStock ? (
+              <div className="flex flex-col gap-2">
+                <h2 className="text-sm font-medium text-muted-foreground">{t("Historique du stock")}</h2>
+                {mouvements.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("Aucun mouvement pour le moment. Chaque vente, achat ou correction apparaîtra ici.")}</p>
+                ) : (
+                  <Card className="p-0">
+                    <div className="flex flex-col divide-y divide-border">
+                      {mouvements.map((mv) => {
+                        const Icone = mv.type === "VENTE" ? ShoppingCart : mv.type === "ACHAT" ? Truck : mv.type === "AJOUT" ? ArrowDownToLine : mv.type === "RETRAIT" ? ArrowUpFromLine : mv.type === "INVENTAIRE" ? ClipboardCheck : Flag;
+                        const titre =
+                          mv.type === "VENTE" ? t("Vente") : mv.type === "ACHAT" ? t("Achat reçu") : mv.type === "AJOUT" ? t("Entrée de stock") : mv.type === "RETRAIT" ? t("Sortie de stock") : mv.type === "INVENTAIRE" ? t("Inventaire") : t("Stock de départ");
+                        const motifs: Record<string, string> = { ...MOTIFS_AJOUT, ...MOTIFS_RETRAIT, ...MOTIFS_INVENTAIRE };
+                        const detail = [mv.motif && motifs[mv.motif] ? t(motifs[mv.motif]) : null, mv.note, mv.creeParId ? nomsAuteurs.get(mv.creeParId) : null].filter(Boolean).join(" · ");
+                        const lien = mv.documentType === "FACTURE" && mv.documentId ? `/app/facturation/factures/${mv.documentId}` : mv.documentType === "FACTURE_FOURNISSEUR" ? "/app/achats#factures-fournisseurs" : mv.documentType === "RECU_VENTE" ? "/app/facturation#tickets-de-vente" : null;
+                        return (
+                          <div key={mv.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <Icone className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">
+                                  {lien ? (
+                                    <Link href={lien} className="hover:underline">
+                                      {titre}
+                                    </Link>
+                                  ) : (
+                                    titre
+                                  )}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(mv.creeLe)}
+                                  {detail ? ` · ${detail}` : ""}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right tabular-nums">
+                              <p className={mv.quantite > 0 ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-destructive"}>{mv.quantite > 0 ? `+${mv.quantite}` : mv.quantite}</p>
+                              <p className="text-xs text-muted-foreground">{t("Stock : {n}", { n: mv.stockApres })}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            ) : null}
+          </TabsPanel>
+        ) : null}
 
         <TabsPanel value="transactions">
           {transactions.length > 0 ? (

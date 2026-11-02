@@ -37,7 +37,7 @@ describe("Produits — mouvement de stock à la vente", () => {
     );
 
     await avecEntreprise(entrepriseId, (tx) =>
-      decrementerStockVente(tx, [
+      decrementerStockVente(tx, entrepriseId, [
         { produitId: leProduit.id, quantite: 3 },
         { produitId: leProduit.id, quantite: 2 },
       ])
@@ -56,7 +56,7 @@ describe("Produits — mouvement de stock à la vente", () => {
     );
 
     await avecEntreprise(entrepriseId, (tx) =>
-      decrementerStockVente(tx, [
+      decrementerStockVente(tx, entrepriseId, [
         { produitId: leService.id, quantite: 1 },
         { produitId: leBienNonSuivi.id, quantite: 1 },
       ])
@@ -74,13 +74,13 @@ describe("Produits — mouvement de stock à la vente", () => {
       tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Écran 24 pouces", suiviStock: true, stockActuel: 5, creeParId: utilisateurId }).returning({ id: produit.id })
     );
 
-    await avecEntreprise(entrepriseId, (tx) => incrementerStockAchat(tx, [{ produitId: leProduit.id, quantite: 8 }]));
+    await avecEntreprise(entrepriseId, (tx) => incrementerStockAchat(tx, entrepriseId, [{ produitId: leProduit.id, quantite: 8 }]));
 
     const [apres] = await avecEntreprise(entrepriseId, (tx) => tx.select({ stockActuel: produit.stockActuel }).from(produit).where(eq(produit.id, leProduit.id)));
     expect(apres.stockActuel).toBe(13);
   });
 
   test("une ligne sans produit (texte libre) ne fait planter aucun mouvement de stock", async () => {
-    await expect(avecEntreprise(entrepriseId, (tx) => decrementerStockVente(tx, [{ produitId: null, quantite: 2 }]))).resolves.not.toThrow();
+    await expect(avecEntreprise(entrepriseId, (tx) => decrementerStockVente(tx, entrepriseId, [{ produitId: null, quantite: 2 }]))).resolves.not.toThrow();
   });
 });

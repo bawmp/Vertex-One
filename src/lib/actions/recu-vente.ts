@@ -110,7 +110,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
       }))
     );
 
-    await decrementerStockVente(tx, lignes);
+    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "RECU_VENTE", documentId: recu.id, utilisateurId: utilisateurConnecte.utilisateurId });
 
     await genererEcrituresRecuVente(tx, {
       id: recu.id,

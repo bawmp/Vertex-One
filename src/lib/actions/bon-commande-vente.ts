@@ -166,7 +166,7 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
       }))
     );
 
-    await decrementerStockVente(tx, lignesBCV);
+    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignesBCV, { documentType: "FACTURE", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
 
     await tx
       .update(bonCommandeVente)

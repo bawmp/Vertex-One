@@ -50,6 +50,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Souche de chaque email envoyé à vos clients (destinataire, message, pièces jointes, date, auteur), consultable et filtrable dans Paramètres": "A copy of every email sent to your clients (recipient, message, attachments, date, author), viewable and filterable in Settings",
   "Votre logo en filigrane discret sur chaque page de vos devis, factures, bons de commande, reçus et factures d'acompte, désactivable en un clic": "Your logo as a discreet watermark on every page of your quotes, invoices, purchase orders, receipts and deposit invoices, switchable off in one click",
   "Votre logo et votre identité sur les devis, les factures, les emails et les pages envoyées à vos clients": "Your logo and identity on quotes, invoices, emails and the pages sent to your clients",
+  "Stock : suivi par produit, historique de chaque mouvement (ventes, achats, casse, perte, vol), correction en quelques clics et inventaire physique avec l'écart calculé tout seul":
+    "Stock: tracking per product, history of every movement (sales, purchases, breakage, loss, theft), corrections in a few clicks and a physical stock count with the difference calculated for you",
   "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur": "Purchasing: supplier records and purchase orders, directly convertible into a supplier invoice",
   "Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique":
     "Tracking of overdue supplier invoices, separate from tracking client unpaid invoices; an invoice is marked paid or cancelled while keeping its history",

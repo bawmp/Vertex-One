@@ -3360,6 +3360,44 @@ export const produit = pgTable(
   ]
 ).enableRLS();
 
+// Historique du stock (2026-11-02) : chaque variation de `produit.stock_actuel` laisse une ligne, jamais une valeur écrasée sans trace.
+// `quantite` est signée (+ entrée, − sortie) et `stock_apres` fige le stock obtenu, pour relire l'historique sans tout rejouer.
+// VENTE/ACHAT viennent des documents (documentType + documentId), les autres types des corrections faites à la main.
+export const typeMouvementStock = pgEnum("type_mouvement_stock", ["INITIAL", "VENTE", "ACHAT", "AJOUT", "RETRAIT", "INVENTAIRE"]);
+
+export const mouvementStock = pgTable(
+  "mouvement_stock",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    type: typeMouvementStock("type").notNull(),
+    quantite: integer("quantite").notNull(),
+    stockApres: integer("stock_apres").notNull(),
+    // Motif choisi dans une liste fermée (casse, perte, vol…) pour une correction manuelle ; nul pour une vente ou un achat.
+    motif: text("motif"),
+    note: text("note"),
+    documentType: text("document_type"),
+    documentId: text("document_id"),
+    // Nul quand le mouvement vient d'une tâche automatique (facture récurrente générée par le worker).
+    creeParId: text("cree_par_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("mouvement_stock_entreprise_idx").on(table.entrepriseId),
+    index("mouvement_stock_produit_date_idx").on(table.produitId, table.creeLe),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Promesse de paiement (2026-10-28) : un client annonce qu'il réglera une facture à une date donnée (au téléphone, sur WhatsApp,
 // ou lui-même depuis la page publique de la facture). Tant qu'elle court (EN_COURS), la relance automatique de cette facture est
 // suspendue ; elle devient TENUE dès que les règlements couvrent le montant promis, NON_TENUE si la date (plus un jour de grâce)

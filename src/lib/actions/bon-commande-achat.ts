@@ -142,7 +142,7 @@ export async function convertirBonCommandeEnFactureFournisseur(bonCommandeAchatI
     // Catalogue Produits/Tarifs (échange du 2026-09-07) — la conversion en
     // Facture fournisseur est le moment où l'achat est réalisé, pas la
     // création du Bon de commande (voir schema.ts).
-    await incrementerStockAchat(tx, lignesBC);
+    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignesBC, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
 
     await tx
       .update(bonCommandeAchat)

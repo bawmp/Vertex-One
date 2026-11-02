@@ -1,8 +1,13 @@
 import { sql, inArray, eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { produit } from "@/db/schema";
+import { produit, mouvementStock } from "@/db/schema";
+import { m } from "@/lib/i18n/catalogue";
+import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 
 type LigneAvecProduit = { produitId?: string | null; quantite: number };
+
+/** D'où vient un mouvement de vente ou d'achat : le document qui l'a provoqué (pour retrouver sa fiche) et la personne, s'il y en a une. */
+export type ContexteMouvement = { documentType?: string; documentId?: string; utilisateurId?: string | null };
 
 /**
  * Catalogue Produits/Tarifs (échange du 2026-09-07, zoho-books-full-spec.md
@@ -14,8 +19,11 @@ type LigneAvecProduit = { produitId?: string | null; quantite: number };
  * y penser. Pas de blocage si le stock devient négatif (vente possible même
  * en rupture) — comme Zoho, qui ne bloque pas la vente, se contente de
  * suivre le nombre.
+ *
+ * Depuis le 2026-11-02, chaque variation laisse une ligne dans `mouvement_stock` (quantité signée + stock obtenu). Le stock est
+ * modifié par un `UPDATE … RETURNING` atomique : le « stock après » est exact même si deux ventes arrivent en même temps.
  */
-async function ajusterStock(tx: TransactionDrizzle, lignes: LigneAvecProduit[], sens: 1 | -1): Promise<void> {
+async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], sens: 1 | -1, contexte?: ContexteMouvement): Promise<void> {
   const quantitesParProduit = new Map<string, number>();
   for (const l of lignes) {
     if (!l.produitId) continue;
@@ -28,15 +36,27 @@ async function ajusterStock(tx: TransactionDrizzle, lignes: LigneAvecProduit[], 
 
   for (const { id } of produitsSuivis) {
     const quantite = quantitesParProduit.get(id)!;
-    await tx
+    if (quantite === 0) continue;
+    const [apres] = await tx
       .update(produit)
       .set({ stockActuel: sql`${produit.stockActuel} + ${sens * quantite}` })
-      .where(eq(produit.id, id));
+      .where(eq(produit.id, id))
+      .returning({ stockActuel: produit.stockActuel });
+    await tx.insert(mouvementStock).values({
+      entrepriseId,
+      produitId: id,
+      type: sens === -1 ? "VENTE" : "ACHAT",
+      quantite: sens * quantite,
+      stockApres: apres.stockActuel,
+      documentType: contexte?.documentType,
+      documentId: contexte?.documentId,
+      creeParId: contexte?.utilisateurId ?? null,
+    });
   }
 }
 
-export function decrementerStockVente(tx: TransactionDrizzle, lignes: LigneAvecProduit[]): Promise<void> {
-  return ajusterStock(tx, lignes, -1);
+export function decrementerStockVente(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], contexte?: ContexteMouvement): Promise<void> {
+  return ajusterStock(tx, entrepriseId, lignes, -1, contexte);
 }
 
 /**
@@ -45,6 +65,79 @@ export function decrementerStockVente(tx: TransactionDrizzle, lignes: LigneAvecP
  * Jamais à la création d'un Bon de commande, qui n'affecte pas le stock
  * (voir schema.ts).
  */
-export function incrementerStockAchat(tx: TransactionDrizzle, lignes: LigneAvecProduit[]): Promise<void> {
-  return ajusterStock(tx, lignes, 1);
+export function incrementerStockAchat(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], contexte?: ContexteMouvement): Promise<void> {
+  return ajusterStock(tx, entrepriseId, lignes, 1, contexte);
+}
+
+export type CorrectionStock =
+  | { mode: "AJOUT" | "RETRAIT"; quantite: number; motif: string; note?: string }
+  | { mode: "INVENTAIRE"; compte: number; note?: string };
+
+export type ResultatCorrection = { ok: true; stockAvant: number; stockApres: number; ecart: number } | { ok: false; erreur: string };
+
+/**
+ * Correction manuelle du stock d'un produit : entrée, sortie ou inventaire physique (on saisit ce qu'on a compté, l'écart se
+ * calcule). La ligne du produit est verrouillée (`FOR UPDATE`) pour que l'écart d'un inventaire se calcule sur le stock réel du
+ * moment. Un retrait ne peut jamais dépasser le stock disponible ; un inventaire peut descendre à 0, jamais en dessous. Le produit
+ * est relu dans la transaction de l'entreprise (RLS) : jamais un produit d'une autre entreprise. Les messages sont des clés
+ * françaises traduites par l'appelant.
+ */
+export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string, produitId: string, correction: CorrectionStock, utilisateurId: string): Promise<ResultatCorrection> {
+  const [p] = await tx
+    .select({ id: produit.id, type: produit.type, suiviStock: produit.suiviStock, stockActuel: produit.stockActuel })
+    .from(produit)
+    .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)))
+    .for("update");
+  if (!p) return { ok: false, erreur: m("Produit introuvable.") };
+  if (p.type !== "BIEN" || !p.suiviStock) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
+
+  let delta: number;
+  let type: "AJOUT" | "RETRAIT" | "INVENTAIRE";
+  let motif: string;
+  if (correction.mode === "INVENTAIRE") {
+    if (!Number.isInteger(correction.compte) || correction.compte < 0) return { ok: false, erreur: m("La quantité comptée doit être un nombre entier, zéro ou plus.") };
+    delta = correction.compte - p.stockActuel;
+    type = "INVENTAIRE";
+    motif = "INVENTAIRE";
+  } else {
+    if (!Number.isInteger(correction.quantite) || correction.quantite <= 0) return { ok: false, erreur: m("La quantité doit être un nombre entier supérieur à zéro.") };
+    const motifs: Record<string, string> = correction.mode === "AJOUT" ? MOTIFS_AJOUT : MOTIFS_RETRAIT;
+    if (!(correction.motif in motifs)) return { ok: false, erreur: m("Choisissez la raison de cette correction.") };
+    if (correction.mode === "RETRAIT" && correction.quantite > p.stockActuel) return { ok: false, erreur: m("Vous ne pouvez pas retirer plus que le stock disponible.") };
+    delta = correction.mode === "AJOUT" ? correction.quantite : -correction.quantite;
+    type = correction.mode;
+    motif = correction.motif;
+  }
+  if (delta === 0) return { ok: true, stockAvant: p.stockActuel, stockApres: p.stockActuel, ecart: 0 };
+
+  const stockApres = p.stockActuel + delta;
+  await tx.update(produit).set({ stockActuel: stockApres }).where(eq(produit.id, p.id));
+  await tx.insert(mouvementStock).values({
+    entrepriseId,
+    produitId: p.id,
+    type,
+    quantite: delta,
+    stockApres,
+    motif,
+    note: correction.note?.trim() || null,
+    creeParId: utilisateurId,
+  });
+  return { ok: true, stockAvant: p.stockActuel, stockApres, ecart: delta };
+}
+
+/** Active le suivi du stock d'un BIEN et enregistre le stock de départ (ligne « INITIAL »). Sans effet si le suivi est déjà actif. */
+export async function activerSuiviStock(tx: TransactionDrizzle, entrepriseId: string, produitId: string, stockInitial: number, utilisateurId: string): Promise<ResultatCorrection> {
+  if (!Number.isInteger(stockInitial) || stockInitial < 0) return { ok: false, erreur: m("La quantité en stock doit être un nombre entier, zéro ou plus.") };
+  const [p] = await tx
+    .select({ id: produit.id, type: produit.type, suiviStock: produit.suiviStock })
+    .from(produit)
+    .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)))
+    .for("update");
+  if (!p) return { ok: false, erreur: m("Produit introuvable.") };
+  if (p.type !== "BIEN") return { ok: false, erreur: m("Un service n'a pas de stock.") };
+  if (p.suiviStock) return { ok: false, erreur: m("Le suivi du stock est déjà activé pour ce produit.") };
+
+  await tx.update(produit).set({ suiviStock: true, stockActuel: stockInitial }).where(eq(produit.id, p.id));
+  await tx.insert(mouvementStock).values({ entrepriseId, produitId: p.id, type: "INITIAL", quantite: stockInitial, stockApres: stockInitial, creeParId: utilisateurId });
+  return { ok: true, stockAvant: 0, stockApres: stockInitial, ecart: stockInitial };
 }

@@ -93,7 +93,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
 
     // Catalogue Produits/Tarifs (échange du 2026-09-07) — un achat facturé
     // augmente le stock des BIEN suivis, jamais au stade Bon de commande.
-    await incrementerStockAchat(tx, lignes);
+    await incrementerStockAchat(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "FACTURE_FOURNISSEUR", documentId: nouvelleFacture.id, utilisateurId: utilisateurConnecte.utilisateurId });
 
     await genererEcrituresFactureFournisseur(tx, {
       id: nouvelleFacture.id,

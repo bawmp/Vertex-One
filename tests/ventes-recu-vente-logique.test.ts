@@ -98,7 +98,7 @@ describe("Ventes — logique des Reçus de vente", () => {
         tauxTVA: 19.25,
       });
       const lignes = await tx.select().from(ligneRecuVente).where(eq(ligneRecuVente.recuVenteId, r.id));
-      await decrementerStockVente(tx, lignes);
+      await decrementerStockVente(tx, entrepriseId, lignes);
       await genererEcrituresRecuVente(tx, {
         id: r.id,
         entrepriseId,

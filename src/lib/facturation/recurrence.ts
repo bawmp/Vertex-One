@@ -100,7 +100,7 @@ export async function genererFacturesRecurrentesDues(tx: TransactionDrizzle, ent
       }))
     );
 
-    await decrementerStockVente(tx, lignes);
+    await decrementerStockVente(tx, entrepriseId, lignes, { documentType: "FACTURE", documentId: nouvelleFacture.id });
 
     await genererEcrituresFactureEmise(tx, {
       id: nouvelleFacture.id,

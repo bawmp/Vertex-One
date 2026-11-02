@@ -16,6 +16,7 @@ import { MESSAGES } from "./messages";
 import { VITRINE } from "./vitrine";
 import { VITRINE_MODULES } from "./vitrine-modules";
 import { FORMULAIRES } from "./formulaires";
+import { STOCK } from "./stock";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -32,4 +33,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...VITRINE,
   ...VITRINE_MODULES,
   ...FORMULAIRES,
+  ...STOCK,
 };

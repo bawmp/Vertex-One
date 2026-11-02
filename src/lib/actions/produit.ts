@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
+import { activerSuiviStock, corrigerStock, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
@@ -171,4 +172,91 @@ export async function supprimerProduit(produitId: string) {
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(produit).where(eq(produit.id, produitId)));
 
   revalidatePath("/app/produits");
+}
+
+export type EtatStock = { erreur?: string; message?: string } | null;
+
+/**
+ * Correction manuelle du stock d'un produit (entrée, sortie ou inventaire du produit) depuis sa fiche. Droit MODIFIER sur les
+ * produits ; la quantité, le motif et le produit sont revérifiés ici, jamais crus tels que le navigateur les envoie.
+ */
+export async function corrigerStockProduit(produitId: string, _etat: EtatStock, formData: FormData): Promise<EtatStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
+
+  const mode = String(formData.get("mode") ?? "");
+  const note = String(formData.get("note") ?? "").trim().slice(0, 300) || undefined;
+  let correction: CorrectionStock;
+  if (mode === "INVENTAIRE") {
+    correction = { mode, compte: Number(formData.get("quantite")), note };
+  } else if (mode === "AJOUT" || mode === "RETRAIT") {
+    correction = { mode, quantite: Number(formData.get("quantite")), motif: String(formData.get("motif") ?? ""), note };
+  } else {
+    return { erreur: t("Choisissez ce que vous voulez faire du stock.") };
+  }
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, correction, utilisateurConnecte.utilisateurId));
+  if (!resultat.ok) return { erreur: t(resultat.erreur) };
+
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  if (resultat.ecart === 0) return { message: t("Le stock est déjà à {n}, rien à corriger.", { n: resultat.stockApres }) };
+  return { message: t("Stock mis à jour : {avant} → {apres}.", { avant: resultat.stockAvant, apres: resultat.stockApres }) };
+}
+
+/** Active le suivi du stock d'un bien déjà créé, avec la quantité actuellement en rayon. */
+export async function activerSuiviStockProduit(produitId: string, _etat: EtatStock, formData: FormData): Promise<EtatStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
+
+  const quantite = Number(formData.get("quantite") || 0);
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => activerSuiviStock(tx, utilisateurConnecte.entrepriseId, produitId, quantite, utilisateurConnecte.utilisateurId));
+  if (!resultat.ok) return { erreur: t(resultat.erreur) };
+
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  return { message: t("Le suivi du stock est activé : {n} en stock.", { n: resultat.stockApres }) };
+}
+
+/**
+ * Inventaire de plusieurs produits d'un coup : un champ `compte_<id>` par produit, seuls les champs remplis comptent. Chaque écart
+ * est enregistré séparément (ligne « inventaire » dans l'historique du produit). Un produit inconnu ou d'une autre entreprise est
+ * refusé par `corrigerStock` (lecture sous RLS), sans bloquer les autres lignes.
+ */
+export async function enregistrerInventaire(_etat: EtatStock, formData: FormData): Promise<EtatStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
+
+  const comptes: { produitId: string; compte: number }[] = [];
+  for (const [cle, valeur] of formData.entries()) {
+    if (!cle.startsWith("compte_")) continue;
+    const texte = String(valeur).trim();
+    if (texte === "") continue;
+    comptes.push({ produitId: cle.slice("compte_".length), compte: Number(texte) });
+  }
+  if (comptes.length === 0) return { erreur: t("Saisissez au moins une quantité comptée.") };
+  if (comptes.length > 500) return { erreur: t("Trop de produits d'un coup : enregistrez par groupes de 500 au plus.") };
+
+  const bilan = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    let corriges = 0;
+    let inchanges = 0;
+    const refuses: string[] = [];
+    for (const { produitId, compte } of comptes) {
+      const r = await corrigerStock(tx, utilisateurConnecte.entrepriseId, produitId, { mode: "INVENTAIRE", compte, note: undefined }, utilisateurConnecte.utilisateurId);
+      if (!r.ok) refuses.push(r.erreur);
+      else if (r.ecart === 0) inchanges++;
+      else corriges++;
+    }
+    return { corriges, inchanges, refuses };
+  });
+
+  revalidatePath("/app/produits");
+  if (bilan.refuses.length > 0) return { erreur: t("{n} ligne(s) refusée(s) : {raison}", { n: bilan.refuses.length, raison: t(bilan.refuses[0]) }) };
+  return { message: t("Inventaire enregistré : {corriges} produit(s) corrigé(s), {inchanges} déjà exact(s).", { corriges: bilan.corriges, inchanges: bilan.inchanges }) };
 }

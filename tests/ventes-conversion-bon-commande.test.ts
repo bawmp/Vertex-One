@@ -138,7 +138,7 @@ describe("Ventes — conversion d'un Bon de commande client en Facture", () => {
         }))
       );
 
-      await decrementerStockVente(tx, lignesBCV);
+      await decrementerStockVente(tx, entrepriseId, lignesBCV);
 
       await tx.update(bonCommandeVente).set({ statut: "FACTURE", factureId: nouvelleFacture.id }).where(eq(bonCommandeVente.id, leBCV.id));
 
