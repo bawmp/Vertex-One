@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
-import { ArrowLeft, ClipboardCheck, Lock } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, ClipboardList, Lock } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { produit, stockDepot } from "@/db/schema";
@@ -60,6 +60,10 @@ export default async function PageInventaire({ searchParams }: { searchParams: P
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{t("Comptez ce qu'il y a vraiment en rayon et tapez les quantités : l'écart avec le système se calcule et le stock est corrigé.")}</p>
       </div>
+      <Link href="/app/produits/inventaire/sessions" className={`${buttonVariants({ variant: "outline", size: "sm" })} w-fit`}>
+        <ClipboardList data-icon="inline-start" aria-hidden />
+        {t("Inventaire à plusieurs (sessions)")}
+      </Link>
       {depots.length > 1 ? (
         <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label={t("Choisir un dépôt")}>
           <span className="text-sm text-muted-foreground">{t("Dépôt compté :")}</span>

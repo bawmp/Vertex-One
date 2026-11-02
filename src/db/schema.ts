@@ -3673,6 +3673,72 @@ export const mouvementStock = pgTable(
   ]
 ).enableRLS();
 
+// Inventaire par sessions (2026-11-02, priorité 3.3) : un comptage préparé en brouillon, partagé entre plusieurs personnes, corrigé le stock
+// seulement à la validation par un responsable. `quantite_theorique` fige le stock du dépôt AU MOMENT du comptage : à la validation, on
+// corrige l'écart constaté à ce moment-là, pas celui d'après des ventes survenues entre-temps.
+export const statutInventaireSession = pgEnum("statut_inventaire_session", ["OUVERT", "VALIDE", "ANNULE"]);
+
+export const inventaireSession = pgTable(
+  "inventaire_session",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    depotId: text("depot_id")
+      .notNull()
+      .references(() => depot.id),
+    statut: statutInventaireSession("statut").notNull().default("OUVERT"),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    termineParId: text("termine_par_id").references(() => utilisateur.id),
+    termineLe: timestamp("termine_le"),
+    nombreCorriges: integer("nombre_corriges"),
+  },
+  (table) => [
+    index("inventaire_session_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const inventaireComptage = pgTable(
+  "inventaire_comptage",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => inventaireSession.id, { onDelete: "cascade" }),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    quantiteComptee: integer("quantite_comptee").notNull(),
+    quantiteTheorique: integer("quantite_theorique").notNull(),
+    comptePar: text("compte_par")
+      .notNull()
+      .references(() => utilisateur.id),
+    compteLe: timestamp("compte_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("inventaire_comptage_session_produit_unique").on(table.sessionId, table.produitId),
+    index("inventaire_comptage_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 // Quantité d'un produit dans un dépôt (2026-11-02). La somme des quantités d'un produit égale `produit.stock_actuel` ; tout écart
 // (ancien code, import) est résorbé sur le dépôt principal à la lecture (voir src/lib/produits/depots.ts).
 export const stockDepot = pgTable(

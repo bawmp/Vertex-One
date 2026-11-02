@@ -26,7 +26,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 
 - [x] **P3.1 Réapprovisionnement** (M) : liste de ce qu'il faut commander, bon de commande fournisseur proposé d'un clic.
 - [x] **P3.2 Alertes de stock bas par email ou notification** (S).
-- [ ] **P3.3 Inventaire par sessions** (M) : comptage en brouillon, validation par un responsable, plusieurs personnes en parallèle.
+- [x] **P3.3 Inventaire par sessions** (M) : comptage en brouillon, validation par un responsable, plusieurs personnes en parallèle.
 - [ ] **P3.4 Lots, dates de péremption, numéros de série** (L).
 - [ ] **P3.5 Variantes (taille, couleur) et unités de mesure (carton, pièce)** (L).
 - [ ] **P3.6 Codes-barres et lecture au téléphone** (M).

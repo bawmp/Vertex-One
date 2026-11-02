@@ -1072,6 +1072,13 @@
       "when": 1793509200000,
       "tag": "0152_alertes_stock_email",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1793595600000,
+      "tag": "0153_inventaire_sessions",
+      "breakpoints": true
     }
   ]
 }
