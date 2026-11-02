@@ -3572,6 +3572,10 @@ export const produit = pgTable(
     stockActuel: integer("stock_actuel").notNull().default(0),
     // Seuil d'alerte (2026-11-02) : « prévenez-moi quand il en reste ce nombre ou moins ». Nul = pas d'alerte pour ce produit.
     seuilAlerte: integer("seuil_alerte"),
+    // Réapprovisionnement (2026-11-02, priorité 3.1) : stock visé après une commande (nul = le double du seuil) et fournisseur habituel,
+    // proposé à la création du bon de commande.
+    stockCible: integer("stock_cible"),
+    fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
     // Coût moyen pondéré par unité (2026-11-02), en FCFA hors taxe : recalculé à chaque achat facturé, base de la valeur du stock.
     // Une vente sort le stock à ce coût sans le modifier. Au démarrage du suivi, il vaut le prix d'achat du produit.
     coutMoyen: integer("cout_moyen").notNull().default(0),

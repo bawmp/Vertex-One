@@ -3,7 +3,7 @@ import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
 import { ArrowLeft, Package, Lock, User, Clock, ArrowDownToLine, ArrowUpFromLine, ArrowRightLeft, ClipboardCheck, ShoppingCart, Truck, Flag } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { produit, compteComptable, utilisateur, mouvementStock } from "@/db/schema";
+import { produit, compteComptable, utilisateur, mouvementStock, fournisseur } from "@/db/schema";
 import { stockParDepot } from "@/lib/produits/depots";
 import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -17,6 +17,7 @@ import { FormulaireImageProduit } from "./formulaire-image-produit";
 import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
+import { ReapproProduit } from "./reappro-produit";
 import { TransfertStock } from "./transfert-stock";
 import { ArreterSuivi } from "./arreter-suivi";
 import { niveauStock } from "@/lib/produits/niveau-stock";
@@ -66,11 +67,13 @@ export default async function PageDetailProduit({ params, searchParams }: { para
     const gereStock = await gestionStockActive(tx, utilisateurConnecte.entrepriseId);
     const depots = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await stockParDepot(tx, utilisateurConnecte.entrepriseId, id) : [];
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    const fournisseurs = gereStock && leProduit.suiviStock ? await tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur).where(eq(fournisseur.entrepriseId, utilisateurConnecte.entrepriseId)).orderBy(fournisseur.nom) : [];
+
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs } = donnees;
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
@@ -203,6 +206,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, principal: d.principal, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
+            {peutModifier && leProduit.suiviStock ? <ReapproProduit produitId={leProduit.id} fournisseurId={leProduit.fournisseurHabituelId} stockCible={leProduit.stockCible} fournisseurs={fournisseurs} /> : null}
             {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}
 
             {leProduit.suiviStock ? (
