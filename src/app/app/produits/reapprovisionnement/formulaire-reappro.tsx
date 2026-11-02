@@ -52,6 +52,7 @@ export function FormulaireReappro({ lignes, fournisseurs, peutCommander }: { lig
                   <p className="truncate font-medium">{l.nom}</p>
                   <p className="text-xs text-muted-foreground">
                     {l.niveau === "RUPTURE" ? t("En rupture") : t("Stock bas")} · {t("en stock : {n}", { n: l.stockActuel })}
+                    {l.reserve > 0 ? ` · ${t("dont {n} réservé(s)", { n: l.reserve })}` : ""}
                     {l.enCommande > 0 ? ` · ${t("déjà commandé : {n}", { n: l.enCommande })}` : ""}
                     {couvert ? ` · ${t("couvert par la commande en cours")}` : ""}
                   </p>

@@ -5,6 +5,7 @@ import { genererNumeroBonCommandeAchat } from "@/lib/facturation/numerotation";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { m } from "@/lib/i18n/catalogue";
 import { aReapprovisionner, niveauStock, type NiveauStock } from "./niveau-stock";
+import { reservesParProduit, stockDisponible } from "./reservations";
 import { quantiteSuggeree } from "./reapprovisionnement-regles";
 
 export type LigneReappro = {
@@ -13,6 +14,8 @@ export type LigneReappro = {
   niveau: NiveauStock;
   stockActuel: number;
   seuilAlerte: number | null;
+  /** Réservé par des commandes client en cours : le stock disponible est le stock moins ce nombre. */
+  reserve: number;
   /** Déjà commandé (bons de commande fournisseur en brouillon, pas encore facturés). */
   enCommande: number;
   quantiteSuggeree: number;
@@ -22,6 +25,7 @@ export type LigneReappro = {
 
 /** Produits à recommander : stock bas ou rupture. Un produit déjà couvert par une commande en cours reste listé avec une quantité de zéro. */
 export async function lireAReapprovisionner(tx: TransactionDrizzle, entrepriseId: string): Promise<{ lignes: LigneReappro[]; fournisseurs: { id: string; nom: string }[] }> {
+  const reserves = await reservesParProduit(tx, entrepriseId);
   const [produits, commandes, fournisseurs] = await Promise.all([
     tx
       .select({ id: produit.id, nom: produit.nom, type: produit.type, suiviStock: produit.suiviStock, stockActuel: produit.stockActuel, seuilAlerte: produit.seuilAlerte, stockCible: produit.stockCible, prixAchat: produit.prixAchat, fournisseurId: produit.fournisseurHabituelId })
@@ -37,16 +41,20 @@ export async function lireAReapprovisionner(tx: TransactionDrizzle, entrepriseId
     tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur).where(eq(fournisseur.entrepriseId, entrepriseId)).orderBy(asc(fournisseur.nom)),
   ]);
   const enCommande = new Map(commandes.filter((c) => c.produitId).map((c) => [c.produitId as string, c.quantite]));
+  // Le niveau se juge sur le stock DISPONIBLE (stock moins réservé) : un produit entièrement promis à des clients est à recommander.
   const lignes = produits
-    .filter((p) => aReapprovisionner(p))
+    .map((p) => ({ ...p, reserve: reserves.get(p.id) ?? 0 }))
+    .map((p) => ({ ...p, disponible: stockDisponible(p.stockActuel, p.reserve) }))
+    .filter((p) => aReapprovisionner({ ...p, stockActuel: p.disponible }))
     .map((p) => ({
       produitId: p.id,
       nom: p.nom,
-      niveau: niveauStock(p) as NiveauStock,
+      niveau: niveauStock({ ...p, stockActuel: p.disponible }) as NiveauStock,
       stockActuel: p.stockActuel,
       seuilAlerte: p.seuilAlerte,
+      reserve: p.reserve,
       enCommande: enCommande.get(p.id) ?? 0,
-      quantiteSuggeree: Math.ceil(quantiteSuggeree({ ...p, enCommande: enCommande.get(p.id) ?? 0 })),
+      quantiteSuggeree: Math.ceil(quantiteSuggeree({ ...p, stockActuel: p.disponible, enCommande: enCommande.get(p.id) ?? 0 })),
       prixAchat: p.prixAchat,
       fournisseurId: p.fournisseurId,
     }));

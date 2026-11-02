@@ -402,4 +402,10 @@ export const STOCK: Record<string, string> = {
   "Code invalide : 3 à 48 caractères, lettres, chiffres et - . _ / seulement.": "Invalid code: 3 to 48 characters, letters, digits and - . _ / only.",
   "Ce code est déjà utilisé par un autre produit.": "This code is already used by another product.",
   "Impossible de générer un code libre : réessayez.": "Cannot generate a free code: please try again.",
+  "dont {n} réservé(s)": "of which {n} reserved",
+  "Réservé pour des commandes client": "Reserved for customer orders",
+  "Disponible à la vente": "Available to sell",
+  "{n} réservé(s)": "{n} reserved",
+  "Ces quantités restent en stock mais ne peuvent plus être vendues à quelqu'un d'autre. La réservation disparaît quand la commande est facturée ou annulée.": "These quantities stay in stock but can no longer be sold to someone else. The reservation ends when the order is invoiced or cancelled.",
+  "Stock insuffisant pour « {produit} » dans le dépôt « {depot} » : {disponible} disponible(s) après {reserve} réservé(s) pour des commandes client, {demande} demandé(s).": "Not enough stock for \"{produit}\" in warehouse \"{depot}\": {disponible} available after {reserve} reserved for customer orders, {demande} requested.",
 };

@@ -21,6 +21,7 @@ import { ReapproProduit } from "./reappro-produit";
 import { LotsProduit } from "./lots-produit";
 import { UnitesProduit } from "./unites-produit";
 import { CodeBarresProduit } from "./code-barres-produit";
+import { commandesQuiReservent, stockDisponible } from "@/lib/produits/reservations";
 import { lireConditionnements } from "@/lib/produits/variantes";
 import { decomposerStock } from "@/lib/produits/variantes-regles";
 import { familleProduit } from "@/db/schema";
@@ -83,15 +84,17 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
     const fournisseurs = gereStock && leProduit.suiviStock ? await tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur).where(eq(fournisseur.entrepriseId, utilisateurConnecte.entrepriseId)).orderBy(fournisseur.nom) : [];
 
+    const commandesReservantes = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await commandesQuiReservent(tx, utilisateurConnecte.entrepriseId, id) : [];
     const conditionnements = leProduit.type === "BIEN" ? await lireConditionnements(tx, utilisateurConnecte.entrepriseId, id) : [];
     const [famille] = leProduit.familleId ? await tx.select({ id: familleProduit.id, nom: familleProduit.nom }).from(familleProduit).where(eq(familleProduit.id, leProduit.familleId)) : [];
     const lotsEtat = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await lireLots(tx, utilisateurConnecte.entrepriseId, id) : null;
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes } = donnees;
+  const reserve = commandesReservantes.reduce((s, c) => s + c.quantite, 0);
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
@@ -205,6 +208,30 @@ export default async function PageDetailProduit({ params, searchParams }: { para
                       {conditionnements.length > 0 && leProduit.stockActuel > 0 ? <span className="text-xs text-muted-foreground">{detailStock(leProduit.stockActuel, conditionnements, leProduit.unite ?? t("unité"))}</span> : null}
                     </span>
                   </span>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {leProduit.suiviStock && reserve > 0 ? (
+              <Card>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm text-muted-foreground">{t("Réservé pour des commandes client")}</span>
+                    <span className="text-xl font-semibold tabular-nums">{reserve}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm text-muted-foreground">{t("Disponible à la vente")}</span>
+                    <span className={`text-xl font-semibold tabular-nums ${stockDisponible(leProduit.stockActuel, reserve) < 0 ? "text-destructive" : ""}`}>{stockDisponible(leProduit.stockActuel, reserve)}</span>
+                  </div>
+                  <ul className="flex flex-col divide-y divide-border rounded-lg border text-sm">
+                    {commandesReservantes.map((c) => (
+                      <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <Link href="/app/facturation#commandes-client" className="font-medium hover:underline">{c.numero}</Link>
+                        <span className="tabular-nums text-muted-foreground">{t("{n} réservé(s)", { n: c.quantite })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted-foreground">{t("Ces quantités restent en stock mais ne peuvent plus être vendues à quelqu'un d'autre. La réservation disparaît quand la commande est facturée ou annulée.")}</p>
                 </CardContent>
               </Card>
             ) : null}

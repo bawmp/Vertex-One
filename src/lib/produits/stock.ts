@@ -6,6 +6,7 @@ import { blocageRuptureActif } from "./gestion-stock";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 import { consommerLotsFEFO, effacerLots, harmoniserLots } from "./lots-sortie";
+import { reservesParProduit, stockDisponible } from "./reservations";
 
 type LigneAvecProduit = { produitId?: string | null; quantite: number; /** Prix d'achat unitaire hors taxe d'une ligne d'achat : sert au coût moyen pondéré. */ prixUnitaire?: number };
 
@@ -297,13 +298,14 @@ export async function entrerStockDocument(tx: TransactionDrizzle, entrepriseId: 
 
 export type StockInsuffisant = { cle: string; valeurs: Record<string, string | number> };
 export const MESSAGE_STOCK_INSUFFISANT = m("Stock insuffisant pour « {produit} » dans le dépôt « {depot} » : {disponible} disponible(s), {demande} demandé(s).");
+export const MESSAGE_STOCK_RESERVE = m("Stock insuffisant pour « {produit} » dans le dépôt « {depot} » : {disponible} disponible(s) après {reserve} réservé(s) pour des commandes client, {demande} demandé(s).");
 
 /**
  * Interdire la vente en rupture (priorité 1.4, 2026-11-02) : quand l'entreprise l'a choisi, vérifie avant une vente que le dépôt visé
  * (le principal par défaut) contient assez de chaque produit SUIVI. Les produits non suivis et les services ne sont jamais bloqués. Sans
  * le réglage, rien n'est vérifié (stock négatif toléré, comme avant). Renvoie le premier manque trouvé, ou null.
  */
-export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], depotId?: string | null): Promise<StockInsuffisant | null> {
+export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], depotId?: string | null, options: { exclureCommandeId?: string } = {}): Promise<StockInsuffisant | null> {
   if (!(await blocageRuptureActif(tx, entrepriseId))) return null;
   const demandes = new Map<string, number>();
   for (const l of lignes) if (l.produitId) demandes.set(l.produitId, (demandes.get(l.produitId) ?? 0) + l.quantite);
@@ -312,12 +314,20 @@ export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseI
   const depotCible = await resoudreDepotDocument(tx, entrepriseId, depotId);
   const [monDepot] = await tx.select({ nom: depot.nom }).from(depot).where(eq(depot.id, depotCible));
   const produits = await tx.select({ id: produit.id, nom: produit.nom }).from(produit).where(and(inArray(produit.id, [...demandes.keys()]), eq(produit.entrepriseId, entrepriseId), eq(produit.suiviStock, true)));
+  // Les commandes client en cours réservent du stock (priorité 3.7) : on ne peut pas le vendre à quelqu'un d'autre. La commande qu'on est
+  // en train de facturer est exclue, elle ne se réserve pas à elle-même.
+  const reserves = await reservesParProduit(tx, entrepriseId, { depotId: depotCible, exclureCommandeId: options.exclureCommandeId, produitIds: produits.map((p) => p.id) });
   for (const p of produits) {
     await resorberEcart(tx, entrepriseId, p.id);
     const [ligne] = await tx.select({ quantite: stockDepot.quantite }).from(stockDepot).where(and(eq(stockDepot.produitId, p.id), eq(stockDepot.depotId, depotCible)));
-    const disponible = ligne?.quantite ?? 0;
+    const enDepot = ligne?.quantite ?? 0;
+    const reserve = reserves.get(p.id) ?? 0;
+    const disponible = stockDisponible(enDepot, reserve);
     const demande = demandes.get(p.id)!;
-    if (demande > disponible) return { cle: MESSAGE_STOCK_INSUFFISANT, valeurs: { produit: p.nom, depot: monDepot?.nom ?? "", disponible: Math.max(disponible, 0), demande } };
+    if (demande > disponible) {
+      const valeurs = { produit: p.nom, depot: monDepot?.nom ?? "", disponible: Math.max(disponible, 0), demande };
+      return reserve > 0 ? { cle: MESSAGE_STOCK_RESERVE, valeurs: { ...valeurs, reserve } } : { cle: MESSAGE_STOCK_INSUFFISANT, valeurs };
+    }
   }
   return null;
 }

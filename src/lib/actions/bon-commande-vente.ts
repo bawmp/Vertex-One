@@ -68,6 +68,10 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
 
+  // « Interdire la vente en rupture » : une commande réserve du stock, on la refuse si le disponible (stock moins déjà réservé) ne suffit pas.
+  const manque = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignes, depotChoisi));
+  if (manque) return { erreur: t(manque.cle, manque.valeurs) };
+
   const [nouveauBCV] = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!monEntreprise.niu) {
@@ -145,7 +149,7 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
     const lignesBCV = await tx.select().from(ligneBonCommandeVente).where(eq(ligneBonCommandeVente.bonCommandeVenteId, bonCommandeVenteId));
 
     // « Interdire la vente en rupture » : la conversion crée la facture et sort le stock, donc elle est refusée si le dépôt n'en a pas assez.
-    const manque = await verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignesBCV, leBCV.depotId);
+    const manque = await verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignesBCV, leBCV.depotId, { exclureCommandeId: leBCV.id });
     if (manque) return { manque };
 
     const numero = await genererNumeroFacture(tx, utilisateurConnecte.entrepriseId);
