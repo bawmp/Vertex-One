@@ -3606,6 +3606,8 @@ export const produit = pgTable(
     familleId: text("famille_id").references(() => familleProduit.id),
     variante: text("variante"),
     unite: text("unite"),
+    // Code-barres (2026-11-02, priorité 3.6) : lu par une douchette ou la caméra ; unique dans l'entreprise (index partiel).
+    codeBarres: text("code_barres"),
     // Dernier niveau signalé par email (BAS ou RUPTURE) ; nul tant que le stock est correct. Évite d'alerter chaque jour pour le même produit.
     alerteStockNiveau: text("alerte_stock_niveau"),
     fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
@@ -3625,6 +3627,7 @@ export const produit = pgTable(
   },
   (table) => [
     index("produit_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("produit_code_barres_unique").on(table.entrepriseId, table.codeBarres).where(sql`${table.codeBarres} is not null`),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

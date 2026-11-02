@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch, CalendarX2, Layers } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch, CalendarX2, Layers, ScanBarcode } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, produit } from "@/db/schema";
@@ -58,6 +58,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
             <Button variant="outline" size="sm" render={<Link href="/app/produits/reapprovisionnement" />} nativeButton={false}>
               <PackageSearch data-icon="inline-start" aria-hidden />
               {t("À réapprovisionner")}
+            </Button>
+          ) : null}
+          {gereStock ? (
+            <Button variant="outline" size="sm" render={<Link href="/app/produits/scanner" />} nativeButton={false}>
+              <ScanBarcode data-icon="inline-start" aria-hidden />
+              {t("Scanner")}
             </Button>
           ) : null}
           {gereStock ? (

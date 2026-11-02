@@ -68,6 +68,7 @@ export type LigneComptage = {
   nom: string;
   stockDepot: number;
   coutMoyen: number;
+  codeBarres: string | null;
   quantiteComptee: number | null;
   quantiteTheorique: number | null;
   ecart: number | null;
@@ -90,7 +91,7 @@ export async function lireSessionInventaire(tx: TransactionDrizzle, entrepriseId
   const [createur] = await tx.select({ nom: utilisateur.nomComplet }).from(utilisateur).where(and(eq(utilisateur.id, s.creePar), eq(utilisateur.entrepriseId, entrepriseId)));
 
   const produits = await tx
-    .select({ id: produit.id, nom: produit.nom, coutMoyen: produit.coutMoyen })
+    .select({ id: produit.id, nom: produit.nom, coutMoyen: produit.coutMoyen, codeBarres: produit.codeBarres })
     .from(produit)
     .where(and(eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)))
     .orderBy(asc(produit.nom));
@@ -110,6 +111,7 @@ export async function lireSessionInventaire(tx: TransactionDrizzle, entrepriseId
       nom: p.nom,
       stockDepot: qParProduit.get(p.id) ?? 0,
       coutMoyen: p.coutMoyen,
+      codeBarres: p.codeBarres,
       quantiteComptee: c?.quantiteComptee ?? null,
       quantiteTheorique: c?.quantiteTheorique ?? null,
       ecart: c ? c.quantiteComptee - c.quantiteTheorique : null,

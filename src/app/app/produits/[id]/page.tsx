@@ -20,6 +20,7 @@ import { SeuilAlerte } from "./seuil-alerte";
 import { ReapproProduit } from "./reappro-produit";
 import { LotsProduit } from "./lots-produit";
 import { UnitesProduit } from "./unites-produit";
+import { CodeBarresProduit } from "./code-barres-produit";
 import { lireConditionnements } from "@/lib/produits/variantes";
 import { decomposerStock } from "@/lib/produits/variantes-regles";
 import { familleProduit } from "@/db/schema";
@@ -232,6 +233,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
             {peutModifier && leProduit.suiviStock ? <ReapproProduit produitId={leProduit.id} fournisseurId={leProduit.fournisseurHabituelId} stockCible={leProduit.stockCible} fournisseurs={fournisseurs} /> : null}
+            {peutModifier ? <CodeBarresProduit produitId={leProduit.id} codeActuel={leProduit.codeBarres} /> : null}
             {peutModifier ? <UnitesProduit produitId={leProduit.id} unite={leProduit.unite} conditionnements={conditionnements} /> : null}
             {peutModifier && leProduit.suiviStock && lotsEtat ? <LotsProduit produitId={leProduit.id} suiviLots={lotsEtat.suiviLots} lots={lotsEtat.lots} sansLot={lotsEtat.sansLot} /> : null}
             {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}

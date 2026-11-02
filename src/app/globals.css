@@ -724,3 +724,15 @@
 .editeur-contenu .saut-de-page { display: flex; align-items: center; gap: 0.6rem; margin: 1rem 0; color: #78716c; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .editeur-contenu .saut-de-page::before, .editeur-contenu .saut-de-page::after { content: ""; flex: 1; border-top: 1px dashed #a8a29e; }
 .editeur-contenu .saut-de-page.ProseMirror-selectednode { color: #3b82f6; }
+
+/* Impression (étiquettes de codes-barres…) : dans l'application, on ne garde que le contenu de la page, sans menu, barre du haut ni bouton flottant. */
+@media print {
+  body:has(main.overflow-x-hidden) nav,
+  body:has(main.overflow-x-hidden) header,
+  body:has(main.overflow-x-hidden) button[aria-label][class*="fixed"] {
+    display: none !important;
+  }
+  body:has(main.overflow-x-hidden) main {
+    padding: 0 !important;
+  }
+}

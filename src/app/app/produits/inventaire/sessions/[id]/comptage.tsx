@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { annulerInventaire, compterProduit, validerInventaire } from "@/lib/actions/inventaire-session";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { ChampScan } from "@/components/produits/champ-scan";
+import { normaliserCode } from "@/lib/produits/codes-barres-regles";
 import { useT } from "@/lib/i18n/contexte";
 
-export type LigneComptageClient = { produitId: string; nom: string; stockDepot: number; coutMoyen: number; comptee: number | null; theorique: number | null; comptePar: string | null };
+export type LigneComptageClient = { produitId: string; nom: string; stockDepot: number; coutMoyen: number; codeBarres: string | null; comptee: number | null; theorique: number | null; comptePar: string | null };
 
 /**
  * Écran de comptage : une ligne par produit, on tape la quantité comptée, elle s'enregistre en quittant la case (Entrée aussi). Les
@@ -26,6 +28,27 @@ export function Comptage({ sessionId, lignes, ouvert, peutCompter, peutValider, 
   const [confirmer, setConfirmer] = useState(false);
   const [recherche, setRecherche] = useState("");
   const [enCours, startTransition] = useTransition();
+
+  // Un code lu (douchette ou caméra) amène directement sur la case du produit pour y taper la quantité.
+  const surCode = useCallback(
+    (lu: string) => {
+      const code = normaliserCode(lu);
+      const ligne = code ? lignes.find((l) => l.codeBarres === code) : undefined;
+      if (!ligne) {
+        setMessage({ texte: t("Aucun produit de cet inventaire ne porte ce code."), erreur: true });
+        return;
+      }
+      setMessage(null);
+      setRecherche("");
+      setTimeout(() => {
+        const champ = document.getElementById(`compte-${ligne.produitId}`) as HTMLInputElement | null;
+        champ?.scrollIntoView({ block: "center" });
+        champ?.focus();
+        champ?.select();
+      }, 50);
+    },
+    [lignes, t]
+  );
 
   const visibles = useMemo(() => lignes.filter((l) => l.nom.toLowerCase().includes(recherche.trim().toLowerCase())), [lignes, recherche]);
   const comptes = lignes.filter((l) => valeurs[l.produitId] !== "").length;
@@ -44,6 +67,8 @@ export function Comptage({ sessionId, lignes, ouvert, peutCompter, peutValider, 
 
   return (
     <div className="flex flex-col gap-4">
+      {ouvert && peutCompter ? <ChampScan onCode={surCode} placeholder={t("Scanner un produit pour compter")} /> : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -81,6 +106,7 @@ export function Comptage({ sessionId, lignes, ouvert, peutCompter, peutValider, 
                 <span className="text-right tabular-nums text-muted-foreground">{l.stockDepot}</span>
                 {ouvert && peutCompter ? (
                   <input
+                    id={`compte-${l.produitId}`}
                     type="number"
                     min={0}
                     step={1}

@@ -59,7 +59,7 @@ export default async function PageSessionInventaire({ params }: { params: Promis
         peutCompter={peut(u, "PRODUITS", "MODIFIER")}
         peutValider={peut(u, "PRODUITS", "MODIFIER") && peut(u, "PARAMETRES", "MODIFIER")}
         peutAbandonner={peut(u, "PRODUITS", "MODIFIER")}
-        lignes={lignes.map((l) => ({ produitId: l.produitId, nom: l.nom, stockDepot: l.stockDepot, coutMoyen: l.coutMoyen, comptee: l.quantiteComptee, theorique: l.quantiteTheorique, comptePar: l.comptePar }))}
+        lignes={lignes.map((l) => ({ produitId: l.produitId, nom: l.nom, stockDepot: l.stockDepot, coutMoyen: l.coutMoyen, codeBarres: l.codeBarres, comptee: l.quantiteComptee, theorique: l.quantiteTheorique, comptePar: l.comptePar }))}
       />
     </div>
   );
