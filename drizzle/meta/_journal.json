@@ -1079,6 +1079,13 @@
       "when": 1793595600000,
       "tag": "0153_inventaire_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1793682000000,
+      "tag": "0154_lots_peremption",
+      "breakpoints": true
     }
   ]
 }

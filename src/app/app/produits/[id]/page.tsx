@@ -18,6 +18,8 @@ import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
 import { ReapproProduit } from "./reappro-produit";
+import { LotsProduit } from "./lots-produit";
+import { lireLots } from "@/lib/produits/lots";
 import { TransfertStock } from "./transfert-stock";
 import { ArreterSuivi } from "./arreter-suivi";
 import { niveauStock } from "@/lib/produits/niveau-stock";
@@ -69,11 +71,13 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
     const fournisseurs = gereStock && leProduit.suiviStock ? await tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur).where(eq(fournisseur.entrepriseId, utilisateurConnecte.entrepriseId)).orderBy(fournisseur.nom) : [];
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    const lotsEtat = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await lireLots(tx, utilisateurConnecte.entrepriseId, id) : null;
+
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat } = donnees;
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
   const peutModifier = peut(utilisateurConnecte, "PRODUITS", "MODIFIER");
@@ -207,6 +211,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
             {peutModifier && leProduit.suiviStock ? <ReapproProduit produitId={leProduit.id} fournisseurId={leProduit.fournisseurHabituelId} stockCible={leProduit.stockCible} fournisseurs={fournisseurs} /> : null}
+            {peutModifier && leProduit.suiviStock && lotsEtat ? <LotsProduit produitId={leProduit.id} suiviLots={lotsEtat.suiviLots} lots={lotsEtat.lots} sansLot={lotsEtat.sansLot} /> : null}
             {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}
 
             {leProduit.suiviStock ? (

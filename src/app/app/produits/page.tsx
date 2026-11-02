@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch, CalendarX2 } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, produit } from "@/db/schema";
@@ -58,6 +58,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
             <Button variant="outline" size="sm" render={<Link href="/app/produits/reapprovisionnement" />} nativeButton={false}>
               <PackageSearch data-icon="inline-start" aria-hidden />
               {t("À réapprovisionner")}
+            </Button>
+          ) : null}
+          {gereStock && tousLesProduits.some((p) => p.suiviStock) ? (
+            <Button variant="outline" size="sm" render={<Link href="/app/produits/peremptions" />} nativeButton={false}>
+              <CalendarX2 data-icon="inline-start" aria-hidden />
+              {t("Péremptions")}
             </Button>
           ) : null}
           {gereStock && tousLesProduits.some((p) => p.suiviStock) ? (

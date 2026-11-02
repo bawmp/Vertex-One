@@ -3577,6 +3577,8 @@ export const produit = pgTable(
     // Réapprovisionnement (2026-11-02, priorité 3.1) : stock visé après une commande (nul = le double du seuil) et fournisseur habituel,
     // proposé à la création du bon de commande.
     stockCible: integer("stock_cible"),
+    // Lots et dates de péremption (2026-11-02, priorité 3.4) : le stock du produit est découpé en lots (voir `lot_stock`).
+    suiviLots: boolean("suivi_lots").notNull().default(false),
     // Dernier niveau signalé par email (BAS ou RUPTURE) ; nul tant que le stock est correct. Évite d'alerter chaque jour pour le même produit.
     alerteStockNiveau: text("alerte_stock_niveau"),
     fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
@@ -3665,6 +3667,35 @@ export const mouvementStock = pgTable(
   (table) => [
     index("mouvement_stock_entreprise_idx").on(table.entrepriseId),
     index("mouvement_stock_produit_date_idx").on(table.produitId, table.creeLe),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Lots d'un produit (2026-11-02, priorité 3.4) : un numéro de lot et, au choix, une date de péremption. Les lots DÉCOUPENT le stock du
+// produit, ils ne forment pas un second stock : leur somme ne dépasse jamais `produit.stock_actuel` (le reste est du stock « sans lot »).
+// Une vente sort d'abord les lots qui se périment le plus tôt (FEFO).
+export const lotStock = pgTable(
+  "lot_stock",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    numeroLot: text("numero_lot").notNull(),
+    datePeremption: date("date_peremption", { mode: "string" }),
+    quantite: integer("quantite").notNull().default(0),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("lot_stock_produit_numero_unique").on(table.produitId, table.numeroLot),
+    index("lot_stock_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

@@ -5,6 +5,7 @@ import { assurerDepotPrincipal, deplacerStockDepot, resoudreDepotDocument, resor
 import { blocageRuptureActif } from "./gestion-stock";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
+import { consommerLotsFEFO, effacerLots, harmoniserLots } from "./lots-sortie";
 
 type LigneAvecProduit = { produitId?: string | null; quantite: number; /** Prix d'achat unitaire hors taxe d'une ligne d'achat : sert au coût moyen pondéré. */ prixUnitaire?: number };
 
@@ -46,13 +47,13 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
   if (quantitesParProduit.size === 0) return;
 
   const ids = [...quantitesParProduit.keys()];
-  const produitsSuivis = await tx.select({ id: produit.id }).from(produit).where(and(inArray(produit.id, ids), eq(produit.suiviStock, true)));
+  const produitsSuivis = await tx.select({ id: produit.id, suiviLots: produit.suiviLots }).from(produit).where(and(inArray(produit.id, ids), eq(produit.suiviStock, true)));
 
   if (produitsSuivis.length === 0) return;
   // Les documents (ventes, achats) touchent toujours le dépôt principal ; les transferts et corrections choisissent le leur.
   const depotCible = await resoudreDepotDocument(tx, entrepriseId, contexte?.depotId);
 
-  for (const { id } of produitsSuivis) {
+  for (const { id, suiviLots } of produitsSuivis) {
     const quantite = quantitesParProduit.get(id)!;
     if (quantite === 0) continue;
     // Achat avec prix connu : le coût moyen se recalcule dans le MÊME UPDATE (valeurs d'avant), donc sans course entre deux achats.
@@ -70,6 +71,8 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
       .where(eq(produit.id, id))
       .returning({ stockActuel: produit.stockActuel });
     await deplacerStockDepot(tx, entrepriseId, id, depotCible, sens * quantite);
+    // Une vente sort d'abord les lots qui se périment le plus tôt (priorité 3.4).
+    if (suiviLots && sens === -1) await consommerLotsFEFO(tx, entrepriseId, id, quantite);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: id,
@@ -152,6 +155,7 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
   const stockApres = p.stockActuel + delta;
   await tx.update(produit).set({ stockActuel: stockApres }).where(eq(produit.id, p.id));
   await deplacerStockDepot(tx, entrepriseId, p.id, visee.id, delta);
+  if (delta < 0) await harmoniserLots(tx, entrepriseId, p.id);
   await tx.insert(mouvementStock).values({
     entrepriseId,
     produitId: p.id,
@@ -243,6 +247,7 @@ export async function defaireMouvementsDocument(tx: TransactionDrizzle, entrepri
       .returning({ stockActuel: produit.stockActuel });
     const depotId = g.depotId ?? principal.id;
     await deplacerStockDepot(tx, entrepriseId, g.produitId, depotId, delta);
+    if (delta < 0) await harmoniserLots(tx, entrepriseId, g.produitId);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: g.produitId,
@@ -340,6 +345,7 @@ export async function arreterSuiviStock(tx: TransactionDrizzle, entrepriseId: st
     await tx.insert(mouvementStock).values({ entrepriseId, produitId, type: "RETRAIT", quantite: -d.quantite, stockApres: reste, motif: "FIN_SUIVI", depotId: d.depotId, creeParId: utilisateurId });
   }
   await tx.delete(stockDepot).where(eq(stockDepot.produitId, produitId));
-  await tx.update(produit).set({ suiviStock: false, stockActuel: 0, seuilAlerte: null }).where(eq(produit.id, produitId));
+  await effacerLots(tx, entrepriseId, [produitId]);
+  await tx.update(produit).set({ suiviStock: false, stockActuel: 0, seuilAlerte: null, suiviLots: false }).where(eq(produit.id, produitId));
   return { ok: true, retires: p.stock };
 }
