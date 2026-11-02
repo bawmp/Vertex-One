@@ -18,6 +18,7 @@ export const MENU: Record<string, string> = {
   "Journaux manuels": "Manual journals",
   "Grand livre": "General ledger",
   "Déclaration de TVA": "VAT return",
+  "Clients et fournisseurs": "Customers and suppliers",
   "Clôture d'exercice": "Year-end closing",
   Balance: "Trial balance",
   "Journaux par période": "Journals by period",

@@ -14,7 +14,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 
 ## Priorité 2 — Comptabilité qu'un comptable attend
 
-- [ ] **P2.1 Comptes de tiers : grand livre auxiliaire clients et fournisseurs, balance âgée, lettrage des règlements** (L).
+- [x] **P2.1 Comptes de tiers : grand livre auxiliaire clients et fournisseurs, balance âgée, lettrage des règlements** (L).
 - [ ] **P2.2 Annulation d'une clôture d'exercice** (M), avec trace, réservée à l'Administrateur.
 - [ ] **P2.3 États financiers SYSCOHADA officiels** (bilan, compte de résultat, annexes) et **export PDF** (L).
 - [ ] **P2.4 Régularisations de fin d'exercice** (L) : charges à payer, produits constatés d'avance, provisions.

@@ -9,6 +9,8 @@ import { ecrireCsv } from "@/lib/export/csv";
 import { dateDouala, lireBalancePeriode, lireGrandLivre, lireJournaux, periodePredefinie } from "@/lib/comptabilite/livres";
 import { calculerTva, csvTva, lireDeclarationTva } from "@/lib/comptabilite/tva";
 import { csvBalance, csvGrandLivre, csvJournaux, type TableauCsv } from "@/lib/comptabilite/livres-export";
+import { lireBalanceAgee, lireGrandLivreAuxiliaire } from "@/lib/comptabilite/tiers";
+import { csvBalanceAgee, csvGrandLivreAuxiliaire } from "@/lib/comptabilite/tiers-export";
 
 /**
  * GET /app/comptabilite/livres/export?vue=grand-livre|balance|journaux|tva&du=AAAA-MM-JJ&au=AAAA-MM-JJ&compte=411000 — télécharge le
@@ -22,7 +24,8 @@ export async function GET(requete: Request) {
 
   const url = new URL(requete.url);
   const vue = url.searchParams.get("vue");
-  if (vue !== "grand-livre" && vue !== "balance" && vue !== "journaux" && vue !== "tva") return new NextResponse("Livre inconnu", { status: 404 });
+  const VUES_TIERS = ["clients", "fournisseurs", "agee-clients", "agee-fournisseurs"];
+  if (vue !== "grand-livre" && vue !== "balance" && vue !== "journaux" && vue !== "tva" && !(vue && VUES_TIERS.includes(vue))) return new NextResponse("Livre inconnu", { status: 404 });
   const defaut = periodePredefinie("annee", new Date());
   const du = dateDouala(url.searchParams.get("du") ?? defaut.du, false);
   const au = dateDouala(url.searchParams.get("au") ?? defaut.au, true);
@@ -36,6 +39,14 @@ export async function GET(requete: Request) {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
     const periode = { du, au };
+    if (vue === "clients" || vue === "fournisseurs") {
+      const nature = vue === "clients" ? "CLIENT" : "FOURNISSEUR";
+      return csvGrandLivreAuxiliaire(await lireGrandLivreAuxiliaire(tx, utilisateurConnecte.entrepriseId, nature, periode, url.searchParams.get("tiers") || undefined), nature);
+    }
+    if (vue === "agee-clients" || vue === "agee-fournisseurs") {
+      const nature = vue === "agee-clients" ? "CLIENT" : "FOURNISSEUR";
+      return csvBalanceAgee(await lireBalanceAgee(tx, utilisateurConnecte.entrepriseId, nature), nature);
+    }
     if (vue === "tva") {
       const declaration = await lireDeclarationTva(tx, utilisateurConnecte.entrepriseId, periode);
       return csvTva(declaration, calculerTva(declaration.tvaCollectee, declaration.tvaDeductible, creditReporte), creditReporte);
