@@ -18,6 +18,7 @@ import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { StockDesactive } from "@/components/stock-desactive";
 import { gestionStockActive } from "@/lib/produits/gestion-stock";
 import { ConstaterVariation } from "./constater-variation";
+import { ChoixMethode } from "./methode-valorisation";
 import { getT } from "@/lib/i18n/langue";
 
 /** Date du jour à l'heure de Douala (UTC+1), au format AAAA-MM-JJ. */
@@ -66,7 +67,7 @@ export default async function PageValorisation({ searchParams }: { searchParams:
           <Coins className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{t("Valeur du stock")}</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{t("Chaque produit vaut son stock multiplié par son coût moyen d'achat, mis à jour à chaque achat facturé.")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{valorisation.methode === "FIFO" ? t("Ce qui reste en stock vaut le prix des derniers achats (premier entré, premier sorti).") : t("Chaque produit vaut son stock multiplié par son coût moyen d'achat, mis à jour à chaque achat facturé.")}</p>
       </div>
 
       <form method="get" className="flex flex-wrap items-end gap-3" aria-label={t("Choisir la date et le dépôt")}>
@@ -96,6 +97,8 @@ export default async function PageValorisation({ searchParams }: { searchParams:
         <EtatVide icone={Coins} titre={t("Aucun produit suivi en stock.")} description={t("Activez le suivi du stock sur vos produits depuis l'onglet Stock de leur fiche.")} />
       ) : (
         <>
+          <ChoixMethode methode={valorisation.methode} peutChanger={peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")} />
+
           <Card>
             <div className="flex items-baseline justify-between gap-3 px-4 py-4">
               <span className="text-sm text-muted-foreground">{t("Valeur totale du stock")}</span>

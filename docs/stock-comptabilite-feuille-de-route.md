@@ -31,7 +31,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 - [x] **P3.5 Variantes (taille, couleur) et unités de mesure (carton, pièce)** (L) — FAIT (voir limites dans docs/fonctionnalites-recentes.md).
 - [x] **P3.6 Codes-barres et lecture au téléphone** (M) — FAIT (lecture par caméra à vérifier sur un vrai téléphone).
 - [x] **P3.7 Réservation de stock sur une commande client** (M).
-- [ ] **P3.8 Valorisation « premier entré, premier sorti »** en option (M).
+- [x] **P3.8 Valorisation « premier entré, premier sorti »** en option (M).
 - [ ] **P3.9 Kits et nomenclatures** (M).
 - [ ] **P3.10 Listes de prix** (M).
 

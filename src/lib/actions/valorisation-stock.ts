@@ -12,6 +12,7 @@ import { dateDouala } from "@/lib/comptabilite/livres";
 import { constaterVariationStock } from "@/lib/produits/valorisation";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
+import { methodeValide } from "@/lib/produits/valorisation-regles";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -42,4 +43,29 @@ export async function enregistrerVariationStock(_etat: EtatValorisation, formDat
   revalidatePath("/app/produits/valorisation");
   revalidatePath("/app/comptabilite");
   return { message: t("Écriture {numero} enregistrée : le stock {sens} de {montant}.", { numero: resultat.numero, sens: resultat.hausse ? t("a pris de la valeur") : t("a perdu de la valeur"), montant: formaterFCFA(resultat.montant) }) };
+}
+
+/**
+ * Choisit la méthode de valorisation du stock (coût moyen pondéré ou premier entré, premier sorti). Réservé à qui modifie les paramètres
+ * (l'Administrateur). La valeur reçue est validée contre la liste fermée ; rien n'est écrit en comptabilité ici : c'est la prochaine
+ * « constatation de la variation de stock » qui ajustera le compte 311000 à la nouvelle valeur.
+ */
+export async function definirMethodeValorisation(methode: string): Promise<EtatValorisation> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) return { erreur: t("Seul l'Administrateur peut changer ce réglage.") };
+  const choisie = methodeValide(methode);
+  if (!choisie) return { erreur: t("Méthode inconnue.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return false;
+    await tx.update(entreprise).set({ methodeValorisation: choisie }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    return true;
+  });
+  if (!resultat) return { erreur: t(MESSAGE_STOCK_DESACTIVE) };
+
+  revalidatePath("/app/produits/valorisation");
+  revalidatePath("/app/comptabilite");
+  return { message: choisie === "FIFO" ? t("Méthode choisie : premier entré, premier sorti.") : t("Méthode choisie : coût moyen pondéré.") };
 }

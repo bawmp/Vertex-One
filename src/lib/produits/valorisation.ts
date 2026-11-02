@@ -1,9 +1,10 @@
-import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, depot, ecritureComptable, entreprise, journalManuel, mouvementStock, produit, stockDepot } from "@/db/schema";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
 import { m } from "@/lib/i18n/catalogue";
+import { valeurFIFO, methodeValide, type Couche, type MethodeValorisation } from "./valorisation-regles";
 
 /**
  * Valeur du stock (2026-11-02) : chaque bien suivi vaut « stock × coût moyen pondéré » (un stock négatif ne vaut jamais moins que
@@ -20,6 +21,8 @@ export type Valorisation = {
   soldeComptable: number;
   /** total − soldeComptable : ce que l'écriture de variation constaterait (positif = le stock a pris de la valeur). */
   ecart: number;
+  /** Méthode appliquée : coût moyen pondéré ou premier entré, premier sorti. */
+  methode: MethodeValorisation;
 };
 
 export function valeurLigne(stockActuel: number, coutMoyen: number): number {
@@ -33,6 +36,35 @@ async function soldeCompte311(tx: TransactionDrizzle, entrepriseId: string, jusq
     .innerJoin(compteComptable, eq(ecritureComptable.compteId, compteComptable.id))
     .where(and(eq(ecritureComptable.entrepriseId, entrepriseId), eq(compteComptable.numero, "311000"), lte(ecritureComptable.dateEcriture, jusquau)));
   return lignes.reduce((s, l) => s + l.debit - l.credit, 0);
+}
+
+/** Méthode de valorisation choisie par l'entreprise (CMUP par défaut). */
+export async function methodeDe(tx: TransactionDrizzle, entrepriseId: string): Promise<MethodeValorisation> {
+  const [e] = await tx.select({ methode: entreprise.methodeValorisation }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  return methodeValide(e?.methode) ?? "CMUP";
+}
+
+/**
+ * Couches d'entrée de chaque produit, des plus anciennes aux plus récentes, jusqu'à la date donnée (toutes si nulle). Une entrée est un
+ * mouvement qui AJOUTE du stock (achat, stock de départ, retour, correction à la hausse) ; les transferts entre dépôts n'en sont pas. Son coût
+ * est le coût unitaire de l'achat quand on le connaît, sinon le coût moyen enregistré à ce moment-là.
+ */
+async function lireCouches(tx: TransactionDrizzle, entrepriseId: string, produitIds: string[], jusquau: Date | null): Promise<Map<string, Couche[]>> {
+  const parProduit = new Map<string, Couche[]>();
+  if (produitIds.length === 0) return parProduit;
+  const lignes = await tx
+    .select({ produitId: mouvementStock.produitId, quantite: mouvementStock.quantite, coutUnitaire: mouvementStock.coutUnitaire, coutMoyenApres: mouvementStock.coutMoyenApres })
+    .from(mouvementStock)
+    .where(and(eq(mouvementStock.entrepriseId, entrepriseId), inArray(mouvementStock.produitId, produitIds), gt(mouvementStock.quantite, 0), notInArray(mouvementStock.type, ["TRANSFERT_ENTREE"]), jusquau ? lte(mouvementStock.creeLe, jusquau) : undefined))
+    .orderBy(asc(mouvementStock.creeLe), asc(mouvementStock.id));
+  for (const l of lignes) {
+    const cout = l.coutUnitaire ?? l.coutMoyenApres;
+    if (cout === null) continue;
+    const liste = parProduit.get(l.produitId) ?? [];
+    liste.push({ quantite: l.quantite, cout });
+    parProduit.set(l.produitId, liste);
+  }
+  return parProduit;
 }
 
 /**
@@ -56,7 +88,7 @@ export async function lireValorisation(tx: TransactionDrizzle, entrepriseId: str
   let principalCible = false;
   if (depotId) {
     const [cible] = await tx.select({ id: depot.id, principal: depot.principal }).from(depot).where(and(eq(depot.id, depotId), eq(depot.entrepriseId, entrepriseId)));
-    if (!cible) return { lignes: [], total: 0, soldeComptable: await soldeCompte311(tx, entrepriseId, jusquau), ecart: 0 };
+    if (!cible) return { lignes: [], total: 0, soldeComptable: await soldeCompte311(tx, entrepriseId, jusquau), ecart: 0, methode: await methodeDe(tx, entrepriseId) };
     principalCible = cible.principal;
     const quantites = await tx.select({ produitId: stockDepot.produitId, depotId: stockDepot.depotId, quantite: stockDepot.quantite }).from(stockDepot).where(eq(stockDepot.entrepriseId, entrepriseId));
     const autres = new Map<string, number>();
@@ -86,16 +118,21 @@ export async function lireValorisation(tx: TransactionDrizzle, entrepriseId: str
     for (const c of couts.rows as { produitId: string; cout: number }[]) if (coutAu.has(c.produitId)) coutAu.set(c.produitId, c.cout);
   }
 
-  const lignes = produits
-    .filter((p) => (depotId || passe ? (stockAu.get(p.id) ?? 0) !== 0 || (!depotId && p.suiviStock) : p.suiviStock))
-    .map((p) => {
-      const stock = stockAu.get(p.id) ?? 0;
-      const cout = coutAu.get(p.id) ?? 0;
-      return { id: p.id, nom: p.nom, stockActuel: stock, coutMoyen: cout, valeur: valeurLigne(stock, cout) };
-    });
+  const methode = await methodeDe(tx, entrepriseId);
+  const retenus = produits.filter((p) => (depotId || passe ? (stockAu.get(p.id) ?? 0) !== 0 || (!depotId && p.suiviStock) : p.suiviStock));
+  const couches = methode === "FIFO" ? await lireCouches(tx, entrepriseId, retenus.map((p) => p.id), passe ? jusquau : null) : new Map<string, Couche[]>();
+
+  const lignes = retenus.map((p) => {
+    const stock = stockAu.get(p.id) ?? 0;
+    const cout = coutAu.get(p.id) ?? 0;
+    if (methode !== "FIFO") return { id: p.id, nom: p.nom, stockActuel: stock, coutMoyen: cout, valeur: valeurLigne(stock, cout) };
+    // FIFO : la valeur vient des couches d'achat ; le « coût moyen » affiché est la valeur divisée par le stock.
+    const valeur = valeurFIFO(stock, couches.get(p.id) ?? [], cout);
+    return { id: p.id, nom: p.nom, stockActuel: stock, coutMoyen: stock > 0 ? Math.round(valeur / stock) : cout, valeur };
+  });
   const total = lignes.reduce((s, l) => s + l.valeur, 0);
   const soldeComptable = await soldeCompte311(tx, entrepriseId, jusquau);
-  return { lignes, total, soldeComptable, ecart: total - soldeComptable };
+  return { lignes, total, soldeComptable, ecart: total - soldeComptable, methode };
 }
 
 export type ResultatVariation = { ok: true; montant: number; hausse: boolean; numero: string } | { ok: false; erreur: string };

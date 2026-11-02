@@ -105,6 +105,8 @@ export const entreprise = pgTable("entreprise", {
   gereStock: boolean("gere_stock").notNull().default(false),
   // Alertes de stock bas par email (2026-11-02, priorité 3.2) : activées par défaut, l'Administrateur peut les couper.
   alertesStockEmail: boolean("alertes_stock_email").notNull().default(true),
+  // Méthode de valorisation du stock (2026-11-02, priorité 3.8) : « CMUP » (coût moyen pondéré, par défaut) ou « FIFO » (premier entré, premier sorti).
+  methodeValorisation: text("methode_valorisation").notNull().default("CMUP"),
   // Interdire la vente en rupture (priorité 1.4, 2026-11-02) : refuse un ticket de vente, une conversion de commande ou une acceptation de
   // devis par l'équipe quand le dépôt concerné n'a pas assez d'un produit suivi. Faux = stock négatif toléré, comme avant.
   bloquerVenteRupture: boolean("bloquer_vente_rupture").notNull().default(false),
@@ -3693,6 +3695,9 @@ export const mouvementStock = pgTable(
     // Coût moyen pondéré du produit juste après ce mouvement (2026-11-02, priorité 2.6) : rempli par un déclencheur de la base à chaque
     // insertion, pour valoriser le stock à une date passée.
     coutMoyenApres: integer("cout_moyen_apres"),
+    // Coût unitaire des unités ENTRÉES par ce mouvement (achat facturé avec un prix) : les « couches » de la valorisation FIFO. Nul pour les
+    // autres mouvements et l'historique d'avant 3.8 (on retombe alors sur le coût moyen d'alors).
+    coutUnitaire: integer("cout_unitaire"),
   },
   (table) => [
     index("mouvement_stock_entreprise_idx").on(table.entrepriseId),

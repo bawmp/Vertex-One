@@ -1100,6 +1100,13 @@
       "when": 1793854800000,
       "tag": "0156_codes_barres",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1793941200000,
+      "tag": "0157_valorisation_fifo",
+      "breakpoints": true
     }
   ]
 }

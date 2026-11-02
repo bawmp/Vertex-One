@@ -81,6 +81,8 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
       quantite: sens * quantite,
       stockApres: apres.stockActuel,
       depotId: depotCible,
+      // Coût unitaire de ce que l'achat fait entrer : une couche pour la valorisation FIFO.
+      coutUnitaire: sens === 1 && valeur !== undefined ? Math.round(valeur / quantite) : null,
       documentType: contexte?.documentType,
       documentId: contexte?.documentId,
       creeParId: contexte?.utilisateurId ?? null,
