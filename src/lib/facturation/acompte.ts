@@ -3,7 +3,7 @@ import type { TransactionDrizzle } from "@/db/client";
 import { facture, factureAcompte, paiement } from "@/db/schema";
 import { genererEcrituresApplicationAcompte } from "@/lib/comptabilite/ecritures";
 import { memeClientVente } from "./client-document";
-import { lireSolde, statutApresReglement } from "./solde";
+import { lireSolde, montantNetFacture, statutApresReglement } from "./solde";
 
 /**
  * Déduction automatique des acomptes encaissés (2026-10-26). Un acompte payé est une avance du client (compte 419100) ; dès qu'une facture
@@ -51,7 +51,7 @@ async function deduire(tx: TransactionDrizzle, a: Acompte, f: Facture, montantMa
 
   const maintenant = new Date();
   await tx.insert(paiement).values({ entrepriseId: f.entrepriseId, factureId: f.id, montant, moyenPaiement: "manuel", referenceTransaction: referenceAcompte(a.numero), datePaiement: maintenant });
-  await tx.update(facture).set({ statut: statutApresReglement(f.statut, f.montantTTC, dejaPaye + montant) }).where(eq(facture.id, f.id));
+  await tx.update(facture).set({ statut: statutApresReglement(f.statut, await montantNetFacture(tx, f.id, f.montantTTC), dejaPaye + montant) }).where(eq(facture.id, f.id));
   await genererEcrituresApplicationAcompte(tx, { entrepriseId: f.entrepriseId, factureAcompteId: a.id, factureId: f.id, numeroFactureAcompte: a.numero, numeroFacture: f.numero, montant, dateApplication: maintenant });
   return montant;
 }
@@ -64,6 +64,7 @@ export async function appliquerAcomptesSurFacture(tx: TransactionDrizzle, entrep
   const [f] = await tx.select().from(facture).where(and(eq(facture.id, factureId), eq(facture.entrepriseId, entrepriseId), inArray(facture.statut, [...STATUTS_OUVERTS])));
   if (!f) return 0;
   const { paye } = await lireSolde(tx, f.id, f.montantTTC);
+  const net = await montantNetFacture(tx, f.id, f.montantTTC); // les avoirs partiels réduisent ce que l'acompte peut couvrir
   let dejaPaye = paye;
   let total = 0;
 
@@ -74,7 +75,7 @@ export async function appliquerAcomptesSurFacture(tx: TransactionDrizzle, entrep
     .orderBy(asc(factureAcompte.dateEncaissement), asc(factureAcompte.numero));
   for (const a of acomptes) {
     if (!acompteConcerneFacture(a, f)) continue;
-    const reste = f.montantTTC - dejaPaye;
+    const reste = net - dejaPaye;
     if (reste <= 0) break;
     const deduit = await deduire(tx, a, f, reste, dejaPaye);
     dejaPaye += deduit;
@@ -100,8 +101,8 @@ export async function appliquerAcompteSurFacturesOuvertes(tx: TransactionDrizzle
   for (const f of ouvertes) {
     if (a.montantRestant <= 0) break;
     if (!acompteConcerneFacture(a, f)) continue;
-    const { paye } = await lireSolde(tx, f.id, f.montantTTC);
-    const reste = f.montantTTC - paye;
+    const { paye, solde } = await lireSolde(tx, f.id, f.montantTTC);
+    const reste = solde;
     if (reste <= 0) continue;
     const deduit = await deduire(tx, a, f, reste, paye);
     if (deduit > 0) {
@@ -117,8 +118,8 @@ export async function deduireAcompteManuellement(tx: TransactionDrizzle, entrepr
   const [a] = await tx.select().from(factureAcompte).where(and(eq(factureAcompte.id, factureAcompteId), eq(factureAcompte.entrepriseId, entrepriseId), eq(factureAcompte.statut, "PAYEE")));
   const [f] = await tx.select().from(facture).where(and(eq(facture.id, factureId), eq(facture.entrepriseId, entrepriseId), inArray(facture.statut, [...STATUTS_OUVERTS])));
   if (!a || !f) return 0;
-  const { paye } = await lireSolde(tx, f.id, f.montantTTC);
-  const reste = f.montantTTC - paye;
+  const { paye, solde } = await lireSolde(tx, f.id, f.montantTTC);
+  const reste = solde;
   return reste > 0 ? deduire(tx, a, f, reste, paye) : 0;
 }
 

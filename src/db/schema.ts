@@ -176,6 +176,8 @@ export const entreprise = pgTable("entreprise", {
   // Factures d'acompte (échange du 2026-09-07) — série distincte, jamais
   // mêlée à la numérotation des Factures.
   compteurFacturesAcompte: integer("compteur_factures_acompte").notNull().default(0),
+  // Avoirs clients partiels (2026-11-02) — série propre (AV-AAAA-NNNNNN), jamais mêlée à celle des factures.
+  compteurAvoirsClient: integer("compteur_avoirs_client").notNull().default(0),
   // Journaux manuels (échange du 2026-09-07) — pas un document fiscal
   // (comme les Bons de commande), mais une référence stable utile pour
   // retrouver une écriture manuelle dans le Journal des écritures.
@@ -1902,6 +1904,76 @@ export const avoirFacture = pgTable(
   },
   (table) => [
     index("avoir_facture_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Avoir client (2026-11-02) : retour de marchandises ou geste commercial sur UNE partie d'une facture. Contrairement à l'annulation
+// totale (avoir_facture ci-dessus), il porte sur des lignes précises et des quantités précises, réduit le montant restant dû de la
+// facture (jamais sa fiche d'origine, qui ne change pas), contre-passe la vente de ces lignes en comptabilité et remet les articles en
+// stock quand on le décide ligne par ligne (un article cassé ne se remet pas en stock).
+export const avoirClient = pgTable(
+  "avoir_client",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    factureId: text("facture_id")
+      .notNull()
+      .references(() => facture.id),
+    numero: text("numero").notNull(), // "AV-2026-000001" — série propre, sans trou
+    motif: text("motif").notNull(),
+    montantHT: integer("montant_ht").notNull(),
+    montantTVA: integer("montant_tva").notNull(),
+    montantTTC: integer("montant_ttc").notNull(),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("avoir_client_entreprise_numero_unique").on(table.entrepriseId, table.numero),
+    index("avoir_client_entreprise_idx").on(table.entrepriseId),
+    index("avoir_client_facture_idx").on(table.factureId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const ligneAvoirClient = pgTable(
+  "ligne_avoir_client",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    avoirId: text("avoir_id")
+      .notNull()
+      .references(() => avoirClient.id),
+    // La ligne de la facture que cet avoir crédite (jamais plus que ce qui a été facturé, tous avoirs confondus).
+    ligneFactureId: text("ligne_facture_id")
+      .notNull()
+      .references(() => ligneFacture.id),
+    produitId: text("produit_id").references(() => produit.id),
+    designation: text("designation").notNull(),
+    quantite: numeric("quantite", { precision: 10, scale: 2, mode: "number" }).notNull(),
+    prixUnitaire: integer("prix_unitaire").notNull(),
+    tauxTVA: numeric("taux_tva", { precision: 5, scale: 2, mode: "number" }).notNull(),
+    // Vrai : les articles reviennent en stock (retour en bon état). Faux : geste commercial ou article inutilisable.
+    remettreEnStock: boolean("remettre_en_stock").notNull().default(false),
+  },
+  (table) => [
+    index("ligne_avoir_client_entreprise_idx").on(table.entrepriseId),
+    index("ligne_avoir_client_avoir_idx").on(table.avoirId),
+    index("ligne_avoir_client_ligne_facture_idx").on(table.ligneFactureId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

@@ -10,7 +10,7 @@ import { adressesAAlerter } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
-import { lireSolde, statutApresReglement } from "@/lib/facturation/solde";
+import { lireSolde, montantNetFacture, statutApresReglement } from "@/lib/facturation/solde";
 import { libelleMoyenPaiement, notifierPaiementFacture, type NotificationPaiementFacture } from "./recu-facture";
 import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
@@ -149,7 +149,7 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
     // Paiement en plusieurs fois : la facture n'est « payée » que lorsque le total des règlements atteint son montant ; une tranche la
     // laisse « partiellement payée » (ou « en retard » si elle l'était déjà). Chaque tranche a son règlement et ses écritures.
     const { paye } = await lireSolde(tx, tentative.factureId, laFacture.montantTTC);
-    await tx.update(facture).set({ statut: statutApresReglement(laFacture.statut, laFacture.montantTTC, paye) }).where(eq(facture.id, tentative.factureId));
+    await tx.update(facture).set({ statut: statutApresReglement(laFacture.statut, await montantNetFacture(tx, tentative.factureId, laFacture.montantTTC), paye) }).where(eq(facture.id, tentative.factureId));
     await tx.update(tentativePaiementFacture).set({ statut: "CONFIRME", confirmeLe: datePaiement }).where(eq(tentativePaiementFacture.id, idTentative));
     // Une promesse de paiement en cours est tenue dès que les règlements couvrent le montant promis.
     await resoudrePromessesFacture(tx, entrepriseId, tentative.factureId);

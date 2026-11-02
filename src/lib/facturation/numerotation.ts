@@ -1,6 +1,6 @@
 import { sql, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { entreprise, devis, facture, bonCommandeVente, recuVente, factureAcompte, bonCommandeAchat } from "@/db/schema";
+import { entreprise, devis, facture, bonCommandeVente, recuVente, factureAcompte, bonCommandeAchat, avoirClient } from "@/db/schema";
 
 /**
  * Numérotation séquentielle sans trou (docs/palier-1-*, section 5) — le
@@ -34,6 +34,7 @@ const SERIES = {
   compteurRecusVente: { table: recuVente, prefixe: "REC" },
   compteurFacturesAcompte: { table: factureAcompte, prefixe: "ACO" },
   compteurBonsCommandeAchat: { table: bonCommandeAchat, prefixe: "BC" },
+  compteurAvoirsClient: { table: avoirClient, prefixe: "AV" },
 } as const;
 
 async function incrementerCompteur(
@@ -46,6 +47,7 @@ async function incrementerCompteur(
     | "compteurBonsCommandeVente"
     | "compteurRecusVente"
     | "compteurFacturesAcompte"
+    | "compteurAvoirsClient"
     | "compteurJournauxManuels"
 ): Promise<number> {
   // Le compteur est d'abord ALIGNÉ sur le plus grand numéro déjà émis pour cette entreprise, dans la même instruction
@@ -136,4 +138,11 @@ export async function genererNumeroJournalManuel(tx: TransactionDrizzle, entrepr
   const annee = new Date().getFullYear();
   const compteur = await incrementerCompteur(tx, entrepriseId, "compteurJournauxManuels");
   return `JM-${annee}-${String(compteur).padStart(6, "0")}`;
+}
+
+/** Avoirs clients partiels (2026-11-02) — série propre « AV-AAAA-NNNNNN », sans trou, jamais mêlée à celle des factures. */
+export async function genererNumeroAvoirClient(tx: TransactionDrizzle, entrepriseId: string): Promise<string> {
+  const annee = new Date().getFullYear();
+  const compteur = await incrementerCompteur(tx, entrepriseId, "compteurAvoirsClient");
+  return `AV-${annee}-${String(compteur).padStart(6, "0")}`;
 }

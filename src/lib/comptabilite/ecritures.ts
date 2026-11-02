@@ -293,3 +293,19 @@ export async function genererEcrituresPaiementEffectue(
     { factureFournisseurId: params.factureFournisseurId, paiementEffectueId: params.paiementEffectueId }
   );
 }
+
+/**
+ * Avoir client partiel (2026-11-02) : défait la vente des seules lignes créditées — produits et TVA facturée au débit, Clients au
+ * crédit (le client doit moins). Rattaché à la facture d'origine (`factureId`) : on retrouve l'avoir dans son grand livre. Pas de
+ * ligne de TVA quand elle vaut zéro (entreprise non assujettie).
+ */
+export async function genererEcrituresAvoirClient(
+  tx: TransactionDrizzle,
+  params: { entrepriseId: string; factureId: string; numeroAvoir: string; numeroFacture: string; montantHT: number; montantTVA: number; montantTTC: number; date: Date }
+): Promise<void> {
+  const libelle = `Avoir ${params.numeroAvoir} sur ${params.numeroFacture}`;
+  const lignes: LigneEcriture[] = [{ numeroCompte: "706000", libelle, debit: params.montantHT }];
+  if (params.montantTVA > 0) lignes.push({ numeroCompte: "443200", libelle: `TVA ${libelle}`, debit: params.montantTVA });
+  lignes.push({ numeroCompte: "411000", libelle, credit: params.montantTTC });
+  await creerEcritures(tx, params.entrepriseId, params.date, lignes, { factureId: params.factureId });
+}

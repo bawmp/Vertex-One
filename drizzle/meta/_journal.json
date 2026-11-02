@@ -1009,6 +1009,13 @@
       "when": 1792731600000,
       "tag": "0143_contrepassation",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1792818000000,
+      "tag": "0144_avoirs_clients",
+      "breakpoints": true
     }
   ]
 }

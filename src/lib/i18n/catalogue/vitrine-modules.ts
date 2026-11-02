@@ -60,6 +60,8 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Stock value at weighted average cost, updated on every purchase, and a one-click stock variation entry in the accounts (SYSCOHADA periodic inventory)",
   "Annuler une facture, un ticket de vente ou une facture fournisseur défait vraiment l'opération : écritures comptables contre-passées et articles remis en stock (ou retirés), sans toucher aux règlements déjà reçus":
     "Cancelling an invoice, a sales receipt or a supplier invoice really undoes the operation: accounting entries reversed and items put back in stock (or removed), without touching payments already received",
+  "Avoirs partiels et retours de marchandises : créditez seulement certaines lignes d'une facture, choisissez de remettre ou non les articles en stock ; le montant restant dû et la comptabilité suivent automatiquement":
+    "Partial credit notes and returns: credit only some lines of an invoice, choose whether to put the items back in stock; the amount still due and the accounts follow automatically",
   "Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe":
     "Low-stock alert: set a threshold per product, the list flags those to restock (low or out of stock) and a filter groups them",
   "Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur": "Purchasing: supplier records and purchase orders, directly convertible into a supplier invoice",

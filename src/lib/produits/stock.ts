@@ -258,3 +258,33 @@ export async function defaireMouvementsDocument(tx: TransactionDrizzle, entrepri
   }
   return defaits;
 }
+
+/**
+ * Entrée de stock provoquée par un document (retour client d'un avoir partiel, 2026-11-02) : ajoute `quantite` au produit et au dépôt
+ * indiqué (le principal par défaut) et laisse une ligne « Retour d'un client » dans l'historique, rattachée au document. Sans effet si
+ * le produit n'est pas suivi. Le coût moyen ne change pas.
+ */
+export async function entrerStockDocument(tx: TransactionDrizzle, entrepriseId: string, produitId: string, quantite: number, document: { type: string; id: string; depotId: string | null; utilisateurId: string | null }): Promise<void> {
+  if (!Number.isInteger(quantite) || quantite <= 0) return;
+  const [p] = await tx.select({ suivi: produit.suiviStock }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)));
+  if (!p?.suivi) return;
+  const depotId = document.depotId ?? (await assurerDepotPrincipal(tx, entrepriseId)).id;
+  const [apres] = await tx
+    .update(produit)
+    .set({ stockActuel: sql`${produit.stockActuel} + ${quantite}` })
+    .where(eq(produit.id, produitId))
+    .returning({ stockActuel: produit.stockActuel });
+  await deplacerStockDepot(tx, entrepriseId, produitId, depotId, quantite);
+  await tx.insert(mouvementStock).values({
+    entrepriseId,
+    produitId,
+    type: "AJOUT",
+    quantite,
+    stockApres: apres.stockActuel,
+    motif: "RETOUR_CLIENT",
+    depotId,
+    documentType: document.type,
+    documentId: document.id,
+    creeParId: document.utilisateurId,
+  });
+}

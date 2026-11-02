@@ -17,6 +17,7 @@ import { VITRINE } from "./vitrine";
 import { VITRINE_MODULES } from "./vitrine-modules";
 import { FORMULAIRES } from "./formulaires";
 import { STOCK } from "./stock";
+import { AVOIRS } from "./avoirs";
 import { COMPTABILITE } from "./comptabilite";
 
 export const CATALOGUE_EN: Record<string, string> = {
@@ -35,5 +36,6 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...VITRINE_MODULES,
   ...FORMULAIRES,
   ...STOCK,
+  ...AVOIRS,
   ...COMPTABILITE,
 };

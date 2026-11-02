@@ -23,6 +23,8 @@ import { aujourdhuiDouala, ajouterJours, JOURS_MAX_PROMESSE, type StatutPromesse
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { getT } from "@/lib/i18n/langue";
+import { CarteAvoirs } from "./carte-avoirs";
+import { lignesCreditables, listerAvoirsFacture } from "@/lib/facturation/avoir-client";
 
 export default async function PageDetailFacture({ params }: { params: Promise<{ id: string }> }) {
   const t = await getT();
@@ -63,11 +65,16 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
       auteurNom: x.creeParId ? (nomAuteur.get(x.creeParId) ?? null) : null,
     }));
 
-    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses };
+    const lignesAvoir = await lignesCreditables(tx, utilisateurConnecte.entrepriseId, id);
+    const avoirsEmis = await listerAvoirsFacture(tx, utilisateurConnecte.entrepriseId, id);
+
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses, lignesAvoir, avoirsEmis };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses, lignesAvoir, avoirsEmis } = donnees;
+  const totalAvoirs = avoirsEmis.reduce((s, a) => s + a.montantTTC, 0);
+  const montantNet = Math.max(0, laFacture.montantTTC - totalAvoirs);
 
   const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
   const resumeReponse =
@@ -81,7 +88,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
   const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
   const estReglee = laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE";
   const info = STATUT_FACTURE[laFacture.statut];
-  const { paye, solde } = calculerSolde(laFacture.montantTTC, paiements);
+  const { paye, solde } = calculerSolde(montantNet, paiements); // le solde se mesure sur le montant net : facture moins avoirs
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -198,6 +205,15 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         </div>
       ) : null}
 
+      <CarteAvoirs
+        factureId={laFacture.id}
+        lignes={lignesAvoir.map((l) => ({ ligneFactureId: l.ligneFactureId, designation: l.designation, produitSuivi: l.produitSuivi, prixUnitaire: l.prixUnitaire, tauxTVA: l.tauxTVA, facturee: l.facturee, creditee: l.creditee, restant: l.restant }))}
+        avoirs={avoirsEmis.map((a) => ({ id: a.id, numero: a.numero, motif: a.motif, montantTTC: a.montantTTC, creeLe: a.creeLe.toISOString() }))}
+        netRestant={montantNet}
+        peutCreer={peutModifier && laFacture.statut !== "ANNULEE"}
+        gereStock={monEntreprise.gereStock}
+      />
+
       {peutModifier && !estReglee ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4">
           {!paiementEnLigneDisponible ? (
@@ -213,11 +229,13 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
                 {t("Marquer comme payée")}
               </Button>
             </form>
-            <form action={annulerFacture.bind(null, laFacture.id, "Annulée depuis la fiche facture")}>
-              <Button type="submit" variant="destructive">
-                {t("Annuler (avoir)")}
-              </Button>
-            </form>
+            {avoirsEmis.length === 0 ? (
+              <form action={annulerFacture.bind(null, laFacture.id, "Annulée depuis la fiche facture")}>
+                <Button type="submit" variant="destructive">
+                  {t("Annuler toute la facture")}
+                </Button>
+              </form>
+            ) : null}
           </div>
         </div>
       ) : null}

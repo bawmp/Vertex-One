@@ -15,7 +15,7 @@ import { enteteLogoEmail } from "@/lib/email/logo";
 import { expediteurDe } from "@/lib/email/expediteur";
 import { recupererModele, interpoler, corpsVersHtml } from "@/lib/email/modeles";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { lireSolde } from "@/lib/facturation/solde";
+import { lireSolde, totalAvoirsFacture } from "@/lib/facturation/solde";
 import { declencherPaiementDirectFacture } from "@/lib/facturation/paiement-en-ligne";
 import { relireEtConfirmerFacture, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
@@ -105,6 +105,8 @@ export async function annulerFacture(factureId: string, motif: string) {
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
     if (!laFacture || laFacture.statut === "ANNULEE") return;
+    // Une facture déjà créditée en partie ne s'annule plus en bloc : on crédite le reste par un dernier avoir (sinon la vente serait défaite deux fois).
+    if ((await totalAvoirsFacture(tx, factureId)) > 0) return;
 
     await tx.insert(avoirFacture).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
