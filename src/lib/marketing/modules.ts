@@ -100,6 +100,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Entreprise de produits ou de services : le stock (suivi, inventaire, dépôts, valeur, alertes) s'active d'un clic, ou dès l'inscription avec le secteur Commerce ; une entreprise de services n'en voit rien"),
       m("Plusieurs dépôts (boutique, entrepôt…) : stock par dépôt, transferts entre dépôts avec historique, inventaire dépôt par dépôt ; le dépôt principal reçoit les ventes et achats de vos documents"),
       m("Valeur du stock au coût moyen pondéré, mis à jour à chaque achat, et écriture de variation de stock en un clic dans la comptabilité (inventaire intermittent SYSCOHADA)"),
+      m("Annuler une facture, un ticket de vente ou une facture fournisseur défait vraiment l'opération : écritures comptables contre-passées et articles remis en stock (ou retirés), sans toucher aux règlements déjà reçus"),
       m("Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe"),
       m("Achats : fiches fournisseurs et bons de commande d'achat, convertibles directement en facture fournisseur"),
       m("Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique"),

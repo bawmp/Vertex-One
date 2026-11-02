@@ -2850,9 +2850,13 @@ export const ecritureComptable = pgTable(
     // du même journalManuel par cet id, jamais réutilisable pour tracer une
     // origine différente.
     journalManuelId: text("journal_manuel_id"),
+    // Contre-passation (2026-11-02) : cette ligne annule exactement la ligne d'origine dont elle porte l'identifiant (débit et crédit
+    // inversés). Une ligne d'origine ne peut être contre-passée qu'une fois (index unique), jamais une contre-passation elle-même.
+    contrepasseId: text("contrepasse_id"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("ecriture_comptable_contrepasse_unique").on(table.contrepasseId).where(sql`${table.contrepasseId} IS NOT NULL`),
     index("ecriture_comptable_entreprise_idx").on(table.entrepriseId),
     index("ecriture_comptable_compte_idx").on(table.compteId),
     pgPolicy("isolation_entreprise", {

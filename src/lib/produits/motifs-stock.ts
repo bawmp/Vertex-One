@@ -21,3 +21,8 @@ export const MOTIFS_RETRAIT = {
 export const MOTIFS_INVENTAIRE = {
   INVENTAIRE: m("Inventaire physique"),
 } as const;
+
+/** Motifs posés par le produit lui-même (jamais proposés à la saisie) : affichés dans l'historique d'un produit. */
+export const MOTIFS_AUTOMATIQUES = {
+  ANNULATION: m("Document annulé"),
+} as const;

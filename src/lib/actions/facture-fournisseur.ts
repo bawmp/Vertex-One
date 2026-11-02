@@ -10,7 +10,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererEcrituresFactureFournisseur, genererEcrituresPaiementEffectue } from "@/lib/comptabilite/ecritures";
-import { incrementerStockAchat } from "@/lib/produits/stock";
+import { defaireMouvementsDocument, incrementerStockAchat } from "@/lib/produits/stock";
+import { contrePasserEcritures, ecrituresDeLaFactureFournisseur } from "@/lib/comptabilite/contre-passation";
 
 const CHEMIN = "/app/achats";
 
@@ -174,6 +175,9 @@ export async function annulerFactureFournisseur(factureFournisseurId: string, mo
     });
 
     await tx.update(factureFournisseur).set({ statut: "ANNULEE" }).where(eq(factureFournisseur.id, factureFournisseurId));
+    // Annuler défait vraiment l'achat : écritures contre-passées (sauf les paiements déjà effectués) et articles retirés du stock.
+    await contrePasserEcritures(tx, utilisateurConnecte.entrepriseId, ecrituresDeLaFactureFournisseur(factureFournisseurId), `Facture fournisseur ${laFacture.numero}`);
+    await defaireMouvementsDocument(tx, utilisateurConnecte.entrepriseId, "FACTURE_FOURNISSEUR", factureFournisseurId, utilisateurConnecte.utilisateurId);
   });
 
   revalidatePath(CHEMIN);

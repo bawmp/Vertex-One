@@ -19,7 +19,7 @@ import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
 import { TransfertStock } from "./transfert-stock";
 import { niveauStock } from "@/lib/produits/niveau-stock";
-import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE } from "@/lib/produits/motifs-stock";
+import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE, MOTIFS_AUTOMATIQUES } from "@/lib/produits/motifs-stock";
 import { getT } from "@/lib/i18n/langue";
 
 // Fiche détail Produit (échange du 2026-09-08, comparaison avec la fiche
@@ -215,7 +215,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
                         const Icone = mv.type === "TRANSFERT_SORTIE" || mv.type === "TRANSFERT_ENTREE" ? ArrowRightLeft : mv.type === "VENTE" ? ShoppingCart : mv.type === "ACHAT" ? Truck : mv.type === "AJOUT" ? ArrowDownToLine : mv.type === "RETRAIT" ? ArrowUpFromLine : mv.type === "INVENTAIRE" ? ClipboardCheck : Flag;
                         const titre =
                           mv.type === "VENTE" ? t("Vente") : mv.type === "ACHAT" ? t("Achat reçu") : mv.type === "AJOUT" ? t("Entrée de stock") : mv.type === "RETRAIT" ? t("Sortie de stock") : mv.type === "INVENTAIRE" ? t("Inventaire") : mv.type === "TRANSFERT_SORTIE" ? t("Transfert (sortie)") : mv.type === "TRANSFERT_ENTREE" ? t("Transfert (entrée)") : t("Stock de départ");
-                        const motifs: Record<string, string> = { ...MOTIFS_AJOUT, ...MOTIFS_RETRAIT, ...MOTIFS_INVENTAIRE };
+                        const motifs: Record<string, string> = { ...MOTIFS_AJOUT, ...MOTIFS_RETRAIT, ...MOTIFS_INVENTAIRE, ...MOTIFS_AUTOMATIQUES };
                         const detail = [depotsActifs.length > 1 && mv.depotId ? nomsDepots.get(mv.depotId) : null, mv.motif && motifs[mv.motif] ? t(motifs[mv.motif]) : null, mv.note, mv.creeParId ? nomsAuteurs.get(mv.creeParId) : null].filter(Boolean).join(" · ");
                         const lien = mv.documentType === "FACTURE" && mv.documentId ? `/app/facturation/factures/${mv.documentId}` : mv.documentType === "FACTURE_FOURNISSEUR" ? "/app/achats#factures-fournisseurs" : mv.documentType === "RECU_VENTE" ? "/app/facturation#tickets-de-vente" : null;
                         return (

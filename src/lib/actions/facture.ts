@@ -22,6 +22,8 @@ import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/l
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { lienEmail } from "@/lib/email/lien";
 import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
+import { contrePasserEcritures, ecrituresDeLaFacture } from "@/lib/comptabilite/contre-passation";
+import { defaireMouvementsDocument } from "@/lib/produits/stock";
 import { getT } from "@/lib/i18n/langue";
 
 function urlBase(): string {
@@ -111,6 +113,9 @@ export async function annulerFacture(factureId: string, motif: string) {
     });
 
     await tx.update(facture).set({ statut: "ANNULEE" }).where(eq(facture.id, factureId));
+    // Annuler défait vraiment la vente : écritures contre-passées (sauf les règlements déjà reçus) et articles remis en stock.
+    await contrePasserEcritures(tx, utilisateurConnecte.entrepriseId, ecrituresDeLaFacture(factureId), `Facture ${laFacture.numero}`);
+    await defaireMouvementsDocument(tx, utilisateurConnecte.entrepriseId, "FACTURE", factureId, utilisateurConnecte.utilisateurId);
     await resoudrePromessesFacture(tx, utilisateurConnecte.entrepriseId, factureId); // une facture annulée annule sa promesse
   });
 

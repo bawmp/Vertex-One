@@ -14,6 +14,8 @@ import { genererEcrituresRecuVente } from "@/lib/comptabilite/ecritures";
 import { decrementerStockVente } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { getT } from "@/lib/i18n/langue";
+import { contrePasserEcritures, ecrituresDuTicket } from "@/lib/comptabilite/contre-passation";
+import { defaireMouvementsDocument } from "@/lib/produits/stock";
 import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/facturation";
@@ -147,12 +149,17 @@ export async function annulerRecuVente(recuVenteId: string) {
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    tx
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const annules = await tx
       .update(recuVente)
       .set({ statut: "ANNULE" })
       .where(and(eq(recuVente.id, recuVenteId), eq(recuVente.statut, "EMISE")))
-  );
+      .returning({ id: recuVente.id, numero: recuVente.numero });
+    if (annules.length === 0) return;
+    // Annuler défait vraiment la vente : écritures contre-passées (remboursement de la trésorerie) et articles remis en stock.
+    await contrePasserEcritures(tx, utilisateurConnecte.entrepriseId, ecrituresDuTicket(recuVenteId), `Ticket ${annules[0].numero}`);
+    await defaireMouvementsDocument(tx, utilisateurConnecte.entrepriseId, "RECU_VENTE", recuVenteId, utilisateurConnecte.utilisateurId);
+  });
 
   revalidatePath(CHEMIN);
 }

@@ -198,3 +198,63 @@ export async function definirSeuilAlerte(tx: TransactionDrizzle, entrepriseId: s
   if (modifies.length === 0) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
   return { ok: true, seuil };
 }
+
+export type TypeDocumentStock = "FACTURE" | "RECU_VENTE" | "FACTURE_FOURNISSEUR";
+
+/**
+ * Annulation d'un document (2026-11-02) : défait les mouvements de stock qu'il avait provoqués. Une vente annulée REMET les articles
+ * en stock (dans le dépôt d'où ils étaient sortis) ; un achat annulé les RETIRE. Chaque produit n'est repris qu'une fois par document
+ * (une ligne « Document annulé » dans l'historique le prouve), donc annuler deux fois ne change rien. Le stock se corrige par un
+ * `UPDATE` atomique, comme les ventes. Un document d'avant l'historique du stock (aucun mouvement enregistré) ne touche à rien.
+ * Le coût moyen n'est pas recalculé : approximation assumée.
+ */
+export async function defaireMouvementsDocument(tx: TransactionDrizzle, entrepriseId: string, documentType: TypeDocumentStock, documentId: string, utilisateurId: string | null): Promise<number> {
+  const mouvements = await tx
+    .select()
+    .from(mouvementStock)
+    .where(and(eq(mouvementStock.entrepriseId, entrepriseId), eq(mouvementStock.documentType, documentType), eq(mouvementStock.documentId, documentId)));
+  const originaux = mouvements.filter((mv) => mv.motif !== "ANNULATION" && (mv.type === "VENTE" || mv.type === "ACHAT"));
+  if (originaux.length === 0) return 0;
+  // Une annulation reprend TOUS les dépôts d'un produit d'un coup : un produit qui porte déjà une ligne « Document annulé » est défait.
+  const dejaDefaits = new Set(mouvements.filter((mv) => mv.motif === "ANNULATION").map((mv) => mv.produitId));
+
+  const groupes = new Map<string, { produitId: string; depotId: string | null; quantite: number; type: "VENTE" | "ACHAT" }>();
+  for (const mv of originaux) {
+    const cle = `${mv.produitId}|${mv.depotId ?? ""}`;
+    if (dejaDefaits.has(mv.produitId)) continue;
+    const g = groupes.get(cle) ?? { produitId: mv.produitId, depotId: mv.depotId, quantite: 0, type: mv.type as "VENTE" | "ACHAT" };
+    g.quantite += mv.quantite;
+    groupes.set(cle, g);
+  }
+  if (groupes.size === 0) return 0;
+
+  const principal = await assurerDepotPrincipal(tx, entrepriseId);
+  let defaits = 0;
+  for (const g of groupes.values()) {
+    const delta = -g.quantite; // une vente (−4) revient en stock (+4), un achat (+5) en ressort (−5)
+    if (delta === 0) continue;
+    const [p] = await tx.select({ suivi: produit.suiviStock }).from(produit).where(and(eq(produit.id, g.produitId), eq(produit.entrepriseId, entrepriseId)));
+    if (!p?.suivi) continue;
+    const [apres] = await tx
+      .update(produit)
+      .set({ stockActuel: sql`${produit.stockActuel} + ${delta}` })
+      .where(eq(produit.id, g.produitId))
+      .returning({ stockActuel: produit.stockActuel });
+    const depotId = g.depotId ?? principal.id;
+    await deplacerStockDepot(tx, entrepriseId, g.produitId, depotId, delta);
+    await tx.insert(mouvementStock).values({
+      entrepriseId,
+      produitId: g.produitId,
+      type: delta > 0 ? "AJOUT" : "RETRAIT",
+      quantite: delta,
+      stockApres: apres.stockActuel,
+      motif: "ANNULATION",
+      depotId: g.depotId ?? principal.id,
+      documentType,
+      documentId,
+      creeParId: utilisateurId,
+    });
+    defaits++;
+  }
+  return defaits;
+}

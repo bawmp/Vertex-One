@@ -169,4 +169,5 @@ export const STOCK: Record<string, string> = {
   "La gestion de stock n'est pas activée pour votre entreprise : activez-la dans Paramètres → Entreprise.": "Stock management is not turned on for your company: turn it on in Settings → Company.",
   "Le stock de certains produits est encore suivi : on ne peut pas désactiver la gestion de stock.": "Some products still have their stock tracked: stock management cannot be turned off.",
   "Entreprise introuvable.": "Company not found.",
+  "Document annulé": "Document cancelled",
 };
