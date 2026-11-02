@@ -186,6 +186,7 @@ const MODULES_MENU: ItemMenu[] = [
           { libelle: m("Balance"), href: "/app/comptabilite/livres?vue=balance", Icone: Scale, module: "COMPTABILITE" },
           { libelle: m("Journaux par période"), href: "/app/comptabilite/livres?vue=journaux", Icone: BookCopy, module: "COMPTABILITE" },
           { libelle: m("Journaux manuels"), href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
+          { libelle: m("Régularisations"), href: "/app/comptabilite/regularisations", Icone: CalendarClock, module: "COMPTABILITE" },
           { libelle: m("États financiers"), href: "/app/comptabilite/etats", Icone: FileSpreadsheet, module: "COMPTABILITE" },
           { libelle: m("Clients et fournisseurs"), href: "/app/comptabilite/tiers", Icone: Users2, module: "COMPTABILITE" },
           { libelle: m("Déclaration de TVA"), href: "/app/comptabilite/tva", Icone: Percent, module: "COMPTABILITE" },

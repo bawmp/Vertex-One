@@ -16,6 +16,7 @@ export const MENU: Record<string, string> = {
   "Rapprochement bancaire": "Bank reconciliation",
   Journal: "Journal",
   "Journaux manuels": "Manual journals",
+  "Régularisations": "Year-end adjustments",
   "Grand livre": "General ledger",
   "Déclaration de TVA": "VAT return",
   "Clients et fournisseurs": "Customers and suppliers",
