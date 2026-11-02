@@ -141,7 +141,6 @@ export const VENTES: Record<string, string> = {
   Paiements: "Payments",
   "Paiement en ligne disponible à partir du forfait Pro — en attendant, pointez le règlement manuellement.": "Online payment is available from the Pro plan — in the meantime, record the payment manually.",
   "Marquer comme payée": "Mark as paid",
-  "Annuler (avoir)": "Cancel (credit note)",
   "Aucun devis.": "No quotes.",
   "Aucune facture.": "No invoices.",
   "Aucun bon de commande.": "No purchase orders.",
