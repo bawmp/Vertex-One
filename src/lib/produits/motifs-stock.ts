@@ -25,4 +25,5 @@ export const MOTIFS_INVENTAIRE = {
 /** Motifs posés par le produit lui-même (jamais proposés à la saisie) : affichés dans l'historique d'un produit. */
 export const MOTIFS_AUTOMATIQUES = {
   ANNULATION: m("Document annulé"),
+  FIN_SUIVI: m("Fin du suivi du stock"),
 } as const;

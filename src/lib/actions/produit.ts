@@ -8,7 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { produit, mouvementStock } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
-import { activerSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
+import { activerSuiviStock, arreterSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
@@ -290,4 +290,21 @@ export async function definirSeuilAlerteProduit(produitId: string, _etat: EtatSt
   revalidatePath(`/app/produits/${produitId}`);
   revalidatePath("/app/produits");
   return { message: resultat.seuil === null ? t("L'alerte de stock bas est retirée.") : t("Alerte enregistrée : vous serez prévenu à {n} ou moins.", { n: resultat.seuil }) };
+}
+
+/** Arrête le suivi du stock d'un produit : ce qui restait sort du suivi (ligne « Fin du suivi » par dépôt). Réservé à qui modifie les produits. */
+export async function arreterSuiviStockProduit(produitId: string): Promise<EtatStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier le stock.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) =>
+    (await gestionStockActive(tx, utilisateurConnecte.entrepriseId)) ? arreterSuiviStock(tx, utilisateurConnecte.entrepriseId, produitId, utilisateurConnecte.utilisateurId) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)
+  );
+  if (!resultat.ok) return { erreur: t(resultat.erreur) };
+
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  return { message: t("Le suivi du stock est arrêté pour ce produit.") };
 }

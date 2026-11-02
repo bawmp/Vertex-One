@@ -101,6 +101,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Plusieurs dépôts (boutique, entrepôt…) : stock par dépôt, transferts entre dépôts avec historique, inventaire dépôt par dépôt ; le dépôt principal reçoit les ventes et achats de vos documents"),
       m("Valeur du stock au coût moyen pondéré, mis à jour à chaque achat, et écriture de variation de stock en un clic dans la comptabilité (inventaire intermittent SYSCOHADA)"),
       m("Annuler une facture, un ticket de vente ou une facture fournisseur défait vraiment l'opération : écritures comptables contre-passées et articles remis en stock (ou retirés), sans toucher aux règlements déjà reçus"),
+      m("Option « interdire la vente en rupture » : un ticket de vente ou une commande est refusé avec un message clair si le dépôt n'a pas assez d'un produit ; et vous pouvez arrêter le suivi du stock d'un produit à tout moment"),
       m("Choisissez le dépôt sur chaque devis, commande, ticket de vente ou achat : le stock sort du bon dépôt (ou y entre), et revient au même endroit en cas d'annulation ou de retour"),
       m("Avoirs partiels et retours de marchandises : créditez seulement certaines lignes d'une facture, choisissez de remettre ou non les articles en stock ; le montant restant dû et la comptabilité suivent automatiquement"),
       m("Alerte de stock bas : fixez un seuil par produit, la liste signale ceux à réapprovisionner (stock bas ou épuisé) et un filtre les regroupe"),

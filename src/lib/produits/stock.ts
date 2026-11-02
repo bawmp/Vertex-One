@@ -2,6 +2,7 @@ import { sql, inArray, eq, and } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { depot, produit, mouvementStock, stockDepot } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot, resoudreDepotDocument, resorberEcart } from "./depots";
+import { blocageRuptureActif } from "./gestion-stock";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 
@@ -287,4 +288,58 @@ export async function entrerStockDocument(tx: TransactionDrizzle, entrepriseId: 
     documentId: document.id,
     creeParId: document.utilisateurId,
   });
+}
+
+export type StockInsuffisant = { cle: string; valeurs: Record<string, string | number> };
+export const MESSAGE_STOCK_INSUFFISANT = m("Stock insuffisant pour « {produit} » dans le dépôt « {depot} » : {disponible} disponible(s), {demande} demandé(s).");
+
+/**
+ * Interdire la vente en rupture (priorité 1.4, 2026-11-02) : quand l'entreprise l'a choisi, vérifie avant une vente que le dépôt visé
+ * (le principal par défaut) contient assez de chaque produit SUIVI. Les produits non suivis et les services ne sont jamais bloqués. Sans
+ * le réglage, rien n'est vérifié (stock négatif toléré, comme avant). Renvoie le premier manque trouvé, ou null.
+ */
+export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], depotId?: string | null): Promise<StockInsuffisant | null> {
+  if (!(await blocageRuptureActif(tx, entrepriseId))) return null;
+  const demandes = new Map<string, number>();
+  for (const l of lignes) if (l.produitId) demandes.set(l.produitId, (demandes.get(l.produitId) ?? 0) + l.quantite);
+  if (demandes.size === 0) return null;
+
+  const depotCible = await resoudreDepotDocument(tx, entrepriseId, depotId);
+  const [monDepot] = await tx.select({ nom: depot.nom }).from(depot).where(eq(depot.id, depotCible));
+  const produits = await tx.select({ id: produit.id, nom: produit.nom }).from(produit).where(and(inArray(produit.id, [...demandes.keys()]), eq(produit.entrepriseId, entrepriseId), eq(produit.suiviStock, true)));
+  for (const p of produits) {
+    await resorberEcart(tx, entrepriseId, p.id);
+    const [ligne] = await tx.select({ quantite: stockDepot.quantite }).from(stockDepot).where(and(eq(stockDepot.produitId, p.id), eq(stockDepot.depotId, depotCible)));
+    const disponible = ligne?.quantite ?? 0;
+    const demande = demandes.get(p.id)!;
+    if (demande > disponible) return { cle: MESSAGE_STOCK_INSUFFISANT, valeurs: { produit: p.nom, depot: monDepot?.nom ?? "", disponible: Math.max(disponible, 0), demande } };
+  }
+  return null;
+}
+
+/**
+ * Arrête le suivi du stock d'un produit (priorité 1.5, 2026-11-02). Ce qui restait en stock SORT du suivi par une ligne « Fin du suivi »
+ * par dépôt (le stock tombe à zéro, l'historique reste lisible), le produit n'est plus suivi, son seuil d'alerte est retiré. Les ventes
+ * et achats suivants ne le touchent plus. Réversible : réactiver le suivi repart d'un stock de départ saisi.
+ */
+export async function arreterSuiviStock(tx: TransactionDrizzle, entrepriseId: string, produitId: string, utilisateurId: string): Promise<{ ok: true; retires: number } | { ok: false; erreur: string }> {
+  const [p] = await tx
+    .select({ id: produit.id, type: produit.type, suivi: produit.suiviStock, stock: produit.stockActuel })
+    .from(produit)
+    .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)))
+    .for("update");
+  if (!p) return { ok: false, erreur: m("Produit introuvable.") };
+  if (p.type !== "BIEN" || !p.suivi) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
+
+  await resorberEcart(tx, entrepriseId, produitId);
+  const parDepot = await tx.select({ depotId: stockDepot.depotId, quantite: stockDepot.quantite }).from(stockDepot).where(eq(stockDepot.produitId, produitId));
+  let reste = p.stock;
+  for (const d of parDepot) {
+    if (d.quantite === 0) continue;
+    reste -= d.quantite;
+    await tx.insert(mouvementStock).values({ entrepriseId, produitId, type: "RETRAIT", quantite: -d.quantite, stockApres: reste, motif: "FIN_SUIVI", depotId: d.depotId, creeParId: utilisateurId });
+  }
+  await tx.delete(stockDepot).where(eq(stockDepot.produitId, produitId));
+  await tx.update(produit).set({ suiviStock: false, stockActuel: 0, seuilAlerte: null }).where(eq(produit.id, produitId));
+  return { ok: true, retires: p.stock };
 }

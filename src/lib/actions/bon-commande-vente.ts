@@ -12,7 +12,7 @@ import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroBonCommandeVente, genererNumeroFacture } from "@/lib/facturation/numerotation";
 import { appliquerAcomptesSurFacture } from "@/lib/facturation/acompte";
 import { genererEcrituresFactureEmise } from "@/lib/comptabilite/ecritures";
-import { decrementerStockVente } from "@/lib/produits/stock";
+import { decrementerStockVente, verifierStockSuffisant } from "@/lib/produits/stock";
 import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
@@ -128,18 +128,25 @@ export async function creerBonCommandeVente(_etat: EtatBonCommandeVente, formDat
  * toute Facture émise. Un Bon de commande déjà converti ou annulé ne peut
  * pas être reconverti.
  */
-export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: string) {
+export type EtatConversionBCV = { erreur?: string } | null;
+
+export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: string): Promise<EtatConversionBCV> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return null;
 
-  const dealId = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leBCV] = await tx.select().from(bonCommandeVente).where(eq(bonCommandeVente.id, bonCommandeVenteId));
     if (!leBCV || leBCV.statut !== "BROUILLON") return null;
 
     if (!leBCV.contactId) return null; // intégrité référentielle violée — ne devrait jamais arriver
 
     const lignesBCV = await tx.select().from(ligneBonCommandeVente).where(eq(ligneBonCommandeVente.bonCommandeVenteId, bonCommandeVenteId));
+
+    // « Interdire la vente en rupture » : la conversion crée la facture et sort le stock, donc elle est refusée si le dépôt n'en a pas assez.
+    const manque = await verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignesBCV, leBCV.depotId);
+    if (manque) return { manque };
 
     const numero = await genererNumeroFacture(tx, utilisateurConnecte.entrepriseId);
     const dateEcheance = new Date();
@@ -196,8 +203,12 @@ export async function convertirBonCommandeVenteEnFacture(bonCommandeVenteId: str
     return leBCV.dealId;
   });
 
+  if (resultat && typeof resultat === "object") return { erreur: t(resultat.manque.cle, resultat.manque.valeurs) };
+  const dealId = resultat;
+
   revalidatePath(CHEMIN);
   if (dealId) revalidatePath(`/app/deals/${dealId}`);
+  return null;
 }
 
 export async function annulerBonCommandeVente(bonCommandeVenteId: string) {

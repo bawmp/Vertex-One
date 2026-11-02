@@ -18,6 +18,7 @@ import { FormulaireModifierProduit } from "./formulaire-modifier-produit";
 import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
 import { TransfertStock } from "./transfert-stock";
+import { ArreterSuivi } from "./arreter-suivi";
 import { niveauStock } from "@/lib/produits/niveau-stock";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT, MOTIFS_INVENTAIRE, MOTIFS_AUTOMATIQUES } from "@/lib/produits/motifs-stock";
 import { getT } from "@/lib/i18n/langue";
@@ -202,6 +203,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, principal: d.principal, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
+            {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}
 
             {leProduit.suiviStock ? (
               <div className="flex flex-col gap-2">

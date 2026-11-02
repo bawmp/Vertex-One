@@ -103,6 +103,9 @@ export const entreprise = pgTable("entreprise", {
   // Entreprise de produits (2026-11-02) : active le stock (suivi par produit, historique, inventaire, dépôts, valeur, alertes). Une entreprise
   // de services n'en voit rien. Choisie à l'inscription (secteur « Commerce ») ou dans Paramètres → Entreprise.
   gereStock: boolean("gere_stock").notNull().default(false),
+  // Interdire la vente en rupture (priorité 1.4, 2026-11-02) : refuse un ticket de vente, une conversion de commande ou une acceptation de
+  // devis par l'équipe quand le dépôt concerné n'a pas assez d'un produit suivi. Faux = stock négatif toléré, comme avant.
+  bloquerVenteRupture: boolean("bloquer_vente_rupture").notNull().default(false),
   // Groupe (2026-09-15) — lien organisationnel optionnel vers d'autres
   // entreprises, aucun partage de données (voir le commentaire sur `groupe`).
   groupeId: text("groupe_id").references(() => groupe.id),

@@ -69,7 +69,7 @@ export default async function PageInfosLegales() {
           <CardDescription>{t("Vendez-vous des produits que vous stockez ? Sinon, laissez désactivé.")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <CarteGestionStock active={monEntreprise.gereStock} />
+          <CarteGestionStock active={monEntreprise.gereStock} bloquerRupture={monEntreprise.bloquerVenteRupture} />
         </CardContent>
       </Card>
 

@@ -9,8 +9,8 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 - [x] **P1.1 Annuler une facture, un ticket de vente ou une facture fournisseur remet le stock et contre-passe les écritures** (M). Avant : le statut passait à « annulée », mais le stock et la comptabilité restaient comme si la vente avait eu lieu.
 - [x] **P1.2 Avoirs partiels et retours de marchandises** (L) : un avoir sur certaines lignes seulement, avec choix de remettre ou non les articles en stock (un article cassé ne se remet pas en stock).
 - [x] **P1.3 Choix du dépôt sur chaque document** (M) : devis accepté, facture, ticket, bon de commande, facture fournisseur. Aujourd'hui toujours le dépôt principal.
-- [ ] **P1.4 Option « interdire la vente en rupture »** (S) : réglage par entreprise ; sinon le stock négatif reste toléré comme aujourd'hui.
-- [ ] **P1.5 Arrêter le suivi du stock d'un produit** (S), ce qui permet aussi de désactiver la gestion de stock après coup.
+- [x] **P1.4 Option « interdire la vente en rupture »** (S) : réglage par entreprise ; sinon le stock négatif reste toléré comme aujourd'hui.
+- [x] **P1.5 Arrêter le suivi du stock d'un produit** (S), ce qui permet aussi de désactiver la gestion de stock après coup.
 
 ## Priorité 2 — Comptabilité qu'un comptable attend
 

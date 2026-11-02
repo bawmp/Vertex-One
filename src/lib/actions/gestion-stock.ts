@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { modifierGestionStock } from "@/lib/produits/gestion-stock";
+import { modifierBlocageRupture, modifierGestionStock } from "@/lib/produits/gestion-stock";
 import { getT } from "@/lib/i18n/langue";
 
 export type EtatGestionStock = { erreur?: string; message?: string } | null;
@@ -22,4 +22,18 @@ export async function changerGestionStock(activer: boolean): Promise<EtatGestion
 
   revalidatePath("/app", "layout");
   return { message: resultat.active ? t("Gestion de stock activée : suivez le stock de vos produits depuis leur fiche.") : t("Gestion de stock désactivée.") };
+}
+
+/** Active ou désactive l'interdiction de vendre en rupture (Paramètres → Entreprise). Même droit que le réglage du stock. */
+export async function changerBlocageRupture(bloquer: boolean): Promise<EtatGestionStock> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) return { erreur: t("Seul un Administrateur peut modifier ces informations.") };
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => modifierBlocageRupture(tx, utilisateurConnecte.entrepriseId, bloquer === true));
+  if (!resultat.ok) return { erreur: t(resultat.erreur) };
+
+  revalidatePath("/app", "layout");
+  return { message: resultat.bloquer ? t("Les ventes en rupture de stock sont désormais refusées.") : t("Les ventes en rupture de stock sont de nouveau tolérées (stock négatif).") };
 }

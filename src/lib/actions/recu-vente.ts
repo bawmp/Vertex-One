@@ -16,7 +16,7 @@ import { resoudreClientVente } from "@/lib/facturation/client-document";
 import { verifierDepotDocument } from "@/lib/produits/depots";
 import { getT } from "@/lib/i18n/langue";
 import { contrePasserEcritures, ecrituresDuTicket } from "@/lib/comptabilite/contre-passation";
-import { defaireMouvementsDocument } from "@/lib/produits/stock";
+import { defaireMouvementsDocument, verifierStockSuffisant } from "@/lib/produits/stock";
 import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/facturation";
@@ -74,6 +74,10 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
   }
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
+
+  // « Interdire la vente en rupture » : refus clair AVANT toute écriture quand le dépôt n'a pas assez d'un produit suivi.
+  const manque = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignes, depotChoisi));
+  if (manque) return { erreur: t(manque.cle, manque.valeurs) };
 
   const [nouveauRecu] = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));

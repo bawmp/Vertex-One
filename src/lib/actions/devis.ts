@@ -23,6 +23,7 @@ import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/lie
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import { lienEmail } from "@/lib/email/lien";
 import { verifierDepotDocument } from "@/lib/produits/depots";
+import { verifierStockSuffisant } from "@/lib/produits/stock";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -139,14 +140,24 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
  * transaction que l'insertion — un échec de l'insertion annule aussi
  * l'incrémentation du compteur, donc jamais de trou dans la séquence.
  */
-export async function accepterDevis(devisId: string) {
+export type EtatAccepterDevis = { erreur?: string } | null;
+
+export async function accepterDevis(devisId: string): Promise<EtatAccepterDevis> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return;
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return null;
 
-  const idFactureCreee = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    return accepterDevisEtCreerFacture(tx, utilisateurConnecte.entrepriseId, devisId);
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // « Interdire la vente en rupture » : l'acceptation par l'équipe crée la facture et sort le stock, donc elle est refusée si le dépôt n'en a pas assez.
+    const [leDevis] = await tx.select({ depotId: devis.depotId }).from(devis).where(eq(devis.id, devisId));
+    const lignesDuDevis = await tx.select({ produitId: ligneDevis.produitId, quantite: ligneDevis.quantite }).from(ligneDevis).where(eq(ligneDevis.devisId, devisId));
+    const manque = await verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignesDuDevis, leDevis?.depotId);
+    if (manque) return { manque, idFacture: null };
+    return { manque: null, idFacture: await accepterDevisEtCreerFacture(tx, utilisateurConnecte.entrepriseId, devisId) };
   });
+  if (resultat.manque) return { erreur: t(resultat.manque.cle, resultat.manque.valeurs) };
+  const idFactureCreee = resultat.idFacture;
 
   revalidatePath(`/app/facturation/devis/${devisId}`);
   revalidatePath("/app/facturation");
@@ -154,6 +165,7 @@ export async function accepterDevis(devisId: string) {
   revalidatePath("/app");
 
   if (idFactureCreee) redirect(`/app/facturation/factures/${idFactureCreee}`);
+  return null;
 }
 
 export type EtatEnvoiDevis = { erreur?: string; envoye?: boolean } | null;

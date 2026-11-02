@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { statutDevisAffiche } from "@/lib/libelles";
-import { accepterDevis } from "@/lib/actions/devis";
+import { BoutonAccepterDevis } from "./bouton-accepter-devis";
 import { FormulaireEnvoiDevis } from "./formulaire-envoi-devis";
 import { BoutonSupprimerDevis } from "../../bouton-supprimer-devis";
 import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-message-client";
@@ -154,12 +154,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
             />
           ) : null}
           {leDevis.statut === "ENVOYE" ? (
-            <form action={accepterDevis.bind(null, leDevis.id)}>
-              <Button type="submit">
-                {t("Marquer accepté")}
-                <ArrowRight data-icon="inline-end" aria-hidden />
-              </Button>
-            </form>
+            <BoutonAccepterDevis devisId={leDevis.id} />
           ) : null}
         </div>
       ) : null}

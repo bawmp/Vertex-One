@@ -32,3 +32,16 @@ export async function modifierGestionStock(tx: TransactionDrizzle, entrepriseId:
   const modifies = await tx.update(entreprise).set({ gereStock: activer }).where(eq(entreprise.id, entrepriseId)).returning({ id: entreprise.id });
   return modifies.length === 0 ? { ok: false, erreur: m("Entreprise introuvable.") } : { ok: true, active: activer };
 }
+
+/** Vrai quand l'entreprise gère le stock ET interdit la vente en rupture. */
+export async function blocageRuptureActif(tx: TransactionDrizzle, entrepriseId: string): Promise<boolean> {
+  const [e] = await tx.select({ gereStock: entreprise.gereStock, bloquer: entreprise.bloquerVenteRupture }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  return e?.gereStock === true && e.bloquer === true;
+}
+
+/** Active ou désactive l'interdiction de vendre en rupture (réservé aux entreprises de produits). */
+export async function modifierBlocageRupture(tx: TransactionDrizzle, entrepriseId: string, bloquer: boolean): Promise<{ ok: true; bloquer: boolean } | { ok: false; erreur: string }> {
+  if (!(await gestionStockActive(tx, entrepriseId))) return { ok: false, erreur: MESSAGE_STOCK_DESACTIVE };
+  await tx.update(entreprise).set({ bloquerVenteRupture: bloquer }).where(eq(entreprise.id, entrepriseId));
+  return { ok: true, bloquer };
+}
