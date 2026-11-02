@@ -1,7 +1,7 @@
 import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -182,6 +182,9 @@ const MODULES_MENU: ItemMenu[] = [
         categorie: "Comptable",
         liens: [
           { libelle: m("Journal"), href: "/app/comptabilite#journal", Icone: Calculator, module: "COMPTABILITE" },
+          { libelle: m("Grand livre"), href: "/app/comptabilite/livres?vue=grand-livre", Icone: BookMarked, module: "COMPTABILITE" },
+          { libelle: m("Balance"), href: "/app/comptabilite/livres?vue=balance", Icone: Scale, module: "COMPTABILITE" },
+          { libelle: m("Journaux par période"), href: "/app/comptabilite/livres?vue=journaux", Icone: BookCopy, module: "COMPTABILITE" },
           { libelle: m("Journaux manuels"), href: "/app/comptabilite/journaux-manuels", Icone: BookOpenText, module: "COMPTABILITE" },
           { libelle: m("Plan comptable"), href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
           { libelle: m("Budgets"), href: "/app/comptabilite/budgets", Icone: PiggyBank, module: "COMPTABILITE" },

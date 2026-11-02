@@ -60,6 +60,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Comptabilité : plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise":
     "Accounting: chart of accounts compliant with the SYSCOHADA framework (classes 1 to 8), balances calculated automatically per company",
   "Journaux manuels, rapprochement bancaire par import de relevé, et budgets comparés au réalisé par compte": "Manual journals, bank reconciliation by statement import, and budgets compared with actuals per account",
+  "Grand livre, balance générale et journaux par période (du ... au ...), avec solde reporté, contrôle d'équilibre et export CSV pour votre comptable":
+    "General ledger, trial balance and journals by period (from ... to ...), with brought-forward balance, balance check and CSV export for your accountant",
   "Verrouillage d'une période comptable une fois clôturée": "Locking of an accounting period once closed",
   "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé": "Accounting remains reserved for the Administrator — never visible to an ordinary employee",
 

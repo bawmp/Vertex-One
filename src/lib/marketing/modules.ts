@@ -102,6 +102,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Suivi des factures fournisseurs en retard, distinct du suivi des impayés clients ; une facture se marque payée ou s'annule en gardant l'historique"),
       m("Comptabilité : plan comptable conforme au référentiel SYSCOHADA (classes 1 à 8), soldes calculés automatiquement par entreprise"),
       m("Journaux manuels, rapprochement bancaire par import de relevé, et budgets comparés au réalisé par compte"),
+      m("Grand livre, balance générale et journaux par période (du ... au ...), avec solde reporté, contrôle d'équilibre et export CSV pour votre comptable"),
       m("Verrouillage d'une période comptable une fois clôturée"),
       m("La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé"),
     ],
