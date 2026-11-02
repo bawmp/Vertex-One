@@ -66,7 +66,7 @@ export default async function PageValorisation() {
           <Card>
             <div className="flex items-baseline justify-between gap-3 px-4 py-4">
               <span className="text-sm text-muted-foreground">{t("Valeur totale du stock")}</span>
-              <span className="text-3xl font-semibold tabular-nums">{formaterFCFA(valorisation.total)}</span>
+              <span className="text-2xl font-semibold tabular-nums sm:text-3xl">{formaterFCFA(valorisation.total)}</span>
             </div>
           </Card>
 

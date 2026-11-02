@@ -42,12 +42,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Package className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{t("Produits")}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {gereStock ? (
           <Button variant="outline" size="sm" render={<Link href="/app/produits/depots" />} nativeButton={false}>
             <Warehouse data-icon="inline-start" aria-hidden />
@@ -92,7 +92,7 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
             <div
               key={p.id}
               style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-              className="group/ligne relative flex animate-in fade-in items-start justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
+              className="group/ligne relative flex animate-in fade-in flex-col gap-2 overflow-hidden px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300 transition-colors hover:bg-muted/50"
             >
               <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
               <Link href={`/app/produits/${p.id}`} className="flex min-w-0 items-start gap-3 transition-transform duration-150 group-hover/ligne:translate-x-1">
@@ -105,8 +105,8 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-medium">{p.nom}</p>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="min-w-0 break-words font-medium">{p.nom}</p>
                     <Badge variant="neutral">{p.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
                     {gereStock && p.suiviStock ? <Badge variant={niveauStock(p) === "RUPTURE" ? "danger" : niveauStock(p) === "BAS" ? "warning" : "info"}>{niveauStock(p) === "RUPTURE" ? t("Épuisé") : niveauStock(p) === "BAS" ? t("Stock bas : {n}", { n: p.stockActuel }) : t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
                   </div>
@@ -117,8 +117,8 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
                   {p.description ? <p className="whitespace-pre-line text-xs text-muted-foreground">{p.description}</p> : null}
                 </div>
               </Link>
-              <div className="flex shrink-0 items-center gap-3">
-                <div className="text-right text-xs text-muted-foreground">
+              <div className="flex shrink-0 items-center justify-between gap-3 pl-12 sm:justify-end sm:pl-0">
+                <div className="text-left text-xs text-muted-foreground sm:text-right">
                   <p>{t("Vente : {prix}", { prix: formaterFCFA(p.prixVente) })}</p>
                   <p>{t("Achat : {prix}", { prix: formaterFCFA(p.prixAchat) })}</p>
                 </div>
