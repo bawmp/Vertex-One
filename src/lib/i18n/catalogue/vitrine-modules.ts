@@ -207,4 +207,5 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)": "Internal announcements feed, intranet style, with attachments (images, PDF, Word, Excel)",
   "Isolation stricte entre entreprises clientes": "Strict isolation between client companies",
   "Listes de prix par type de client (revendeurs, grossistes) : remise globale et prix fixes par produit, proposés automatiquement sur ses devis, commandes et reçus": "Price lists by customer type (resellers, wholesalers): an overall discount and fixed prices per product, suggested automatically on their quotes, orders and receipts",
+  "Numéros de série : un numéro par unité, repris automatiquement à la vente, et recherche d'un numéro pour retrouver le produit, son état et le document de vente": "Serial numbers: one number per unit, taken automatically at sale, and a number search to find the product, its status and the sales document",
 };

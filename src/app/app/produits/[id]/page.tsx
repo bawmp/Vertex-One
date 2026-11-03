@@ -19,6 +19,7 @@ import { AjusterStock } from "./ajuster-stock";
 import { SeuilAlerte } from "./seuil-alerte";
 import { ReapproProduit } from "./reappro-produit";
 import { LotsProduit } from "./lots-produit";
+import { SeriesProduit } from "./series-produit";
 import { UnitesProduit } from "./unites-produit";
 import { CodeBarresProduit } from "./code-barres-produit";
 import { CompositionKit } from "./composition-kit";
@@ -28,6 +29,7 @@ import { lireConditionnements } from "@/lib/produits/variantes";
 import { decomposerStock } from "@/lib/produits/variantes-regles";
 import { familleProduit } from "@/db/schema";
 import { lireLots } from "@/lib/produits/lots";
+import { lireSeriesProduit } from "@/lib/produits/series";
 import { TransfertStock } from "./transfert-stock";
 import { ArreterSuivi } from "./arreter-suivi";
 import { niveauStock } from "@/lib/produits/niveau-stock";
@@ -91,13 +93,14 @@ export default async function PageDetailProduit({ params, searchParams }: { para
     const commandesReservantes = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await commandesQuiReservent(tx, utilisateurConnecte.entrepriseId, id) : [];
     const conditionnements = leProduit.type === "BIEN" ? await lireConditionnements(tx, utilisateurConnecte.entrepriseId, id) : [];
     const [famille] = leProduit.familleId ? await tx.select({ id: familleProduit.id, nom: familleProduit.nom }).from(familleProduit).where(eq(familleProduit.id, leProduit.familleId)) : [];
+    const seriesEtat = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await lireSeriesProduit(tx, utilisateurConnecte.entrepriseId, id) : null;
     const lotsEtat = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await lireLots(tx, utilisateurConnecte.entrepriseId, id) : null;
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, seriesEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, seriesEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit } = donnees;
   const reserve = commandesReservantes.reduce((s, c) => s + c.quantite, 0);
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
@@ -268,6 +271,22 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             {peutModifier ? <CodeBarresProduit produitId={leProduit.id} codeActuel={leProduit.codeBarres} /> : null}
             {peutModifier && !leProduit.estKit ? <UnitesProduit produitId={leProduit.id} unite={leProduit.unite} conditionnements={conditionnements} /> : null}
             {peutModifier && leProduit.suiviStock && lotsEtat ? <LotsProduit produitId={leProduit.id} suiviLots={lotsEtat.suiviLots} lots={lotsEtat.lots} sansLot={lotsEtat.sansLot} /> : null}
+            {peutModifier && leProduit.suiviStock && seriesEtat ? (
+              <SeriesProduit
+                produitId={leProduit.id}
+                suiviSerie={seriesEtat.suiviSerie}
+                suiviLots={seriesEtat.suiviLots}
+                enStock={seriesEtat.enStock}
+                sansNumero={seriesEtat.sansNumero}
+                series={seriesEtat.series.map((x) => ({
+                  id: x.id,
+                  numero: x.numero,
+                  statut: x.statut,
+                  venduLe: x.venduLe ? x.venduLe.toLocaleDateString("fr-FR", { timeZone: "Africa/Douala" }) : null,
+                  lien: x.documentType === "FACTURE" && x.documentId ? `/app/facturation/factures/${x.documentId}` : x.documentType === "RECU_VENTE" ? "/app/facturation#tickets-de-vente" : null,
+                }))}
+              />
+            ) : null}
             {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}
 
             {leProduit.suiviStock ? (

@@ -34,6 +34,10 @@ export async function lireLots(tx: TransactionDrizzle, entrepriseId: string, pro
 
 /** Active ou coupe le suivi par lots d'un bien suivi en stock. Couper efface les lots (le stock, lui, ne change pas). */
 export async function definirSuiviLots(tx: TransactionDrizzle, entrepriseId: string, produitId: string, actif: boolean): Promise<ResultatLot> {
+  if (actif) {
+    const [p] = await tx.select({ suiviSerie: produit.suiviSerie }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)));
+    if (p?.suiviSerie) return { ok: false, erreur: m("Ce produit suit déjà ses numéros de série : désactivez-les avant d'activer le suivi par lots.") };
+  }
   const modifies = await tx
     .update(produit)
     .set({ suiviLots: actif })

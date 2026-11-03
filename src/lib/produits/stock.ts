@@ -6,6 +6,7 @@ import { blocageRuptureActif } from "./gestion-stock";
 import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 import { consommerLotsFEFO, effacerLots, harmoniserLots } from "./lots-sortie";
+import { effacerSeries, harmoniserSeries, restituerSeries, vendreSeries } from "./series-sortie";
 import { reservesParProduit, stockDisponible } from "./reservations";
 import { etendreKits } from "./kits-etendre";
 
@@ -51,13 +52,13 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
   if (quantitesParProduit.size === 0) return;
 
   const ids = [...quantitesParProduit.keys()];
-  const produitsSuivis = await tx.select({ id: produit.id, suiviLots: produit.suiviLots }).from(produit).where(and(inArray(produit.id, ids), eq(produit.suiviStock, true)));
+  const produitsSuivis = await tx.select({ id: produit.id, suiviLots: produit.suiviLots, suiviSerie: produit.suiviSerie }).from(produit).where(and(inArray(produit.id, ids), eq(produit.suiviStock, true)));
 
   if (produitsSuivis.length === 0) return;
   // Les documents (ventes, achats) touchent toujours le dépôt principal ; les transferts et corrections choisissent le leur.
   const depotCible = await resoudreDepotDocument(tx, entrepriseId, contexte?.depotId);
 
-  for (const { id, suiviLots } of produitsSuivis) {
+  for (const { id, suiviLots, suiviSerie } of produitsSuivis) {
     const quantite = quantitesParProduit.get(id)!;
     if (quantite === 0) continue;
     // Achat avec prix connu : le coût moyen se recalcule dans le MÊME UPDATE (valeurs d'avant), donc sans course entre deux achats.
@@ -77,6 +78,8 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
     await deplacerStockDepot(tx, entrepriseId, id, depotCible, sens * quantite);
     // Une vente sort d'abord les lots qui se périment le plus tôt (priorité 3.4).
     if (suiviLots && sens === -1) await consommerLotsFEFO(tx, entrepriseId, id, quantite);
+    // …et emporte les numéros de série en stock les plus anciens, rattachés au document de vente.
+    if (suiviSerie && sens === -1) await vendreSeries(tx, entrepriseId, id, quantite, { type: contexte?.documentType, id: contexte?.documentId });
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: id,
@@ -161,7 +164,10 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
   const stockApres = p.stockActuel + delta;
   await tx.update(produit).set({ stockActuel: stockApres }).where(eq(produit.id, p.id));
   await deplacerStockDepot(tx, entrepriseId, p.id, visee.id, delta);
-  if (delta < 0) await harmoniserLots(tx, entrepriseId, p.id);
+  if (delta < 0) {
+    await harmoniserLots(tx, entrepriseId, p.id);
+    await harmoniserSeries(tx, entrepriseId, p.id);
+  }
   await tx.insert(mouvementStock).values({
     entrepriseId,
     produitId: p.id,
@@ -254,7 +260,12 @@ export async function defaireMouvementsDocument(tx: TransactionDrizzle, entrepri
       .returning({ stockActuel: produit.stockActuel });
     const depotId = g.depotId ?? principal.id;
     await deplacerStockDepot(tx, entrepriseId, g.produitId, depotId, delta);
-    if (delta < 0) await harmoniserLots(tx, entrepriseId, g.produitId);
+    if (delta < 0) {
+      await harmoniserLots(tx, entrepriseId, g.produitId);
+      await harmoniserSeries(tx, entrepriseId, g.produitId);
+    }
+    // Une vente annulée remet en stock les numéros de série qu'elle avait emportés.
+    if (delta > 0 && g.type === "VENTE") await restituerSeries(tx, entrepriseId, g.produitId, documentType, documentId);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: g.produitId,
@@ -363,6 +374,7 @@ export async function arreterSuiviStock(tx: TransactionDrizzle, entrepriseId: st
   }
   await tx.delete(stockDepot).where(eq(stockDepot.produitId, produitId));
   await effacerLots(tx, entrepriseId, [produitId]);
-  await tx.update(produit).set({ suiviStock: false, stockActuel: 0, seuilAlerte: null, suiviLots: false }).where(eq(produit.id, produitId));
+  await effacerSeries(tx, entrepriseId, [produitId]);
+  await tx.update(produit).set({ suiviStock: false, stockActuel: 0, seuilAlerte: null, suiviLots: false, suiviSerie: false }).where(eq(produit.id, produitId));
   return { ok: true, retires: p.stock };
 }

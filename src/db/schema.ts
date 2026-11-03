@@ -3605,6 +3605,8 @@ export const produit = pgTable(
     stockCible: integer("stock_cible"),
     // Lots et dates de péremption (2026-11-02, priorité 3.4) : le stock du produit est découpé en lots (voir `lot_stock`).
     suiviLots: boolean("suivi_lots").notNull().default(false),
+    // Numéros de série (2026-11-03, priorité 3.4 suite) : chaque unité a son numéro, suivi de l'entrée à la vente. Exclusif avec le suivi par lots.
+    suiviSerie: boolean("suivi_serie").notNull().default(false),
     // Variantes et unités (2026-11-02, priorité 3.5) : la famille et le libellé de la variante (« M / Rouge »), l'unité de base (« pièce »,
     // « kg »). Le stock est toujours compté dans l'unité de base ; les conditionnements (carton de 12) ne servent qu'à saisir et à afficher.
     familleId: text("famille_id").references(() => familleProduit.id),
@@ -5525,6 +5527,39 @@ export const prixListe = pgTable(
   (table) => [
     uniqueIndex("prix_liste_unique").on(table.listeId, table.produitId),
     index("prix_liste_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Numéro de série d'une unité (2026-11-03) : EN_STOCK, VENDU (document de vente et date) ou RETIRE (casse, perte…). Une vente prend
+// automatiquement les plus anciens numéros en stock ; annuler la vente les remet en stock. Le numéro est normalisé (majuscules) et unique
+// pour un produit.
+export const numeroSerie = pgTable(
+  "numero_serie",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    numero: text("numero").notNull(),
+    statut: text("statut").notNull().default("EN_STOCK"),
+    entreLe: timestamp("entre_le").notNull().defaultNow(),
+    venduLe: timestamp("vendu_le"),
+    documentType: text("document_type"),
+    documentId: text("document_id"),
+  },
+  (table) => [
+    uniqueIndex("numero_serie_produit_numero_unique").on(table.produitId, table.numero),
+    index("numero_serie_entreprise_idx").on(table.entrepriseId),
+    index("numero_serie_produit_statut_idx").on(table.produitId, table.statut),
+    index("numero_serie_document_idx").on(table.documentId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
