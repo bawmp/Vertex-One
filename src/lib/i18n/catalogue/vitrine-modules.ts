@@ -103,6 +103,8 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Exchange rates: the equivalent of each invoice in another currency (euro, dollar…) on its issue date, plus a converter; accounting stays in CFA francs",
   "Exercice comptable décalé : début en juillet, avril… au choix (clôture, bilan, compte de résultat et dossier du comptable suivent les vraies dates)":
     "Shifted financial year: start in July, April… as you choose (closing, balance sheet, income statement and the accountant's file follow the real dates)",
+  "Suivi des déclarations de TVA mois par mois (échéance, statut, récépissé) et estimation de l'impôt sur les sociétés ; la télédéclaration se fait sur le portail de l'administration":
+    "Month-by-month VAT return tracking (deadline, status, receipt) and corporate income tax estimate; online filing is done on the tax authority's portal",
   "Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier": "Read-only access for your chartered accountant: they view the accounting and download its exports, seeing nothing else and changing nothing",
   "Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin": "Stock value on any past date and per warehouse, so you can close a financial year even weeks after it ended",
   "Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic": "Fixed asset register with straight-line depreciation and yearly depreciation charges posted to the books in one click",

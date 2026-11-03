@@ -5627,3 +5627,36 @@ export const tauxChange = pgTable(
     }),
   ]
 ).enableRLS();
+
+/**
+ * Suivi des déclarations fiscales (priorité 4.8) : pour chaque déclaration (TVA d'un mois, impôt sur les sociétés d'un exercice…),
+ * son échéance et où elle en est (à faire, déclarée, payée). Vertex One ne télédéclare pas : c'est un aide-mémoire daté, avec le
+ * montant et la référence du récépissé saisis par l'entreprise.
+ */
+export const declarationFiscale = pgTable(
+  "declaration_fiscale",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    type: text("type").notNull(), // TVA | IS | AUTRE
+    periode: text("periode").notNull(), // AAAA-MM (TVA) ou AAAA (impôt sur les sociétés)
+    echeance: text("echeance").notNull(), // AAAA-MM-JJ
+    statut: text("statut").notNull().default("A_FAIRE"), // A_FAIRE | DECLAREE | PAYEE
+    montant: integer("montant"),
+    reference: text("reference"),
+    declareeLe: timestamp("declaree_le"),
+    modifieParId: text("modifie_par_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("declaration_fiscale_periode_unique").on(table.entrepriseId, table.type, table.periode),
+    index("declaration_fiscale_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();

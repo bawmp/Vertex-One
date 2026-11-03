@@ -204,6 +204,7 @@ const MODULES_MENU: ItemMenu[] = [
           { libelle: m("États financiers"), href: "/app/comptabilite/etats", Icone: FileSpreadsheet, module: "COMPTABILITE" },
           { libelle: m("Clients et fournisseurs"), href: "/app/comptabilite/tiers", Icone: Users2, module: "COMPTABILITE" },
           { libelle: m("Déclaration de TVA"), href: "/app/comptabilite/tva", Icone: Percent, module: "COMPTABILITE" },
+          { libelle: m("Déclarations fiscales"), href: "/app/comptabilite/declarations", Icone: CalendarCheck, module: "COMPTABILITE" },
           { libelle: m("Plan comptable"), href: "/app/comptabilite/plan-comptable", Icone: BookText, module: "COMPTABILITE" },
           { libelle: m("Budgets"), href: "/app/comptabilite/budgets", Icone: PiggyBank, module: "COMPTABILITE" },
           { libelle: m("Comptabilité analytique"), href: "/app/comptabilite/analytique", Icone: Layers, module: "COMPTABILITE" },
