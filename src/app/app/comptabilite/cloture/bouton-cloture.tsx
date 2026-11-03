@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n/contexte";
 import { cloturerExerciceAction, type EtatCloture } from "@/lib/actions/cloture";
 
 /** Clôture en deux gestes : cocher la confirmation (la comptabilité sera verrouillée), puis cliquer. Les contrôles sont refaits côté serveur. */
-export function BoutonCloture({ annee, resultat }: { annee: number; resultat: string }) {
+export function BoutonCloture({ annee, resultat, fin }: { annee: number; resultat: string; fin: string }) {
   const t = useT();
   const [confirme, setConfirme] = useState(false);
   const [etat, setEtat] = useState<EtatCloture>(null);
@@ -27,7 +27,7 @@ export function BoutonCloture({ annee, resultat }: { annee: number; resultat: st
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="confirmation" value="oui" checked={confirme} onChange={(e) => setConfirme(e.target.checked)} className="mt-1 size-4 accent-primary" />
         <span>
-          {t("Je comprends que cette clôture passe l'écriture de résultat ({resultat}) et verrouille la comptabilité jusqu'au 31/12/{annee} : plus aucune écriture ne pourra être datée avant cette date, sauf à la déverrouiller.", { resultat, annee })}
+          {t("Je comprends que cette clôture passe l'écriture de résultat ({resultat}) et verrouille la comptabilité jusqu'au {fin} : plus aucune écriture ne pourra être datée avant cette date, sauf à la déverrouiller.", { resultat, fin })}
         </span>
       </label>
       {etat?.erreur ? <p role="alert" className="text-sm text-destructive">{etat.erreur}</p> : null}

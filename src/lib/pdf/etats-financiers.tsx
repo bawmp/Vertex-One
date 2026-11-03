@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { formaterFCFAPourPDF } from "@/lib/facturation/calcul";
 import type { EtatsFinanciers } from "@/lib/comptabilite/etats-donnees";
+import { debutExerciceTexte, finExerciceTexte } from "@/lib/comptabilite/exercice-regles";
 import type { SectionEtat } from "@/lib/comptabilite/etats-syscohada";
 
 // Couleurs en hexadécimal direct (react-pdf ne comprend pas les variables CSS) : bleu marine Vertex One.
@@ -78,7 +79,9 @@ function Tableau({ titre, sections, avecAmort, totalLibelle, total }: { titre: s
 const NOTE = "États générés automatiquement par Vertex One à partir des écritures de l'entreprise, présentés par rubriques SYSCOHADA. Brouillon à faire valider par votre comptable avant tout dépôt auprès de l'administration : ce document n'est ni la liasse fiscale complète (annexes, tableau des flux de trésorerie) ni une télédéclaration. Montants en francs CFA.";
 
 export function EtatsFinanciersPDF({ etats, genereLe }: { etats: EtatsFinanciers; genereLe: Date }) {
-  const { bilan, resultat, entreprise, annee } = etats;
+  const { bilan, resultat, entreprise, annee, moisDebut } = etats;
+  const debut = debutExerciceTexte(annee, moisDebut);
+  const fin = finExerciceTexte(annee, moisDebut);
   const ident = [entreprise.niu ? `NIU ${entreprise.niu}` : null, [entreprise.adresse, entreprise.ville].filter(Boolean).join(", ") || null].filter(Boolean).join(" · ");
   const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(genereLe);
   const pied = (
@@ -94,9 +97,9 @@ export function EtatsFinanciersPDF({ etats, genereLe }: { etats: EtatsFinanciers
           <Text style={styles.nom}>{entreprise.nom}</Text>
           {ident ? <Text style={styles.sousTitre}>{ident}</Text> : null}
         </View>
-        <Text style={styles.periode}>Exercice du 01/01/{annee} au 31/12/{annee} — édité le {date}</Text>
-        <Tableau titre={`BILAN — ACTIF au 31/12/${annee}`} sections={bilan.actif} avecAmort totalLibelle="TOTAL ACTIF" total={bilan.totalActif} />
-        <Tableau titre={`BILAN — PASSIF au 31/12/${annee}`} sections={bilan.passif} avecAmort={false} totalLibelle="TOTAL PASSIF" total={bilan.totalPassif} />
+        <Text style={styles.periode}>Exercice du {debut} au {fin} — édité le {date}</Text>
+        <Tableau titre={`BILAN — ACTIF au ${fin}`} sections={bilan.actif} avecAmort totalLibelle="TOTAL ACTIF" total={bilan.totalActif} />
+        <Tableau titre={`BILAN — PASSIF au ${fin}`} sections={bilan.passif} avecAmort={false} totalLibelle="TOTAL PASSIF" total={bilan.totalPassif} />
         {bilan.equilibre ? null : <Text style={{ ...styles.note, color: "#991b1b" }}>Attention : l&apos;actif et le passif ne s&apos;équilibrent pas. Faites vérifier vos écritures.</Text>}
         {pied}
       </Page>

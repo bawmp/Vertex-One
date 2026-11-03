@@ -13,6 +13,7 @@ import { lireEtatsFinanciers } from "@/lib/comptabilite/etats-donnees";
 import type { SectionEtat } from "@/lib/comptabilite/etats-syscohada";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { finExerciceTexte } from "@/lib/comptabilite/exercice-regles";
 import { getT } from "@/lib/i18n/langue";
 
 const montant = (v: number) => (v === 0 ? "" : formaterFCFA(v));
@@ -96,8 +97,8 @@ export default async function PageEtatsFinanciers({ searchParams }: { searchPara
         </p>
       )}
 
-      <Section titre={t("Bilan — Actif au 31/12/{annee}", { annee: etats.annee })} sections={etats.bilan.actif} avecAmort total={etats.bilan.totalActif} totalLibelle={t("TOTAL ACTIF")} />
-      <Section titre={t("Bilan — Passif au 31/12/{annee}", { annee: etats.annee })} sections={etats.bilan.passif} avecAmort={false} total={etats.bilan.totalPassif} totalLibelle={t("TOTAL PASSIF")} />
+      <Section titre={t("Bilan — Actif au {fin}", { fin: finExerciceTexte(etats.annee, etats.moisDebut) })} sections={etats.bilan.actif} avecAmort total={etats.bilan.totalActif} totalLibelle={t("TOTAL ACTIF")} />
+      <Section titre={t("Bilan — Passif au {fin}", { fin: finExerciceTexte(etats.annee, etats.moisDebut) })} sections={etats.bilan.passif} avecAmort={false} total={etats.bilan.totalPassif} totalLibelle={t("TOTAL PASSIF")} />
 
       <Card className="overflow-x-auto p-0">
         <div className="border-b bg-muted/40 px-4 py-2.5">

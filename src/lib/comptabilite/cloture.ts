@@ -5,9 +5,10 @@ import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { verifierDateNonVerrouillee } from "./verrouillage";
 import { contrePasserEcritures } from "./contre-passation";
 import { calculerBalance, type LigneBalance } from "./etats-financiers";
-import { dateDouala, lireLignes, type LigneLivre } from "./livres";
+import { lireLignes, type LigneLivre } from "./livres";
 import { lireValorisation } from "@/lib/produits/valorisation";
 import { m } from "@/lib/i18n/catalogue";
+import { anneeExercice, moisDebutValide, periodeExercice } from "./exercice-regles";
 
 /**
  * Clôture d'exercice (2026-11-02). L'exercice est l'année civile. Les comptes de gestion (classes 6 charges, 7 produits, 8 HAO) sont
@@ -19,11 +20,12 @@ import { m } from "@/lib/i18n/catalogue";
 
 const CLASSES_DE_GESTION = [6, 7, 8];
 
-export function periodeExercice(annee: number): { du: Date; au: Date } | null {
-  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return null;
-  const du = dateDouala(`${annee}-01-01`, false);
-  const au = dateDouala(`${annee}-12-31`, true);
-  return du && au ? { du, au } : null;
+export { periodeExercice };
+
+/** Premier mois de l'exercice de l'entreprise (1 = année civile). */
+export async function moisDebutExercice(tx: TransactionDrizzle, entrepriseId: string): Promise<number> {
+  const [e] = await tx.select({ mois: entreprise.moisDebutExercice }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  return moisDebutValide(e?.mois) ? e.mois : 1;
 }
 
 export type LigneCloture = { numero: string; libelle: string; debit: number; credit: number };
@@ -59,9 +61,10 @@ export type ApercuCloture = {
   obstacles: string[];
 };
 
-async function anneesAvecEcritures(tx: TransactionDrizzle, entrepriseId: string): Promise<number[]> {
+async function anneesAvecEcritures(tx: TransactionDrizzle, entrepriseId: string, moisDebut: number): Promise<number[]> {
+  const date = sql`(${ecritureComptable.dateEcriture} + interval '1 hour')`;
   const lignes = await tx
-    .selectDistinct({ annee: sql<number>`extract(year from (${ecritureComptable.dateEcriture} + interval '1 hour'))::int` })
+    .selectDistinct({ annee: sql<number>`(extract(year from ${date}) + case when ${moisDebut} > 1 and extract(month from ${date}) >= ${moisDebut} then 1 else 0 end)::int` })
     .from(ecritureComptable)
     .where(eq(ecritureComptable.entrepriseId, entrepriseId));
   return lignes.map((l) => l.annee).sort((a, b) => a - b);
@@ -69,7 +72,8 @@ async function anneesAvecEcritures(tx: TransactionDrizzle, entrepriseId: string)
 
 /** État d'un exercice : résultat prévu, écritures de clôture qui seraient passées et obstacles éventuels. */
 export async function apercuCloture(tx: TransactionDrizzle, entrepriseId: string, annee: number, maintenant: Date = new Date()): Promise<ApercuCloture | null> {
-  const periode = periodeExercice(annee);
+  const moisDebut = await moisDebutExercice(tx, entrepriseId);
+  const periode = periodeExercice(annee, moisDebut);
   if (!periode) return null;
   const [deja] = await tx.select({ dateCloture: clotureExercice.dateCloture, resultatNet: clotureExercice.resultatNet }).from(clotureExercice).where(and(eq(clotureExercice.entrepriseId, entrepriseId), eq(clotureExercice.annee, annee)));
   const balance = await calculerBalance(tx, entrepriseId, periode.au);
@@ -79,9 +83,9 @@ export async function apercuCloture(tx: TransactionDrizzle, entrepriseId: string
 
   const obstacles: string[] = [];
   if (!deja) {
-    if (periode.au.getTime() > maintenant.getTime()) obstacles.push(m("Cet exercice n'est pas terminé : on ne clôture qu'après le 31 décembre."));
+    if (periode.au.getTime() > maintenant.getTime()) obstacles.push(m("Cet exercice n'est pas terminé : on ne clôture qu'après son dernier jour."));
     const clotures = new Set((await tx.select({ annee: clotureExercice.annee }).from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId))).map((c) => c.annee));
-    const anterieurs = (await anneesAvecEcritures(tx, entrepriseId)).filter((a) => a < annee && !clotures.has(a));
+    const anterieurs = (await anneesAvecEcritures(tx, entrepriseId, moisDebut)).filter((a) => a < annee && !clotures.has(a));
     if (anterieurs.length > 0) obstacles.push(m("Clôturez d'abord les exercices précédents, dans l'ordre."));
     const [monEntreprise] = await tx.select({ verrou: entreprise.dateVerrouillageComptable }).from(entreprise).where(eq(entreprise.id, entrepriseId));
     if (verifierDateNonVerrouillee(monEntreprise?.verrou ?? null, periode.au)) obstacles.push(m("La comptabilité est déjà verrouillée jusqu'à la fin de cet exercice : déverrouillez-la d'abord pour passer l'écriture de clôture."));
@@ -100,7 +104,7 @@ export type ResultatCloture = { ok: true; resultatNet: number; numero: string } 
  * comptable revérifié par l'appelant. Deux clôtures simultanées du même exercice : l'index unique en laisse passer une seule.
  */
 export async function cloturerExercice(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string, annee: number, maintenant: Date = new Date()): Promise<ResultatCloture> {
-  const periode = periodeExercice(annee);
+  const periode = periodeExercice(annee, await moisDebutExercice(tx, entrepriseId));
   if (!periode) return { ok: false, erreur: m("Exercice invalide.") };
   const apercu = await apercuCloture(tx, entrepriseId, annee, maintenant);
   if (!apercu) return { ok: false, erreur: m("Exercice invalide.") };
@@ -134,9 +138,11 @@ export async function cloturerExercice(tx: TransactionDrizzle, entrepriseId: str
 
 /** Années proposées sur la page : celles qui ont des écritures, plus l'année en cours, plus les exercices déjà clôturés. */
 export async function exercicesConnus(tx: TransactionDrizzle, entrepriseId: string, maintenant: Date = new Date()): Promise<number[]> {
-  const annees = new Set<number>(await anneesAvecEcritures(tx, entrepriseId));
+  const moisDebut = await moisDebutExercice(tx, entrepriseId);
+  const annees = new Set<number>(await anneesAvecEcritures(tx, entrepriseId, moisDebut));
   (await tx.select({ annee: clotureExercice.annee }).from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId))).forEach((c) => annees.add(c.annee));
-  annees.add(Number(new Date(maintenant.getTime() + 60 * 60 * 1000).toISOString().slice(0, 4)));
+  const local = new Date(maintenant.getTime() + 60 * 60 * 1000);
+  annees.add(anneeExercice(local.getUTCFullYear(), local.getUTCMonth() + 1, moisDebut));
   return [...annees].sort((a, b) => b - a);
 }
 
@@ -145,7 +151,7 @@ export async function exercicesConnus(tx: TransactionDrizzle, entrepriseId: stri
  * clôturé (sinon la clôture le remettrait à zéro).
  */
 export async function lignesExerciceSansCloture(tx: TransactionDrizzle, entrepriseId: string, annee: number): Promise<LigneLivre[]> {
-  const periode = periodeExercice(annee);
+  const periode = periodeExercice(annee, await moisDebutExercice(tx, entrepriseId));
   if (!periode) return [];
   const [c] = await tx.select({ journalManuelId: clotureExercice.journalManuelId }).from(clotureExercice).where(and(eq(clotureExercice.entrepriseId, entrepriseId), eq(clotureExercice.annee, annee)));
   const conditions = [gte(ecritureComptable.dateEcriture, periode.du), lte(ecritureComptable.dateEcriture, periode.au)];
@@ -165,7 +171,7 @@ export type ResultatReouverture = { ok: true; resultatAnnule: number } | { ok: f
 export async function rouvrirExercice(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string, annee: number, motifBrut: string): Promise<ResultatReouverture> {
   const motif = motifBrut.replace(/\s+/g, " ").trim();
   if (motif.length < 5 || motif.length > 300) return { ok: false, erreur: m("Indiquez pourquoi vous rouvrez cet exercice (5 à 300 caractères).") };
-  const periode = periodeExercice(annee);
+  const periode = periodeExercice(annee, await moisDebutExercice(tx, entrepriseId));
   if (!periode) return { ok: false, erreur: m("Exercice invalide.") };
 
   const clotures = await tx.select().from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId)).orderBy(desc(clotureExercice.annee));
@@ -194,4 +200,16 @@ export async function listerReouvertures(tx: TransactionDrizzle, entrepriseId: s
 export async function dernierExerciceCloture(tx: TransactionDrizzle, entrepriseId: string): Promise<number | null> {
   const [c] = await tx.select({ annee: clotureExercice.annee }).from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId)).orderBy(desc(clotureExercice.annee)).limit(1);
   return c?.annee ?? null;
+}
+
+/**
+ * Change le premier mois de l'exercice (1 = année civile). Refusé dès qu'un exercice est clôturé : les clôtures passées sont figées
+ * sur leurs dates. Réouvrir tous les exercices clôturés permet de le modifier de nouveau.
+ */
+export async function definirMoisDebutExercice(tx: TransactionDrizzle, entrepriseId: string, mois: number): Promise<{ ok: true } | { ok: false; erreur: string }> {
+  if (!moisDebutValide(mois)) return { ok: false, erreur: m("Choisissez un mois de 1 à 12.") };
+  const [cloture] = await tx.select({ id: clotureExercice.id }).from(clotureExercice).where(eq(clotureExercice.entrepriseId, entrepriseId)).limit(1);
+  if (cloture) return { ok: false, erreur: m("Un exercice est déjà clôturé : rouvrez-les d'abord pour changer le début de l'exercice.") };
+  await tx.update(entreprise).set({ moisDebutExercice: mois }).where(eq(entreprise.id, entrepriseId));
+  return { ok: true };
 }

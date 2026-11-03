@@ -6,7 +6,8 @@ import { compteComptable, entreprise } from "@/db/schema";
 import { ecrireCsv } from "@/lib/export/csv";
 import { creerZip, type FichierZip } from "@/lib/export/zip";
 import { calculerBalance, calculerBilan, calculerCompteDeResultat, type LigneBalance } from "./etats-financiers";
-import { lignesExerciceSansCloture, periodeExercice } from "./cloture";
+import { lignesExerciceSansCloture, moisDebutExercice, periodeExercice } from "./cloture";
+import { debutExerciceTexte, finExerciceTexte } from "./exercice-regles";
 import { construireBalance, dateDouala, lireBalancePeriode, lireGrandLivre, lireJournaux, type LigneLivre } from "./livres";
 import { csvBalance, csvGrandLivre, csvJournaux, type TableauCsv } from "./livres-export";
 import { calculerTva, lireDeclarationTva } from "./tva";
@@ -31,7 +32,8 @@ export function balanceDeGestion(lignes: LigneLivre[]): LigneBalance[] {
  * par entreprise ; l'appelant a déjà vérifié les droits.
  */
 export async function construireDossierExpert(tx: TransactionDrizzle, entrepriseId: string, annee: number, maintenant: Date = new Date()): Promise<Buffer | null> {
-  const periode = periodeExercice(annee);
+  const moisDebut = await moisDebutExercice(tx, entrepriseId);
+  const periode = periodeExercice(annee, moisDebut);
   if (!periode) return null;
   const [maSociete] = await tx.select({ nom: entreprise.nom, niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, entrepriseId));
 
@@ -46,7 +48,7 @@ export async function construireDossierExpert(tx: TransactionDrizzle, entreprise
 
   const soldes = new Map(balanceFin.map((l) => [l.numero, l.solde]));
   const planCsv: TableauCsv = {
-    entetes: ["Compte", "Intitulé", "Classe", `Solde au 31/12/${annee} (débit +, crédit -)`],
+    entetes: ["Compte", "Intitulé", "Classe", `Solde au ${finExerciceTexte(annee, moisDebut)} (débit +, crédit -)`],
     lignes: comptes.map((c) => [c.numero, c.libelle, n(c.classe), n(soldes.get(c.numero) ?? 0)]),
   };
 
@@ -74,10 +76,13 @@ export async function construireDossierExpert(tx: TransactionDrizzle, entreprise
   };
 
   const lignesTva: string[][] = [];
-  for (let mois = 1; mois <= 12; mois++) {
-    const du = dateDouala(`${annee}-${String(mois).padStart(2, "0")}-01`, false)!;
-    const dernier = new Date(Date.UTC(annee, mois, 0)).getUTCDate();
-    const au = dateDouala(`${annee}-${String(mois).padStart(2, "0")}-${String(dernier).padStart(2, "0")}`, true)!;
+  const anneeDebut = moisDebut === 1 ? annee : annee - 1;
+  for (let k = 0; k < 12; k++) {
+    const mois = ((moisDebut - 1 + k) % 12) + 1;
+    const anneeMois = anneeDebut + Math.floor((moisDebut - 1 + k) / 12);
+    const du = dateDouala(`${anneeMois}-${String(mois).padStart(2, "0")}-01`, false)!;
+    const dernier = new Date(Date.UTC(anneeMois, mois, 0)).getUTCDate();
+    const au = dateDouala(`${anneeMois}-${String(mois).padStart(2, "0")}-${String(dernier).padStart(2, "0")}`, true)!;
     const d = await lireDeclarationTva(tx, entrepriseId, { du, au });
     const r = calculerTva(d.tvaCollectee, d.tvaDeductible);
     lignesTva.push([MOIS[mois - 1], n(d.caHT), n(d.tvaCollectee), n(d.tvaDeductible), n(r.aPayer), n(r.creditAReporter)]);
@@ -87,7 +92,7 @@ export async function construireDossierExpert(tx: TransactionDrizzle, entreprise
   const lisezmoi = [
     `Dossier de l'expert-comptable — exercice ${annee}`,
     `Entreprise : ${maSociete?.nom ?? ""}${maSociete?.niu ? ` (NIU ${maSociete.niu})` : ""}`,
-    `Période : du 01/01/${annee} au 31/12/${annee}. Généré le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(maintenant)} par Vertex One.`,
+    `Période : du ${debutExerciceTexte(annee, moisDebut)} au ${finExerciceTexte(annee, moisDebut)}. Généré le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(maintenant)} par Vertex One.`,
     "",
     "Contenu (fichiers CSV, séparateur « ; », lisibles dans Excel) :",
     "- grand-livre.csv : chaque compte, écriture par écriture, avec le solde reporté et le solde cumulé.",

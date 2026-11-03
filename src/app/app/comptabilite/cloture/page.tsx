@@ -8,11 +8,13 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
-import { apercuCloture, dernierExerciceCloture, exercicesConnus, listerReouvertures } from "@/lib/comptabilite/cloture";
+import { apercuCloture, dernierExerciceCloture, moisDebutExercice, exercicesConnus, listerReouvertures } from "@/lib/comptabilite/cloture";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BoutonCloture } from "./bouton-cloture";
+import { DebutExercice } from "./debut-exercice";
+import { finExerciceTexte, debutExerciceTexte } from "@/lib/comptabilite/exercice-regles";
 import { BoutonReouverture } from "./bouton-reouverture";
 import { getT } from "@/lib/i18n/langue";
 
@@ -41,7 +43,7 @@ export default async function PageCloture() {
       const ap = await apercuCloture(tx, utilisateurConnecte.entrepriseId, a);
       if (ap) apercus.push(ap);
     }
-    return { apercus, verrou: monEntreprise.verrou, dernier: await dernierExerciceCloture(tx, utilisateurConnecte.entrepriseId), reouvertures: await listerReouvertures(tx, utilisateurConnecte.entrepriseId) };
+    return { moisDebut: await moisDebutExercice(tx, utilisateurConnecte.entrepriseId), apercus, verrou: monEntreprise.verrou, dernier: await dernierExerciceCloture(tx, utilisateurConnecte.entrepriseId), reouvertures: await listerReouvertures(tx, utilisateurConnecte.entrepriseId) };
   });
 
   if (!donnees) {
@@ -71,11 +73,14 @@ export default async function PageCloture() {
         {donnees.verrou ? <p className="mt-1 text-xs text-muted-foreground">{t("Comptabilité verrouillée jusqu'au {date}.", { date: jour(donnees.verrou) })}</p> : null}
       </div>
 
+      <DebutExercice moisDebut={donnees.moisDebut} modifiable={peutCloturer && donnees.dernier === null} />
+
       {donnees.apercus.map((a) => (
         <Card key={a.annee} className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3">
             <h2 className="flex items-center gap-2 text-base font-semibold">
               {t("Exercice {annee}", { annee: a.annee })}
+              <span className="text-xs font-normal text-muted-foreground">{t("du {debut} au {fin}", { debut: debutExerciceTexte(a.annee, donnees.moisDebut), fin: finExerciceTexte(a.annee, donnees.moisDebut) })}</span>
               {a.dejaCloture ? <Badge variant="success">{t("Clôturé")}</Badge> : <Badge variant="neutral">{t("Ouvert")}</Badge>}
             </h2>
             <Link href={`/app/comptabilite/cloture/dossier?annee=${a.annee}`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -118,7 +123,7 @@ export default async function PageCloture() {
                     ))}
                   </ul>
                 ) : peutCloturer ? (
-                  <BoutonCloture annee={a.annee} resultat={t("{sens} de {montant}", { sens: a.plan.resultatNet >= 0 ? t("bénéfice") : t("perte"), montant: formaterFCFA(Math.abs(a.plan.resultatNet)) })} />
+                  <BoutonCloture annee={a.annee} fin={finExerciceTexte(a.annee, donnees.moisDebut)} resultat={t("{sens} de {montant}", { sens: a.plan.resultatNet >= 0 ? t("bénéfice") : t("perte"), montant: formaterFCFA(Math.abs(a.plan.resultatNet)) })} />
                 ) : (
                   <p className="text-muted-foreground">{t("Seul l'Administrateur peut clôturer l'exercice.")}</p>
                 )}

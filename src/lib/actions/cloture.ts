@@ -8,8 +8,9 @@ import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
-import { cloturerExercice, rouvrirExercice } from "@/lib/comptabilite/cloture";
+import { cloturerExercice, definirMoisDebutExercice, moisDebutExercice, rouvrirExercice } from "@/lib/comptabilite/cloture";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { finExerciceTexte } from "@/lib/comptabilite/exercice-regles";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -33,13 +34,15 @@ export async function cloturerExerciceAction(_etat: EtatCloture, formData: FormD
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
     return cloturerExercice(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, annee);
   });
+  const moisDebut = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => moisDebutExercice(tx, utilisateurConnecte.entrepriseId));
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
 
   revalidatePath("/app/comptabilite/cloture");
   revalidatePath("/app/comptabilite");
   return {
-    message: t("Exercice {annee} clôturé ({numero}) : {sens} de {montant}. La comptabilité est verrouillée jusqu'au 31/12/{annee}.", {
+    message: t("Exercice {annee} clôturé ({numero}) : {sens} de {montant}. La comptabilité est verrouillée jusqu'au {fin}.", {
       annee,
+      fin: finExerciceTexte(annee, moisDebut),
       numero: resultat.numero,
       sens: resultat.resultatNet >= 0 ? t("bénéfice") : t("perte"),
       montant: formaterFCFA(Math.abs(resultat.resultatNet)),
@@ -70,4 +73,20 @@ export async function rouvrirExerciceAction(_etat: EtatCloture, formData: FormDa
   revalidatePath("/app/comptabilite/cloture");
   revalidatePath("/app/comptabilite");
   return { message: t("Exercice {annee} rouvert : l'écriture de clôture est annulée et la comptabilité est de nouveau modifiable.", { annee }) };
+}
+
+export async function changerDebutExercice(mois: number): Promise<EtatCloture> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) return { erreur: t("Seul l'Administrateur peut changer le début de l'exercice.") };
+  const r = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    if (!disponible(e, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    return definirMoisDebutExercice(tx, utilisateurConnecte.entrepriseId, Number(mois));
+  });
+  if (!r.ok) return { erreur: t(r.erreur) };
+  revalidatePath("/app/comptabilite/cloture");
+  revalidatePath("/app/comptabilite/etats");
+  return { message: t("Début de l'exercice enregistré.") };
 }

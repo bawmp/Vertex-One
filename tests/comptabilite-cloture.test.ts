@@ -119,7 +119,7 @@ describe("Clôture — base réelle", () => {
 
   test("un exercice non terminé ne se clôture pas", async () => {
     const apercu = await avecEntreprise(A, (tx) => apercuCloture(tx, A, 2026, maintenant));
-    expect(apercu?.obstacles).toContain("Cet exercice n'est pas terminé : on ne clôture qu'après le 31 décembre.");
+    expect(apercu?.obstacles).toContain("Cet exercice n'est pas terminé : on ne clôture qu'après son dernier jour.");
   });
 
   test("clôture 2023 : écriture équilibrée, résultat au 120000, comptes de gestion à zéro, verrou posé, une seule fois", async () => {
