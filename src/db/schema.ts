@@ -2917,6 +2917,8 @@ export const ecritureComptable = pgTable(
       .references(() => compteComptable.id),
     debit: integer("debit").notNull().default(0), // FCFA entier, comme montantHT/TTC au Palier 1
     credit: integer("credit").notNull().default(0),
+    // Comptabilité analytique (priorité 4.5) : section (projet, agence…) à laquelle la ligne est rattachée, facultative.
+    sectionAnalytiqueId: text("section_analytique_id").references((): AnyPgColumn => sectionAnalytique.id, { onDelete: "set null" }),
     // Traçabilité : quelle facture/quel paiement a généré cette ligne —
     // jamais de FK stricte (une facture n'est jamais supprimée de toute
     // façon, mais l'écriture doit rester lisible même si ce lien venait à
@@ -5560,6 +5562,62 @@ export const numeroSerie = pgTable(
     index("numero_serie_entreprise_idx").on(table.entrepriseId),
     index("numero_serie_produit_statut_idx").on(table.produitId, table.statut),
     index("numero_serie_document_idx").on(table.documentId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Section analytique (priorité 4.5) : un axe de lecture du résultat autre que le plan comptable — un projet, une agence, un
+ * département. Une écriture porte au plus une section ; les lignes d'un même document la partagent.
+ */
+export const sectionAnalytique = pgTable(
+  "section_analytique",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    axe: text("axe").notNull().default("AUTRE"), // PROJET | AGENCE | AUTRE
+    code: text("code").notNull(),
+    libelle: text("libelle").notNull(),
+    actif: boolean("actif").notNull().default(true),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("section_analytique_entreprise_code_unique").on(table.entrepriseId, table.code),
+    index("section_analytique_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Taux de change (priorité 4.7) : combien de FCFA vaut une unité de devise étrangère, en millièmes de FCFA (EUR à 655,957 = 655957),
+ * à une date d'effet. Entier pour ne jamais accumuler d'erreur d'arrondi. La comptabilité reste en FCFA : ces taux ne servent qu'à
+ * afficher l'équivalent d'un montant dans une autre devise.
+ */
+export const tauxChange = pgTable(
+  "taux_change",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    devise: text("devise").notNull(), // code à trois lettres : EUR, USD…
+    tauxMilliemes: integer("taux_milliemes").notNull(),
+    dateEffet: text("date_effet").notNull(), // AAAA-MM-JJ
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("taux_change_devise_date_unique").on(table.entrepriseId, table.devise, table.dateEffet),
+    index("taux_change_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

@@ -14,17 +14,20 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const PERIODES: { cle: NomPeriode; libelle: string }[] = [
-  { cle: "mois", libelle: "Ce mois" },
-  { cle: "mois-dernier", libelle: "Mois dernier" },
-  { cle: "trimestre", libelle: "Ce trimestre" },
-  { cle: "annee", libelle: "Cette année" },
+  { cle: "mois", libelle: m("Ce mois") },
+  { cle: "mois-dernier", libelle: m("Mois dernier") },
+  { cle: "trimestre", libelle: m("Ce trimestre") },
+  { cle: "annee", libelle: m("Cette année") },
 ];
 const LIMITE_LIGNES = 500;
-const jour = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
+const jourDans = (locale: string) => (d: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
 
 export default async function PageTva({ searchParams }: { searchParams: Promise<{ du?: string; au?: string; report?: string }> }) {
+  const t = await getT();
   const parametres = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -33,7 +36,7 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -59,7 +62,7 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -73,61 +76,61 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
     <div className="flex max-w-4xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour à la comptabilité
+        {t("Retour à la comptabilité")}
       </Link>
       <div>
         <div className="flex items-center gap-2.5">
           <Percent className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Déclaration de TVA</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Déclaration de TVA")}</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">La TVA que vous avez facturée, celle que vous pouvez déduire, et ce qu&apos;il reste à payer pour la période choisie.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("La TVA que vous avez facturée, celle que vous pouvez déduire, et ce qu'il reste à payer pour la période choisie.")}</p>
       </div>
 
       {!donnees.assujettie ? (
         <p className="flex items-start gap-2 rounded-xl border border-amber-600/20 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Votre entreprise est réglée comme non assujettie à la TVA (Paramètres → Entreprise) : vos factures n&apos;ajoutent pas de TVA, les montants ci-dessous sont normalement à zéro.
+          {t("Votre entreprise est réglée comme non assujettie à la TVA (Paramètres → Entreprise) : vos factures n'ajoutent pas de TVA, les montants ci-dessous sont normalement à zéro.")}
         </p>
       ) : null}
 
       <Card className="p-4">
         <form method="get" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Période rapide :</span>
+            <span className="text-sm text-muted-foreground">{t("Période rapide :")}</span>
             {PERIODES.map((p) => {
               const r = periodePredefinie(p.cle, new Date());
               return (
                 <Link key={p.cle} href={lien(r.du, r.au)} className={buttonVariants({ variant: r.du === duTexte && r.au === auTexte ? "secondary" : "ghost", size: "sm" })}>
-                  {p.libelle}
+                  {t(p.libelle)}
                 </Link>
               );
             })}
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="du">Du</Label>
+              <Label htmlFor="du">{t("Du")}</Label>
               <Input id="du" name="du" type="date" defaultValue={duTexte} required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="au">Au</Label>
+              <Label htmlFor="au">{t("Au")}</Label>
               <Input id="au" name="au" type="date" defaultValue={auTexte} required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="report">Crédit de TVA reporté (FCFA)</Label>
+              <Label htmlFor="report">{t("Crédit de TVA reporté (FCFA)")}</Label>
               <Input id="report" name="report" type="number" min={0} step={1} inputMode="numeric" defaultValue={creditReporte || ""} placeholder="0" className="w-52" />
             </div>
-            <Button type="submit">Afficher</Button>
+            <Button type="submit">{t("Afficher")}</Button>
             <Link href={lienExport} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Exporter en CSV
+              {t("Exporter en CSV")}
             </Link>
             <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Imprimer en PDF
+              {t("Imprimer en PDF")}
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground">Le crédit reporté est la TVA que l&apos;État vous doit déjà de la période précédente (ligne « Crédit de TVA à reporter » de votre dernière déclaration). Laissez vide s&apos;il n&apos;y en a pas.</p>
-          {periodeInversee ? <p role="alert" className="text-sm text-destructive">La date de début doit être avant la date de fin.</p> : null}
+          <p className="text-xs text-muted-foreground">{t("Le crédit reporté est la TVA que l'État vous doit déjà de la période précédente (ligne « Crédit de TVA à reporter » de votre dernière déclaration). Laissez vide s'il n'y en a pas.")}</p>
+          {periodeInversee ? <p role="alert" className="text-sm text-destructive">{t("La date de début doit être avant la date de fin.")}</p> : null}
         </form>
       </Card>
 
@@ -136,34 +139,34 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
           <Card className="p-0">
             <dl className="divide-y divide-border text-sm">
               <div className="flex justify-between gap-3 px-4 py-3">
-                <dt className="text-muted-foreground">Chiffre d&apos;affaires hors taxe</dt>
+                <dt className="text-muted-foreground">{t("Chiffre d'affaires hors taxe")}</dt>
                 <dd className="tabular-nums">{formaterFCFA(d.caHT)}</dd>
               </div>
               <div className="flex justify-between gap-3 px-4 py-3">
-                <dt>TVA collectée (facturée à vos clients)</dt>
+                <dt>{t("TVA collectée (facturée à vos clients)")}</dt>
                 <dd className="tabular-nums">{formaterFCFA(d.tvaCollectee)}</dd>
               </div>
               <div className="flex justify-between gap-3 px-4 py-3">
-                <dt>− TVA déductible (payée à vos fournisseurs)</dt>
+                <dt>{t("− TVA déductible (payée à vos fournisseurs)")}</dt>
                 <dd className="tabular-nums">{formaterFCFA(d.tvaDeductible)}</dd>
               </div>
               {creditReporte > 0 ? (
                 <div className="flex justify-between gap-3 px-4 py-3">
-                  <dt>− Crédit de TVA reporté</dt>
+                  <dt>{t("− Crédit de TVA reporté")}</dt>
                   <dd className="tabular-nums">{formaterFCFA(creditReporte)}</dd>
                 </div>
               ) : null}
               <div className="flex justify-between gap-3 bg-muted/40 px-4 py-4 text-base font-semibold">
-                <dt>{resultat.creditAReporter > 0 ? "Crédit de TVA à reporter" : "TVA à payer"}</dt>
+                <dt>{resultat.creditAReporter > 0 ? t("Crédit de TVA à reporter") : t("TVA à payer")}</dt>
                 <dd className="tabular-nums">{formaterFCFA(resultat.creditAReporter > 0 ? resultat.creditAReporter : resultat.aPayer)}</dd>
               </div>
             </dl>
           </Card>
-          <p className="text-xs text-muted-foreground">Tableau de travail à faire valider par votre comptable avant la déclaration officielle auprès de la DGI : Vertex One ne dépose aucune déclaration à votre place.</p>
+          <p className="text-xs text-muted-foreground">{t("Tableau de travail à faire valider par votre comptable avant la déclaration officielle auprès de la DGI : Vertex One ne dépose aucune déclaration à votre place.")}</p>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <DetailTva titre="TVA collectée" lignes={d.collectee} />
-            <DetailTva titre="TVA déductible" lignes={d.deductible} />
+            <DetailTva titre={t("TVA collectée")} lignes={d.collectee} />
+            <DetailTva titre={t("TVA déductible")} lignes={d.deductible} />
           </div>
         </>
       ) : null}
@@ -171,16 +174,18 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
   );
 }
 
-function DetailTva({ titre, lignes }: { titre: string; lignes: { id: string; date: Date; libelle: string; montant: number }[] }) {
+async function DetailTva({ titre, lignes }: { titre: string; lignes: { id: string; date: Date; libelle: string; montant: number }[] }) {
+  const t = await getT();
+  const jour = jourDans(t.locale);
   const affichees = lignes.slice(0, LIMITE_LIGNES);
   return (
     <Card className="p-0">
       <div className="flex items-baseline justify-between border-b bg-muted/40 px-4 py-2.5">
         <h2 className="text-sm font-semibold">{titre}</h2>
-        <span className="text-xs text-muted-foreground">{lignes.length} écriture(s)</span>
+        <span className="text-xs text-muted-foreground">{t("{n} écriture(s)", { n: lignes.length })}</span>
       </div>
       {lignes.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune écriture sur cette période.</p>
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune écriture sur cette période.")}</p>
       ) : (
         <ul className="divide-y divide-border text-sm">
           {affichees.map((l) => (
@@ -193,7 +198,7 @@ function DetailTva({ titre, lignes }: { titre: string; lignes: { id: string; dat
           ))}
         </ul>
       )}
-      {lignes.length > LIMITE_LIGNES ? <p className="border-t px-4 py-2 text-xs text-muted-foreground">Affichage limité aux {LIMITE_LIGNES} premières écritures : exportez en CSV pour tout obtenir.</p> : null}
+      {lignes.length > LIMITE_LIGNES ? <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t("Affichage limité aux {limite} premières écritures : exportez en CSV pour tout obtenir.", { limite: LIMITE_LIGNES })}</p> : null}
     </Card>
   );
 }

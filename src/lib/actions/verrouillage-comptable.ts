@@ -7,6 +7,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatVerrouillage = { erreur?: string } | null;
 
@@ -18,10 +19,11 @@ export type EtatVerrouillage = { erreur?: string } | null;
  * — cette action ne fait que positionner la date, jamais de contrôle ici.
  */
 export async function definirDateVerrouillage(_etat: EtatVerrouillage, formData: FormData): Promise<EtatVerrouillage> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier le verrouillage de transactions." };
+    return { erreur: t("Vous n'avez pas le droit de modifier le verrouillage de transactions.") };
   }
 
   const valeur = formData.get("dateVerrouillage");

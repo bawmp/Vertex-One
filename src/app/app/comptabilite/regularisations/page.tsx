@@ -10,6 +10,7 @@ import { disponible } from "@/lib/plans";
 import { Card } from "@/components/ui/card";
 import { REGULARISATIONS } from "@/lib/comptabilite/regularisations-regles";
 import { FormulaireRegularisation } from "./formulaire-regularisation";
+import { getT } from "@/lib/i18n/langue";
 
 /** Date proposée : le 31 décembre de l'exercice qui vient de se terminer en début d'année (janvier à mars), sinon aujourd'hui (heure de Douala). */
 function dateParDefaut(maintenant: Date): string {
@@ -19,6 +20,7 @@ function dateParDefaut(maintenant: Date): string {
 }
 
 export default async function PageRegularisations() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -26,7 +28,7 @@ export default async function PageRegularisations() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -50,7 +52,7 @@ export default async function PageRegularisations() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -61,21 +63,21 @@ export default async function PageRegularisations() {
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <CalendarClock className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Régularisations de fin d&apos;exercice</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Régularisations de fin d'exercice")}</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        Pour que le résultat de l&apos;année soit juste : rattachez à chaque exercice ce qui lui appartient, même si la facture ou le paiement arrive plus tard. Choisissez la situation, saisissez le montant : l&apos;écriture est préparée pour vous.
+        {t("Pour que le résultat de l'année soit juste : rattachez à chaque exercice ce qui lui appartient, même si la facture ou le paiement arrive plus tard. Choisissez la situation, saisissez le montant : l'écriture est préparée pour vous.")}
       </p>
 
       {peutCreer ? <FormulaireRegularisation comptes={donnees.comptes} dateParDefaut={dateParDefaut(new Date())} /> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Régularisations passées</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Régularisations passées")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {donnees.historique.map((j) => (
@@ -86,7 +88,7 @@ export default async function PageRegularisations() {
                 <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "Africa/Douala" }).format(j.dateEcriture)}</span>
               </div>
             ))}
-            {donnees.historique.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucune régularisation pour le moment.</p> : null}
+            {donnees.historique.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucune régularisation pour le moment.")}</p> : null}
           </div>
         </Card>
       </div>

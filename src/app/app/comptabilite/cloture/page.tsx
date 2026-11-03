@@ -16,6 +16,7 @@ import { BoutonCloture } from "./bouton-cloture";
 import { BoutonReouverture } from "./bouton-reouverture";
 import { getT } from "@/lib/i18n/langue";
 
+
 export default async function PageCloture() {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
@@ -25,7 +26,7 @@ export default async function PageCloture() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -47,39 +48,39 @@ export default async function PageCloture() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
-  const jour = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(d);
+  const jour = (d: Date) => new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeZone: "Africa/Douala" }).format(d);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour à la comptabilité
+        {t("Retour à la comptabilité")}
       </Link>
       <div>
         <div className="flex items-center gap-2.5">
           <LockKeyhole className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Clôture d&apos;exercice</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Clôture d'exercice")}</h1>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          À la fin de l&apos;année, la clôture solde vos charges et vos produits dans le résultat, reporte vos comptes de bilan sur l&apos;exercice suivant et verrouille la comptabilité. Le dossier de votre expert-comptable se télécharge à tout moment.
+          {t("À la fin de l'année, la clôture solde vos charges et vos produits dans le résultat, reporte vos comptes de bilan sur l'exercice suivant et verrouille la comptabilité. Le dossier de votre expert-comptable se télécharge à tout moment.")}
         </p>
-        {donnees.verrou ? <p className="mt-1 text-xs text-muted-foreground">Comptabilité verrouillée jusqu&apos;au {jour(donnees.verrou)}.</p> : null}
+        {donnees.verrou ? <p className="mt-1 text-xs text-muted-foreground">{t("Comptabilité verrouillée jusqu'au {date}.", { date: jour(donnees.verrou) })}</p> : null}
       </div>
 
       {donnees.apercus.map((a) => (
         <Card key={a.annee} className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/40 px-4 py-3">
             <h2 className="flex items-center gap-2 text-base font-semibold">
-              Exercice {a.annee}
-              {a.dejaCloture ? <Badge variant="success">Clôturé</Badge> : <Badge variant="neutral">Ouvert</Badge>}
+              {t("Exercice {annee}", { annee: a.annee })}
+              {a.dejaCloture ? <Badge variant="success">{t("Clôturé")}</Badge> : <Badge variant="neutral">{t("Ouvert")}</Badge>}
             </h2>
             <Link href={`/app/comptabilite/cloture/dossier?annee=${a.annee}`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Dossier de l&apos;expert-comptable (ZIP)
+              {t("Dossier de l'expert-comptable (ZIP)")}
             </Link>
           </div>
           <div className="flex flex-col gap-3 p-4 text-sm">
@@ -87,7 +88,7 @@ export default async function PageCloture() {
               <>
                 <p className="flex items-center gap-2">
                   <CircleCheck className="size-4 text-emerald-600" aria-hidden />
-                  Clôturé le {jour(a.dejaCloture.dateCloture)} — {a.dejaCloture.resultatNet >= 0 ? "bénéfice" : "perte"} de {formaterFCFA(Math.abs(a.dejaCloture.resultatNet))}.
+                  {t("Clôturé le {date} — {sens} de {montant}.", { date: jour(a.dejaCloture.dateCloture), sens: a.dejaCloture.resultatNet >= 0 ? t("bénéfice") : t("perte"), montant: formaterFCFA(Math.abs(a.dejaCloture.resultatNet)) })}
                 </p>
                 {peutCloturer && donnees.dernier === a.annee ? <BoutonReouverture annee={a.annee} /> : null}
               </>
@@ -95,15 +96,15 @@ export default async function PageCloture() {
               <>
                 <dl className="flex flex-col gap-1">
                   <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Produits</dt>
+                    <dt className="text-muted-foreground">{t("Produits")}</dt>
                     <dd className="tabular-nums">{formaterFCFA(a.produits)}</dd>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Charges</dt>
+                    <dt className="text-muted-foreground">{t("Charges")}</dt>
                     <dd className="tabular-nums">{formaterFCFA(a.charges)}</dd>
                   </div>
                   <div className="flex justify-between gap-3 border-t pt-1 font-medium">
-                    <dt>Résultat prévu ({a.plan.resultatNet >= 0 ? "bénéfice" : "perte"})</dt>
+                    <dt>{t("Résultat prévu ({sens})", { sens: a.plan.resultatNet >= 0 ? t("bénéfice") : t("perte") })}</dt>
                     <dd className="tabular-nums">{formaterFCFA(Math.abs(a.plan.resultatNet))}</dd>
                   </div>
                 </dl>
@@ -117,9 +118,9 @@ export default async function PageCloture() {
                     ))}
                   </ul>
                 ) : peutCloturer ? (
-                  <BoutonCloture annee={a.annee} resultat={`${a.plan.resultatNet >= 0 ? "bénéfice" : "perte"} de ${formaterFCFA(Math.abs(a.plan.resultatNet))}`} />
+                  <BoutonCloture annee={a.annee} resultat={t("{sens} de {montant}", { sens: a.plan.resultatNet >= 0 ? t("bénéfice") : t("perte"), montant: formaterFCFA(Math.abs(a.plan.resultatNet)) })} />
                 ) : (
-                  <p className="text-muted-foreground">Seul l&apos;Administrateur peut clôturer l&apos;exercice.</p>
+                  <p className="text-muted-foreground">{t("Seul l'Administrateur peut clôturer l'exercice.")}</p>
                 )}
               </>
             )}
@@ -130,15 +131,15 @@ export default async function PageCloture() {
       {donnees.reouvertures.length > 0 ? (
         <Card className="p-0">
           <div className="border-b bg-muted/40 px-4 py-2.5">
-            <h2 className="text-sm font-semibold">Historique des réouvertures</h2>
+            <h2 className="text-sm font-semibold">{t("Historique des réouvertures")}</h2>
           </div>
           <ul className="divide-y divide-border text-sm">
             {donnees.reouvertures.map((r) => (
               <li key={r.id} className="flex flex-col gap-0.5 px-4 py-2.5">
                 <span className="font-medium">
-                  Exercice {r.annee} rouvert le {jour(r.rouvertLe)} — résultat annulé : {r.resultatAnnule >= 0 ? "bénéfice" : "perte"} de {formaterFCFA(Math.abs(r.resultatAnnule))}
+                  {t("Exercice {annee} rouvert le {date} — résultat annulé : {sens} de {montant}", { annee: r.annee, date: jour(r.rouvertLe), sens: r.resultatAnnule >= 0 ? t("bénéfice") : t("perte"), montant: formaterFCFA(Math.abs(r.resultatAnnule)) })}
                 </span>
-                <span className="text-muted-foreground">Motif : {r.motif}</span>
+                <span className="text-muted-foreground">{t("Motif : {motif}", { motif: r.motif })}</span>
               </li>
             ))}
           </ul>

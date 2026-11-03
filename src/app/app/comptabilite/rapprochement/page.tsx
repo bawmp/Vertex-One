@@ -7,8 +7,10 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { FormulaireImportReleve } from "./formulaire-import-releve";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageRapprochementBancaire() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -16,7 +18,7 @@ export default async function PageRapprochementBancaire() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -33,7 +35,7 @@ export default async function PageRapprochementBancaire() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -42,12 +44,11 @@ export default async function PageRapprochementBancaire() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-2.5">
         <Landmark className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Rapprochement bancaire</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Rapprochement bancaire")}</h1>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Importez un relevé au format CSV (colonnes : date, libellé, montant) pour retrouver les paiements déjà
-        enregistrés qui correspondent probablement à chaque ligne — même montant, date à 5 jours près.
+        {t("Importez un relevé au format CSV (colonnes : date, libellé, montant) pour retrouver les paiements déjà enregistrés qui correspondent probablement à chaque ligne — même montant, date à 5 jours près.")}
       </p>
 
       <FormulaireImportReleve />

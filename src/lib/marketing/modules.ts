@@ -127,6 +127,8 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Liste « à réapprovisionner » : quantités proposées et bons de commande fournisseur créés en un clic, un par fournisseur"),
       m("Export des écritures de la période vers Sage, Ciel ou au format fichier des écritures, pour changer de logiciel ou travailler avec votre comptable"),
       m("Tous les livres et déclarations (grand livre, balance, journaux, TVA, tiers, balance âgée) imprimables en PDF en un clic"),
+      m("Comptabilité analytique : résultat par projet, par agence ou par département, en rattachant une facture ou une dépense à une section (ses règlements la suivent)"),
+      m("Taux de change : l'équivalent de chaque facture dans une autre devise (euro, dollar…) à la date d'émission, et un convertisseur ; la comptabilité reste en FCFA"),
       m("Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier"),
       m("Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin"),
       m("Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic"),

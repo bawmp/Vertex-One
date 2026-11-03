@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, asc, eq, gte, lte, lt } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, ecritureComptable } from "@/db/schema";
@@ -48,10 +49,10 @@ export function periodePredefinie(nom: NomPeriode, maintenant: Date): { du: stri
 /** Journal d'une écriture, déduit de son origine (les écritures n'ont pas de code de journal enregistré). */
 export type CodeJournal = "VT" | "AC" | "TR" | "OD";
 export const LIBELLE_JOURNAL: Record<CodeJournal, string> = {
-  VT: "Journal des ventes",
-  AC: "Journal des achats",
-  TR: "Journal de trésorerie",
-  OD: "Opérations diverses",
+  VT: m("Journal des ventes"),
+  AC: m("Journal des achats"),
+  TR: m("Journal de trésorerie"),
+  OD: m("Opérations diverses"),
 };
 
 export type OrigineEcriture = {

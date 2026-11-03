@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { definirDateVerrouillage } from "@/lib/actions/verrouillage-comptable";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireVerrouillage({ dateVerrouillage }: { dateVerrouillage: Date | null }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(definirDateVerrouillage, null);
 
   return (
@@ -16,15 +18,15 @@ export function FormulaireVerrouillage({ dateVerrouillage }: { dateVerrouillage:
       <div className="flex flex-1 flex-col gap-1">
         <Label htmlFor="dateVerrouillage" className="flex items-center gap-1.5">
           <ShieldCheck className="size-3.5" aria-hidden />
-          Verrouiller les écritures jusqu&apos;au
+          {t("Verrouiller les écritures jusqu'au")}
         </Label>
         <Input id="dateVerrouillage" name="dateVerrouillage" type="date" defaultValue={dateVerrouillage?.toISOString().slice(0, 10) ?? ""} />
-        <p className="text-xs text-muted-foreground">Aucune écriture (facture, dépense, paiement, journal manuel...) ne pourra être datée à cette date ou avant. Laisser vide pour lever le verrouillage.</p>
+        <p className="text-xs text-muted-foreground">{t("Aucune écriture (facture, dépense, paiement, journal manuel...) ne pourra être datée à cette date ou avant. Laisser vide pour lever le verrouillage.")}</p>
       </div>
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? <Spinner /> : null}
-        {enCours ? "Enregistrement…" : "Enregistrer"}
+        {enCours ? t("Enregistrement…") : t("Enregistrer")}
       </Button>
     </form>
   );

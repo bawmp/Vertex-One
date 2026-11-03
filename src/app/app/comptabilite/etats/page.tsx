@@ -13,10 +13,12 @@ import { lireEtatsFinanciers } from "@/lib/comptabilite/etats-donnees";
 import type { SectionEtat } from "@/lib/comptabilite/etats-syscohada";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n/langue";
 
 const montant = (v: number) => (v === 0 ? "" : formaterFCFA(v));
 
 export default async function PageEtatsFinanciers({ searchParams }: { searchParams: Promise<{ annee?: string }> }) {
+  const t = await getT();
   const parametres = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -25,7 +27,7 @@ export default async function PageEtatsFinanciers({ searchParams }: { searchPara
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -43,7 +45,7 @@ export default async function PageEtatsFinanciers({ searchParams }: { searchPara
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -53,56 +55,56 @@ export default async function PageEtatsFinanciers({ searchParams }: { searchPara
     <div className="flex max-w-4xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour à la comptabilité
+        {t("Retour à la comptabilité")}
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
             <FileText className="size-5" aria-hidden />
-            <h1 className="text-2xl font-semibold tracking-tight">États financiers</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("États financiers")}</h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Le bilan et le compte de résultat de l&apos;exercice, présentés par rubriques SYSCOHADA.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("Le bilan et le compte de résultat de l'exercice, présentés par rubriques SYSCOHADA.")}</p>
         </div>
         <Link href={`/app/comptabilite/etats/pdf?annee=${etats.annee}`} prefetch={false} target="_blank" className={buttonVariants({ variant: "outline" })}>
           <FileText data-icon="inline-start" aria-hidden />
-          Télécharger le PDF
+          {t("Télécharger le PDF")}
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Choisir l'exercice">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("Choisir l'exercice")}>
         {annees.map((a) => (
           <Link key={a} role="tab" aria-selected={a === etats.annee} href={`/app/comptabilite/etats?annee=${a}`} className={buttonVariants({ variant: a === etats.annee ? "default" : "outline", size: "sm" })}>
-            Exercice {a}
+            {t("Exercice {annee}", { annee: a })}
           </Link>
         ))}
       </div>
 
       <p className="flex items-start gap-2 rounded-xl border border-amber-600/20 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
         <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-        Brouillon généré à partir de vos écritures : à faire valider par votre comptable avant tout dépôt. Ce n&apos;est pas la liasse fiscale complète (annexes, tableau des flux).
+        {t("Brouillon généré à partir de vos écritures : à faire valider par votre comptable avant tout dépôt. Ce n'est pas la liasse fiscale complète (annexes, tableau des flux).")}
       </p>
 
       {etats.bilan.equilibre ? (
         <p role="status" className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
           <CircleCheck className="size-4" aria-hidden />
-          Le bilan est équilibré : total actif = total passif.
+          {t("Le bilan est équilibré : total actif = total passif.")}
         </p>
       ) : (
         <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
           <TriangleAlert className="size-4" aria-hidden />
-          L&apos;actif et le passif ne s&apos;équilibrent pas : faites vérifier vos écritures par votre comptable.
+          {t("L'actif et le passif ne s'équilibrent pas : faites vérifier vos écritures par votre comptable.")}
         </p>
       )}
 
-      <Section titre={`Bilan — Actif au 31/12/${etats.annee}`} sections={etats.bilan.actif} avecAmort total={etats.bilan.totalActif} totalLibelle="TOTAL ACTIF" />
-      <Section titre={`Bilan — Passif au 31/12/${etats.annee}`} sections={etats.bilan.passif} avecAmort={false} total={etats.bilan.totalPassif} totalLibelle="TOTAL PASSIF" />
+      <Section titre={t("Bilan — Actif au 31/12/{annee}", { annee: etats.annee })} sections={etats.bilan.actif} avecAmort total={etats.bilan.totalActif} totalLibelle={t("TOTAL ACTIF")} />
+      <Section titre={t("Bilan — Passif au 31/12/{annee}", { annee: etats.annee })} sections={etats.bilan.passif} avecAmort={false} total={etats.bilan.totalPassif} totalLibelle={t("TOTAL PASSIF")} />
 
       <Card className="overflow-x-auto p-0">
         <div className="border-b bg-muted/40 px-4 py-2.5">
-          <h2 className="text-sm font-semibold">Compte de résultat — exercice {etats.annee}</h2>
+          <h2 className="text-sm font-semibold">{t("Compte de résultat — exercice {annee}", { annee: etats.annee })}</h2>
         </div>
         {etats.resultat.lignes.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucune écriture de gestion sur cet exercice.</p>
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune écriture de gestion sur cet exercice.")}</p>
         ) : (
           <table className="w-full text-sm">
             <tbody className="divide-y divide-border">
@@ -121,23 +123,24 @@ export default async function PageEtatsFinanciers({ searchParams }: { searchPara
   );
 }
 
-function Section({ titre, sections, avecAmort, total, totalLibelle }: { titre: string; sections: SectionEtat[]; avecAmort: boolean; total: number; totalLibelle: string }) {
+async function Section({ titre, sections, avecAmort, total, totalLibelle }: { titre: string; sections: SectionEtat[]; avecAmort: boolean; total: number; totalLibelle: string }) {
+  const t = await getT();
   return (
     <Card className="overflow-x-auto p-0">
       <div className="border-b bg-muted/40 px-4 py-2.5">
         <h2 className="text-sm font-semibold">{titre}</h2>
       </div>
       {sections.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">Rien à présenter.</p>
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Rien à présenter.")}</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2 font-medium">Réf.</th>
-              <th className="px-2 py-2 font-medium">Libellé</th>
-              {avecAmort ? <th className="px-4 py-2 text-right font-medium">Brut</th> : null}
-              {avecAmort ? <th className="px-4 py-2 text-right font-medium">Amortissements</th> : null}
-              <th className="px-4 py-2 text-right font-medium">{avecAmort ? "Net" : "Montant"}</th>
+              <th className="px-4 py-2 font-medium">{t("Réf.")}</th>
+              <th className="px-2 py-2 font-medium">{t("Libellé")}</th>
+              {avecAmort ? <th className="px-4 py-2 text-right font-medium">{t("Brut")}</th> : null}
+              {avecAmort ? <th className="px-4 py-2 text-right font-medium">{t("Amortissements")}</th> : null}
+              <th className="px-4 py-2 text-right font-medium">{avecAmort ? t("Net") : t("Montant")}</th>
             </tr>
           </thead>
           <tbody>

@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { creerClasseurDocumentFinancier } from "@/lib/actions/document-financier";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireNouveauClasseur() {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerClasseurDocumentFinancier, null);
   const [ouvert, setOuvert] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -25,19 +27,19 @@ export function FormulaireNouveauClasseur() {
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <FolderPlus data-icon="inline-start" aria-hidden />
-        Nouveau classeur
+        {t("Nouveau classeur")}
       </Button>
     );
   }
 
   return (
     <form ref={formRef} action={action} className="flex items-start gap-2">
-      <Input name="nom" placeholder="ex : Contrats" required autoFocus className="w-48" />
+      <Input name="nom" placeholder={t("ex : Contrats")} required autoFocus className="w-48" />
       <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? <Spinner /> : "Créer"}
+        {enCours ? <Spinner /> : t("Créer")}
       </Button>
       <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-        Annuler
+        {t("Annuler")}
       </Button>
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
     </form>

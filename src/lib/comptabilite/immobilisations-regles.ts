@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 /**
  * Immobilisations — règles pures (utilisables dans le navigateur). Amortissement linéaire, prorata au MOIS : le mois d'acquisition compte
  * en entier. Les dotations sont calculées par différence de cumuls arrondis, donc leur somme vaut exactement la base amortissable.
@@ -6,10 +7,10 @@
 export type CategorieImmobilisation = { compteActif: string; compteAmortissement: string; libelle: string; dureeConseillee: number };
 
 export const CATEGORIES_IMMOBILISATION: CategorieImmobilisation[] = [
-  { compteActif: "244000", compteAmortissement: "284000", libelle: "Matériel et mobilier", dureeConseillee: 10 },
-  { compteActif: "244100", compteAmortissement: "284100", libelle: "Matériel informatique", dureeConseillee: 3 },
-  { compteActif: "245000", compteAmortissement: "284500", libelle: "Matériel de transport", dureeConseillee: 5 },
-  { compteActif: "218000", compteAmortissement: "281800", libelle: "Autres immobilisations corporelles", dureeConseillee: 5 },
+  { compteActif: "244000", compteAmortissement: "284000", libelle: m("Matériel et mobilier"), dureeConseillee: 10 },
+  { compteActif: "244100", compteAmortissement: "284100", libelle: m("Matériel informatique"), dureeConseillee: 3 },
+  { compteActif: "245000", compteAmortissement: "284500", libelle: m("Matériel de transport"), dureeConseillee: 5 },
+  { compteActif: "218000", compteAmortissement: "281800", libelle: m("Autres immobilisations corporelles"), dureeConseillee: 5 },
 ];
 
 export function categorieImmobilisation(compteActif: string): CategorieImmobilisation | undefined {

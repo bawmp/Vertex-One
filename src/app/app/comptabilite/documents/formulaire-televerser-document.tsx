@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { televerserDocumentFinancier } from "@/lib/actions/document-financier";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireTeleverserDocument() {
+  const t = useT();
   const [etat, action, enCours] = useActionState(televerserDocumentFinancier, null);
   const [ouvert, setOuvert] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -26,7 +28,7 @@ export function FormulaireTeleverserDocument() {
     return (
       <Button size="sm" onClick={() => setOuvert(true)}>
         <Upload data-icon="inline-start" aria-hidden />
-        Téléverser
+        {t("Téléverser")}
       </Button>
     );
   }
@@ -34,7 +36,7 @@ export function FormulaireTeleverserDocument() {
   return (
     <form ref={formRef} action={action} className="flex flex-col gap-3 rounded-lg border p-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="fichier">Fichier (reçu, facture fournisseur, relevé…)</Label>
+        <Label htmlFor="fichier">{t("Fichier (reçu, facture fournisseur, relevé…)")}</Label>
         <Input id="fichier" name="fichier" type="file" required />
       </div>
 
@@ -43,10 +45,10 @@ export function FormulaireTeleverserDocument() {
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Envoi…" : "Envoyer"}
+          {enCours ? t("Envoi…") : t("Envoyer")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

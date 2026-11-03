@@ -23,6 +23,7 @@ import { aujourdhuiDouala, ajouterJours, JOURS_MAX_PROMESSE, type StatutPromesse
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/liens";
 import { getT } from "@/lib/i18n/langue";
+import { EquivalentsDevises } from "@/components/equivalents-devises";
 import { CarteAvoirs } from "./carte-avoirs";
 import { lignesCreditables, listerAvoirsFacture } from "@/lib/facturation/avoir-client";
 
@@ -170,6 +171,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
             {t("TVA :")} <span className="tabular-nums text-foreground">{formaterFCFA(laFacture.montantTVA)}</span>
           </p>
           <p className="text-lg font-medium">{t("TTC :")} <span className="tabular-nums">{formaterFCFA(laFacture.montantTTC)}</span></p>
+          <EquivalentsDevises entrepriseId={utilisateurConnecte.entrepriseId} montantXaf={laFacture.montantTTC} date={laFacture.dateEmission} />
         </CardContent>
       </Card>
 

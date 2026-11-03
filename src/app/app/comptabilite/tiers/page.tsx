@@ -15,15 +15,25 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const PERIODES: { cle: NomPeriode; libelle: string }[] = [
-  { cle: "mois", libelle: "Ce mois" },
-  { cle: "trimestre", libelle: "Ce trimestre" },
-  { cle: "annee", libelle: "Cette année" },
-  { cle: "annee-derniere", libelle: "Année dernière" },
+  { cle: "mois", libelle: m("Ce mois") },
+  { cle: "trimestre", libelle: m("Ce trimestre") },
+  { cle: "annee", libelle: m("Cette année") },
+  { cle: "annee-derniere", libelle: m("Année dernière") },
 ];
 const LIMITE_LIGNES = 1000;
-const jour = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
+const jourDans = (locale: string) => (d: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
+
+const LIBELLE_TRANCHE: Record<string, string> = {
+  "Non échu": m("Non échu"),
+  "1 à 30 jours": m("1 à 30 jours"),
+  "31 à 60 jours": m("31 à 60 jours"),
+  "61 à 90 jours": m("61 à 90 jours"),
+  "Plus de 90 jours": m("Plus de 90 jours"),
+};
 /** Garde au plus `limite` écritures au total sur l'ensemble des tiers, dans l'ordre. */
 function limiter<G extends { lignes: unknown[] }>(groupes: G[], limite: number): G[] {
   let restant = limite;
@@ -37,6 +47,7 @@ const montant = (v: number) => (v === 0 ? "" : formaterFCFA(v));
 const solde = (v: number) => (v === 0 ? "0" : `${formaterFCFA(Math.abs(v))} ${v > 0 ? "D" : "C"}`);
 
 export default async function PageTiers({ searchParams }: { searchParams: Promise<{ nature?: string; vue?: string; du?: string; au?: string; tiers?: string }> }) {
+  const t = await getT();
   const parametres = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -45,7 +56,7 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -75,7 +86,7 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -83,34 +94,37 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
   const natureUrl = nature === "CLIENT" ? "clients" : "fournisseurs";
   const lien = (n: string, v: string, du2 = duTexte, au2 = auTexte) => `/app/comptabilite/tiers?nature=${n}&vue=${v}&du=${du2}&au=${au2}${tiersChoisi && v === "livre" && n === natureUrl ? `&tiers=${tiersChoisi}` : ""}`;
   const lienExport = vue === "agee" ? `/app/comptabilite/livres/export?vue=agee-${natureUrl}` : `/app/comptabilite/livres/export?vue=${natureUrl}&du=${duTexte}&au=${auTexte}${tiersChoisi ? `&tiers=${tiersChoisi}` : ""}`;
-  const mot = nature === "CLIENT" ? "client" : "fournisseur";
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour à la comptabilité
+        {t("Retour à la comptabilité")}
       </Link>
       <div>
         <div className="flex items-center gap-2.5">
           <Users2 className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Clients et fournisseurs</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Clients et fournisseurs")}</h1>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {vue === "livre"
-            ? `Le compte de chaque ${mot}, écriture par écriture. Une lettre (A, B…) apparaît sur toutes les écritures d'une facture entièrement soldée.`
-            : `Ce que chaque ${mot} ${nature === "CLIENT" ? "vous doit" : "attend de vous"} encore, classé par retard d'échéance.`}
+            ? nature === "CLIENT"
+              ? t("Le compte de chaque client, écriture par écriture. Une lettre (A, B…) apparaît sur toutes les écritures d'une facture entièrement soldée.")
+              : t("Le compte de chaque fournisseur, écriture par écriture. Une lettre (A, B…) apparaît sur toutes les écritures d'une facture entièrement soldée.")
+            : nature === "CLIENT"
+              ? t("Ce que chaque client vous doit encore, classé par retard d'échéance.")
+              : t("Ce que chaque fournisseur attend encore de vous, classé par retard d'échéance.")}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Choisir clients ou fournisseurs">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("Choisir clients ou fournisseurs")}>
         {(["clients", "fournisseurs"] as const).map((n) => (
           <Link key={n} role="tab" aria-selected={n === natureUrl} href={lien(n, vue)} className={buttonVariants({ variant: n === natureUrl ? "default" : "outline", size: "sm" })}>
-            {n === "clients" ? "Clients" : "Fournisseurs"}
+            {n === "clients" ? t("Clients") : t("Fournisseurs")}
           </Link>
         ))}
         <span className="mx-1 w-px bg-border" aria-hidden />
-        {([["livre", "Grand livre auxiliaire"], ["agee", "Balance âgée"]] as const).map(([v, libelle]) => (
+        {([["livre", t("Grand livre auxiliaire")], ["agee", t("Balance âgée")]] as const).map(([v, libelle]) => (
           <Link key={v} role="tab" aria-selected={v === vue} href={lien(natureUrl, v)} className={buttonVariants({ variant: v === vue ? "default" : "outline", size: "sm" })}>
             {libelle}
           </Link>
@@ -123,54 +137,54 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
             <input type="hidden" name="nature" value={natureUrl} />
             <input type="hidden" name="vue" value="livre" />
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Période rapide :</span>
+              <span className="text-sm text-muted-foreground">{t("Période rapide :")}</span>
               {PERIODES.map((p) => {
                 const r = periodePredefinie(p.cle, new Date());
                 return (
                   <Link key={p.cle} href={lien(natureUrl, "livre", r.du, r.au)} className={buttonVariants({ variant: r.du === duTexte && r.au === auTexte ? "secondary" : "ghost", size: "sm" })}>
-                    {p.libelle}
+                    {t(p.libelle)}
                   </Link>
                 );
               })}
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="du">Du</Label>
+                <Label htmlFor="du">{t("Du")}</Label>
                 <Input id="du" name="du" type="date" defaultValue={duTexte} required />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="au">Au</Label>
+                <Label htmlFor="au">{t("Au")}</Label>
                 <Input id="au" name="au" type="date" defaultValue={auTexte} required />
               </div>
               <div className="flex min-w-60 flex-col gap-1.5">
-                <Label htmlFor="tiers">{nature === "CLIENT" ? "Client" : "Fournisseur"}</Label>
+                <Label htmlFor="tiers">{nature === "CLIENT" ? t("Client") : t("Fournisseur")}</Label>
                 <select id="tiers" name="tiers" defaultValue={tiersChoisi} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
-                  <option value="">{nature === "CLIENT" ? "Tous les clients" : "Tous les fournisseurs"}</option>
-                  {donnees.liste.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nom}
+                  <option value="">{nature === "CLIENT" ? t("Tous les clients") : t("Tous les fournisseurs")}</option>
+                  {donnees.liste.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.nom}
                     </option>
                   ))}
                 </select>
               </div>
-              <Button type="submit">Afficher</Button>
+              <Button type="submit">{t("Afficher")}</Button>
               <Link href={lienExport} prefetch={false} className={buttonVariants({ variant: "outline" })}>
                 <Download data-icon="inline-start" aria-hidden />
-                Exporter en CSV
+                {t("Exporter en CSV")}
               </Link>
               <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
                 <Download data-icon="inline-start" aria-hidden />
-                Imprimer en PDF
+                {t("Imprimer en PDF")}
               </Link>
             </div>
-            {periodeInversee ? <p role="alert" className="text-sm text-destructive">La date de début doit être avant la date de fin.</p> : null}
+            {periodeInversee ? <p role="alert" className="text-sm text-destructive">{t("La date de début doit être avant la date de fin.")}</p> : null}
           </form>
         </Card>
       ) : (
         <div>
           <Link href={lienExport} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Download data-icon="inline-start" aria-hidden />
-            Exporter en CSV
+            {t("Exporter en CSV")}
           </Link>
         </div>
       )}
@@ -181,32 +195,34 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
   );
 }
 
-function VueLivre({ tiers, nature }: { tiers: TiersGrandLivre[]; nature: NatureTiers }) {
-  if (tiers.length === 0) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Aucune écriture sur cette période.</p>;
-  const total = tiers.reduce((s, t) => s + t.lignes.length, 0);
+async function VueLivre({ tiers, nature }: { tiers: TiersGrandLivre[]; nature: NatureTiers }) {
+  const t = await getT();
+  const jour = jourDans(t.locale);
+  if (tiers.length === 0) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{t("Aucune écriture sur cette période.")}</p>;
+  const total = tiers.reduce((s, tg) => s + tg.lignes.length, 0);
   const limites = limiter(tiers, LIMITE_LIGNES);
   return (
     <div className="flex flex-col gap-4">
-      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">Affichage limité aux {LIMITE_LIGNES} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.</p> : null}
-      {limites.map((t) => (
-        <Card key={t.tiersId ?? t.nom} className="overflow-x-auto p-0">
+      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">{t("Affichage limité aux {limite} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.", { limite: LIMITE_LIGNES, total })}</p> : null}
+      {limites.map((tg) => (
+        <Card key={tg.tiersId ?? tg.nom} className="overflow-x-auto p-0">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
-            <h2 className="text-sm font-semibold">{t.nom}</h2>
-            <span className="text-xs text-muted-foreground">Solde reporté : {solde(t.soldeOuverture)}</span>
+            <h2 className="text-sm font-semibold">{tg.nom}</h2>
+            <span className="text-xs text-muted-foreground">{t("Solde reporté : {solde}", { solde: solde(tg.soldeOuverture) })}</span>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs text-muted-foreground">
-                <th className="px-4 py-2 font-medium">Date</th>
-                <th className="px-4 py-2 font-medium">Libellé</th>
-                <th className="px-4 py-2 text-right font-medium">Débit</th>
-                <th className="px-4 py-2 text-right font-medium">Crédit</th>
-                <th className="px-4 py-2 text-right font-medium">Solde</th>
-                <th className="px-4 py-2 font-medium">Lettrage</th>
+                <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("Solde")}</th>
+                <th className="px-4 py-2 font-medium">{t("Lettrage")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {t.lignes.map((l) => (
+              {tg.lignes.map((l) => (
                 <tr key={l.id}>
                   <td className="whitespace-nowrap px-4 py-1.5 text-muted-foreground">{jour(l.date)}</td>
                   <td className="px-4 py-1.5">{l.libelle}</td>
@@ -218,38 +234,40 @@ function VueLivre({ tiers, nature }: { tiers: TiersGrandLivre[]; nature: NatureT
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t bg-muted/30 font-medium">
+              <tr className="border-tg bg-muted/30 font-medium">
                 <td className="px-4 py-2" colSpan={2}>
-                  Total {nature === "CLIENT" ? "du client" : "du fournisseur"}
+                  {nature === "CLIENT" ? t("Total du client") : t("Total du fournisseur")}
                 </td>
-                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(t.totalDebit)}</td>
-                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(t.totalCredit)}</td>
-                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{solde(t.soldeCloture)}</td>
+                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(tg.totalDebit)}</td>
+                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(tg.totalCredit)}</td>
+                <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{solde(tg.soldeCloture)}</td>
                 <td />
               </tr>
             </tfoot>
           </table>
         </Card>
       ))}
-      <p className="text-xs text-muted-foreground">D = solde débiteur, C = solde créditeur. Une lettre identique sur plusieurs lignes veut dire qu&apos;elles se soldent entre elles (facture entièrement réglée).</p>
+      <p className="text-xs text-muted-foreground">{t("D = solde débiteur, C = solde créditeur. Une lettre identique sur plusieurs lignes veut dire qu'elles se soldent entre elles (facture entièrement réglée).")}</p>
     </div>
   );
 }
 
-function VueAgee({ balance, nature }: { balance: BalanceAgee; nature: NatureTiers }) {
-  if (balance.lignes.length === 0) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{nature === "CLIENT" ? "Aucune facture en attente de paiement : tout est réglé." : "Aucune facture fournisseur à payer."}</p>;
+async function VueAgee({ balance, nature }: { balance: BalanceAgee; nature: NatureTiers }) {
+  const t = await getT();
+  const jour = jourDans(t.locale);
+  if (balance.lignes.length === 0) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{nature === "CLIENT" ? t("Aucune facture en attente de paiement : tout est réglé.") : t("Aucune facture fournisseur à payer.")}</p>;
   return (
     <Card className="overflow-x-auto p-0">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="px-4 py-2 font-medium">{nature === "CLIENT" ? "Client" : "Fournisseur"}</th>
-            {TRANCHES_AGE.map((t) => (
-              <th key={t} className="px-3 py-2 text-right font-medium">
-                {t}
+            <th className="px-4 py-2 font-medium">{nature === "CLIENT" ? t("Client") : t("Fournisseur")}</th>
+            {TRANCHES_AGE.map((tr) => (
+              <th key={tr} className="px-3 py-2 text-right font-medium">
+                {t(LIBELLE_TRANCHE[tr])}
               </th>
             ))}
-            <th className="px-4 py-2 text-right font-medium">Total dû</th>
+            <th className="px-4 py-2 text-right font-medium">{t("Total dû")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -259,9 +277,9 @@ function VueAgee({ balance, nature }: { balance: BalanceAgee; nature: NatureTier
                 <p className="font-medium">{l.nom}</p>
                 <p className="text-xs text-muted-foreground">{l.documents.map((d) => `${d.numero} (${jour(d.echeance)})`).join(" · ")}</p>
               </td>
-              {TRANCHES_AGE.map((t) => (
-                <td key={t} className={"whitespace-nowrap px-3 py-2 text-right tabular-nums" + (t !== "Non échu" && l.tranches[t] > 0 ? " font-medium text-destructive" : "")}>
-                  {montant(l.tranches[t])}
+              {TRANCHES_AGE.map((tr) => (
+                <td key={tr} className={"whitespace-nowrap px-3 py-2 text-right tabular-nums" + (tr !== "Non échu" && l.tranches[tr] > 0 ? " font-medium text-destructive" : "")}>
+                  {montant(l.tranches[tr])}
                 </td>
               ))}
               <td className="whitespace-nowrap px-4 py-2 text-right font-medium tabular-nums">{formaterFCFA(l.total)}</td>
@@ -270,10 +288,10 @@ function VueAgee({ balance, nature }: { balance: BalanceAgee; nature: NatureTier
         </tbody>
         <tfoot>
           <tr className="border-t bg-muted/30 font-medium">
-            <td className="px-4 py-2">Total</td>
-            {TRANCHES_AGE.map((t) => (
-              <td key={t} className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                {formaterFCFA(balance.totaux[t])}
+            <td className="px-4 py-2">{t("Total")}</td>
+            {TRANCHES_AGE.map((tr) => (
+              <td key={tr} className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                {formaterFCFA(balance.totaux[tr])}
               </td>
             ))}
             <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(balance.total)}</td>

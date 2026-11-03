@@ -734,3 +734,15 @@ Comptabilité > Livres comptables : trois boutons (« Pour Sage », « Pour Ciel
 ## PDF des livres et déclarations (2026-11-03, priorité 4.2)
 
 Boutons « Imprimer en PDF » sur Livres comptables (grand livre, balance, journaux), Déclaration de TVA et Clients/fournisseurs (grand livre auxiliaire, balance âgée). Le PDF se construit depuis le MÊME tableau que l'export CSV (`livres/export?...&format=pdf`), donc jamais deux calculs différents ; paysage au-delà de 6 colonnes, montants alignés à droite avec séparateur de milliers. Même garde que les exports (Administrateur, forfait comptabilité complète). Repères : `src/lib/pdf/livre-comptable.tsx`, `tests/livre-comptable-pdf.test.ts`.
+
+## Comptabilité analytique (2026-11-03, priorité 4.5)
+
+Comptabilité > Comptabilité analytique : créer des **sections** (axe Projet, Agence ou Autre, code court, nom), rattacher une facture ou une dépense à une section (liste déroulante sur les 30 derniers documents), lire **produits, charges et résultat par section** sur une période (« Non affecté » regroupe le reste ; la somme retrouve le résultat global). Les écritures d'un document partagent sa section ; un règlement enregistré ensuite la reprend (`creerEcritures` relit la section de la facture/dépense). Une section n'est jamais supprimée, seulement désactivée. Administrateur seul, forfait comptabilité complète. Table `section_analytique` (RLS + FORCE), colonne `ecriture_comptable.section_analytique_id` (migration `0161`). Repères : `src/lib/comptabilite/analytique*.ts`, `src/lib/actions/analytique.ts`, `tests/comptabilite-analytique.test.ts` (dont fuite entre entreprises). **Limites** : une seule section par document, pas de ventilation en pourcentages, pas de section posée à la création du document.
+
+## Traduction anglaise de la comptabilité (2026-11-03, priorité 4.3)
+
+Les pages Comptabilité (livres, journaux manuels, régularisations, immobilisations, budgets, clôture, TVA, tiers, rapprochement, documents) et leurs actions sont traduites FR/EN via `t()`/`m()` (catalogue `src/lib/i18n/catalogue/comptabilite.ts`). **Restent en français** : libellés des comptes SYSCOHADA, rubriques du bilan et du compte de résultat, libellés d'écritures, en-têtes et titres des exports CSV/PDF, message du verrouillage de période, libellés des écritures de clôture.
+
+## Devises et taux de change (2026-11-03, priorité 4.7)
+
+Paramètres > Devises et taux de change : enregistrer le taux d'une devise (FCFA pour une unité, en millièmes entiers) avec une date d'effet ; le même couple devise + date est corrigé. La fiche facture affiche « ≈ … » dans chaque devise au taux en vigueur à la date d'émission. Un convertisseur calcule dans les deux sens. **Affichage seulement** : la comptabilité, les factures et les paiements restent en FCFA. Table `taux_change` (RLS + FORCE, migration `0162`). Repères : `src/lib/devises/`, `src/components/equivalents-devises.tsx`, `tests/devises.test.ts` (dont fuite entre entreprises).

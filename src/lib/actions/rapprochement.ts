@@ -9,25 +9,27 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { parserCsvReleve, suggererCorrespondances, confirmerRapprochement, type SuggestionRapprochement } from "@/lib/comptabilite/rapprochement";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatImportReleve = { erreur?: string; suggestions?: SuggestionRapprochement[] } | null;
 
 export async function importerReleveBancaire(_etat: EtatImportReleve, formData: FormData): Promise<EtatImportReleve> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) {
-    return { erreur: "Vous n'avez pas le droit d'accéder au rapprochement bancaire." };
+    return { erreur: t("Vous n'avez pas le droit d'accéder au rapprochement bancaire.") };
   }
 
   const fichier = formData.get("releve");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez un fichier CSV." };
+    return { erreur: t("Sélectionnez un fichier CSV.") };
   }
 
   const contenu = await fichier.text();
   const lignes = parserCsvReleve(contenu);
   if (lignes.length === 0) {
-    return { erreur: "Aucune ligne valide trouvée dans ce fichier (format attendu : date,libellé,montant)." };
+    return { erreur: t("Aucune ligne valide trouvée dans ce fichier (format attendu : date,libellé,montant).") };
   }
 
   const suggestions = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
@@ -37,7 +39,7 @@ export async function importerReleveBancaire(_etat: EtatImportReleve, formData: 
     return suggererCorrespondances(tx, utilisateurConnecte.entrepriseId, lignes);
   });
 
-  if (!suggestions) return { erreur: "La comptabilité complète est disponible à partir du forfait Business." };
+  if (!suggestions) return { erreur: t("La comptabilité complète est disponible à partir du forfait Business.") };
   return { suggestions };
 }
 

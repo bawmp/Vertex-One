@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getT } from "@/lib/i18n/langue";
 import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, journalExportDonnees } from "@/db/schema";
@@ -13,12 +14,13 @@ import { construireDossierExpert } from "@/lib/comptabilite/dossier-expert";
  * Chaque téléchargement est consigné au journal des exports (qui, quoi, combien de fichiers — jamais le contenu).
  */
 export async function GET(requete: Request) {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) return new NextResponse("Non authentifié", { status: 401 });
-  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse("Réservé à l'administrateur et au comptable externe", { status: 403 });
+  if (!utilisateurConnecte) return new NextResponse(t("Non authentifié"), { status: 401 });
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse(t("Réservé à l'administrateur et au comptable externe"), { status: 403 });
 
   const annee = Number(new URL(requete.url).searchParams.get("annee"));
-  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return new NextResponse("Exercice invalide", { status: 400 });
+  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   const archive = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -27,8 +29,8 @@ export async function GET(requete: Request) {
     if (zip) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "DOSSIER_EXPERT_COMPTABLE", nombreLignes: 9 });
     return zip;
   });
-  if (archive === "forfait") return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
-  if (!archive) return new NextResponse("Exercice invalide", { status: 400 });
+  if (archive === "forfait") return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (!archive) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   return new NextResponse(new Uint8Array(archive), {
     headers: {

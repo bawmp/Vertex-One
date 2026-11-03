@@ -11,8 +11,10 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { FormulaireTeleverserDocument } from "./formulaire-televerser-document";
 import { FormulaireNouveauClasseur } from "./formulaire-nouveau-classeur";
 import { VueDocumentsFinanciers } from "./vue-documents-financiers";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageDocumentsFinanciers() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -20,7 +22,7 @@ export default async function PageDocumentsFinanciers() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -61,7 +63,7 @@ export default async function PageDocumentsFinanciers() {
       factures: factures.map((f) => ({ id: f.id, libelle: `${f.numero} — ${formaterFCFA(f.montantTTC)}` })),
       paiements: paiements.map((p) => ({
         id: p.id,
-        libelle: `${formaterFCFA(p.montant)} — ${p.moyenPaiement} (${new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" }).format(p.datePaiement)})`,
+        libelle: `${formaterFCFA(p.montant)} — ${p.moyenPaiement} (${new Intl.DateTimeFormat(t.locale, { dateStyle: "short" }).format(p.datePaiement)})`,
       })),
     };
   });
@@ -70,7 +72,7 @@ export default async function PageDocumentsFinanciers() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -80,12 +82,12 @@ export default async function PageDocumentsFinanciers() {
       <div>
         <Link href="/app/comptabilite" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" aria-hidden />
-          Comptabilité
+          {t("Comptabilité")}
         </Link>
         <div className="mt-1 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <FolderOpen className="size-5" aria-hidden />
-            <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("Documents")}</h1>
           </div>
           {peut(utilisateurConnecte, "COMPTABILITE", "CREER") ? (
             <div className="flex items-center gap-2">
@@ -95,8 +97,7 @@ export default async function PageDocumentsFinanciers() {
           ) : null}
         </div>
         <p className="mt-1 text-muted-foreground">
-          Reçus, factures fournisseurs et relevés bancaires, rattachables à une facture ou un paiement — la saisie du
-          fournisseur/montant reste manuelle (pas d&apos;extraction automatique pour le moment).
+          {t("Reçus, factures fournisseurs et relevés bancaires, rattachables à une facture ou un paiement — la saisie du fournisseur/montant reste manuelle (pas d'extraction automatique pour le moment).")}
         </p>
       </div>
 

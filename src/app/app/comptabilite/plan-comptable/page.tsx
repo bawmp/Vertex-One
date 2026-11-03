@@ -13,6 +13,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AjouterCompte } from "./ajouter-compte";
 import { ActionsCompte } from "./actions-compte";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 // Zoho Books > Comptable > "Plan comptable" (échange du 2026-09-07). Lecture
 // seule et référentiel SYSCOHADA fixe : compteComptable est une table
@@ -23,17 +25,18 @@ import { ActionsCompte } from "./actions-compte";
 // s'affichent quand même avec un solde à 0 (calculerBalance() ne renvoie que
 // les comptes déjà mouvementés).
 const LIBELLE_CLASSE: Record<number, string> = {
-  1: "Classe 1 — Comptes de ressources durables",
-  2: "Classe 2 — Comptes d'actif immobilisé",
-  3: "Classe 3 — Comptes de stocks",
-  4: "Classe 4 — Comptes de tiers",
-  5: "Classe 5 — Comptes de trésorerie",
-  6: "Classe 6 — Comptes de charges",
-  7: "Classe 7 — Comptes de produits",
-  8: "Classe 8 — Autres charges et produits (HAO)",
+  1: m("Classe 1 — Comptes de ressources durables"),
+  2: m("Classe 2 — Comptes d'actif immobilisé"),
+  3: m("Classe 3 — Comptes de stocks"),
+  4: m("Classe 4 — Comptes de tiers"),
+  5: m("Classe 5 — Comptes de trésorerie"),
+  6: m("Classe 6 — Comptes de charges"),
+  7: m("Classe 7 — Comptes de produits"),
+  8: m("Classe 8 — Autres charges et produits (HAO)"),
 };
 
 export default async function PagePlanComptable() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -41,7 +44,7 @@ export default async function PagePlanComptable() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -66,7 +69,7 @@ export default async function PagePlanComptable() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -81,15 +84,15 @@ export default async function PagePlanComptable() {
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <BookText className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Plan comptable</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Plan comptable")}</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        Référentiel SYSCOHADA, auquel vous pouvez ajouter vos propres comptes. Le solde affiché est propre à votre entreprise.
+        {t("Référentiel SYSCOHADA, auquel vous pouvez ajouter vos propres comptes. Le solde affiché est propre à votre entreprise.")}
       </p>
       {peut(utilisateurConnecte, "COMPTABILITE", "CREER") ? <AjouterCompte /> : null}
 
@@ -97,7 +100,7 @@ export default async function PagePlanComptable() {
         .sort((a, b) => a - b)
         .map((classe) => (
           <div key={classe} className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">{LIBELLE_CLASSE[classe] ?? `Classe ${classe}`}</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">{LIBELLE_CLASSE[classe] ? t(LIBELLE_CLASSE[classe]) : t("Classe {classe}", { classe })}</h2>
             <Card className="animate-in fade-in slide-in-from-bottom-1 p-0 duration-300 fill-mode-both">
               <div className="flex flex-col divide-y divide-border">
                 {(comptesParClasse.get(classe) ?? []).map((c) => (
@@ -107,7 +110,7 @@ export default async function PagePlanComptable() {
                       <span className="ml-2">{c.libelle}</span>
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
-                      {c.entrepriseId ? <Badge variant="brand">Personnalisé</Badge> : null}
+                      {c.entrepriseId ? <Badge variant="brand">{t("Personnalisé")}</Badge> : null}
                       <span className="tabular-nums text-muted-foreground">{formaterFCFA(soldeParNumero.get(c.numero) ?? 0)}</span>
                       {c.entrepriseId && peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? <ActionsCompte compteId={c.id} libelle={c.libelle} /> : null}
                     </span>

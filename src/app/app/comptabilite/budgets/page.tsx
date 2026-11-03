@@ -9,12 +9,14 @@ import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { Card } from "@/components/ui/card";
 import { FormulaireBudget } from "./formulaire-budget";
+import { getT } from "@/lib/i18n/langue";
 
 // Zoho Books > Comptable > "Budgets" (échange du 2026-09-07) — pas de
 // ventilation mensuelle (contrairement à Zoho) : un montant par compte sur
 // toute la période du budget, comparé au réalisé calculé à la volée sur la
 // fiche détail (voir [id]/page.tsx). Réservé à l'Administrateur.
 export default async function PageBudgets() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -22,7 +24,7 @@ export default async function PageBudgets() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -46,7 +48,7 @@ export default async function PageBudgets() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -58,18 +60,18 @@ export default async function PageBudgets() {
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <PiggyBank className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Budgets")}</h1>
       </div>
 
       {peutCreer ? <FormulaireBudget comptes={comptes} /> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {budgets.map((b, index) => (
@@ -86,7 +88,7 @@ export default async function PageBudgets() {
                 </span>
               </Link>
             ))}
-            {budgets.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucun budget pour le moment.</p> : null}
+            {budgets.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun budget pour le moment.")}</p> : null}
           </div>
         </Card>
       </div>

@@ -11,6 +11,7 @@ import { calculerBalance } from "@/lib/comptabilite/etats-financiers";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/langue";
 
 // Le "réalisé" par compte se calcule à la volée sur la période exacte du
 // budget (calculerBalance(tx, entrepriseId, dateFin, dateDebut)) — jamais
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 // (solde négatif dans la convention débit - crédit) : inversé pour un
 // réalisé positif, même convention que calculerCompteDeResultat().
 export default async function PageDetailBudget({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -26,7 +28,7 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -69,7 +71,7 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite/budgets" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
@@ -84,10 +86,10 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2 font-medium">Compte</th>
-              <th className="px-4 py-2 text-right font-medium">Budgété</th>
-              <th className="px-4 py-2 text-right font-medium">Réalisé</th>
-              <th className="px-4 py-2 text-right font-medium">Écart</th>
+              <th className="px-4 py-2 font-medium">{t("Compte")}</th>
+              <th className="px-4 py-2 text-right font-medium">{t("Budgété")}</th>
+              <th className="px-4 py-2 text-right font-medium">{t("Réalisé")}</th>
+              <th className="px-4 py-2 text-right font-medium">{t("Écart")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -109,7 +111,7 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
           </tbody>
           <tfoot>
             <tr className="border-t bg-muted/30 font-medium">
-              <td className="px-4 py-2">Total</td>
+              <td className="px-4 py-2">{t("Total")}</td>
               <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalBudgete)}</td>
               <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalRealise)}</td>
               <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalBudgete - totalRealise)}</td>

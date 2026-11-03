@@ -15,6 +15,7 @@ import {
   modifierMetadonneesDocumentFinancier,
   supprimerDocumentFinancier,
 } from "@/lib/actions/document-financier";
+import { useT } from "@/lib/i18n/contexte";
 
 type LigneDocument = {
   id: string;
@@ -41,6 +42,7 @@ export function VueDocumentsFinanciers({
   factures: OptionSimple[];
   paiements: OptionSimple[];
 }) {
+  const t = useT();
   const [filtre, setFiltre] = useState<"TOUS" | "INBOX" | string>("TOUS");
   const [ligneOuverte, setLigneOuverte] = useState<string | null>(null);
   const [enCours, startTransition] = useTransition();
@@ -51,7 +53,7 @@ export function VueDocumentsFinanciers({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-1.5">
-        {[{ id: "TOUS", nom: "Tous les fichiers" }, { id: "INBOX", nom: "Boîte de réception" }, ...classeurs].map((c) => (
+        {[{ id: "TOUS", nom: t("Tous les fichiers") }, { id: "INBOX", nom: t("Boîte de réception") }, ...classeurs].map((c) => (
           <button
             key={c.id}
             type="button"
@@ -71,11 +73,11 @@ export function VueDocumentsFinanciers({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Fichier</th>
-                <th className="px-4 py-2.5 font-medium">Classeur</th>
-                <th className="px-4 py-2.5 font-medium">Rattaché à</th>
-                <th className="px-4 py-2.5 font-medium">Fournisseur</th>
-                <th className="px-4 py-2.5 font-medium">Montant</th>
+                <th className="px-4 py-2.5 font-medium">{t("Fichier")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("Classeur")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("Rattaché à")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("Fournisseur")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("Montant")}</th>
                 <th className="px-4 py-2.5 font-medium"></th>
               </tr>
             </thead>
@@ -102,13 +104,13 @@ export function VueDocumentsFinanciers({
                       </td>
                       <td className="px-4 py-2.5">
                         <Select
-                          aria-label={`Classeur de ${d.nom}`}
+                          aria-label={t("Classeur de {nom}", { nom: d.nom })}
                           defaultValue={d.classeurId ?? ""}
                           disabled={enCours}
                           className="w-40"
                           onChange={(e) => startTransition(() => deplacerDocumentFinancier(d.id, e.target.value || null))}
                         >
-                          <option value="">Boîte de réception</option>
+                          <option value="">{t("Boîte de réception")}</option>
                           {classeurs.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.nom}
@@ -119,7 +121,7 @@ export function VueDocumentsFinanciers({
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <Select
-                            aria-label={`Type de rattachement de ${d.nom}`}
+                            aria-label={t("Type de rattachement de {nom}", { nom: d.nom })}
                             defaultValue={typeRattachement}
                             disabled={enCours}
                             className="w-28"
@@ -128,13 +130,13 @@ export function VueDocumentsFinanciers({
                               if (type === "aucun") startTransition(() => attacherDocumentFinancier(d.id, {}));
                             }}
                           >
-                            <option value="aucun">Aucun</option>
-                            <option value="facture">Facture</option>
-                            <option value="paiement">Paiement</option>
+                            <option value="aucun">{t("Aucun")}</option>
+                            <option value="facture">{t("Facture")}</option>
+                            <option value="paiement">{t("Paiement")}</option>
                           </Select>
                           {typeRattachement !== "aucun" ? (
                             <Select
-                              aria-label={`${typeRattachement === "facture" ? "Facture" : "Paiement"} rattaché à ${d.nom}`}
+                              aria-label={typeRattachement === "facture" ? t("Facture rattachée à {nom}", { nom: d.nom }) : t("Paiement rattaché à {nom}", { nom: d.nom })}
                               defaultValue={idRattachement}
                               disabled={enCours}
                               className="w-36"
@@ -148,7 +150,7 @@ export function VueDocumentsFinanciers({
                               }
                             >
                               <option value="" disabled>
-                                Choisir…
+                                {t("Choisir…")}
                               </option>
                               {(typeRattachement === "facture" ? factures : paiements).map((o) => (
                                 <option key={o.id} value={o.id}>
@@ -161,7 +163,7 @@ export function VueDocumentsFinanciers({
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{d.fournisseurOuVendeur ?? "—"}</td>
                       <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
-                        {d.montant != null ? new Intl.NumberFormat("fr-FR").format(d.montant) + " FCFA" : "—"}
+                        {d.montant != null ? new Intl.NumberFormat(t.locale).format(d.montant) + " FCFA" : "—"}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
@@ -179,7 +181,7 @@ export function VueDocumentsFinanciers({
                             size="sm"
                             className="text-destructive"
                             onClick={() => {
-                              if (confirm(`Supprimer définitivement « ${d.nom} » ?`)) {
+                              if (confirm(t("Supprimer définitivement « {nom} » ?", { nom: d.nom }))) {
                                 startTransition(() => supprimerDocumentFinancier(d.id));
                               }
                             }}
@@ -202,7 +204,7 @@ export function VueDocumentsFinanciers({
               {documentsFiltres.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    Aucun document ici pour le moment.
+                    {t("Aucun document ici pour le moment.")}
                   </td>
                 </tr>
               ) : null}
@@ -215,6 +217,7 @@ export function VueDocumentsFinanciers({
 }
 
 function FormulaireMetadonnees({ documentId, document: doc }: { documentId: string; document: LigneDocument }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
   const action = modifierMetadonneesDocumentFinancier.bind(null, documentId);
 
@@ -229,19 +232,19 @@ function FormulaireMetadonnees({ documentId, document: doc }: { documentId: stri
     >
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground" htmlFor={`fournisseur-${documentId}`}>
-          Fournisseur / vendeur
+          {t("Fournisseur / vendeur")}
         </label>
         <Input id={`fournisseur-${documentId}`} name="fournisseurOuVendeur" defaultValue={doc.fournisseurOuVendeur ?? ""} />
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground" htmlFor={`montant-${documentId}`}>
-          Montant (FCFA)
+          {t("Montant (FCFA)")}
         </label>
         <Input id={`montant-${documentId}`} name="montant" type="number" defaultValue={doc.montant ?? ""} />
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground" htmlFor={`date-${documentId}`}>
-          Date du document
+          {t("Date du document")}
         </label>
         <Input
           id={`date-${documentId}`}
@@ -253,7 +256,7 @@ function FormulaireMetadonnees({ documentId, document: doc }: { documentId: stri
       <div className="col-span-3">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          Enregistrer
+          {t("Enregistrer")}
         </Button>
       </div>
     </form>

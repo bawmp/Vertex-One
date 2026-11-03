@@ -12,8 +12,10 @@ import { Card } from "@/components/ui/card";
 import { lireRegistre } from "@/lib/comptabilite/immobilisations";
 import { anneeMoisDouala } from "@/lib/comptabilite/immobilisations-regles";
 import { BoutonRetirer, FormulaireDotations, FormulaireImmobilisation } from "./formulaires";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageImmobilisations() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -21,7 +23,7 @@ export default async function PageImmobilisations() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -36,7 +38,7 @@ export default async function PageImmobilisations() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -53,27 +55,27 @@ export default async function PageImmobilisations() {
 
   const totalBrut = registre.reduce((s, b) => s + b.valeurAcquisition, 0);
   const totalAmort = registre.reduce((s, b) => s + b.amortissementsCumules, 0);
-  const date = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "Africa/Douala" }).format(d);
+  const date = (d: Date) => new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeZone: "Africa/Douala" }).format(d);
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <Building2 className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Immobilisations et amortissements</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Immobilisations et amortissements")}</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        Le registre de vos biens durables (matériel, mobilier, informatique, véhicules). Chaque année, une seule action passe en comptabilité la perte de valeur de tous les biens : le bilan et le résultat s&apos;en trouvent justes.
+        {t("Le registre de vos biens durables (matériel, mobilier, informatique, véhicules). Chaque année, une seule action passe en comptabilité la perte de valeur de tous les biens : le bilan et le résultat s'en trouvent justes.")}
       </p>
 
       {peutCreer ? <FormulaireImmobilisation aujourdhui={aujourdhui} /> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Registre</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Registre")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {registre.map((b) => (
@@ -81,25 +83,25 @@ export default async function PageImmobilisations() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{b.libelle}</p>
                   <p className="text-xs text-muted-foreground">
-                    {b.categorie} · acquis le {date(b.dateAcquisition)} · {b.dureeAnnees} an{b.dureeAnnees > 1 ? "s" : ""} · dotations passées : {b.anneesPassees.length > 0 ? b.anneesPassees.join(", ") : "aucune"}
+                    {t(b.categorie)} · {t("acquis le {date}", { date: date(b.dateAcquisition) })} · {b.dureeAnnees > 1 ? t("{n} ans", { n: b.dureeAnnees }) : t("{n} an", { n: b.dureeAnnees })} · {t("dotations passées : {annees}", { annees: b.anneesPassees.length > 0 ? b.anneesPassees.join(", ") : t("aucune") })}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <div className="text-right tabular-nums">
                     <p>{formaterFCFA(b.valeurNette)}</p>
-                    <p className="text-xs text-muted-foreground">sur {formaterFCFA(b.valeurAcquisition)}</p>
+                    <p className="text-xs text-muted-foreground">{t("sur {montant}", { montant: formaterFCFA(b.valeurAcquisition) })}</p>
                   </div>
                   {peutModifier && b.anneesPassees.length === 0 ? <BoutonRetirer id={b.id} /> : null}
                 </div>
               </div>
             ))}
-            {registre.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucun bien enregistré pour le moment.</p> : null}
+            {registre.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun bien enregistré pour le moment.")}</p> : null}
           </div>
           {registre.length > 0 ? (
             <div className="flex justify-between border-t px-4 py-3 text-sm font-medium tabular-nums">
-              <span>Valeur brute {formaterFCFA(totalBrut)}</span>
-              <span>Amortissements {formaterFCFA(totalAmort)}</span>
-              <span>Valeur nette {formaterFCFA(totalBrut - totalAmort)}</span>
+              <span>{t("Valeur brute {montant}", { montant: formaterFCFA(totalBrut) })}</span>
+              <span>{t("Amortissements {montant}", { montant: formaterFCFA(totalAmort) })}</span>
+              <span>{t("Valeur nette {montant}", { montant: formaterFCFA(totalBrut - totalAmort) })}</span>
             </div>
           ) : null}
         </Card>
@@ -107,9 +109,9 @@ export default async function PageImmobilisations() {
 
       {peutCreer && registre.length > 0 ? (
         <Card className="flex flex-col gap-3 p-4">
-          <h2 className="font-medium">Passer les dotations de l&apos;exercice</h2>
+          <h2 className="font-medium">{t("Passer les dotations de l'exercice")}</h2>
           <p className="text-sm text-muted-foreground">
-            À faire une fois par an, avant la clôture. Écriture au 31 décembre : charge « Dotations aux amortissements » (681000) en face des comptes d&apos;amortissement. Sans risque de doublon : un bien déjà traité pour l&apos;année est ignoré.
+            {t("À faire une fois par an, avant la clôture. Écriture au 31 décembre : charge « Dotations aux amortissements » (681000) en face des comptes d'amortissement. Sans risque de doublon : un bien déjà traité pour l'année est ignoré.")}
           </p>
           <FormulaireDotations annees={annees} anneeParDefaut={anneeParDefaut} />
         </Card>

@@ -10,12 +10,14 @@ import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { FormulaireJournalManuel } from "./formulaire-journal-manuel";
+import { getT } from "@/lib/i18n/langue";
 
 // Zoho Books > Comptable > "Journaux manuels" (échange du 2026-09-07) — la
 // seule voie de ce produit pour écrire dans ecritureComptable sans passer
 // par une Facture/Dépense/Paiement. Réservé à l'Administrateur, comme le
 // reste du module Comptabilité (voir CLAUDE.md).
 export default async function PageJournauxManuels() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -23,7 +25,7 @@ export default async function PageJournauxManuels() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -54,7 +56,7 @@ export default async function PageJournauxManuels() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -66,21 +68,21 @@ export default async function PageJournauxManuels() {
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour
+        {t("Retour")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <BookOpenText className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Journaux manuels</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Journaux manuels")}</h1>
       </div>
       <p className="-mt-4 text-sm text-muted-foreground">
-        Écritures saisies à la main (corrections, ajustements) — jamais générées automatiquement, contrairement aux écritures liées à une facture ou un paiement.
+        {t("Écritures saisies à la main (corrections, ajustements) — jamais générées automatiquement, contrairement aux écritures liées à une facture ou un paiement.")}
       </p>
 
       {peutCreer ? <FormulaireJournalManuel comptes={comptes} /> : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Historique</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Historique")}</h2>
         <Card className="p-0">
           <div className="flex flex-col divide-y divide-border">
             {journaux.map((j, index) => (
@@ -98,7 +100,7 @@ export default async function PageJournauxManuels() {
                 <span className="shrink-0 tabular-nums text-muted-foreground">{formaterFCFA(totalParJournal.get(j.id) ?? 0)}</span>
               </div>
             ))}
-            {journaux.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">Aucun journal manuel pour le moment.</p> : null}
+            {journaux.length === 0 ? <p className="px-4 py-8 text-center text-muted-foreground">{t("Aucun journal manuel pour le moment.")}</p> : null}
           </div>
         </Card>
       </div>

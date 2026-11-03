@@ -23,23 +23,25 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const VUES = [
-  { cle: "grand-livre", libelle: "Grand livre", aide: "Le détail de chaque compte, écriture par écriture, avec le solde qui évolue." },
-  { cle: "balance", libelle: "Balance", aide: "Tous les comptes en un tableau : ce qu'il y avait au départ, ce qui a bougé, ce qu'il reste." },
-  { cle: "journaux", libelle: "Journaux", aide: "Les écritures classées par type d'opération : ventes, achats, trésorerie, opérations diverses." },
+  { cle: "grand-livre", libelle: m("Grand livre"), aide: m("Le détail de chaque compte, écriture par écriture, avec le solde qui évolue.") },
+  { cle: "balance", libelle: m("Balance"), aide: m("Tous les comptes en un tableau : ce qu'il y avait au départ, ce qui a bougé, ce qu'il reste.") },
+  { cle: "journaux", libelle: m("Journaux"), aide: m("Les écritures classées par type d'opération : ventes, achats, trésorerie, opérations diverses.") },
 ] as const;
 type CleVue = (typeof VUES)[number]["cle"];
 
 const PERIODES: { cle: NomPeriode; libelle: string }[] = [
-  { cle: "mois", libelle: "Ce mois" },
-  { cle: "trimestre", libelle: "Ce trimestre" },
-  { cle: "annee", libelle: "Cette année" },
-  { cle: "annee-derniere", libelle: "Année dernière" },
+  { cle: "mois", libelle: m("Ce mois") },
+  { cle: "trimestre", libelle: m("Ce trimestre") },
+  { cle: "annee", libelle: m("Cette année") },
+  { cle: "annee-derniere", libelle: m("Année dernière") },
 ];
 
 const LIMITE_LIGNES = 1000;
-const jour = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
+const jourDans = (locale: string) => (d: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeZone: "Africa/Douala" }).format(d);
 /** Garde au plus `limite` écritures au total sur l'ensemble des groupes (compte ou journal), dans l'ordre. */
 function limiter<G extends { lignes: unknown[] }>(groupes: G[], limite: number): G[] {
   let restant = limite;
@@ -54,6 +56,7 @@ const montant = (v: number) => (v === 0 ? "" : formaterFCFA(v));
 const solde = (v: number) => (v === 0 ? "0" : `${formaterFCFA(Math.abs(v))} ${v > 0 ? "D" : "C"}`);
 
 export default async function PageLivresComptables({ searchParams }: { searchParams: Promise<{ vue?: string; du?: string; au?: string; compte?: string }> }) {
+  const t = await getT();
   const parametres = await searchParams;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -62,7 +65,7 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -94,7 +97,7 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -107,20 +110,20 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
     <div className="flex max-w-5xl flex-col gap-6">
       <Link href="/app/comptabilite" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Retour à la comptabilité
+        {t("Retour à la comptabilité")}
       </Link>
       <div>
         <div className="flex items-center gap-2.5">
           <BookMarked className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Livres comptables</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Livres comptables")}</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{vueActive.aide}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t(vueActive.aide)}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Choisir un livre">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("Choisir un livre")}>
         {VUES.map((v) => (
           <Link key={v.cle} role="tab" aria-selected={v.cle === vue} href={lien(v.cle)} className={buttonVariants({ variant: v.cle === vue ? "default" : "outline", size: "sm" })}>
-            {v.libelle}
+            {t(v.libelle)}
           </Link>
         ))}
       </div>
@@ -129,30 +132,30 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
         <form method="get" className="flex flex-col gap-4">
           <input type="hidden" name="vue" value={vue} />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Période rapide :</span>
+            <span className="text-sm text-muted-foreground">{t("Période rapide :")}</span>
             {PERIODES.map((p) => {
               const r = periodePredefinie(p.cle, new Date());
               return (
                 <Link key={p.cle} href={lien(vue, r.du, r.au)} className={buttonVariants({ variant: r.du === duTexte && r.au === auTexte ? "secondary" : "ghost", size: "sm" })}>
-                  {p.libelle}
+                  {t(p.libelle)}
                 </Link>
               );
             })}
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="du">Du</Label>
+              <Label htmlFor="du">{t("Du")}</Label>
               <Input id="du" name="du" type="date" defaultValue={duTexte} required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="au">Au</Label>
+              <Label htmlFor="au">{t("Au")}</Label>
               <Input id="au" name="au" type="date" defaultValue={auTexte} required />
             </div>
             {vue === "grand-livre" ? (
               <div className="flex min-w-64 flex-col gap-1.5">
-                <Label htmlFor="compte">Compte</Label>
+                <Label htmlFor="compte">{t("Compte")}</Label>
                 <select id="compte" name="compte" defaultValue={compteChoisi} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
-                  <option value="">Tous les comptes mouvementés</option>
+                  <option value="">{t("Tous les comptes mouvementés")}</option>
                   {donnees.comptes.map((c) => (
                     <option key={c.numero} value={c.numero}>
                       {c.numero} — {c.libelle}
@@ -161,32 +164,32 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
                 </select>
               </div>
             ) : null}
-            <Button type="submit">Afficher</Button>
+            <Button type="submit">{t("Afficher")}</Button>
             <Link href={lienExport} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Exporter en CSV
+              {t("Exporter en CSV")}
             </Link>
             <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Imprimer en PDF
+              {t("Imprimer en PDF")}
             </Link>
             <Link href={`/app/comptabilite/livres/export?vue=ecritures&format=sage&du=${duTexte}&au=${auTexte}`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Pour Sage
+              {t("Pour Sage")}
             </Link>
             <Link href={`/app/comptabilite/livres/export?vue=ecritures&format=ciel&du=${duTexte}&au=${auTexte}`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Pour Ciel
+              {t("Pour Ciel")}
             </Link>
             <Link href={`/app/comptabilite/livres/export?vue=ecritures&format=fec&du=${duTexte}&au=${auTexte}`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
-              Fichier des écritures
+              {t("Fichier des écritures")}
             </Link>
           </div>
           {periodeInversee ? (
             <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
               <TriangleAlert className="size-4" aria-hidden />
-              La date de début doit être avant la date de fin.
+              {t("La date de début doit être avant la date de fin.")}
             </p>
           ) : null}
         </form>
@@ -201,13 +204,15 @@ function Vide({ texte }: { texte: string }) {
   return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{texte}</p>;
 }
 
-function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
-  if (comptes.length === 0) return <Vide texte="Aucune écriture sur cette période." />;
+async function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
+  const t = await getT();
+  const jour = jourDans(t.locale);
+  if (comptes.length === 0) return <Vide texte={t("Aucune écriture sur cette période.")} />;
   const total = comptes.reduce((s, c) => s + c.lignes.length, 0);
   const limites = limiter(comptes, LIMITE_LIGNES);
   return (
     <div className="flex flex-col gap-4">
-      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">Affichage limité aux {LIMITE_LIGNES} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.</p> : null}
+      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">{t("Affichage limité aux {limite} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.", { limite: LIMITE_LIGNES, total })}</p> : null}
       {limites.map((c) => {
         const affichees = c.lignes;
         return (
@@ -216,16 +221,16 @@ function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
               <h2 className="text-sm font-semibold">
                 {c.numero} — {c.libelle}
               </h2>
-              <span className="text-xs text-muted-foreground">Solde reporté : {solde(c.soldeOuverture)}</span>
+              <span className="text-xs text-muted-foreground">{t("Solde reporté : {solde}", { solde: solde(c.soldeOuverture) })}</span>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">Date</th>
-                  <th className="px-4 py-2 font-medium">Libellé</th>
-                  <th className="px-4 py-2 text-right font-medium">Débit</th>
-                  <th className="px-4 py-2 text-right font-medium">Crédit</th>
-                  <th className="px-4 py-2 text-right font-medium">Solde</th>
+                  <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                  <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Solde")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -242,7 +247,7 @@ function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
               <tfoot>
                 <tr className="border-t bg-muted/30 font-medium">
                   <td className="px-4 py-2" colSpan={2}>
-                    Total du compte
+                    {t("Total du compte")}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(c.totalDebit)}</td>
                   <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(c.totalCredit)}</td>
@@ -253,25 +258,26 @@ function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
           </Card>
         );
       })}
-      <p className="text-xs text-muted-foreground">D = solde débiteur, C = solde créditeur.</p>
+      <p className="text-xs text-muted-foreground">{t("D = solde débiteur, C = solde créditeur.")}</p>
     </div>
   );
 }
 
-function VueBalance({ balance }: { balance: BalancePeriode }) {
-  if (balance.lignes.length === 0) return <Vide texte="Aucune écriture sur cette période." />;
-  const t = balance.totaux;
+async function VueBalance({ balance }: { balance: BalancePeriode }) {
+  const t = await getT();
+  if (balance.lignes.length === 0) return <Vide texte={t("Aucune écriture sur cette période.")} />;
+  const tot = balance.totaux;
   return (
     <div className="flex flex-col gap-3">
       {balance.equilibree ? (
         <p role="status" className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
           <CircleCheck className="size-4" aria-hidden />
-          Comptabilité équilibrée : total débit = total crédit.
+          {t("Comptabilité équilibrée : total débit = total crédit.")}
         </p>
       ) : (
         <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
           <TriangleAlert className="size-4" aria-hidden />
-          Attention : le total des débits ne correspond pas au total des crédits. Faites vérifier vos écritures par votre comptable.
+          {t("Attention : le total des débits ne correspond pas au total des crédits. Faites vérifier vos écritures par votre comptable.")}
         </p>
       )}
       <Card className="overflow-x-auto p-0">
@@ -279,20 +285,20 @@ function VueBalance({ balance }: { balance: BalancePeriode }) {
           <thead>
             <tr className="border-b text-xs text-muted-foreground">
               <th rowSpan={2} className="px-4 py-2 text-left font-medium">
-                Compte
+                {t("Compte")}
               </th>
               <th colSpan={2} className="border-l px-4 py-1.5 text-center font-medium">
-                Ouverture
+                {t("Ouverture")}
               </th>
               <th colSpan={2} className="border-l px-4 py-1.5 text-center font-medium">
-                Mouvements
+                {t("Mouvements")}
               </th>
               <th colSpan={2} className="border-l px-4 py-1.5 text-center font-medium">
-                Clôture
+                {t("Clôture")}
               </th>
             </tr>
             <tr className="border-b text-xs text-muted-foreground">
-              {["Débit", "Crédit", "Débit", "Crédit", "Débit", "Crédit"].map((e, i) => (
+              {[t("Débit"), t("Crédit"), t("Débit"), t("Crédit"), t("Débit"), t("Crédit")].map((e, i) => (
                 <th key={i} className={"px-4 py-1.5 text-right font-medium" + (i % 2 === 0 ? " border-l" : "")}>
                   {e}
                 </th>
@@ -315,8 +321,8 @@ function VueBalance({ balance }: { balance: BalancePeriode }) {
           </tbody>
           <tfoot>
             <tr className="border-t bg-muted/30 font-medium">
-              <td className="px-4 py-2">Total</td>
-              {[t.ouvertureDebit, t.ouvertureCredit, t.mouvementDebit, t.mouvementCredit, t.clotureDebit, t.clotureCredit].map((v, i) => (
+              <td className="px-4 py-2">{t("Total")}</td>
+              {[tot.ouvertureDebit, tot.ouvertureCredit, tot.mouvementDebit, tot.mouvementCredit, tot.clotureDebit, tot.clotureCredit].map((v, i) => (
                 <td key={i} className={"whitespace-nowrap px-4 py-2 text-right tabular-nums" + (i % 2 === 0 ? " border-l" : "")}>
                   {formaterFCFA(v)}
                 </td>
@@ -329,13 +335,15 @@ function VueBalance({ balance }: { balance: BalancePeriode }) {
   );
 }
 
-function VueJournaux({ journaux }: { journaux: JournalPeriode[] }) {
+async function VueJournaux({ journaux }: { journaux: JournalPeriode[] }) {
+  const t = await getT();
+  const jour = jourDans(t.locale);
   const total = journaux.reduce((s, j) => s + j.lignes.length, 0);
-  if (total === 0) return <Vide texte="Aucune écriture sur cette période." />;
+  if (total === 0) return <Vide texte={t("Aucune écriture sur cette période.")} />;
   const limites = limiter(journaux, LIMITE_LIGNES);
   return (
     <div className="flex flex-col gap-4">
-      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">Affichage limité aux {LIMITE_LIGNES} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.</p> : null}
+      {total > LIMITE_LIGNES ? <p className="text-sm text-muted-foreground">{t("Affichage limité aux {limite} premières écritures sur {total} : utilisez « Exporter en CSV » pour tout obtenir.", { limite: LIMITE_LIGNES, total })}</p> : null}
       {limites
         .map((j, i) => ({ j, i }))
         .filter(({ i }) => journaux[i].lignes.length > 0)
@@ -345,18 +353,18 @@ function VueJournaux({ journaux }: { journaux: JournalPeriode[] }) {
             <Card key={j.code} className="overflow-x-auto p-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
                 <h2 className="text-sm font-semibold">
-                  {j.libelle} <span className="font-normal text-muted-foreground">({j.code})</span>
+                  {t(j.libelle)} <span className="font-normal text-muted-foreground">({j.code})</span>
                 </h2>
-                <span className="text-xs text-muted-foreground">{journaux.find((o) => o.code === j.code)!.lignes.length} écriture(s)</span>
+                <span className="text-xs text-muted-foreground">{t("{n} écriture(s)", { n: journaux.find((o) => o.code === j.code)!.lignes.length })}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Date</th>
-                    <th className="px-4 py-2 font-medium">Libellé</th>
-                    <th className="px-4 py-2 font-medium">Compte</th>
-                    <th className="px-4 py-2 text-right font-medium">Débit</th>
-                    <th className="px-4 py-2 text-right font-medium">Crédit</th>
+                    <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
+                    <th className="px-4 py-2 font-medium">{t("Compte")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
+                    <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -375,7 +383,7 @@ function VueJournaux({ journaux }: { journaux: JournalPeriode[] }) {
                 <tfoot>
                   <tr className="border-t bg-muted/30 font-medium">
                     <td className="px-4 py-2" colSpan={3}>
-                      Total du journal
+                      {t("Total du journal")}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(j.totalDebit)}</td>
                     <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{formaterFCFA(j.totalCredit)}</td>

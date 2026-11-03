@@ -1128,6 +1128,20 @@
       "when": 1794200400000,
       "tag": "0160_numeros_serie",
       "breakpoints": true
+    },
+    {
+      "idx": 161,
+      "version": "7",
+      "when": 1794286800000,
+      "tag": "0161_comptabilite_analytique",
+      "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1794373200000,
+      "tag": "0162_taux_change",
+      "breakpoints": true
     }
   ]
 }

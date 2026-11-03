@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { Settings, Lock, CreditCard, ChevronRight } from "lucide-react";
+import { Settings, Lock, CreditCard, ChevronRight, Coins } from "lucide-react";
 import { db } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -59,6 +59,13 @@ export default async function PageParametres() {
             <span className="flex items-center gap-2">
               <CreditCard className="size-4" aria-hidden />
               {t("Gérer mon abonnement")}
+            </span>
+            <ChevronRight className="size-4" aria-hidden />
+          </Link>
+          <Link href="/app/parametres/devises" className="mt-3 flex items-center justify-between gap-2 text-sm text-primary hover:underline">
+            <span className="flex items-center gap-2">
+              <Coins className="size-4" aria-hidden />
+              {t("Devises et taux de change")}
             </span>
             <ChevronRight className="size-4" aria-hidden />
           </Link>

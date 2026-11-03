@@ -10,17 +10,19 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaLigne = z.object({
-  compteId: z.string().min(1, "Chaque ligne doit avoir un compte."),
+  compteId: z.string().min(1, m("Chaque ligne doit avoir un compte.")),
   debit: z.coerce.number().int().nonnegative(),
   credit: z.coerce.number().int().nonnegative(),
 });
 
 const schemaJournalManuel = z.object({
-  date: z.string().min(1, "La date est requise."),
-  libelle: z.string().trim().min(1, "Le libellé est requis."),
-  lignes: z.array(schemaLigne).min(2, "Un journal manuel doit avoir au moins deux lignes."),
+  date: z.string().min(1, m("La date est requise.")),
+  libelle: z.string().trim().min(1, m("Le libellé est requis.")),
+  lignes: z.array(schemaLigne).min(2, m("Un journal manuel doit avoir au moins deux lignes.")),
 });
 
 export type EtatJournalManuel = { erreur?: string } | null;
@@ -34,10 +36,11 @@ export type EtatJournalManuel = { erreur?: string } | null;
  * pouvoir être enregistré.
  */
 export async function creerJournalManuel(_etat: EtatJournalManuel, formData: FormData): Promise<EtatJournalManuel> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un journal manuel." };
+    return { erreur: t("Vous n'avez pas le droit de créer un journal manuel.") };
   }
 
   const comptesId = formData.getAll("compteId").map(String);
@@ -51,24 +54,24 @@ export async function creerJournalManuel(_etat: EtatJournalManuel, formData: For
     lignes: lignesBrutes,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { date, libelle, lignes } = analyse.data;
 
   for (const ligne of lignes) {
     const uneSeuleColonne = (ligne.debit > 0 && ligne.credit === 0) || (ligne.credit > 0 && ligne.debit === 0);
     if (!uneSeuleColonne) {
-      return { erreur: "Chaque ligne doit porter un débit OU un crédit, jamais les deux ni aucun." };
+      return { erreur: t("Chaque ligne doit porter un débit OU un crédit, jamais les deux ni aucun.") };
     }
   }
 
   const totalDebit = lignes.reduce((s, l) => s + l.debit, 0);
   const totalCredit = lignes.reduce((s, l) => s + l.credit, 0);
   if (totalDebit !== totalCredit) {
-    return { erreur: `Le journal n'est pas équilibré : débit ${totalDebit} ≠ crédit ${totalCredit}.` };
+    return { erreur: t("Le journal n'est pas équilibré : débit {debit} ≠ crédit {credit}.", { debit: totalDebit, credit: totalCredit }) };
   }
   if (totalDebit === 0) {
-    return { erreur: "Le montant total doit être positif." };
+    return { erreur: t("Le montant total doit être positif.") };
   }
 
   const erreurVerrouillage = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {

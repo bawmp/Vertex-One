@@ -39,11 +39,11 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 
 - [x] **P4.1 Exports vers les logiciels courants** (fichier des écritures, formats Sage / Ciel) (M). FAIT : boutons « Pour Sage », « Pour Ciel », « Fichier des écritures » sur Livres comptables ; colonnes courantes, NON testées dans les vrais logiciels.
 - [x] **P4.2 PDF de tous les livres et déclarations** (M). FAIT : bouton « Imprimer en PDF » sur Livres, TVA et Clients/fournisseurs ; les états financiers avaient déjà le leur.
-- [ ] **P4.3 Traduction anglaise des pages de comptabilité et de stock** (M). La comptabilité est aujourd'hui en français seulement ; le stock est traduit.
+- [x] **P4.3 Traduction anglaise des pages de comptabilité et de stock** (M). La comptabilité est aujourd'hui en français seulement ; le stock est traduit.
 - [x] **P4.4 Raccourci « Stock » dans le menu** pour les entreprises de produits (S). FAIT : catégorie « Stock » dans One Books (dépôts, réapprovisionnement, inventaire, scanner, péremptions, numéros de série).
-- [ ] **P4.5 Comptabilité analytique** (par projet, par agence) (L).
+- [x] **P4.5 Comptabilité analytique** (par projet, par agence) (L). FAIT (migration 0161) : sections (axe projet/agence/autre), rattachement d'une facture ou d'une dépense (ses règlements suivent), résultat par section. Pas encore : section posée à la saisie d'un document, ventilation d'un document sur plusieurs sections, export CSV du résultat par section.
 - [ ] **P4.6 Exercice décalé** (qui ne suit pas l'année civile) (M).
-- [ ] **P4.7 Multi-devise** (L).
+- [x] **P4.7 Multi-devise** (L). FAIT EN VERSION D'AFFICHAGE (migration 0162) : taux de change par devise et par date (Paramètres > Devises et taux de change), équivalent affiché sur la fiche facture, convertisseur. **Pas fait** : facturer ou encaisser réellement dans une autre devise, écarts de change, comptabilité multi-devise (la comptabilité reste en FCFA).
 - [ ] **P4.8 Impôt sur les sociétés, acomptes et télédéclaration de TVA** (L) : à ne faire qu'avec un comptable partenaire.
 
 ## Hors périmètre (décision de produit, déjà actée)

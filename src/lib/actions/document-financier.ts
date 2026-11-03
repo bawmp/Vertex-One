@@ -9,6 +9,8 @@ import { documentFinancier, classeurDocumentFinancier } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument as televerserVersR2, effacerObjetStockage } from "@/lib/documents/stockage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/comptabilite/documents";
 
@@ -21,15 +23,16 @@ export type EtatDocumentFinancier = { erreur?: string } | null;
  * rapprochement).
  */
 export async function televerserDocumentFinancier(_etat: EtatDocumentFinancier, formData: FormData): Promise<EtatDocumentFinancier> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter un document." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter un document.") };
   }
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez un fichier." };
+    return { erreur: t("Sélectionnez un fichier.") };
   }
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
@@ -40,7 +43,7 @@ export async function televerserDocumentFinancier(_etat: EtatDocumentFinancier, 
     contenu,
   });
   if (!televerse) {
-    return { erreur: erreur ?? "Échec du téléversement." };
+    return { erreur: erreur ?? t("Échec du téléversement.") };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
@@ -58,18 +61,19 @@ export async function televerserDocumentFinancier(_etat: EtatDocumentFinancier, 
   return null;
 }
 
-const schemaClasseur = z.object({ nom: z.string().trim().min(1, "Le nom du classeur est obligatoire.") });
+const schemaClasseur = z.object({ nom: z.string().trim().min(1, m("Le nom du classeur est obligatoire.")) });
 
 export async function creerClasseurDocumentFinancier(_etat: EtatDocumentFinancier, formData: FormData): Promise<EtatDocumentFinancier> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un classeur." };
+    return { erreur: t("Vous n'avez pas le droit de créer un classeur.") };
   }
 
   const analyse = schemaClasseur.safeParse({ nom: formData.get("nom") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
@@ -133,10 +137,11 @@ export async function modifierMetadonneesDocumentFinancier(
   _etat: EtatDocumentFinancier,
   formData: FormData
 ): Promise<EtatDocumentFinancier> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit de modifier ce document." };
+    return { erreur: t("Vous n'avez pas le droit de modifier ce document.") };
   }
 
   const analyse = schemaMetadonnees.safeParse({
@@ -145,7 +150,7 @@ export async function modifierMetadonneesDocumentFinancier(
     dateDocument: formData.get("dateDocument") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { fournisseurOuVendeur, montant, dateDocument } = analyse.data;
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getT } from "@/lib/i18n/langue";
 import { eq } from "drizzle-orm";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { avecEntreprise } from "@/db/client";
@@ -15,12 +16,13 @@ import { EtatsFinanciersPDF } from "@/lib/pdf/etats-financiers";
  * des exports (qui, quoi — jamais le contenu).
  */
 export async function GET(requete: Request) {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) return new NextResponse("Non authentifié", { status: 401 });
-  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse("Réservé à l'administrateur et au comptable externe", { status: 403 });
+  if (!utilisateurConnecte) return new NextResponse(t("Non authentifié"), { status: 401 });
+  if (!peut(utilisateurConnecte, "COMPTABILITE", "VOIR")) return new NextResponse(t("Réservé à l'administrateur et au comptable externe"), { status: 403 });
 
   const annee = Number(new URL(requete.url).searchParams.get("annee"));
-  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return new NextResponse("Exercice invalide", { status: 400 });
+  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   const etats = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
@@ -29,8 +31,8 @@ export async function GET(requete: Request) {
     if (lus) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "ETATS_FINANCIERS_PDF", nombreLignes: lus.resultat.lignes.length });
     return lus;
   });
-  if (etats === "forfait") return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
-  if (!etats) return new NextResponse("Exercice invalide", { status: 400 });
+  if (etats === "forfait") return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (!etats) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   const pdf = await renderToBuffer(<EtatsFinanciersPDF etats={etats} genereLe={new Date()} />);
   return new NextResponse(new Uint8Array(pdf), {

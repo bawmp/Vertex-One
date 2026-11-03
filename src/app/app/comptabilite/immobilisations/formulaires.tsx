@@ -9,6 +9,7 @@ import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { ajouterImmobilisationAction, passerDotationsAction, retirerImmobilisationAction, type EtatImmobilisation } from "@/lib/actions/immobilisation";
 import { CATEGORIES_IMMOBILISATION, categorieImmobilisation, planAmortissement, anneeMoisDouala } from "@/lib/comptabilite/immobilisations-regles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { useT } from "@/lib/i18n/contexte";
 
 function Retour({ etat }: { etat: EtatImmobilisation }) {
   if (etat?.erreur) return <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>;
@@ -23,6 +24,7 @@ function Retour({ etat }: { etat: EtatImmobilisation }) {
 
 /** Ajout d'un bien : catégorie (qui fixe la durée conseillée), prix, date ; l'écran montre la dotation annuelle avant d'enregistrer. */
 export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string }) {
+  const t = useT();
   const [categorie, setCategorie] = useState(CATEGORIES_IMMOBILISATION[0].compteActif);
   const [duree, setDuree] = useState(String(CATEGORIES_IMMOBILISATION[0].dureeConseillee));
   const [valeur, setValeur] = useState("");
@@ -52,9 +54,9 @@ export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string })
           }}
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <Champ label="Désignation du bien" name="libelle" required maxLength={120} placeholder="Ex. Ordinateur portable du bureau" className="sm:col-span-2" />
+            <Champ label={t("Désignation du bien")} name="libelle" required maxLength={120} placeholder={t("Ex. Ordinateur portable du bureau")} className="sm:col-span-2" />
             <ChampSelect
-              label="Catégorie"
+              label={t("Catégorie")}
               name="categorie"
               value={categorie}
               onChange={(e) => {
@@ -64,28 +66,29 @@ export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string })
             >
               {CATEGORIES_IMMOBILISATION.map((c) => (
                 <option key={c.compteActif} value={c.compteActif}>
-                  {c.libelle}
+                  {t(c.libelle)}
                 </option>
               ))}
             </ChampSelect>
-            <Champ label="Durée d'amortissement (années)" name="duree" type="number" min={1} max={50} step={1} required value={duree} onChange={(e) => setDuree(e.target.value)} aide="Durée conseillée selon la catégorie, modifiable." />
-            <Champ label="Valeur d'acquisition (FCFA)" name="valeur" type="number" inputMode="numeric" min={1} step={1} required value={valeur} onChange={(e) => setValeur(e.target.value)} />
-            <Champ label="Valeur résiduelle (FCFA)" name="residuelle" type="number" inputMode="numeric" min={0} step={1} value={residuelle} onChange={(e) => setResiduelle(e.target.value)} aide="Ce que le bien vaudra à la fin, en général 0." />
-            <Champ label="Date d'acquisition" name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
-            <ChampSelect label="L'achat est-il déjà en comptabilité ?" name="contrepartie" defaultValue="AUCUNE" aide="Si non, l'écriture d'acquisition est passée pour vous.">
-              <option value="AUCUNE">Oui, déjà enregistré (dépense, journal…)</option>
-              <option value="512000">Non — payé par la banque</option>
-              <option value="571000">Non — payé en espèces (caisse)</option>
-              <option value="401000">Non — à payer au fournisseur</option>
+            <Champ label={t("Durée d'amortissement (années)")} name="duree" type="number" min={1} max={50} step={1} required value={duree} onChange={(e) => setDuree(e.target.value)} aide={t("Durée conseillée selon la catégorie, modifiable.")} />
+            <Champ label={t("Valeur d'acquisition (FCFA)")} name="valeur" type="number" inputMode="numeric" min={1} step={1} required value={valeur} onChange={(e) => setValeur(e.target.value)} />
+            <Champ label={t("Valeur résiduelle (FCFA)")} name="residuelle" type="number" inputMode="numeric" min={0} step={1} value={residuelle} onChange={(e) => setResiduelle(e.target.value)} aide={t("Ce que le bien vaudra à la fin, en général 0.")} />
+            <Champ label={t("Date d'acquisition")} name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+            <ChampSelect label={t("L'achat est-il déjà en comptabilité ?")} name="contrepartie" defaultValue="AUCUNE" aide={t("Si non, l'écriture d'acquisition est passée pour vous.")}>
+              <option value="AUCUNE">{t("Oui, déjà enregistré (dépense, journal…)")}</option>
+              <option value="512000">{t("Non — payé par la banque")}</option>
+              <option value="571000">{t("Non — payé en espèces (caisse)")}</option>
+              <option value="401000">{t("Non — à payer au fournisseur")}</option>
             </ChampSelect>
           </div>
 
           {plan.length > 0 ? (
             <div className="rounded-lg border bg-muted/30 p-3 text-sm" aria-live="polite">
-              <p className="mb-1 font-medium">Amortissement prévu</p>
+              <p className="mb-1 font-medium">{t("Amortissement prévu")}</p>
               <p className="text-muted-foreground">
-                {plan.length} dotation{plan.length > 1 ? "s" : ""} : {formaterFCFA(plan[0].montant)} en {plan[0].annee}
-                {plan.length > 1 ? `, puis jusqu'en ${plan[plan.length - 1].annee}` : ""}. Dotation pleine : {formaterFCFA(plan[Math.min(1, plan.length - 1)].montant)} par an.
+                {plan.length > 1
+                  ? t("{n} dotations : {premiere} en {annee}, puis jusqu'en {derniere}. Dotation pleine : {pleine} par an.", { n: plan.length, premiere: formaterFCFA(plan[0].montant), annee: plan[0].annee, derniere: plan[plan.length - 1].annee, pleine: formaterFCFA(plan[1].montant) })
+                  : t("{n} dotation : {premiere} en {annee}. Dotation pleine : {pleine} par an.", { n: plan.length, premiere: formaterFCFA(plan[0].montant), annee: plan[0].annee, pleine: formaterFCFA(plan[0].montant) })}
               </p>
             </div>
           ) : null}
@@ -93,7 +96,7 @@ export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string })
           <Retour etat={etat} />
           <Button type="submit" disabled={enCours || plan.length === 0} className="self-start">
             {enCours ? <Spinner /> : <Plus data-icon="inline-start" aria-hidden />}
-            Ajouter au registre
+            {t("Ajouter au registre")}
           </Button>
         </form>
       </CardContent>
@@ -103,6 +106,7 @@ export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string })
 
 /** « Passer les dotations de l'exercice » : choix de l'année, un clic ; rejouable sans doublon. */
 export function FormulaireDotations({ annees, anneeParDefaut }: { annees: number[]; anneeParDefaut: number }) {
+  const t = useT();
   const [annee, setAnnee] = useState(String(anneeParDefaut));
   const [etat, setEtat] = useState<EtatImmobilisation>(null);
   const [enCours, startTransition] = useTransition();
@@ -117,7 +121,7 @@ export function FormulaireDotations({ annees, anneeParDefaut }: { annees: number
       }}
     >
       <div className="flex flex-wrap items-end gap-3">
-        <ChampSelect label="Exercice" name="annee" value={annee} onChange={(e) => setAnnee(e.target.value)} className="w-40">
+        <ChampSelect label={t("Exercice")} name="annee" value={annee} onChange={(e) => setAnnee(e.target.value)} className="w-40">
           {annees.map((a) => (
             <option key={a} value={a}>
               {a}
@@ -126,7 +130,7 @@ export function FormulaireDotations({ annees, anneeParDefaut }: { annees: number
         </ChampSelect>
         <Button type="submit" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          Passer les dotations de {annee}
+          {t("Passer les dotations de {annee}", { annee })}
         </Button>
       </div>
       <Retour etat={etat} />
@@ -135,6 +139,7 @@ export function FormulaireDotations({ annees, anneeParDefaut }: { annees: number
 }
 
 export function BoutonRetirer({ id }: { id: string }) {
+  const t = useT();
   const [etat, setEtat] = useState<EtatImmobilisation>(null);
   const [enCours, startTransition] = useTransition();
   return (
@@ -144,10 +149,10 @@ export function BoutonRetirer({ id }: { id: string }) {
         variant="ghost"
         size="icon-sm"
         disabled={enCours}
-        aria-label="Retirer ce bien du registre"
+        aria-label={t("Retirer ce bien du registre")}
         className="text-muted-foreground hover:text-destructive"
         onClick={() => {
-          if (!window.confirm("Retirer ce bien du registre ?")) return;
+          if (!window.confirm(t("Retirer ce bien du registre ?"))) return;
           const donnees = new FormData();
           donnees.set("id", id);
           startTransition(async () => setEtat(await retirerImmobilisationAction(null, donnees)));

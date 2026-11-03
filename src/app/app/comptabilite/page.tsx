@@ -13,8 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { NombreAnime } from "@/components/nombre-anime";
 import { FormulaireVerrouillage } from "./formulaire-verrouillage";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageComptabilite() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -25,7 +27,7 @@ export default async function PageComptabilite() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité est réservée à l&apos;Administrateur.</p>
+        <p className="text-muted-foreground">{t("La comptabilité est réservée à l'Administrateur.")}</p>
       </div>
     );
   }
@@ -64,7 +66,7 @@ export default async function PageComptabilite() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La comptabilité complète est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -77,16 +79,16 @@ export default async function PageComptabilite() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Calculator className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Comptabilité</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Comptabilité")}</h1>
         </div>
         <div className="flex gap-2">
           <Link href="/app/comptabilite/documents" className={buttonVariants({ variant: "outline", size: "sm" })}>
             <FolderOpen data-icon="inline-start" aria-hidden />
-            Documents
+            {t("Documents")}
           </Link>
           <Link href="/app/comptabilite/rapprochement" className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Landmark data-icon="inline-start" aria-hidden />
-            Rapprochement bancaire
+            {t("Rapprochement bancaire")}
           </Link>
         </div>
       </div>
@@ -94,27 +96,26 @@ export default async function PageComptabilite() {
       <div className="flex items-start gap-2 rounded-md border border-amber-600/20 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
         <AlertTriangle className="size-4 shrink-0" aria-hidden />
         <p>
-          Ces états sont un brouillon généré automatiquement à partir de vos factures et paiements — à faire valider par
-          votre comptable avant tout dépôt officiel auprès de la DGI. Ce n&apos;est pas un outil de télédéclaration fiscale.
+          {t("Ces états sont un brouillon généré automatiquement à partir de vos factures et paiements — à faire valider par votre comptable avant tout dépôt officiel auprès de la DGI. Ce n'est pas un outil de télédéclaration fiscale.")}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
-            <CardTitle>Compte de résultat</CardTitle>
+            <CardTitle>{t("Compte de résultat")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Produits</span>
+              <span className="text-muted-foreground">{t("Produits")}</span>
               <span>{formaterFCFA(compteDeResultat.totalProduits)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Charges</span>
+              <span className="text-muted-foreground">{t("Charges")}</span>
               <span>{formaterFCFA(compteDeResultat.totalCharges)}</span>
             </div>
             <div className="mt-1 flex justify-between border-t border-border pt-1 font-medium">
-              <span>Résultat net</span>
+              <span>{t("Résultat net")}</span>
               <span>
                 <NombreAnime valeur={compteDeResultat.resultatNet} suffixe=" FCFA" />
               </span>
@@ -124,17 +125,17 @@ export default async function PageComptabilite() {
 
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
-            <CardTitle>Bilan</CardTitle>
+            <CardTitle>{t("Bilan")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total actif</span>
+              <span className="text-muted-foreground">{t("Total actif")}</span>
               <span>
                 <NombreAnime valeur={bilan.totalActif} suffixe=" FCFA" />
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total passif</span>
+              <span className="text-muted-foreground">{t("Total passif")}</span>
               <span>
                 <NombreAnime valeur={bilan.totalPassif} suffixe=" FCFA" />
               </span>
@@ -144,19 +145,19 @@ export default async function PageComptabilite() {
       </div>
 
       <div id="journal" className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Journal des écritures (50 plus récentes)</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Journal des écritures (50 plus récentes)")}</h2>
         {dernieresEcritures.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune écriture pour le moment.</p>
+          <p className="text-sm text-muted-foreground">{t("Aucune écriture pour le moment.")}</p>
         ) : (
           <Card className="animate-in fade-in slide-in-from-bottom-2 overflow-x-auto p-0 duration-500 delay-200 fill-mode-both">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">Date</th>
-                  <th className="px-4 py-2 font-medium">Libellé</th>
-                  <th className="px-4 py-2 font-medium">Compte</th>
-                  <th className="px-4 py-2 text-right font-medium">Débit</th>
-                  <th className="px-4 py-2 text-right font-medium">Crédit</th>
+                  <th className="px-4 py-2 font-medium">{t("Date")}</th>
+                  <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
+                  <th className="px-4 py-2 font-medium">{t("Compte")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
+                  <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -181,7 +182,7 @@ export default async function PageComptabilite() {
 
       {peutModifier ? (
         <div id="verrouillage" className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Verrouillage de transactions</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Verrouillage de transactions")}</h2>
           <Card>
             <CardContent>
               <FormulaireVerrouillage dateVerrouillage={dateVerrouillageComptable} />

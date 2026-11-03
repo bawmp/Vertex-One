@@ -19,6 +19,7 @@ import { FORMULAIRES } from "./formulaires";
 import { STOCK } from "./stock";
 import { AVOIRS } from "./avoirs";
 import { COMPTABILITE } from "./comptabilite";
+import { ANALYTIQUE } from "./analytique";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -38,4 +39,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...STOCK,
   ...AVOIRS,
   ...COMPTABILITE,
+  ...ANALYTIQUE,
 };

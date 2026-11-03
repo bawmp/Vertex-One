@@ -7,17 +7,19 @@ import { avecEntreprise } from "@/db/client";
 import { budget, budgetLigne } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaLigne = z.object({
-  compteId: z.string().min(1, "Chaque ligne doit avoir un compte."),
-  montant: z.coerce.number().int().positive("Le montant budgété doit être positif."),
+  compteId: z.string().min(1, m("Chaque ligne doit avoir un compte.")),
+  montant: z.coerce.number().int().positive(m("Le montant budgété doit être positif.")),
 });
 
 const schemaBudget = z.object({
-  nom: z.string().trim().min(1, "Le nom est requis."),
-  dateDebut: z.string().min(1, "La date de début est requise."),
-  dateFin: z.string().min(1, "La date de fin est requise."),
-  lignes: z.array(schemaLigne).min(1, "Un budget doit avoir au moins une ligne."),
+  nom: z.string().trim().min(1, m("Le nom est requis.")),
+  dateDebut: z.string().min(1, m("La date de début est requise.")),
+  dateFin: z.string().min(1, m("La date de fin est requise.")),
+  lignes: z.array(schemaLigne).min(1, m("Un budget doit avoir au moins une ligne.")),
 });
 
 export type EtatBudget = { erreur?: string } | null;
@@ -30,10 +32,11 @@ export type EtatBudget = { erreur?: string } | null;
  * (contrainte unique en base, budgetLigne.budgetId+compteId).
  */
 export async function creerBudget(_etat: EtatBudget, formData: FormData): Promise<EtatBudget> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "COMPTABILITE", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de créer un budget." };
+    return { erreur: t("Vous n'avez pas le droit de créer un budget.") };
   }
 
   const comptesId = formData.getAll("compteId").map(String);
@@ -47,15 +50,15 @@ export async function creerBudget(_etat: EtatBudget, formData: FormData): Promis
     lignes: lignesBrutes,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { nom, dateDebut, dateFin, lignes } = analyse.data;
 
   if (new Date(dateFin) <= new Date(dateDebut)) {
-    return { erreur: "La date de fin doit être après la date de début." };
+    return { erreur: t("La date de fin doit être après la date de début.") };
   }
   if (new Set(lignes.map((l) => l.compteId)).size !== lignes.length) {
-    return { erreur: "Un même compte ne peut apparaître qu'une seule fois dans le budget." };
+    return { erreur: t("Un même compte ne peut apparaître qu'une seule fois dans le budget.") };
   }
 
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {

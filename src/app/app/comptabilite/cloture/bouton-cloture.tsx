@@ -4,10 +4,12 @@ import { useState, useTransition } from "react";
 import { CircleCheck, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { useT } from "@/lib/i18n/contexte";
 import { cloturerExerciceAction, type EtatCloture } from "@/lib/actions/cloture";
 
 /** Clôture en deux gestes : cocher la confirmation (la comptabilité sera verrouillée), puis cliquer. Les contrôles sont refaits côté serveur. */
 export function BoutonCloture({ annee, resultat }: { annee: number; resultat: string }) {
+  const t = useT();
   const [confirme, setConfirme] = useState(false);
   const [etat, setEtat] = useState<EtatCloture>(null);
   const [enCours, startTransition] = useTransition();
@@ -20,12 +22,12 @@ export function BoutonCloture({ annee, resultat }: { annee: number; resultat: st
   }
 
   return (
-    <form onSubmit={envoyer} className="flex flex-col gap-3" aria-label={`Clôturer l'exercice ${annee}`}>
+    <form onSubmit={envoyer} className="flex flex-col gap-3" aria-label={t("Clôturer l'exercice {annee}", { annee })}>
       <input type="hidden" name="annee" value={annee} />
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="confirmation" value="oui" checked={confirme} onChange={(e) => setConfirme(e.target.checked)} className="mt-1 size-4 accent-primary" />
         <span>
-          Je comprends que cette clôture passe l&apos;écriture de résultat ({resultat}) et <strong>verrouille la comptabilité jusqu&apos;au 31/12/{annee}</strong> : plus aucune écriture ne pourra être datée avant cette date, sauf à la déverrouiller.
+          {t("Je comprends que cette clôture passe l'écriture de résultat ({resultat}) et verrouille la comptabilité jusqu'au 31/12/{annee} : plus aucune écriture ne pourra être datée avant cette date, sauf à la déverrouiller.", { resultat, annee })}
         </span>
       </label>
       {etat?.erreur ? <p role="alert" className="text-sm text-destructive">{etat.erreur}</p> : null}
@@ -37,7 +39,7 @@ export function BoutonCloture({ annee, resultat }: { annee: number; resultat: st
       ) : null}
       <Button type="submit" disabled={!confirme || enCours} className="self-start">
         {enCours ? <Spinner /> : <LockKeyhole data-icon="inline-start" aria-hidden />}
-        Clôturer l&apos;exercice {annee}
+        {t("Clôturer l'exercice {annee}", { annee })}
       </Button>
     </form>
   );
