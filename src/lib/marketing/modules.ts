@@ -126,6 +126,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Alerte par email chaque matin quand un produit passe en stock bas ou en rupture, sans répétition inutile"),
       m("Liste « à réapprovisionner » : quantités proposées et bons de commande fournisseur créés en un clic, un par fournisseur"),
       m("Export des écritures de la période vers Sage, Ciel ou au format fichier des écritures, pour changer de logiciel ou travailler avec votre comptable"),
+      m("Tous les livres et déclarations (grand livre, balance, journaux, TVA, tiers, balance âgée) imprimables en PDF en un clic"),
       m("Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier"),
       m("Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin"),
       m("Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic"),

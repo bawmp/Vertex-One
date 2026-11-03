@@ -95,6 +95,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Liste « à réapprovisionner » : quantités proposées et bons de commande fournisseur créés en un clic, un par fournisseur": "A \"to reorder\" list: suggested quantities and supplier purchase orders created in one click, one per supplier",
   "Export des écritures de la période vers Sage, Ciel ou au format fichier des écritures, pour changer de logiciel ou travailler avec votre comptable":
     "Export of the period's entries to Sage, Ciel or the standard entries-file format, to switch software or work with your accountant",
+  "Tous les livres et déclarations (grand livre, balance, journaux, TVA, tiers, balance âgée) imprimables en PDF en un clic":
+    "Every ledger and return (general ledger, trial balance, journals, VAT, third parties, aged balance) printable as PDF in one click",
   "Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier": "Read-only access for your chartered accountant: they view the accounting and download its exports, seeing nothing else and changing nothing",
   "Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin": "Stock value on any past date and per warehouse, so you can close a financial year even weeks after it ended",
   "Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic": "Fixed asset register with straight-line depreciation and yearly depreciation charges posted to the books in one click",

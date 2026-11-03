@@ -166,6 +166,10 @@ export default async function PageLivresComptables({ searchParams }: { searchPar
               <Download data-icon="inline-start" aria-hidden />
               Exporter en CSV
             </Link>
+            <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
+              <Download data-icon="inline-start" aria-hidden />
+              Imprimer en PDF
+            </Link>
             <Link href={`/app/comptabilite/livres/export?vue=ecritures&format=sage&du=${duTexte}&au=${auTexte}`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
               <Download data-icon="inline-start" aria-hidden />
               Pour Sage

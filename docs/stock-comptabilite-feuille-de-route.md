@@ -38,7 +38,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 ## Priorité 4 — Ouverture, confort, international
 
 - [x] **P4.1 Exports vers les logiciels courants** (fichier des écritures, formats Sage / Ciel) (M). FAIT : boutons « Pour Sage », « Pour Ciel », « Fichier des écritures » sur Livres comptables ; colonnes courantes, NON testées dans les vrais logiciels.
-- [ ] **P4.2 PDF de tous les livres et déclarations** (M).
+- [x] **P4.2 PDF de tous les livres et déclarations** (M). FAIT : bouton « Imprimer en PDF » sur Livres, TVA et Clients/fournisseurs ; les états financiers avaient déjà le leur.
 - [ ] **P4.3 Traduction anglaise des pages de comptabilité et de stock** (M). La comptabilité est aujourd'hui en français seulement ; le stock est traduit.
 - [x] **P4.4 Raccourci « Stock » dans le menu** pour les entreprises de produits (S). FAIT : catégorie « Stock » dans One Books (dépôts, réapprovisionnement, inventaire, scanner, péremptions, numéros de série).
 - [ ] **P4.5 Comptabilité analytique** (par projet, par agence) (L).

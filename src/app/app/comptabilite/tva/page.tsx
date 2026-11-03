@@ -121,6 +121,10 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
               <Download data-icon="inline-start" aria-hidden />
               Exporter en CSV
             </Link>
+            <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
+              <Download data-icon="inline-start" aria-hidden />
+              Imprimer en PDF
+            </Link>
           </div>
           <p className="text-xs text-muted-foreground">Le crédit reporté est la TVA que l&apos;État vous doit déjà de la période précédente (ligne « Crédit de TVA à reporter » de votre dernière déclaration). Laissez vide s&apos;il n&apos;y en a pas.</p>
           {periodeInversee ? <p role="alert" className="text-sm text-destructive">La date de début doit être avant la date de fin.</p> : null}

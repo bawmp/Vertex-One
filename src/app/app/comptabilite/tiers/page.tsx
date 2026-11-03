@@ -158,6 +158,10 @@ export default async function PageTiers({ searchParams }: { searchParams: Promis
                 <Download data-icon="inline-start" aria-hidden />
                 Exporter en CSV
               </Link>
+              <Link href={`${lienExport}&format=pdf`} prefetch={false} className={buttonVariants({ variant: "outline" })}>
+                <Download data-icon="inline-start" aria-hidden />
+                Imprimer en PDF
+              </Link>
             </div>
             {periodeInversee ? <p role="alert" className="text-sm text-destructive">La date de début doit être avant la date de fin.</p> : null}
           </form>

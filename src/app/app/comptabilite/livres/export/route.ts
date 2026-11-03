@@ -1,4 +1,7 @@
+import { createElement } from "react";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { NextResponse } from "next/server";
+import { LivreComptablePDF } from "@/lib/pdf/livre-comptable";
 import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { entreprise } from "@/db/schema";
@@ -61,6 +64,16 @@ export async function GET(requete: Request) {
     return csvJournaux(await lireJournaux(tx, utilisateurConnecte.entrepriseId, periode));
   });
   if (!tableau) return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
+
+  if (url.searchParams.get("format") === "pdf") {
+    const societe = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => (await tx.select({ nom: entreprise.nom, niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)))[0]);
+    const TITRES: Record<string, string> = { "grand-livre": "Grand livre", balance: "Balance", journaux: "Journaux", tva: "Déclaration de TVA", clients: "Grand livre clients", fournisseurs: "Grand livre fournisseurs", "agee-clients": "Balance âgée clients", "agee-fournisseurs": "Balance âgée fournisseurs" };
+    const fr = (d: string) => d.split("-").reverse().join("/");
+    const periodeTexte = vue === "agee-clients" || vue === "agee-fournisseurs" ? "À la date du jour" : `Du ${fr(url.searchParams.get("du") ?? defaut.du)} au ${fr(url.searchParams.get("au") ?? defaut.au)}`;
+    const pdf = await renderToBuffer(createElement(LivreComptablePDF as never, { titre: TITRES[vue as string] ?? "Livre comptable", entreprise: { nom: societe?.nom ?? "", niu: societe?.niu ?? null }, periode: periodeTexte, entetes: tableau.entetes, lignes: tableau.lignes, genereLe: new Date() } as never) as never);
+    const nomPdf = `${vue}-${url.searchParams.get("du") ?? defaut.du}-${url.searchParams.get("au") ?? defaut.au}`.replace(/[^a-z0-9-]/gi, "");
+    return new NextResponse(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="vertexone-${nomPdf}.pdf"`, "Cache-Control": "no-store" } });
+  }
 
   const nom = `${vue}-${url.searchParams.get("du") ?? defaut.du}-${url.searchParams.get("au") ?? defaut.au}`.replace(/[^a-z0-9-]/gi, "");
   return new NextResponse(ecrireCsv(tableau.entetes, tableau.lignes), {
