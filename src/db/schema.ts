@@ -3610,6 +3610,8 @@ export const produit = pgTable(
     unite: text("unite"),
     // Code-barres (2026-11-02, priorité 3.6) : lu par une douchette ou la caméra ; unique dans l'entreprise (index partiel).
     codeBarres: text("code_barres"),
+    // Kit (2026-11-02, priorité 3.9) : produit composé d'autres produits ; il n'a pas de stock à lui, sa vente sort le stock de ses composants.
+    estKit: boolean("est_kit").notNull().default(false),
     // Dernier niveau signalé par email (BAS ou RUPTURE) ; nul tant que le stock est correct. Évite d'alerter chaque jour pour le même produit.
     alerteStockNiveau: text("alerte_stock_niveau"),
     fournisseurHabituelId: text("fournisseur_habituel_id").references(() => fournisseur.id),
@@ -3757,6 +3759,35 @@ export const conditionnementProduit = pgTable(
   (table) => [
     uniqueIndex("conditionnement_produit_nom_unique").on(table.produitId, table.nom),
     index("conditionnement_produit_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Composition d'un kit (2026-11-02, priorité 3.9) : « le coffret cadeau = 2 savons + 1 huile ». Les composants sont des biens suivis en
+// stock, jamais des kits (un seul niveau). Le kit disparaît des mouvements de stock : ce sont ses composants qui sortent.
+export const composantKit = pgTable(
+  "composant_kit",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    kitId: text("kit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    composantId: text("composant_id")
+      .notNull()
+      .references(() => produit.id),
+    quantite: integer("quantite").notNull(),
+  },
+  (table) => [
+    uniqueIndex("composant_kit_unique").on(table.kitId, table.composantId),
+    index("composant_kit_entreprise_idx").on(table.entrepriseId),
+    index("composant_kit_composant_idx").on(table.composantId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

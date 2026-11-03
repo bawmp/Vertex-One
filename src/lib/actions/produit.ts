@@ -8,6 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { produit, mouvementStock } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
+import { estComposant } from "@/lib/produits/kits";
 import { activerSuiviStock, arreterSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -181,7 +182,11 @@ export async function supprimerProduit(produitId: string) {
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "PRODUITS", "SUPPRIMER")) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(produit).where(eq(produit.id, produitId)));
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Un produit qui entre dans la composition d'un kit ne se supprime pas : le kit ne pourrait plus se vendre (priorité 3.9).
+    if (await estComposant(tx, utilisateurConnecte.entrepriseId, produitId)) return;
+    await tx.delete(produit).where(eq(produit.id, produitId));
+  });
 
   revalidatePath("/app/produits");
 }

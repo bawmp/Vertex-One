@@ -21,6 +21,8 @@ import { ReapproProduit } from "./reappro-produit";
 import { LotsProduit } from "./lots-produit";
 import { UnitesProduit } from "./unites-produit";
 import { CodeBarresProduit } from "./code-barres-produit";
+import { CompositionKit } from "./composition-kit";
+import { lireKit, produitsComposables } from "@/lib/produits/kits";
 import { commandesQuiReservent, stockDisponible } from "@/lib/produits/reservations";
 import { lireConditionnements } from "@/lib/produits/variantes";
 import { decomposerStock } from "@/lib/produits/variantes-regles";
@@ -84,16 +86,18 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
     const fournisseurs = gereStock && leProduit.suiviStock ? await tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur).where(eq(fournisseur.entrepriseId, utilisateurConnecte.entrepriseId)).orderBy(fournisseur.nom) : [];
 
+    const kitEtat = gereStock && leProduit.estKit ? await lireKit(tx, utilisateurConnecte.entrepriseId, id) : null;
+    const candidatsKit = kitEtat ? await produitsComposables(tx, utilisateurConnecte.entrepriseId) : [];
     const commandesReservantes = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await commandesQuiReservent(tx, utilisateurConnecte.entrepriseId, id) : [];
     const conditionnements = leProduit.type === "BIEN" ? await lireConditionnements(tx, utilisateurConnecte.entrepriseId, id) : [];
     const [famille] = leProduit.familleId ? await tx.select({ id: familleProduit.id, nom: familleProduit.nom }).from(familleProduit).where(eq(familleProduit.id, leProduit.familleId)) : [];
     const lotsEtat = gereStock && leProduit.type === "BIEN" && leProduit.suiviStock ? await lireLots(tx, utilisateurConnecte.entrepriseId, id) : null;
 
-    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
+    return { leProduit, createur, compteVente, transactions, mouvements, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit, nomsAuteurs: new Map(auteurs.map((a) => [a.id, a.nomComplet])) };
   });
 
   if (!donnees) notFound();
-  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes } = donnees;
+  const { leProduit, createur, compteVente, transactions, mouvements, nomsAuteurs, depots, gereStock, fournisseurs, lotsEtat, conditionnements, famille, commandesReservantes, kitEtat, candidatsKit } = donnees;
   const reserve = commandesReservantes.reduce((s, c) => s + c.quantite, 0);
   const depotsActifs = depots.filter((d) => d.actif);
   const nomsDepots = new Map(depots.map((d) => [d.depotId, d.nom]));
@@ -197,6 +201,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
         {gereStock && leProduit.type === "BIEN" ? (
           <TabsPanel value="stock" className="flex flex-col gap-4">
+            {kitEtat ? <CompositionKit kitId={leProduit.id} composants={kitEtat.composants} disponibles={kitEtat.disponibles} cout={kitEtat.cout} prixVente={kitEtat.prixVente} candidats={candidatsKit.map((c) => ({ id: c.id, nom: c.nom }))} peutModifier={peutModifier} /> : null}
             {leProduit.suiviStock ? (
               <Card>
                 <CardContent className="flex items-baseline justify-between gap-3">
@@ -256,12 +261,12 @@ export default async function PageDetailProduit({ params, searchParams }: { para
               </Card>
             ) : null}
 
-            {peutModifier ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} unite={leProduit.unite} conditionnements={conditionnements.map((c) => ({ nom: c.nom, quantiteBase: c.quantiteBase }))} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, principal: d.principal, quantite: d.quantite }))} /> : null}
+            {peutModifier && !leProduit.estKit ? <AjusterStock produitId={leProduit.id} suiviStock={leProduit.suiviStock} stockActuel={leProduit.stockActuel} unite={leProduit.unite} conditionnements={conditionnements.map((c) => ({ nom: c.nom, quantiteBase: c.quantiteBase }))} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, principal: d.principal, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock && depotsActifs.length > 1 ? <TransfertStock produitId={leProduit.id} depots={depotsActifs.map((d) => ({ id: d.depotId, nom: d.nom, quantite: d.quantite }))} /> : null}
             {peutModifier && leProduit.suiviStock ? <SeuilAlerte produitId={leProduit.id} seuilActuel={leProduit.seuilAlerte} /> : null}
             {peutModifier && leProduit.suiviStock ? <ReapproProduit produitId={leProduit.id} fournisseurId={leProduit.fournisseurHabituelId} stockCible={leProduit.stockCible} fournisseurs={fournisseurs} /> : null}
             {peutModifier ? <CodeBarresProduit produitId={leProduit.id} codeActuel={leProduit.codeBarres} /> : null}
-            {peutModifier ? <UnitesProduit produitId={leProduit.id} unite={leProduit.unite} conditionnements={conditionnements} /> : null}
+            {peutModifier && !leProduit.estKit ? <UnitesProduit produitId={leProduit.id} unite={leProduit.unite} conditionnements={conditionnements} /> : null}
             {peutModifier && leProduit.suiviStock && lotsEtat ? <LotsProduit produitId={leProduit.id} suiviLots={lotsEtat.suiviLots} lots={lotsEtat.lots} sansLot={lotsEtat.sansLot} /> : null}
             {peutModifier && leProduit.suiviStock ? <ArreterSuivi produitId={leProduit.id} stockActuel={leProduit.stockActuel} /> : null}
 

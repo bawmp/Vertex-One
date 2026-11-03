@@ -7,6 +7,7 @@ import { m } from "@/lib/i18n/catalogue";
 import { MOTIFS_AJOUT, MOTIFS_RETRAIT } from "./motifs-stock";
 import { consommerLotsFEFO, effacerLots, harmoniserLots } from "./lots-sortie";
 import { reservesParProduit, stockDisponible } from "./reservations";
+import { etendreKits } from "./kits-etendre";
 
 type LigneAvecProduit = { produitId?: string | null; quantite: number; /** Prix d'achat unitaire hors taxe d'une ligne d'achat : sert au coût moyen pondéré. */ prixUnitaire?: number };
 
@@ -37,7 +38,9 @@ export type ContexteMouvement = { documentType?: string; documentId?: string; ut
  * Depuis le 2026-11-02, chaque variation laisse une ligne dans `mouvement_stock` (quantité signée + stock obtenu). Le stock est
  * modifié par un `UPDATE … RETURNING` atomique : le « stock après » est exact même si deux ventes arrivent en même temps.
  */
-async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], sens: 1 | -1, contexte?: ContexteMouvement): Promise<void> {
+async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignesBrutes: LigneAvecProduit[], sens: 1 | -1, contexte?: ContexteMouvement): Promise<void> {
+  // Vendre un kit sort le stock de ses composants (priorité 3.9) ; un achat de kit n'entre rien (il n'a pas de stock à lui).
+  const lignes = sens === -1 ? await etendreKits(tx, entrepriseId, lignesBrutes) : lignesBrutes;
   const quantitesParProduit = new Map<string, number>();
   const valeursParProduit = new Map<string, number>();
   for (const l of lignes) {
@@ -177,12 +180,13 @@ export async function corrigerStock(tx: TransactionDrizzle, entrepriseId: string
 export async function activerSuiviStock(tx: TransactionDrizzle, entrepriseId: string, produitId: string, stockInitial: number, utilisateurId: string): Promise<ResultatCorrection> {
   if (!Number.isInteger(stockInitial) || stockInitial < 0) return { ok: false, erreur: m("La quantité en stock doit être un nombre entier, zéro ou plus.") };
   const [p] = await tx
-    .select({ id: produit.id, type: produit.type, suiviStock: produit.suiviStock, prixAchat: produit.prixAchat })
+    .select({ id: produit.id, type: produit.type, suiviStock: produit.suiviStock, prixAchat: produit.prixAchat, estKit: produit.estKit })
     .from(produit)
     .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)))
     .for("update");
   if (!p) return { ok: false, erreur: m("Produit introuvable.") };
   if (p.type !== "BIEN") return { ok: false, erreur: m("Un service n'a pas de stock.") };
+  if (p.estKit) return { ok: false, erreur: m("Un kit n'a pas de stock à lui : son stock est celui de ses composants.") };
   if (p.suiviStock) return { ok: false, erreur: m("Le suivi du stock est déjà activé pour ce produit.") };
 
   await tx.update(produit).set({ suiviStock: true, stockActuel: stockInitial, coutMoyen: p.prixAchat }).where(eq(produit.id, p.id));
@@ -307,8 +311,9 @@ export const MESSAGE_STOCK_RESERVE = m("Stock insuffisant pour « {produit} » d
  * (le principal par défaut) contient assez de chaque produit SUIVI. Les produits non suivis et les services ne sont jamais bloqués. Sans
  * le réglage, rien n'est vérifié (stock négatif toléré, comme avant). Renvoie le premier manque trouvé, ou null.
  */
-export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseId: string, lignes: LigneAvecProduit[], depotId?: string | null, options: { exclureCommandeId?: string } = {}): Promise<StockInsuffisant | null> {
+export async function verifierStockSuffisant(tx: TransactionDrizzle, entrepriseId: string, lignesBrutes: LigneAvecProduit[], depotId?: string | null, options: { exclureCommandeId?: string } = {}): Promise<StockInsuffisant | null> {
   if (!(await blocageRuptureActif(tx, entrepriseId))) return null;
+  const lignes = await etendreKits(tx, entrepriseId, lignesBrutes);
   const demandes = new Map<string, number>();
   for (const l of lignes) if (l.produitId) demandes.set(l.produitId, (demandes.get(l.produitId) ?? 0) + l.quantite);
   if (demandes.size === 0) return null;

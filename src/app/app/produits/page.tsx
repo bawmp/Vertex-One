@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
-import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch, CalendarX2, Layers, ScanBarcode } from "lucide-react";
+import { Package, Lock, Pencil, ClipboardCheck, TriangleAlert, Coins, Warehouse, PackageSearch, CalendarX2, Layers, ScanBarcode, Package2 } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, produit } from "@/db/schema";
@@ -58,6 +58,12 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
             <Button variant="outline" size="sm" render={<Link href="/app/produits/reapprovisionnement" />} nativeButton={false}>
               <PackageSearch data-icon="inline-start" aria-hidden />
               {t("À réapprovisionner")}
+            </Button>
+          ) : null}
+          {gereStock ? (
+            <Button variant="outline" size="sm" render={<Link href="/app/produits/kits/nouveau" />} nativeButton={false}>
+              <Package2 data-icon="inline-start" aria-hidden />
+              {t("Créer un kit")}
             </Button>
           ) : null}
           {gereStock ? (
@@ -131,6 +137,7 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="min-w-0 break-words font-medium">{p.nom}</p>
+                    {p.estKit ? <Badge variant="neutral">{t("Kit")}</Badge> : null}
                     <Badge variant="neutral">{p.type === "BIEN" ? t("Bien") : t("Service")}</Badge>
                     {gereStock && p.suiviStock ? <Badge variant={niveauStock(p) === "RUPTURE" ? "danger" : niveauStock(p) === "BAS" ? "warning" : "info"}>{niveauStock(p) === "RUPTURE" ? t("Épuisé") : niveauStock(p) === "BAS" ? t("Stock bas : {n}", { n: p.stockActuel }) : t("Stock : {n}", { n: p.stockActuel })}</Badge> : null}
                   </div>
