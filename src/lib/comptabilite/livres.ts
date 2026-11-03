@@ -86,6 +86,8 @@ export type LigneLivre = {
   debit: number;
   credit: number;
   journal: CodeJournal;
+  /** Identifiant du document d'origine (facture, règlement, dépense…) : les lignes d'une même pièce partagent cette valeur. */
+  piece?: string | null;
 };
 
 export async function lireLignes(tx: TransactionDrizzle, entrepriseId: string, conditionsSup: ReturnType<typeof and>[]): Promise<LigneLivre[]> {
@@ -111,7 +113,7 @@ export async function lireLignes(tx: TransactionDrizzle, entrepriseId: string, c
     .innerJoin(compteComptable, eq(ecritureComptable.compteId, compteComptable.id))
     .where(and(eq(ecritureComptable.entrepriseId, entrepriseId), ...conditionsSup))
     .orderBy(asc(ecritureComptable.dateEcriture), asc(ecritureComptable.creeLe), asc(ecritureComptable.id));
-  return lignes.map((l) => ({ id: l.id, date: l.date, libelle: l.libelle, numeroCompte: l.numeroCompte, libelleCompte: l.libelleCompte, debit: l.debit, credit: l.credit, journal: journalDeEcriture(l) }));
+  return lignes.map((l) => ({ id: l.id, date: l.date, libelle: l.libelle, numeroCompte: l.numeroCompte, libelleCompte: l.libelleCompte, debit: l.debit, credit: l.credit, journal: journalDeEcriture(l), piece: l.factureId ?? l.paiementId ?? l.depenseId ?? l.factureFournisseurId ?? l.paiementEffectueId ?? l.recuVenteId ?? l.factureAcompteId ?? l.journalManuelId ?? null }));
 }
 
 /* ----------------------------- Grand livre ----------------------------- */

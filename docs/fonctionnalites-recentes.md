@@ -726,3 +726,7 @@ Repères : `invitation.date_fin_propose` (migration 0130), `src/lib/actions/invi
 ## Raccourcis Stock dans le menu (2026-11-03, priorité 4.4)
 
 One Books > **Stock** regroupe les écrans de gestion de stock : Dépôts, Réapprovisionnement, Inventaire, Scanner, Péremptions, Numéros de série. Visibles selon l'accès au module Produits (`module: "PRODUITS"`). Repère : `MODULES_MENU` dans `src/app/app/layout.tsx`.
+
+## Export des écritures vers Sage, Ciel ou FEC (2026-11-03, priorité 4.1)
+
+Comptabilité > Livres comptables : trois boutons (« Pour Sage », « Pour Ciel », « Fichier des écritures ») téléchargent les écritures de la période choisie. Sage et Ciel : texte à tabulations, ANSI, date JJMMAA, virgule décimale ; fichier des écritures : UTF-8, point-virgule, date AAAAMMJJ. Les pièces sont numérotées par journal (`VT00001`…), une par document d'origine. Même garde que les autres exports (Administrateur, forfait comptabilité complète). **Limite** : les colonnes sont celles des assistants d'import courants, non vérifiées dans les logiciels réels : essayer sur un petit fichier. Repères : `src/lib/comptabilite/export-logiciels.ts`, route `livres/export?vue=ecritures&format=…`, `tests/export-logiciels.test.ts`.

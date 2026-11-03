@@ -125,6 +125,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Inventaire à plusieurs : plusieurs personnes comptent en même temps, le stock n'est corrigé qu'à la validation, sans perdre les ventes faites pendant le comptage"),
       m("Alerte par email chaque matin quand un produit passe en stock bas ou en rupture, sans répétition inutile"),
       m("Liste « à réapprovisionner » : quantités proposées et bons de commande fournisseur créés en un clic, un par fournisseur"),
+      m("Export des écritures de la période vers Sage, Ciel ou au format fichier des écritures, pour changer de logiciel ou travailler avec votre comptable"),
       m("Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier"),
       m("Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin"),
       m("Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic"),

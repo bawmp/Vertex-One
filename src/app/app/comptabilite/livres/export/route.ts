@@ -9,6 +9,10 @@ import { ecrireCsv } from "@/lib/export/csv";
 import { dateDouala, lireBalancePeriode, lireGrandLivre, lireJournaux, periodePredefinie } from "@/lib/comptabilite/livres";
 import { calculerTva, csvTva, lireDeclarationTva } from "@/lib/comptabilite/tva";
 import { csvBalance, csvGrandLivre, csvJournaux, type TableauCsv } from "@/lib/comptabilite/livres-export";
+import { contenuExport, formatLogicielValide } from "@/lib/comptabilite/export-logiciels";
+import { lireLignes } from "@/lib/comptabilite/livres";
+import { gte, lte, and } from "drizzle-orm";
+import { ecritureComptable } from "@/db/schema";
 import { lireBalanceAgee, lireGrandLivreAuxiliaire } from "@/lib/comptabilite/tiers";
 import { csvBalanceAgee, csvGrandLivreAuxiliaire } from "@/lib/comptabilite/tiers-export";
 
@@ -24,6 +28,7 @@ export async function GET(requete: Request) {
 
   const url = new URL(requete.url);
   const vue = url.searchParams.get("vue");
+  if (vue === "ecritures") return await exporterEcritures(utilisateurConnecte, url);
   const VUES_TIERS = ["clients", "fournisseurs", "agee-clients", "agee-fournisseurs"];
   if (vue !== "grand-livre" && vue !== "balance" && vue !== "journaux" && vue !== "tva" && !(vue && VUES_TIERS.includes(vue))) return new NextResponse("Livre inconnu", { status: 404 });
   const defaut = periodePredefinie("annee", new Date());
@@ -65,4 +70,23 @@ export async function GET(requete: Request) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+/** GET ...?vue=ecritures&format=fec|sage|ciel&du=&au= — fichier des écritures de la période pour un autre logiciel (priorité 4.1). */
+async function exporterEcritures(utilisateurConnecte: NonNullable<Awaited<ReturnType<typeof recupererUtilisateurConnecte>>>, url: URL) {
+  const format = url.searchParams.get("format");
+  if (!formatLogicielValide(format)) return new NextResponse("Format inconnu", { status: 404 });
+  const defaut = periodePredefinie("annee", new Date());
+  const du = dateDouala(url.searchParams.get("du") ?? defaut.du, false);
+  const au = dateDouala(url.searchParams.get("au") ?? defaut.au, true);
+  if (!du || !au || du > au) return new NextResponse("Période invalide", { status: 400 });
+  const lignes = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
+    return lireLignes(tx, utilisateurConnecte.entrepriseId, [and(gte(ecritureComptable.dateEcriture, du), lte(ecritureComptable.dateEcriture, au))!]);
+  });
+  if (!lignes) return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
+  const { corps, type, extension } = contenuExport(lignes, format);
+  const nom = `ecritures-${format}-${url.searchParams.get("du") ?? defaut.du}-${url.searchParams.get("au") ?? defaut.au}`.replace(/[^a-z0-9-]/gi, "");
+  return new NextResponse(new Uint8Array(corps), { headers: { "Content-Type": type, "Content-Disposition": `attachment; filename="vertexone-${nom}.${extension}"`, "Cache-Control": "no-store" } });
 }
