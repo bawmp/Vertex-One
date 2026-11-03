@@ -3,6 +3,7 @@ import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { resoudreDonneesClientPage } from "@/lib/facturation/client-document";
+import { produitsAuPrixDuClient } from "@/lib/produits/listes-prix";
 import { FormulaireFactureRecurrente } from "./formulaire-facture-recurrente";
 import { getT } from "@/lib/i18n/langue";
 
@@ -20,7 +21,8 @@ export default async function PageNouvelleFactureRecurrente({
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const client = await resoudreDonneesClientPage(tx, { dealId, contactId });
     if (!client) return null;
-    const produits = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente }).from(produit);
+    const catalogue = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente }).from(produit);
+    const produits = await produitsAuPrixDuClient(tx, utilisateurConnecte.entrepriseId, client.contact.listePrixId, catalogue);
     return { ...client, produits };
   });
   if (!donnees) notFound();

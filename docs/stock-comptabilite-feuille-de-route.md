@@ -33,7 +33,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 - [x] **P3.7 Réservation de stock sur une commande client** (M).
 - [x] **P3.8 Valorisation « premier entré, premier sorti »** en option (M).
 - [x] **P3.9 Kits et nomenclatures** (M).
-- [ ] **P3.10 Listes de prix** (M).
+- [x] **P3.10 Listes de prix** (M).
 
 ## Priorité 4 — Ouverture, confort, international
 

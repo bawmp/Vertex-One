@@ -944,6 +944,8 @@ export const contact = pgTable(
     // Espace où ce client suit sa procédure (page de suivi du site de l'entreprise) : le client y est renvoyé à la fin de son
     // parcours (devis accepté, facture payée) — voir src/lib/client-documents/espace-client.ts.
     espaceClientUrl: text("espace_client_url"),
+    // Liste de prix appliquée à ce client (2026-11-03, priorité 3.10) : propose ses prix à la création d'un devis, bon de commande, reçu…
+    listePrixId: text("liste_prix_id").references((): AnyPgColumn => listePrix.id, { onDelete: "set null" }),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -5476,6 +5478,57 @@ export const lienClientDocument = pgTable(
     pgPolicy("suppression_entreprise", {
       for: "delete",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Listes de prix (2026-11-03, priorité 3.10) : « Revendeurs », « Grossistes »… Une liste a une remise globale en % sur le prix de vente
+// et des prix fixes par produit (qui l'emportent sur la remise). Rattachée à un client, elle pré-remplit les prix de ses documents ; le prix
+// reste modifiable sur le document.
+export const listePrix = pgTable(
+  "liste_prix",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nom: text("nom").notNull(),
+    remisePourcent: integer("remise_pourcent").notNull().default(0),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("liste_prix_nom_unique").on(table.entrepriseId, table.nom),
+    index("liste_prix_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+export const prixListe = pgTable(
+  "prix_liste",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    listeId: text("liste_id")
+      .notNull()
+      .references(() => listePrix.id, { onDelete: "cascade" }),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    prix: integer("prix").notNull(),
+  },
+  (table) => [
+    uniqueIndex("prix_liste_unique").on(table.listeId, table.produitId),
+    index("prix_liste_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
     }),
   ]
 ).enableRLS();

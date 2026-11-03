@@ -119,6 +119,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Réservation de stock : une commande client réserve les quantités, le disponible à la vente est toujours juste et la vente en rupture peut être interdite"),
       m("Codes-barres : scan à la douchette ou à la caméra du téléphone, génération d'étiquettes à imprimer, et comptage d'inventaire en scannant les produits"),
       m("Variantes taille et couleur créées en un clic, et unités de mesure avec conditionnements (carton de 12 pièces) pour saisir et lire le stock"),
+      m("Listes de prix par type de client (revendeurs, grossistes) : remise globale et prix fixes par produit, proposés automatiquement sur ses devis, commandes et reçus"),
       m("Lots et dates de péremption : les ventes sortent d'abord ce qui se périme le plus tôt, et la liste des lots périmés ou proches de leur date est toujours à jour"),
       m("Inventaire à plusieurs : plusieurs personnes comptent en même temps, le stock n'est corrigé qu'à la validation, sans perdre les ventes faites pendant le comptage"),
       m("Alerte par email chaque matin quand un produit passe en stock bas ou en rupture, sans répétition inutile"),

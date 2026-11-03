@@ -206,4 +206,5 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Interface moderne et animée : avatars, présence, emojis et bouton « nouveaux messages »": "Modern, animated interface: avatars, presence, emojis and a \"new messages\" button",
   "Fil d'annonces internes façon intranet, avec pièces jointes (images, PDF, Word, Excel)": "Internal announcements feed, intranet style, with attachments (images, PDF, Word, Excel)",
   "Isolation stricte entre entreprises clientes": "Strict isolation between client companies",
+  "Listes de prix par type de client (revendeurs, grossistes) : remise globale et prix fixes par produit, proposés automatiquement sur ses devis, commandes et reçus": "Price lists by customer type (resellers, wholesalers): an overall discount and fixed prices per product, suggested automatically on their quotes, orders and receipts",
 };

@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
 import { EspaceClientContact } from "./espace-client";
+import { ListePrixContact } from "./liste-prix-contact";
+import { listerListes } from "@/lib/produits/listes-prix";
 import { FormulaireMessageClient } from "./formulaire-message-client";
 import { BoutonEcrireAuClient } from "./bouton-ecrire-au-client";
 import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
@@ -105,9 +107,11 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     ];
 
     const emailsEnvoyes = await listerSoucheContact(tx, utilisateurConnecte, id);
+    const listesPrix = await listerListes(tx, utilisateurConnecte.entrepriseId);
 
     return {
       fiche: ligne,
+      listesPrix,
       compte: Array.isArray(compte) ? compte[0] : compte,
       interactions,
       emailsEnvoyes,
@@ -129,6 +133,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
   if (!donnees) notFound();
   const {
     fiche,
+    listesPrix,
     compte,
     interactions,
     emailsEnvoyes,
@@ -267,6 +272,14 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
               <EspaceClientContact contactId={fiche.id} adresseInitiale={fiche.espaceClientUrl} peutModifier={peutModifier} />
             </CardContent>
           </Card>
+
+          {listesPrix.length > 0 || fiche.listePrixId ? (
+            <Card>
+              <CardContent>
+                <ListePrixContact contactId={fiche.id} listeActuelle={fiche.listePrixId} listes={listesPrix} peutModifier={peutModifier} />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardContent>
