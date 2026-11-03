@@ -40,7 +40,7 @@ Principe de classement : d'abord ce qui **fausse les chiffres** d'un client qui 
 - [ ] **P4.1 Exports vers les logiciels courants** (fichier des écritures, formats Sage / Ciel) (M).
 - [ ] **P4.2 PDF de tous les livres et déclarations** (M).
 - [ ] **P4.3 Traduction anglaise des pages de comptabilité et de stock** (M). La comptabilité est aujourd'hui en français seulement ; le stock est traduit.
-- [ ] **P4.4 Raccourci « Stock » dans le menu** pour les entreprises de produits (S).
+- [x] **P4.4 Raccourci « Stock » dans le menu** pour les entreprises de produits (S). FAIT : catégorie « Stock » dans One Books (dépôts, réapprovisionnement, inventaire, scanner, péremptions, numéros de série).
 - [ ] **P4.5 Comptabilité analytique** (par projet, par agence) (L).
 - [ ] **P4.6 Exercice décalé** (qui ne suit pas l'année civile) (M).
 - [ ] **P4.7 Multi-devise** (L).

@@ -1,7 +1,7 @@
 import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, FileSpreadsheet, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal } from "lucide-react";
+import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, FileSpreadsheet, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal, Warehouse, ScanBarcode, PackageCheck, Hourglass, Hash } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -113,6 +113,19 @@ const MODULES_MENU: ItemMenu[] = [
       {
         categorie: "Articles",
         liens: [{ libelle: m("Produits"), href: "/app/produits", Icone: Package, module: "PRODUITS" }],
+      },
+      {
+        // Raccourcis Stock (priorité 4.4) : les écrans de gestion de stock, jusque-là
+        // atteints seulement depuis la page Produits. Masqués avec le module PRODUITS.
+        categorie: "Stock",
+        liens: [
+          { libelle: m("Dépôts"), href: "/app/produits/depots", Icone: Warehouse, module: "PRODUITS" },
+          { libelle: m("Réapprovisionnement"), href: "/app/produits/reapprovisionnement", Icone: PackageCheck, module: "PRODUITS" },
+          { libelle: m("Inventaire"), href: "/app/produits/inventaire", Icone: ClipboardCheck, module: "PRODUITS" },
+          { libelle: m("Scanner"), href: "/app/produits/scanner", Icone: ScanBarcode, module: "PRODUITS" },
+          { libelle: m("Péremptions"), href: "/app/produits/peremptions", Icone: Hourglass, module: "PRODUITS" },
+          { libelle: m("Numéros de série"), href: "/app/produits/series", Icone: Hash, module: "PRODUITS" },
+        ],
       },
       {
         // Les 8 onglets exacts de Zoho Books > Ventes (échange du
