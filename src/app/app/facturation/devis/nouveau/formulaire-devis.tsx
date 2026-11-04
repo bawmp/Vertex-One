@@ -8,6 +8,7 @@ import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { SectionFormulaire } from "@/components/formulaire/cadre-formulaire";
 import { creerDevis } from "@/lib/actions/devis";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
+import { convertirDepuisXaf, convertirVersXaf, formaterMontantDevise, formaterTaux } from "@/lib/devises/regles";
 import { useT } from "@/lib/i18n/contexte";
 import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
@@ -19,15 +20,20 @@ export function FormulaireDevis({
   dealId,
   contactId,
   produits,
+  devises = [],
 }: {
   dealId?: string;
   contactId?: string;
   produits: { id: string; nom: string; prixVente: number }[];
+  /** Devises dont un taux est en vigueur (vide = devis en FCFA uniquement). */
+  devises?: { devise: string; tauxMilliemes: number }[];
 }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerDevis, null);
   const [prochaineCle, setProchaineCle] = useState(1);
   const [lignes, setLignes] = useState<Ligne[]>([{ cle: 0, ...LIGNE_VIDE }]);
+  const [devise, setDevise] = useState("");
+  const tauxDevise = devises.find((d) => d.devise === devise)?.tauxMilliemes ?? null;
 
   function majLigne(index: number, champ: keyof Ligne, valeur: string) {
     setLignes((precedent) => precedent.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
@@ -40,12 +46,12 @@ export function FormulaireDevis({
     const p = produits.find((p) => p.id === produitId);
     setLignes((precedent) =>
       precedent.map((l, i) =>
-        i === index ? { ...l, produitId, designation: p ? p.nom : l.designation, prixUnitaire: p ? String(p.prixVente) : l.prixUnitaire } : l
+        i === index ? { ...l, produitId, designation: p ? p.nom : l.designation, prixUnitaire: p ? (tauxDevise ? String(convertirDepuisXaf(p.prixVente, tauxDevise)) : String(p.prixVente)) : l.prixUnitaire } : l
       )
     );
   }
 
-  const enNombres = (l: Ligne) => ({ quantite: Number(l.quantite) || 0, prixUnitaire: Number(l.prixUnitaire) || 0, tauxTVA: Number(l.tauxTVA) || 0 });
+  const enNombres = (l: Ligne) => ({ quantite: Number(l.quantite) || 0, prixUnitaire: tauxDevise ? convertirVersXaf(Number(String(l.prixUnitaire).replace(",", ".")) || 0, tauxDevise) : Number(l.prixUnitaire) || 0, tauxTVA: Number(l.tauxTVA) || 0 });
   const montants = calculerMontants(lignes.map(enNombres));
 
   return (
@@ -54,6 +60,19 @@ export function FormulaireDevis({
       {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
+        {devises.length > 0 ? (
+          <SectionFormulaire titre={t("Devise")}>
+            <ChampSelect label={t("Devise du devis")} name="devise" value={devise} onChange={(e) => setDevise(e.target.value)} className="max-w-xs">
+              <option value="">FCFA</option>
+              {devises.map((d) => (
+                <option key={d.devise} value={d.devise}>
+                  {d.devise}
+                </option>
+              ))}
+            </ChampSelect>
+            {tauxDevise ? <p className="text-xs text-muted-foreground">{t("Les prix sont saisis en {devise} et convertis en FCFA au taux du jour, figé sur le devis : 1 {devise} = {taux} FCFA.", { devise, taux: formaterTaux(tauxDevise) })}</p> : null}
+          </SectionFormulaire>
+        ) : null}
         <SectionFormulaire titre={t("Validité")}>
           <Champ label={t("Valide jusqu'au")} id="dateValidite" name="dateValidite" type="date" required icone={CalendarClock} className="max-w-xs" />
         </SectionFormulaire>
@@ -79,7 +98,7 @@ export function FormulaireDevis({
               </div>
               <div className="mt-3 grid grid-cols-2 items-center gap-3 sm:grid-cols-[6rem_1fr_6rem_1fr_auto]">
                 <Champ label={t("Qté")} name="quantite" type="number" step="0.01" min="0.01" required inputMode="decimal" value={ligne.quantite} onChange={(e) => majLigne(index, "quantite", e.target.value)} />
-                <Champ label={t("Prix unit. (FCFA)")} name="prixUnitaire" type="number" min="0" required inputMode="numeric" value={ligne.prixUnitaire} onChange={(e) => majLigne(index, "prixUnitaire", e.target.value)} />
+                <Champ label={tauxDevise ? t("Prix unit. ({devise})", { devise }) : t("Prix unit. (FCFA)")} name="prixUnitaire" type="number" min="0" step={tauxDevise ? "0.01" : "1"} required inputMode={tauxDevise ? "decimal" : "numeric"} value={ligne.prixUnitaire} onChange={(e) => majLigne(index, "prixUnitaire", e.target.value)} />
                 <Champ label={t("TVA %")} name="tauxTVA" type="number" step="0.01" min="0" required inputMode="decimal" value={ligne.tauxTVA} onChange={(e) => majLigne(index, "tauxTVA", e.target.value)} />
                 <p className="col-span-2 text-right text-sm text-muted-foreground sm:col-span-1">
                   {t("Total ligne TTC")}
@@ -117,6 +136,7 @@ export function FormulaireDevis({
           <span className="text-muted-foreground">TVA</span>
           <span className="tabular-nums">{formaterFCFA(montants.montantTVA)}</span>
         </div>
+        {tauxDevise ? <p className="mt-2 text-right text-xs text-muted-foreground">{t("Soit {montant}", { montant: formaterMontantDevise(convertirDepuisXaf(montants.montantTTC, tauxDevise), devise) })}</p> : null}
         <div className="mt-3 flex items-end justify-between border-t border-marque-bleu-100 pt-3">
           <span className="font-medium">{t("Total TTC")}</span>
           <span key={montants.montantTTC} className="animate-in text-2xl font-bold tracking-tight text-primary tabular-nums duration-300 fade-in zoom-in-95">

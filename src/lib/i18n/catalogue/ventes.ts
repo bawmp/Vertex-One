@@ -287,4 +287,12 @@ export const VENTES: Record<string, string> = {
   "Le montant promis dépasse le solde restant à payer.": "The promised amount exceeds the remaining balance.",
   "Cette facture est déjà réglée.": "This invoice has already been paid.",
   "Cette facture a été annulée.": "This invoice has been cancelled.",
+  "Devise non reconnue.": "Unknown currency.",
+  "Aucun taux de change n'est enregistré pour cette devise (Paramètres > Devises et taux de change).": "No exchange rate is recorded for this currency (Settings > Currencies and exchange rates).",
+  "Prix invalide : deux décimales au plus.": "Invalid price: two decimals at most.",
+  "Devise": "Currency",
+  "Devise du devis": "Quote currency",
+  "Les prix sont saisis en {devise} et convertis en FCFA au taux du jour, figé sur le devis : 1 {devise} = {taux} FCFA.": "Prices are entered in {devise} and converted to FCFA at today's rate, frozen on the quote: 1 {devise} = {taux} FCFA.",
+  "Prix unit. ({devise})": "Unit price ({devise})",
+  "Soit {montant}": "That is {montant}",
 };

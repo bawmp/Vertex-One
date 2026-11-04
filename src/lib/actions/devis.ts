@@ -25,6 +25,9 @@ import { lienEmail } from "@/lib/email/lien";
 import { verifierDepotDocument } from "@/lib/produits/depots";
 import { verifierStockSuffisant } from "@/lib/produits/stock";
 import { getT } from "@/lib/i18n/langue";
+import { mentionDevise, deviseFactureValide, lirePrixDevise, totalEnDeviseCentimes } from "@/lib/devises/facture";
+import { listerTaux } from "@/lib/devises/taux";
+import { convertirVersXaf, tauxEnVigueur } from "@/lib/devises/regles";
 import { m } from "@/lib/i18n/catalogue";
 
 const schemaLigne = z.object({
@@ -71,6 +74,23 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
     tauxTVA: formData.getAll("tauxTVA")[i],
   }));
 
+  // Devis dans une autre devise : les prix sont saisis dans cette devise et convertis en FCFA au taux en vigueur aujourd'hui, relu ici
+  // (jamais un taux venu du navigateur). Le taux est figé sur le devis, puis repris par la facture.
+  const deviseDemandee = String(formData.get("devise") ?? "").trim().toUpperCase();
+  let tauxFige: number | null = null;
+  if (deviseDemandee) {
+    if (!deviseFactureValide(deviseDemandee) || deviseDemandee === "XOF") return { erreur: t("Devise non reconnue.") };
+    const taux = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => listerTaux(tx, utilisateurConnecte.entrepriseId));
+    const enVigueur = tauxEnVigueur(taux, deviseDemandee, new Date().toISOString().slice(0, 10));
+    if (!enVigueur) return { erreur: t("Aucun taux de change n'est enregistré pour cette devise (Paramètres > Devises et taux de change).") };
+    tauxFige = enVigueur.tauxMilliemes;
+    for (const l of lignesBrutes) {
+      const prix = lirePrixDevise(String(l.prixUnitaire ?? ""));
+      if (prix === null) return { erreur: t("Prix invalide : deux décimales au plus.") };
+      l.prixUnitaire = String(convertirVersXaf(prix, tauxFige));
+    }
+  }
+
   const analyseLignes = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
   if (!analyseLignes.success || (!dealId && !contactId) || !dateValidite) {
     return { erreur: analyseLignes.success ? t("Formulaire invalide.") : analyseLignes.error.issues[0]?.message };
@@ -104,6 +124,7 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
         montantHT: montants.montantHT,
         montantTVA: montants.montantTVA,
         montantTTC: montants.montantTTC,
+        ...(tauxFige ? { devise: deviseDemandee, tauxChangeMilliemes: tauxFige, montantDeviseCentimes: totalEnDeviseCentimes(montants.montantTTC, tauxFige) } : {}),
         creeParId: utilisateurConnecte.utilisateurId,
       })
       .returning({ id: devis.id });
@@ -290,6 +311,7 @@ export async function envoyerDevis(devisId: string, _etat: EtatEnvoiDevis, _form
         montantHT: donnees.devis.montantHT,
         montantTVA: donnees.devis.montantTVA,
         montantTTC: donnees.devis.montantTTC,
+        mentionDevise: mentionDevise(donnees.devis),
       }),
     ]);
 

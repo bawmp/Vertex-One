@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
@@ -133,6 +134,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
             {t("TVA :")} <span className="tabular-nums text-foreground">{formaterFCFA(leDevis.montantTVA)}</span>
           </p>
           <p className="text-lg font-medium">{t("TTC :")} <span className="tabular-nums">{formaterFCFA(leDevis.montantTTC)}</span></p>
+          {mentionDevise(leDevis) ? <p className="text-sm text-muted-foreground">{mentionDevise(leDevis)}</p> : null}
         </CardContent>
       </Card>
 

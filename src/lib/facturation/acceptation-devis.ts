@@ -62,6 +62,10 @@ export async function accepterDevisEtCreerFacture(
       montantHT: leDevis.montantHT,
       montantTVA: leDevis.montantTVA,
       montantTTC: leDevis.montantTTC,
+      // Devis en devise : la facture garde la devise et le taux figé du devis (la comptabilité reste en FCFA).
+      devise: leDevis.devise,
+      montantDeviseCentimes: leDevis.montantDeviseCentimes,
+      tauxChangeMilliemes: leDevis.tauxChangeMilliemes,
       dateEcheance,
       ...(parClient ? { reponseClient: "ACCEPTEE", reponseClientLe: new Date() } : {}),
     })

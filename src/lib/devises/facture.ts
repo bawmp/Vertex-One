@@ -26,3 +26,16 @@ export function mentionDevise(f: { devise: string | null; montantDeviseCentimes:
   if (!f.devise || f.montantDeviseCentimes == null || f.tauxChangeMilliemes == null) return null;
   return `Facturé en ${formaterMontantDevise(f.montantDeviseCentimes / 100, f.devise)} — taux appliqué : 1 ${f.devise} = ${formaterTaux(f.tauxChangeMilliemes)} FCFA`;
 }
+
+/** Un prix saisi dans la devise du devis : nombre positif ou nul, centièmes au plus (« 12,50 » ou « 12.5 »). Null sinon. */
+export function lirePrixDevise(texte: string): number | null {
+  const t = String(texte ?? "").trim().replace(/\s/g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
+  const v = Number(t);
+  return v <= 1_000_000_000 ? v : null;
+}
+
+/** Total d'un document en centièmes de la devise, au taux figé (le total en FCFA reste la référence). */
+export function totalEnDeviseCentimes(montantFcfa: number, tauxMilliemes: number): number {
+  return Math.round((montantFcfa * 1000 * 100) / tauxMilliemes);
+}

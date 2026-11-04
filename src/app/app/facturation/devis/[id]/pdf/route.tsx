@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import { NextResponse } from "next/server";
 import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -27,6 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     montantHT: donnees.devis.montantHT,
     montantTVA: donnees.devis.montantTVA,
     montantTTC: donnees.devis.montantTTC,
+    mentionDevise: mentionDevise(donnees.devis),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

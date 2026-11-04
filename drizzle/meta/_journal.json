@@ -1191,6 +1191,13 @@
       "when": 1794978000000,
       "tag": "0169_facture_devise",
       "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1794978060000,
+      "tag": "0170_devis_devise",
+      "breakpoints": true
     }
   ]
 }

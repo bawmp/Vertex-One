@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import { NextResponse } from "next/server";
 import { chargerDevisParJeton } from "@/lib/client-documents/chargement";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
@@ -20,6 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ jet
     montantHT: donnees.devis.montantHT,
     montantTVA: donnees.devis.montantTVA,
     montantTTC: donnees.devis.montantTTC,
+    mentionDevise: mentionDevise(donnees.devis),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

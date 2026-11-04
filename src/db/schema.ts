@@ -1290,6 +1290,11 @@ export const devis = pgTable(
       .notNull()
       .references(() => utilisateur.id),
     statut: statutDevis("statut").notNull().default("BROUILLON"),
+    // Devis saisi dans une autre devise (2026-11-04) : devise, total TTC en centièmes de cette devise et taux figé à la création (FCFA pour une
+    // unité, en millièmes). Les lignes et les totaux restent en FCFA ; la facture qui en découle reprend ces trois valeurs. Nuls = devis en FCFA.
+    devise: text("devise"),
+    montantDeviseCentimes: integer("montant_devise_centimes"),
+    tauxChangeMilliemes: integer("taux_change_milliemes"),
     dateValidite: timestamp("date_validite").notNull(),
     // Réponse du client depuis son lien public (2026-09-20) : quand, pourquoi
     // (refus) et depuis quelle adresse IP — preuve, jamais transmise par le client.

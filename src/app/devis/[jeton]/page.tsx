@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { Download } from "lucide-react";
@@ -62,6 +63,7 @@ export default async function PageDevisClient({ params }: { params: Promise<{ je
       </div>
 
       <LignesDocumentClient lignes={lignes} montantHT={devis.montantHT} montantTVA={devis.montantTVA} montantTTC={devis.montantTTC} />
+      {mentionDevise(devis) ? <p className="self-end text-sm text-muted-foreground">{mentionDevise(devis)}</p> : null}
 
       <Link href={`/devis/${jeton}/pdf`} target="_blank" className={buttonVariants({ variant: "outline", size: "sm" }) + " self-start"}>
         <Download data-icon="inline-start" aria-hidden />
