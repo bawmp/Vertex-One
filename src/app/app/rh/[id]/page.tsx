@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and, ne } from "drizzle-orm";
-import { ArrowLeft, User, Download, LogOut } from "lucide-react";
+import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -11,7 +11,9 @@ import { idsVisibles } from "@/lib/portee";
 import { peutVoirSalaire as calculerPeutVoirSalaire } from "@/lib/rh/acces";
 import { debutJournee } from "@/lib/rh/pointage";
 import { calculerDroitAnnuelConge } from "@/lib/rh/politique-conge";
-import { Card, CardContent } from "@/components/ui/card";
+import { BlocRepliable } from "@/components/fiche/bloc-repliable";
+import { CarteFiche, FicheHero, LigneInfo, ListeInfos, RubanHero, TuileChiffre } from "@/components/fiche/fiche-ui";
+import { ancienneteTexte, LIBELLE_CONTRAT, LIBELLE_ROLE, libelleStatutTache, tauxTachesTerminees } from "@/lib/rh/fiche-affichage";
 import { Badge } from "@/components/ui/badge";
 import { BoutonPointage } from "./bouton-pointage";
 import { FormulaireDemandeConge } from "./formulaire-demande-conge";
@@ -36,7 +38,6 @@ import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { ageAu, libelleDelai, prochainAnniversaire } from "@/lib/rh/anniversaires-regles";
 import { estEnRetard, tachesDuCollaborateur } from "@/lib/rh/taches-collaborateur";
 
-const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
 export default async function PageDossierRH({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -74,6 +75,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         politiqueCongeId: dossierRH.politiqueCongeId,
         shiftId: dossierRH.shiftId,
         nomComplet: utilisateur.nomComplet,
+        role: utilisateur.role,
         managerId: utilisateur.managerId,
         serviceId: utilisateur.serviceId,
       })
@@ -212,19 +214,21 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
   const ageActuel = ligne.dateNaissance ? ageAu(ligne.dateNaissance, aujourdhuiJour) : null;
   const maintenant = new Date();
 
+  const contrat = LIBELLE_CONTRAT[ligne.typeContrat] ?? ligne.typeContrat;
+  const nomResponsable = collegues.find((c) => c.id === ligne.managerId)?.nomComplet ?? null;
+  const jourFr = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "UTC" }).format(d);
+  const tauxTaches = tauxTachesTerminees(taches.ouvertes.length, taches.termineesRecemment);
+  const lienHero = "flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/70";
+
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
+    <div className="flex max-w-6xl flex-col gap-6">
       <Link href="/app/rh" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
         Retour
       </Link>
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2.5">
-            <User className="size-5" aria-hidden />
-            <h1 className="text-2xl font-semibold tracking-tight">{ligne.nomComplet}</h1>
-          </div>
+      <FicheHero
+        avatar={
           <PhotoFiche
             nom={ligne.nomComplet}
             adresse={adressePhoto("utilisateur", ligne.utilisateurId, ligne.photoCle)}
@@ -233,20 +237,43 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
             proprietaire={estProprietaire}
             peutChangerPourAutre={utilisateurConnecte.role === "ADMIN" && !estProprietaire}
           />
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href={`/app/rh/${ligne.id}/depart`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <LogOut className="size-3.5" aria-hidden />
-            Départ
-          </Link>
-          {peutModifierDossier ? (
-            <Link href={`/app/rh/${ligne.id}/export`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-              <Download className="size-3.5" aria-hidden />
-              Exporter (CSV)
+        }
+        nom={ligne.nomComplet}
+        sousTitre={ligne.poste}
+        badges={
+          <>
+            <Badge variant="brand">{LIBELLE_ROLE[ligne.role] ?? ligne.role}</Badge>
+            <Badge variant="info">{contrat}</Badge>
+            {ligne.decisionStage === "EMBAUCHE" ? <Badge variant="success">Embauché(e) après stage</Badge> : null}
+          </>
+        }
+        ruban={
+          anniversaire && anniversaire.jours <= 7 ? (
+            <RubanHero icone={Cake}>{anniversaire.jours === 0 ? "Joyeux anniversaire !" : `Anniversaire ${libelleDelai(anniversaire.jours).toLowerCase()}`}</RubanHero>
+          ) : null
+        }
+        puces={[
+          { icone: CalendarDays, texte: `Arrivé(e) le ${jourFr(ligne.dateEmbauche)}` },
+          { icone: Hourglass, texte: `Ancienneté : ${ancienneteTexte(ligne.dateEmbauche, maintenant)}` },
+          ...(nomDepartementActuel ? [{ icone: Building2, texte: nomDepartementActuel }] : []),
+          ...(nomResponsable ? [{ icone: UserRound, texte: `Responsable : ${nomResponsable}` }] : []),
+          ...(ligne.telephone ? [{ icone: Phone, texte: ligne.telephone }] : []),
+        ]}
+        actions={
+          <>
+            <Link href={`/app/rh/${ligne.id}/depart`} className={lienHero}>
+              <LogOut className="size-3.5" aria-hidden />
+              Départ
             </Link>
-          ) : null}
-        </div>
-      </div>
+            {peutModifierDossier ? (
+              <Link href={`/app/rh/${ligne.id}/export`} className={lienHero}>
+                <Download className="size-3.5" aria-hidden />
+                Exporter (CSV)
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
       {ligne.typeContrat === "STAGE" || ligne.decisionStage ? (
         <BlocStagePro
@@ -260,179 +287,180 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         />
       ) : null}
 
-      <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-        <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground">Poste</p>
-              <p className="font-medium">{ligne.poste}</p>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
+        {/* ----------------------------- Colonne principale : le travail ----------------------------- */}
+        <div className="flex min-w-0 flex-col gap-6">
+          <CarteFiche icone={ListChecks} titre="Tâches" aide="Projets et activités CRM qui lui sont assignés">
+            <div className="grid grid-cols-3 gap-3">
+              <TuileChiffre valeur={taches.ouvertes.length} libelle="En cours" ton="bleu" />
+              <TuileChiffre valeur={taches.enRetard} libelle="En retard" ton={taches.enRetard > 0 ? "alerte" : "neutre"} />
+              <TuileChiffre valeur={taches.termineesRecemment} libelle="Terminées (30 j)" ton="succes" />
             </div>
-            <div>
-              <p className="text-muted-foreground">Contrat</p>
-              <p className="font-medium">
-                {LIBELLE_TYPE_CONTRAT[ligne.typeContrat] ?? ligne.typeContrat} — depuis le{" "}
-                {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateEmbauche)}
-                {ligne.dateFinContrat ? ` (jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateFinContrat)})` : ""}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Solde de congés</p>
-              <p className="font-medium">{ligne.soldeConges} jour(s)</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Personnes à charge</p>
-              <p className="font-medium">{ligne.nombrePersonnesACharge}</p>
-            </div>
-            {peutVoirSalaireIci ? (
-              <div>
-                <p className="text-muted-foreground">Salaire de base</p>
-                <p className="font-medium">
-                  {ligne.salaireBase != null ? `${new Intl.NumberFormat("fr-FR").format(ligne.salaireBase)} FCFA` : "Non renseigné"}
-                </p>
+            {tauxTaches !== null ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Avancement sur 30 jours</span>
+                  <span className="font-medium tabular-nums text-foreground">{tauxTaches} %</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={tauxTaches} aria-valuemin={0} aria-valuemax={100} aria-label="Part de tâches terminées">
+                  <div className="h-full rounded-full bg-linear-to-r from-marque-bleu-500 to-marque-orange-500" style={{ width: `${tauxTaches}%` }} />
+                </div>
               </div>
             ) : null}
-            <div>
-              <p className="text-muted-foreground">Politique de congé</p>
-              <p className="font-medium">{politiqueAssignee ? `${politiqueAssignee.nom} — droit annuel : ${politiqueAssignee.droitAnnuel} j.` : "Aucune"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Département</p>
-              <p className="font-medium">{nomDepartementActuel ?? "Non renseigné"}</p>
-            </div>
-          </div>
-          {peutModifierDossier ? (
-            <div className="flex flex-wrap items-end gap-2 border-t pt-3">
-              <FormulairePolitiqueConge dossierRHId={ligne.id} politiqueCongeId={ligne.politiqueCongeId} politiques={politiquesActives} />
-              {politiqueAssignee ? <BoutonCrediterConge dossierRHId={ligne.id} droitAnnuel={politiqueAssignee.droitAnnuel} /> : null}
-            </div>
-          ) : null}
-          {peutModifierDossier ? (
-            <FormulaireDossierRH
-              dossierRHId={ligne.id}
-              poste={ligne.poste}
-              typeContrat={ligne.typeContrat}
-              dateEmbauche={ligne.dateEmbauche}
-              dateFinContrat={ligne.dateFinContrat}
-              nombrePersonnesACharge={ligne.nombrePersonnesACharge}
-              managerId={ligne.managerId}
-              serviceId={ligne.serviceId}
-              collegues={collegues}
-              services={services}
-              departementsAutorises={departementsAutorises}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
+            {taches.ouvertes.length === 0 ? (
+              <p className="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground">Aucune tâche en cours.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {taches.ouvertes.map((t) => {
+                  const enRetard = estEnRetard(t.echeance, maintenant);
+                  return (
+                    <li key={t.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm ${enRetard ? "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20" : "bg-card"}`}>
+                      <div className="min-w-0">
+                        <p className="font-medium">{t.lien ? <Link href={t.lien} className="underline-offset-4 hover:underline">{t.titre}</Link> : t.titre}</p>
+                        <p className="text-xs text-muted-foreground">{t.origine}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {t.echeance ? (
+                          <span className={`flex items-center gap-1 text-xs ${enRetard ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                            <Clock className="size-3" aria-hidden />
+                            {enRetard ? "En retard · " : ""}
+                            {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "Africa/Douala" }).format(t.echeance)}
+                          </span>
+                        ) : null}
+                        <Badge variant={t.statut === "EN_COURS" ? "info" : "neutral"}>{libelleStatutTache(t.statut)}</Badge>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CarteFiche>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Informations personnelles</h2>
-          <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground">Date de naissance</p>
-              <p className="font-medium">
-                {ligne.dateNaissance ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${ligne.dateNaissance}T00:00:00Z`)) : "Non renseignée"}
-                {ageActuel !== null ? ` (${ageActuel} ans)` : ""}
-              </p>
-              {anniversaire && anniversaire.jours <= 30 ? <p className="text-xs text-primary">Anniversaire : {libelleDelai(anniversaire.jours).toLowerCase()}</p> : null}
-            </div>
-            <div>
-              <p className="text-muted-foreground">Téléphone</p>
-              <p className="font-medium">{ligne.telephone ?? "Non renseigné"}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-muted-foreground">Adresse</p>
-              <p className="font-medium">{ligne.adresse ?? "Non renseignée"}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-muted-foreground">Personne à prévenir en cas d&apos;urgence</p>
-              <p className="font-medium">{ligne.urgenceNom ? `${ligne.urgenceNom}${ligne.urgenceTelephone ? ` — ${ligne.urgenceTelephone}` : ""}` : "Non renseignée"}</p>
-            </div>
-          </div>
-          {peutModifierInfos ? (
-            <div className="border-t pt-3">
-              <FormulaireInfosPersonnelles
+          {estProprietaire || peutModifierDossier || peutTraiterConges ? (
+            <CarteFiche
+              icone={Wifi}
+              titre="Pointage"
+              aide="Arrivées, départs et régularisations"
+              droite={
+                estProprietaire ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FormulaireRegularisation />
+                    <BoutonPointage arrive={Boolean(pointageDuJour?.heureArrivee)} parti={Boolean(pointageDuJour?.heureDepart)} />
+                  </div>
+                ) : null
+              }
+            >
+              {peutModifierDossier ? <FormulaireShift dossierRHId={ligne.id} shiftId={ligne.shiftId} shifts={shiftsActifs} /> : null}
+              {estProprietaire || peutTraiterConges ? <ListeRegularisations regularisations={regularisations} peutTraiter={peutTraiterConges} /> : null}
+            </CarteFiche>
+          ) : null}
+
+          <CarteFiche icone={CalendarRange} titre="Congés" aide={`Solde : ${ligne.soldeConges} jour(s)`} ton="vert" droite={estProprietaire ? <FormulaireDemandeConge /> : null}>
+            <ListeDemandesConge demandes={demandes} peutTraiter={peutTraiterConges} peutVoirMotifSensible={peutVoirSalaireIci} />
+          </CarteFiche>
+
+          <CarteFiche icone={Award} titre="Évaluations" aide="Retours périodiques de son responsable" ton="orange" droite={peutEvaluer ? <FormulaireEvaluation dossierRHId={ligne.id} /> : null}>
+            <ListeEvaluations evaluations={evaluations} />
+          </CarteFiche>
+        </div>
+
+        {/* ----------------------------- Colonne latérale : la personne ----------------------------- */}
+        <aside className="flex min-w-0 flex-col gap-6">
+          <CarteFiche icone={IdCard} titre="Informations personnelles" aide="Visibles de la personne, de l'Administrateur et de son responsable">
+            <ListeInfos>
+              <LigneInfo icone={Cake} intitule="Date de naissance" vide={!ligne.dateNaissance}>
+                {ligne.dateNaissance ? `${jourFr(new Date(`${ligne.dateNaissance}T00:00:00Z`))}${ageActuel !== null ? ` (${ageActuel} ans)` : ""}` : "Non renseignée"}
+                {anniversaire && anniversaire.jours <= 30 ? <span className="mt-0.5 block text-xs font-normal text-primary">Anniversaire : {libelleDelai(anniversaire.jours).toLowerCase()}</span> : null}
+              </LigneInfo>
+              <LigneInfo icone={Phone} intitule="Téléphone" vide={!ligne.telephone}>
+                {ligne.telephone ?? "Non renseigné"}
+              </LigneInfo>
+              <LigneInfo icone={MapPin} intitule="Adresse" vide={!ligne.adresse}>
+                {ligne.adresse ?? "Non renseignée"}
+              </LigneInfo>
+              <LigneInfo icone={ShieldAlert} intitule="Personne à prévenir en cas d'urgence" vide={!ligne.urgenceNom}>
+                {ligne.urgenceNom ? `${ligne.urgenceNom}${ligne.urgenceTelephone ? ` — ${ligne.urgenceTelephone}` : ""}` : "Non renseignée"}
+              </LigneInfo>
+            </ListeInfos>
+            {peutModifierInfos ? (
+              <BlocRepliable titre={estProprietaire ? "Compléter ou modifier mes informations" : "Compléter ou modifier ces informations"} ouvertParDefaut={!ligne.dateNaissance || !ligne.telephone}>
+                <FormulaireInfosPersonnelles
+                  dossierRHId={ligne.id}
+                  valeurs={{ dateNaissance: ligne.dateNaissance ?? "", telephone: ligne.telephone ?? "", adresse: ligne.adresse ?? "", urgenceNom: ligne.urgenceNom ?? "", urgenceTelephone: ligne.urgenceTelephone ?? "" }}
+                />
+              </BlocRepliable>
+            ) : null}
+          </CarteFiche>
+
+          <CarteFiche icone={Briefcase} titre="Poste et contrat">
+            <ListeInfos>
+              <LigneInfo icone={Briefcase} intitule="Poste">
+                {ligne.poste}
+              </LigneInfo>
+              <LigneInfo icone={Hash} intitule="Contrat">
+                {contrat} — depuis le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateEmbauche)}
+                {ligne.dateFinContrat ? ` (jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(ligne.dateFinContrat)})` : ""}
+              </LigneInfo>
+              <LigneInfo icone={Building2} intitule="Département" vide={!nomDepartementActuel}>
+                {nomDepartementActuel ?? "Non renseigné"}
+              </LigneInfo>
+              <LigneInfo icone={CalendarRange} intitule="Solde de congés">
+                {ligne.soldeConges} jour(s)
+              </LigneInfo>
+              <LigneInfo icone={UserRound} intitule="Personnes à charge">
+                {ligne.nombrePersonnesACharge}
+              </LigneInfo>
+              <LigneInfo icone={CalendarDays} intitule="Politique de congé" vide={!politiqueAssignee}>
+                {politiqueAssignee ? `${politiqueAssignee.nom} — droit annuel : ${politiqueAssignee.droitAnnuel} j.` : "Aucune"}
+              </LigneInfo>
+            </ListeInfos>
+            {peutModifierDossier ? (
+              <div className="flex flex-wrap items-end gap-2 border-t pt-4">
+                <FormulairePolitiqueConge dossierRHId={ligne.id} politiqueCongeId={ligne.politiqueCongeId} politiques={politiquesActives} />
+                {politiqueAssignee ? <BoutonCrediterConge dossierRHId={ligne.id} droitAnnuel={politiqueAssignee.droitAnnuel} /> : null}
+              </div>
+            ) : null}
+            {peutModifierDossier ? (
+              <FormulaireDossierRH
                 dossierRHId={ligne.id}
-                valeurs={{ dateNaissance: ligne.dateNaissance ?? "", telephone: ligne.telephone ?? "", adresse: ligne.adresse ?? "", urgenceNom: ligne.urgenceNom ?? "", urgenceTelephone: ligne.urgenceTelephone ?? "" }}
+                poste={ligne.poste}
+                typeContrat={ligne.typeContrat}
+                dateEmbauche={ligne.dateEmbauche}
+                dateFinContrat={ligne.dateFinContrat}
+                nombrePersonnesACharge={ligne.nombrePersonnesACharge}
+                managerId={ligne.managerId}
+                serviceId={ligne.serviceId}
+                collegues={collegues}
+                services={services}
+                departementsAutorises={departementsAutorises}
               />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+            ) : null}
+          </CarteFiche>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Tâches</h2>
-            <p className="text-xs text-muted-foreground">
-              {taches.ouvertes.length} en cours{taches.enRetard > 0 ? ` · ${taches.enRetard} en retard` : ""} · {taches.termineesRecemment} terminée(s) ces 30 jours
-            </p>
-          </div>
-          {taches.ouvertes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune tâche en cours.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-border rounded-lg border">
-              {taches.ouvertes.map((t) => (
-                <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="font-medium">{t.lien ? <Link href={t.lien} className="underline-offset-4 hover:underline">{t.titre}</Link> : t.titre}</p>
-                    <p className="text-xs text-muted-foreground">{t.origine}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {t.echeance ? <span className={`text-xs ${estEnRetard(t.echeance, maintenant) ? "font-medium text-destructive" : "text-muted-foreground"}`}>{estEnRetard(t.echeance, maintenant) ? "En retard · " : ""}{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "Africa/Douala" }).format(t.echeance)}</span> : null}
-                    <Badge variant="neutral">{t.statut === "EN_COURS" ? "En cours" : t.statut === "A_FAIRE" || t.statut === "NON_COMMENCEE" ? "À faire" : t.statut === "DIFFEREE" ? "Différée" : t.statut}</Badge>
-                  </div>
+          {peutVoirSalaireIci ? (
+            <CarteFiche icone={Wallet} titre="Rémunération" aide="Confidentiel : visible de la personne et de l'Administrateur seulement" confidentiel>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-marque-orange-50 px-4 py-3 dark:bg-marque-orange-900/20">
+                <div>
+                  <p className="text-xs text-muted-foreground">Salaire de base</p>
+                  <p className="text-xl font-semibold tabular-nums">{ligne.salaireBase != null ? `${new Intl.NumberFormat("fr-FR").format(ligne.salaireBase)} FCFA` : "Non renseigné"}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <ShieldCheck className="size-6 text-marque-orange-600" aria-hidden />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-medium">Historique de salaire</h3>
+                {peutModifierDossier ? <FormulaireRevisionSalaire dossierRHId={ligne.id} salaireActuel={ligne.salaireBase} /> : null}
+              </div>
+              <ListeRevisionsSalaire revisions={revisionsSalaire} />
+            </CarteFiche>
+          ) : null}
 
-      {peutVoirSalaireIci ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-muted-foreground">Historique de salaire</h2>
-            {peutModifierDossier ? <FormulaireRevisionSalaire dossierRHId={ligne.id} salaireActuel={ligne.salaireBase} /> : null}
-          </div>
-          <ListeRevisionsSalaire revisions={revisionsSalaire} />
-        </div>
-      ) : null}
-
-      {peutVoirSalaireIci ? (
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Fichiers</h2>
-          <FormulaireDocumentRH dossierRHId={ligne.id} />
-          <ListeDocumentsRH documents={documentsRH} dossierRHId={ligne.id} peutSupprimer={peutModifierDossier} />
-        </div>
-      ) : null}
-
-      {estProprietaire ? (
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Pointage</h2>
-          <div className="flex items-center gap-2">
-            <FormulaireRegularisation />
-            <BoutonPointage arrive={Boolean(pointageDuJour?.heureArrivee)} parti={Boolean(pointageDuJour?.heureDepart)} />
-          </div>
-        </div>
-      ) : null}
-      {peutModifierDossier ? <FormulaireShift dossierRHId={ligne.id} shiftId={ligne.shiftId} shifts={shiftsActifs} /> : null}
-      {estProprietaire || peutTraiterConges ? <ListeRegularisations regularisations={regularisations} peutTraiter={peutTraiterConges} /> : null}
-
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Congés</h2>
-          {estProprietaire ? <FormulaireDemandeConge /> : null}
-        </div>
-        <ListeDemandesConge demandes={demandes} peutTraiter={peutTraiterConges} peutVoirMotifSensible={peutVoirSalaireIci} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Évaluations</h2>
-          {peutEvaluer ? <FormulaireEvaluation dossierRHId={ligne.id} /> : null}
-        </div>
-        <ListeEvaluations evaluations={evaluations} />
+          {peutVoirSalaireIci ? (
+            <CarteFiche icone={FolderOpen} titre="Fichiers" aide="Contrat, pièces et documents RH" ton="neutre">
+              <FormulaireDocumentRH dossierRHId={ligne.id} />
+              <ListeDocumentsRH documents={documentsRH} dossierRHId={ligne.id} peutSupprimer={peutModifierDossier} />
+            </CarteFiche>
+          ) : null}
+        </aside>
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ test("Fiche collaborateur : infos, photo, anniversaire, salaire réservé", asyn
   await expect(admin.getByText("Dans 3 jours", { exact: false }).first()).toBeVisible(ATTENTE);
   await admin.getByRole("link", { name: /Bob Employé/ }).first().click();
   await expect(admin.getByRole("heading", { name: "Bob Employé" })).toBeVisible(ATTENTE);
-  await expect(admin.getByText("+237 690 11 22 33")).toBeVisible(ATTENTE);
+  await expect(admin.getByText("+237 690 11 22 33").first()).toBeVisible(ATTENTE);
   await expect(admin.getByText("Marie Employé — 677 00 11 22")).toBeVisible(ATTENTE);
   await expect(admin.getByText("Salaire de base")).toBeVisible(ATTENTE);
   await expect(admin.getByText("Aucune tâche en cours.")).toBeVisible(ATTENTE);

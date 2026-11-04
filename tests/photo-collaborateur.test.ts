@@ -33,3 +33,25 @@ describe("Photo de la fiche collaborateur — validation", () => {
     expect(adressePhoto("utilisateur", "u1", null)).toBeNull();
   });
 });
+
+describe("Affichage de la fiche — règles pures", async () => {
+  const { ancienneteTexte, tauxTachesTerminees, libelleStatutTache } = await import("@/lib/rh/fiche-affichage");
+
+  test("ancienneté en clair", () => {
+    const ref = new Date("2026-11-04T10:00:00Z");
+    expect(ancienneteTexte(new Date("2026-11-01T00:00:00Z"), ref)).toBe("Moins d'un mois");
+    expect(ancienneteTexte(new Date("2026-06-04T00:00:00Z"), ref)).toBe("5 mois");
+    expect(ancienneteTexte(new Date("2026-06-05T00:00:00Z"), ref)).toBe("4 mois");
+    expect(ancienneteTexte(new Date("2024-08-01T00:00:00Z"), ref)).toBe("2 ans et 3 mois");
+    expect(ancienneteTexte(new Date("2025-11-04T00:00:00Z"), ref)).toBe("1 an");
+    expect(ancienneteTexte(new Date("2027-01-01T00:00:00Z"), ref)).toBe("Pas encore arrivé(e)");
+  });
+
+  test("avancement des tâches et libellés", () => {
+    expect(tauxTachesTerminees(0, 0)).toBeNull();
+    expect(tauxTachesTerminees(4, 2)).toBe(33);
+    expect(tauxTachesTerminees(0, 5)).toBe(100);
+    expect(libelleStatutTache("NON_COMMENCEE")).toBe("À faire");
+    expect(libelleStatutTache("EN_COURS")).toBe("En cours");
+  });
+});

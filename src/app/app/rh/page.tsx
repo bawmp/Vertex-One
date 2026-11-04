@@ -22,6 +22,7 @@ import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { anniversairesAVenir } from "@/lib/rh/anniversaires";
 import { libelleDelai } from "@/lib/rh/anniversaires-regles";
+import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
 
 const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: "Congé payé", MALADIE: "Maladie", SANS_SOLDE: "Sans solde", AUTRE: "Autre" };
 const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: "Démission", LICENCIEMENT: "Licenciement", FIN_CONTRAT: "Fin de contrat", AUTRE: "Autre" };
@@ -117,7 +118,7 @@ export default async function PageRH() {
 
     const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
     const dossiers = await tx
-      .select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId, poste: dossierRH.poste, nomComplet: utilisateur.nomComplet, photoCle: utilisateur.photoCleStockage })
+      .select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId, poste: dossierRH.poste, nomComplet: utilisateur.nomComplet, photoCle: utilisateur.photoCleStockage, typeContrat: dossierRH.typeContrat, role: utilisateur.role })
       .from(dossierRH)
       .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
       .where(and(ne(utilisateur.statut, "SUPPRIME"), ids === "TOUT" ? eq(dossierRH.entrepriseId, utilisateurConnecte.entrepriseId) : inArray(dossierRH.utilisateurId, ids)));
@@ -158,6 +159,7 @@ export default async function PageRH() {
   });
 
   const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur } = donnees;
+  const anniversairesParUtilisateur = Object.fromEntries(anniversaires.filter((a) => a.type === "UTILISATEUR").map((a) => [a.id, a]));
   const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
   const t = traduire(utilisateurConnecte.langue);
@@ -362,34 +364,44 @@ export default async function PageRH() {
             <Cake className="size-3.5" aria-hidden />
             Anniversaires à venir
           </h2>
-          <Card className="p-0">
-            <div className="flex flex-col divide-y divide-border">
-              {anniversaires.slice(0, 8).map((a) => {
-                const dossierId = a.type === "UTILISATEUR" ? dossierParUtilisateur[a.id] : null;
-                const jour = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${a.date}T00:00:00Z`));
-                const contenu = (
-                  <>
-                    <span className="font-medium">
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {anniversaires.slice(0, 6).map((a) => {
+              const dossierId = a.type === "UTILISATEUR" ? dossierParUtilisateur[a.id] : null;
+              const d = new Date(`${a.date}T00:00:00Z`);
+              const jourNum = new Intl.DateTimeFormat("fr-FR", { day: "numeric", timeZone: "UTC" }).format(d);
+              const moisCourt = new Intl.DateTimeFormat("fr-FR", { month: "short", timeZone: "UTC" }).format(d).replace(".", "");
+              const aujourdhui = a.jours === 0;
+              const contenu = (
+                <>
+                  <span className={`flex size-12 shrink-0 flex-col items-center justify-center rounded-xl ${aujourdhui ? "bg-marque-orange text-white shadow-sm" : "bg-marque-orange-100 text-marque-orange-800 dark:bg-marque-orange-900/40 dark:text-marque-orange-200"}`}>
+                    <span className="text-lg leading-none font-semibold tabular-nums">{jourNum}</span>
+                    <span className="text-[10px] font-medium uppercase">{moisCourt}</span>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
                       {a.nom}
                       {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">(stagiaire)</span> : null}
                     </span>
-                    <span className={`text-xs ${a.jours === 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                      {libelleDelai(a.jours)} · {jour} · {a.age} ans
+                    <span className={`block text-xs ${aujourdhui ? "font-semibold text-marque-orange-700 dark:text-marque-orange-300" : "text-muted-foreground"}`}>
+                      {aujourdhui ? "Aujourd'hui" : libelleDelai(a.jours)} · {a.age} ans
                     </span>
-                  </>
-                );
-                return dossierId ? (
-                  <Link key={`${a.type}-${a.id}`} href={`/app/rh/${dossierId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
-                    {contenu}
-                  </Link>
-                ) : (
-                  <div key={`${a.type}-${a.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    {contenu}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+                  </span>
+                </>
+              );
+              const classes = `flex items-center gap-3 rounded-2xl bg-card p-3 ring-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${aujourdhui ? "ring-marque-orange/50" : "ring-foreground/[0.06]"}`;
+              return (
+                <li key={`${a.type}-${a.id}`}>
+                  {dossierId ? (
+                    <Link href={`/app/rh/${dossierId}`} className={`${classes} survol-elevation`}>
+                      {contenu}
+                    </Link>
+                  ) : (
+                    <div className={classes}>{contenu}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
           <p className="text-xs text-muted-foreground">Un email de rappel part chaque matin à l&apos;Administrateur et au responsable de la personne.</p>
         </div>
       ) : null}
@@ -403,30 +415,44 @@ export default async function PageRH() {
               Dossiers RH, congés, pointage et salaires sont disponibles à partir du forfait Business.
             </p>
           </div>
+        ) : dossiers.length === 0 ? (
+          <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">Aucun dossier RH pour le moment.</p>
         ) : (
-          <Card className="p-0">
-            <div className="flex flex-col divide-y divide-border">
-              {dossiers.map((d, index) => (
-                <Link
-                  key={d.id}
-                  href={`/app/rh/${d.id}`}
-                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
-                >
-                  <span
-                    aria-hidden
-                    className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
-                  />
-                  <span className="flex min-w-0 items-center gap-2.5 font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">
-                    <AvatarCollaborateur nom={d.nomComplet} adresse={adressePhoto("utilisateur", d.utilisateurId, d.photoCle)} taille="petit" version={d.photoCle ?? ""} />
-                    {d.nomComplet}
-                  </span>
-                  <span className="text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">{d.poste}</span>
-                </Link>
-              ))}
-              {dossiers.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">Aucun dossier RH pour le moment.</p> : null}
-            </div>
-          </Card>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {dossiers.map((d, index) => {
+              const anniv = anniversairesParUtilisateur[d.utilisateurId];
+              return (
+                <li key={d.id} style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }} className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
+                  <Link
+                    href={`/app/rh/${d.id}`}
+                    className="survol-elevation group/carte flex h-full flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]"
+                  >
+                    <span className="relative block h-16 overflow-hidden bg-linear-to-br from-marque-bleu-800 via-marque-bleu-700 to-marque-bleu-500">
+                      <span aria-hidden className="absolute -top-8 -right-6 size-28 rounded-full bg-marque-orange/40 blur-2xl" />
+                      <span aria-hidden className="absolute inset-0 opacity-60 [background-image:radial-gradient(color-mix(in_oklab,white_18%,transparent)_1px,transparent_1px)] [background-size:14px_14px]" />
+                      {anniv && anniv.jours <= 7 ? (
+                        <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white ring-1 ring-white/30 backdrop-blur-md">
+                          <Cake className="size-3" aria-hidden />
+                          {anniv.jours === 0 ? "Aujourd'hui" : libelleDelai(anniv.jours)}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="flex flex-1 flex-col items-center gap-1 px-4 pt-0 pb-4 text-center">
+                      <span className="relative z-10 -mt-8">
+                        <AvatarCollaborateur nom={d.nomComplet} adresse={adressePhoto("utilisateur", d.utilisateurId, d.photoCle)} taille="carte" version={d.photoCle ?? ""} />
+                      </span>
+                      <span className="mt-1 text-sm font-semibold transition-colors group-hover/carte:text-primary">{d.nomComplet}</span>
+                      <span className="text-xs text-muted-foreground">{d.poste}</span>
+                      <span className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+                        <Badge variant="brand">{LIBELLE_ROLE[d.role] ?? d.role}</Badge>
+                        <Badge variant="neutral">{LIBELLE_CONTRAT[d.typeContrat] ?? d.typeContrat}</Badge>
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </div>

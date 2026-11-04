@@ -2,52 +2,63 @@
 
 import { useActionState, useRef, useTransition } from "react";
 import { Camera, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { changerMaPhoto, changerPhotoCollaborateur, retirerMaPhoto, type EtatPhoto } from "@/lib/actions/photo-rh";
 
 /**
- * Photo de la fiche. La personne concernée la choisit elle-même (« Changer ma photo ») ; l'Administrateur peut aussi la poser pour un
- * collaborateur. Le fichier part dès qu'il est choisi ; les contrôles (image réelle, 2 Mo) sont refaits côté serveur.
+ * Photo de la fiche, dans l'en-tête. La personne concernée la choisit elle-même : un bouton appareil photo posé sur l'avatar (« Ajouter ma photo » /
+ * « Changer ma photo »), et « Retirer » quand elle en a une. L'Administrateur peut aussi la poser pour un collaborateur. Le fichier part dès
+ * qu'il est choisi ; les contrôles (image réelle, 2 Mo) sont refaits côté serveur.
  */
 export function PhotoFiche({ nom, adresse, version, utilisateurId, proprietaire, peutChangerPourAutre }: { nom: string; adresse: string | null; version: string; utilisateurId: string; proprietaire: boolean; peutChangerPourAutre: boolean }) {
   const [etat, action, enCours] = useActionState(proprietaire ? changerMaPhoto : changerPhotoCollaborateur.bind(null, utilisateurId), null as EtatPhoto);
   const [retrait, demarrerRetrait] = useTransition();
   const formulaire = useRef<HTMLFormElement>(null);
   const peutChanger = proprietaire || peutChangerPourAutre;
+  const libelle = proprietaire ? (adresse ? "Changer ma photo" : "Ajouter ma photo") : adresse ? "Changer la photo" : "Ajouter une photo";
 
   return (
-    <div className="flex items-center gap-4">
-      <AvatarCollaborateur nom={nom} adresse={adresse} taille="grand" version={version} />
+    <div className="flex flex-col items-start gap-1.5">
+      <div className="relative">
+        <AvatarCollaborateur nom={nom} adresse={adresse} taille="hero" version={version} />
+        {peutChanger ? (
+          <form ref={formulaire} action={action}>
+            <input
+              id="photo-fiche"
+              name="photo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="sr-only"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) formulaire.current?.requestSubmit();
+              }}
+            />
+            <button
+              type="button"
+              aria-label={libelle}
+              title={libelle}
+              disabled={enCours || retrait}
+              onClick={() => document.getElementById("photo-fiche")?.click()}
+              className="absolute right-0 bottom-0 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-4 ring-card transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+            >
+              {enCours ? <Spinner /> : <Camera className="size-4" aria-hidden />}
+            </button>
+          </form>
+        ) : null}
+      </div>
       {peutChanger ? (
-        <form ref={formulaire} action={action} className="flex flex-col gap-1.5">
-          <input
-            id="photo-fiche"
-            name="photo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            className="sr-only"
-            onChange={(e) => {
-              if (e.target.files && e.target.files.length > 0) formulaire.current?.requestSubmit();
-            }}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="outline" disabled={enCours || retrait} onClick={() => document.getElementById("photo-fiche")?.click()}>
-              {enCours ? <Spinner /> : <Camera data-icon="inline-start" aria-hidden />}
-              {proprietaire ? (adresse ? "Changer ma photo" : "Ajouter ma photo") : adresse ? "Changer la photo" : "Ajouter une photo"}
-            </Button>
-            {proprietaire && adresse ? (
-              <Button type="button" size="sm" variant="ghost" disabled={enCours || retrait} onClick={() => demarrerRetrait(async () => void (await retirerMaPhoto()))}>
-                <Trash2 data-icon="inline-start" aria-hidden />
-                Retirer
-              </Button>
-            ) : null}
-          </div>
-          <p className="text-xs text-muted-foreground">Image PNG, JPEG ou WebP, 2 Mo au plus.</p>
-          {etat?.erreur ? <p role="alert" className="text-xs text-destructive">{etat.erreur}</p> : null}
-          {etat?.message ? <p role="status" className="text-xs text-emerald-700 dark:text-emerald-400">{etat.message}</p> : null}
-        </form>
+        <div className="flex min-h-5 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+          <span className="text-muted-foreground">{libelle}</span>
+          {proprietaire && adresse ? (
+            <button type="button" disabled={enCours || retrait} onClick={() => demarrerRetrait(async () => void (await retirerMaPhoto()))} className="flex items-center gap-1 text-muted-foreground hover:text-destructive">
+              <Trash2 className="size-3" aria-hidden />
+              Retirer
+            </button>
+          ) : null}
+          {etat?.erreur ? <span role="alert" className="text-destructive">{etat.erreur}</span> : null}
+          {etat?.message ? <span role="status" className="text-emerald-700 dark:text-emerald-400">{etat.message}</span> : null}
+        </div>
       ) : null}
     </div>
   );
