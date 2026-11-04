@@ -62,3 +62,45 @@ export function lirePourcentage(texte: string): number | null {
 
 export const montantDeclareValide = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 1_000_000_000_000;
 export const nettoyerReference = (v: string) => v.replace(/\s+/g, " ").trim().slice(0, 60);
+
+/**
+ * Acomptes d'impôt sur les sociétés (mensuels) : on verse chaque mois un pourcentage du chiffre d'affaires hors taxe du mois, au plus
+ * tard le 15 du mois suivant, puis on l'impute sur l'impôt de l'exercice. Le taux n'est jamais imposé par Vertex One : 2,2 % est
+ * proposé (2 % + centimes additionnels), à confirmer par le comptable.
+ */
+export const TAUX_ACOMPTE_IS_DEFAUT = 2.2;
+export const TYPE_ACOMPTE_IS = "ACOMPTE_IS";
+
+/** Acompte d'un mois : taux × chiffre d'affaires HT du mois (jamais négatif), arrondi au franc. */
+export function acompteMensuelIS(chiffreAffairesHT: number, tauxPourcent: number): number {
+  return Math.round((Math.max(0, chiffreAffairesHT) * Math.max(0, tauxPourcent)) / 100);
+}
+
+/** Les douze mois « AAAA-MM » d'un exercice (numéro = année de fin) qui commence au mois `moisDebut`, du premier au dernier. */
+export function moisDeExercice(annee: number, moisDebut: number): string[] {
+  const liste: string[] = [];
+  let a = moisDebut === 1 ? annee : annee - 1;
+  let m = moisDebut;
+  for (let i = 0; i < 12; i++) {
+    liste.push(`${a}-${String(m).padStart(2, "0")}`);
+    m += 1;
+    if (m === 13) {
+      m = 1;
+      a += 1;
+    }
+  }
+  return liste;
+}
+
+export type BilanAcomptes = { verses: number; enAttente: number; soldeAPayer: number; creditAImputer: number };
+/**
+ * Bilan des acomptes d'un exercice face à l'impôt estimé : « versés » = acomptes notés payés (montant saisi, à défaut le montant
+ * calculé), « en attente » = notés déclarés mais pas encore payés. Solde = impôt estimé − versés ; si les acomptes dépassent l'impôt,
+ * l'excédent est un crédit à imputer, jamais un solde négatif.
+ */
+export function bilanAcomptes(impotEstime: number, acomptes: { statut: string; montant: number }[]): BilanAcomptes {
+  const verses = acomptes.filter((a) => a.statut === "PAYEE").reduce((s, a) => s + a.montant, 0);
+  const enAttente = acomptes.filter((a) => a.statut === "DECLAREE").reduce((s, a) => s + a.montant, 0);
+  const net = impotEstime - verses;
+  return { verses, enAttente, soldeAPayer: Math.max(0, net), creditAImputer: Math.max(0, -net) };
+}

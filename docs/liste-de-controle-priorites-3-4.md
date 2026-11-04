@@ -57,6 +57,11 @@ Légende : [ ] à faire — noter l'écart si le résultat attendu n'est pas obt
 - [ ] Un mois non déclaré dont l'échéance est passée est « En retard ».
 - [ ] Estimation de l'impôt : modifier le taux, « Calculer » met à jour le montant ; la mention « indicative » est visible.
 
+## 7 bis. Acomptes d'impôt sur les sociétés
+- [ ] Déclarations fiscales : la section « Acomptes » liste les mois écoulés de l'exercice avec le chiffre d'affaires et l'acompte calculé (taux modifiable).
+- [ ] Noter un mois « Payée » avec son montant : le bilan en bas déduit l'acompte de l'impôt estimé ; un excédent s'affiche en crédit à imputer.
+- [ ] Un acompte et la TVA du même mois restent deux suivis séparés.
+
 ## 8. Anglais (P4.3)
 - [ ] Basculer la langue en anglais : les pages Comptabilité, Analytique, Déclarations et Devises s'affichent en anglais (libellés des comptes SYSCOHADA restant en français).
 

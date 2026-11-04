@@ -12,13 +12,14 @@ import { formaterFCFA } from "@/lib/facturation/calcul";
 import { aujourdhuiDouala } from "@/lib/facturation/promesse-regles";
 import { dateDouala } from "@/lib/comptabilite/livres";
 import { calculerTva, lireDeclarationTva } from "@/lib/comptabilite/tva";
-import { listerDeclarationsTva } from "@/lib/comptabilite/declarations";
-import { echeanceTva, estimerIS, lirePourcentage, moisEcoules, statutAffiche } from "@/lib/comptabilite/declarations-regles";
+import { listerDeclarations, listerDeclarationsTva } from "@/lib/comptabilite/declarations";
+import { acompteMensuelIS, bilanAcomptes, echeanceTva, estimerIS, lirePourcentage, moisDeExercice, moisEcoules, statutAffiche, TAUX_ACOMPTE_IS_DEFAUT, TYPE_ACOMPTE_IS } from "@/lib/comptabilite/declarations-regles";
 import { exercicesConnus, lignesExerciceSansCloture, moisDebutExercice } from "@/lib/comptabilite/cloture";
 import { soldesDeGestion } from "@/lib/comptabilite/etats-donnees";
 import { debutExerciceTexte, finExerciceTexte } from "@/lib/comptabilite/exercice-regles";
 import { getT } from "@/lib/i18n/langue";
 import { LigneDeclaration } from "./ligne-declaration";
+import { LigneAcompte } from "./ligne-acompte";
 
 const jourFr = (d: string) => d.split("-").reverse().join("/");
 
@@ -27,7 +28,7 @@ const jourFr = (d: string) => d.split("-").reverse().join("/");
  * l'impôt sur les sociétés. Vertex One NE télédéclare PAS : les chiffres se reportent sur le portail de l'administration, avec l'aide
  * de votre comptable. Administrateur seul, forfait comptabilité complète.
  */
-export default async function PageDeclarations({ searchParams }: { searchParams: Promise<{ exercice?: string; taux?: string; minimum?: string }> }) {
+export default async function PageDeclarations({ searchParams }: { searchParams: Promise<{ exercice?: string; taux?: string; minimum?: string; acompte?: string }> }) {
   const p = await searchParams;
   const t = await getT();
   const u = await recupererUtilisateurConnecte();
@@ -43,6 +44,7 @@ export default async function PageDeclarations({ searchParams }: { searchParams:
   const aujourdhui = aujourdhuiDouala();
   const tauxIS = lirePourcentage(p.taux ?? "33") ?? 33;
   const minimumIS = lirePourcentage(p.minimum ?? "2") ?? 2;
+  const tauxAcompte = lirePourcentage(p.acompte ?? String(TAUX_ACOMPTE_IS_DEFAUT).replace(".", ",")) ?? TAUX_ACOMPTE_IS_DEFAUT;
 
   const donnees = await avecEntreprise(u.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
@@ -69,7 +71,17 @@ export default async function PageDeclarations({ searchParams }: { searchParams:
     const soldes = soldesDeGestion(await lignesExerciceSansCloture(tx, u.entrepriseId, annee));
     const resultat = -soldes.reduce((s, l) => s + l.solde, 0);
     const chiffreAffaires = -soldes.filter((l) => l.numero.startsWith("70")).reduce((s, l) => s + l.solde, 0);
-    return { lignes: lignes.reverse(), annees, annee, moisDebut, resultat, chiffreAffaires };
+    // Acomptes d'impôt sur les sociétés : un par mois de l'exercice déjà écoulé (le mois en cours n'est pas encore connu en entier).
+    const suiviAcomptes = await listerDeclarations(tx, u.entrepriseId, TYPE_ACOMPTE_IS);
+    const acomptes = [];
+    for (const m of moisDeExercice(annee, moisDebut)) {
+      if (m >= aujourdhui.slice(0, 7)) continue;
+      const [a, mm] = [Number(m.slice(0, 4)), Number(m.slice(5, 7))];
+      const dernier = new Date(Date.UTC(a, mm, 0)).getUTCDate();
+      const d = await lireDeclarationTva(tx, u.entrepriseId, { du: dateDouala(`${m}-01`, false)!, au: dateDouala(`${m}-${String(dernier).padStart(2, "0")}`, true)! });
+      acomptes.push({ periode: m, caHT: d.caHT, suivi: suiviAcomptes.get(m) ?? null });
+    }
+    return { lignes: lignes.reverse(), annees, annee, moisDebut, resultat, chiffreAffaires, acomptes };
   });
   if (!donnees) {
     return (
@@ -81,6 +93,7 @@ export default async function PageDeclarations({ searchParams }: { searchParams:
   }
   const est = estimerIS({ resultat: donnees.resultat, chiffreAffaires: donnees.chiffreAffaires, tauxPourcent: tauxIS, minimumPourcent: minimumIS });
   const peutModifier = peut(u, "COMPTABILITE", "MODIFIER");
+  const bilan = bilanAcomptes(est.impot, donnees.acomptes.filter((x) => x.suivi && x.suivi.montant !== null).map((x) => ({ statut: x.suivi!.statut, montant: x.suivi!.montant! })));
   const nomMois = (m: string) => new Intl.DateTimeFormat(t.locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${m}-01T00:00:00Z`));
 
   return (
@@ -162,6 +175,56 @@ export default async function PageDeclarations({ searchParams }: { searchParams:
           <p className="text-base font-semibold">{t("Impôt estimé : {montant}", { montant: formaterFCFA(est.impot) })}{est.minimumApplique ? ` (${t("le minimum s'applique")})` : ""}</p>
         </Card>
         <p className="text-xs text-muted-foreground">{t("Estimation indicative : le résultat comptable tient lieu de résultat fiscal (aucune réintégration ni déduction) et les taux sont ceux que vous saisissez. Faites valider le calcul et les acomptes par votre comptable.")}</p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">{t("Acomptes d'impôt sur les sociétés")}</h2>
+        <p className="text-sm text-muted-foreground">{t("Chaque mois, un pourcentage du chiffre d'affaires hors taxe du mois est versé à titre d'acompte, au plus tard le 15 du mois suivant, puis déduit de l'impôt de l'exercice. Le taux est celui que vous saisissez (2,2 % proposé) : confirmez-le avec votre comptable.")}</p>
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="exercice" value={donnees.annee} />
+          <input type="hidden" name="taux" value={String(tauxIS).replace(".", ",")} />
+          <input type="hidden" name="minimum" value={String(minimumIS).replace(".", ",")} />
+          <label className="flex flex-col gap-1 text-sm">
+            {t("Taux de l'acompte (%)")}
+            <input name="acompte" defaultValue={String(tauxAcompte).replace(".", ",")} inputMode="decimal" className="h-10 w-28 rounded-lg border border-input bg-background px-3 text-sm" />
+          </label>
+          <button type="submit" className="h-10 rounded-lg border border-input px-4 text-sm font-medium hover:bg-muted">
+            {t("Calculer")}
+          </button>
+        </form>
+        <Card className="p-0">
+          <div className="flex flex-col divide-y divide-border">
+            {donnees.acomptes.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">{t("Aucun mois écoulé dans cet exercice.")}</p> : null}
+            {donnees.acomptes.map((a) => {
+              const echeance = echeanceTva(a.periode)!;
+              const statut = a.suivi?.statut ?? "A_FAIRE";
+              const calcule = acompteMensuelIS(a.caHT, tauxAcompte);
+              return (
+                <LigneAcompte
+                  key={a.periode}
+                  periode={a.periode}
+                  libelleMois={nomMois(a.periode)}
+                  echeance={jourFr(echeance)}
+                  chiffreAffaires={formaterFCFA(a.caHT)}
+                  calcule={formaterFCFA(calcule)}
+                  montantCalcule={calcule}
+                  affiche={statutAffiche(statut, echeance, aujourdhui)}
+                  statut={statut}
+                  montant={a.suivi?.montant ?? null}
+                  reference={a.suivi?.reference ?? ""}
+                  modifiable={peutModifier}
+                />
+              );
+            })}
+          </div>
+        </Card>
+        <Card className="flex flex-col gap-1.5 p-4 text-sm tabular-nums">
+          <p>{t("Impôt estimé de l'exercice : {montant}", { montant: formaterFCFA(est.impot) })}</p>
+          <p>{t("Acomptes versés : {montant}", { montant: formaterFCFA(bilan.verses) })}</p>
+          {bilan.enAttente > 0 ? <p>{t("Acomptes déclarés, pas encore payés : {montant}", { montant: formaterFCFA(bilan.enAttente) })}</p> : null}
+          <p className="text-base font-semibold">{bilan.creditAImputer > 0 ? t("Crédit d'impôt à imputer : {montant}", { montant: formaterFCFA(bilan.creditAImputer) }) : t("Solde d'impôt à payer : {montant}", { montant: formaterFCFA(bilan.soldeAPayer) })}</p>
+        </Card>
+        <p className="text-xs text-muted-foreground">{t("Seuls les acomptes notés « Payée » comptent comme versés. Estimation indicative : à valider avec votre comptable avant tout paiement.")}</p>
       </section>
     </div>
   );
