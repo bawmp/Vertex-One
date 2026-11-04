@@ -38,3 +38,7 @@
 # Quotidiennement a 7h30 : alertes de stock bas / rupture par email, un recapitulatif par entreprise qui gere un stock
 # (priorite 3.2, 2026-11-02). Un produit nest signale quune fois par niveau ; le retour a la normale rearme lalerte.
 30 7 * * * verifier-alertes-stock
+
+# Quotidiennement a 7h (UTC, soit 8h a Douala) : rappel des anniversaires du jour (collaborateurs et stagiaires) aux Administrateurs
+# et au responsable direct de la personne (fiche collaborateur, 2026-11-04). Une personne n'est prevenue qu'une fois par an.
+0 7 * * * verifier-anniversaires

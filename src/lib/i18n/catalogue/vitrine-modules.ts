@@ -108,6 +108,12 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Month-by-month VAT return tracking (deadline, status, receipt) and corporate income tax estimate; online filing is done on the tax authority's portal",
   "Numéros de série imprimés sur la facture, échangeables en un clic, et section analytique par défaut sur la fiche client":
     "Serial numbers printed on the invoice and swappable in one click, plus a default cost-accounting section on the customer record",
+  "Fiche de chaque collaborateur (employé, manager, stagiaire, prestataire ou freelance) avec photo posée par la personne elle-même, date de naissance, coordonnées et tâches":
+    "A record for every team member (employee, manager, intern, contractor or freelancer) with a photo they add themselves, birth date, contact details and tasks",
+  "Rappel des anniversaires : carte à venir pour l'administrateur et les managers, et un email chaque matin à l'administrateur et au responsable de la personne":
+    "Birthday reminders: an upcoming-birthdays card for the administrator and managers, and an email every morning to the administrator and the person's manager",
+  "Un manager peut créer la fiche d'un employé, d'un stagiaire ou d'un prestataire sans jamais voir ni saisir le salaire, réservé à l'administrateur":
+    "A manager can create the record of an employee, intern or contractor without ever seeing or entering the salary, which stays with the administrator",
   "Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier": "Read-only access for your chartered accountant: they view the accounting and download its exports, seeing nothing else and changing nothing",
   "Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin": "Stock value on any past date and per warehouse, so you can close a financial year even weeks after it ended",
   "Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic": "Fixed asset register with straight-line depreciation and yearly depreciation charges posted to the books in one click",

@@ -12,6 +12,7 @@ import type { EtatStagiaire } from "@/lib/actions/stagiaires";
 
 export type ValeursStagiaire = {
   nom?: string;
+  dateNaissance?: string | null;
   telephone?: string | null;
   email?: string | null;
   etablissement?: string;
@@ -47,6 +48,7 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
         <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Le stagiaire</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {champ("nom", "Nom complet", { required: true, maxLength: 120 })}
+          {champ("dateNaissance", "Date de naissance (rappel d'anniversaire)", { type: "date" })}
           {champ("telephone", "Téléphone", { maxLength: 40 })}
           {champ("email", "Email (pour l'inviter s'il est embauché)", { type: "email" })}
         </div>

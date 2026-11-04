@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and, ne } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck, UserPlus, Cake } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -18,6 +18,10 @@ import { Button } from "@/components/ui/button";
 import { NombreAnime } from "@/components/nombre-anime";
 import { traiterDemandeConge } from "@/lib/actions/rh";
 import { traiterDemandeDepart } from "@/lib/actions/depart";
+import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
+import { adressePhoto } from "@/lib/rh/photo-affichage";
+import { anniversairesAVenir } from "@/lib/rh/anniversaires";
+import { libelleDelai } from "@/lib/rh/anniversaires-regles";
 
 const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: "Congé payé", MALADIE: "Maladie", SANS_SOLDE: "Sans solde", AUTRE: "Autre" };
 const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: "Démission", LICENCIEMENT: "Licenciement", FIN_CONTRAT: "Fin de contrat", AUTRE: "Autre" };
@@ -97,6 +101,8 @@ export default async function PageRH() {
         departsEnAttente: [],
         nomParDossierRHId: {} as Record<string, string>,
         rapport: null as RapportEntreprise | null,
+        anniversaires: [] as Awaited<ReturnType<typeof anniversairesAVenir>>,
+        dossierParUtilisateur: {} as Record<string, string>,
       };
     }
 
@@ -111,7 +117,7 @@ export default async function PageRH() {
 
     const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
     const dossiers = await tx
-      .select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId, poste: dossierRH.poste, nomComplet: utilisateur.nomComplet })
+      .select({ id: dossierRH.id, utilisateurId: dossierRH.utilisateurId, poste: dossierRH.poste, nomComplet: utilisateur.nomComplet, photoCle: utilisateur.photoCleStockage })
       .from(dossierRH)
       .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
       .where(and(ne(utilisateur.statut, "SUPPRIME"), ids === "TOUT" ? eq(dossierRH.entrepriseId, utilisateurConnecte.entrepriseId) : inArray(dossierRH.utilisateurId, ids)));
@@ -144,10 +150,14 @@ export default async function PageRH() {
 
     const nomParDossierRHId = Object.fromEntries(dossiers.map((d) => [d.id, d.nomComplet]));
 
-    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport };
+    // Anniversaires des 30 prochains jours (Administrateur : toute l'entreprise ; Manager : son équipe et ses stagiaires).
+    const anniversaires = await anniversairesAVenir(tx, utilisateurConnecte, new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date()), 30);
+    const dossierParUtilisateur = Object.fromEntries(dossiers.map((d) => [d.utilisateurId, d.id]));
+
+    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur };
   });
 
-  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport } = donnees;
+  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur } = donnees;
   const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
   const t = traduire(utilisateurConnecte.langue);
@@ -171,6 +181,12 @@ export default async function PageRH() {
               <GraduationCap className="size-3.5" aria-hidden />
               Stagiaires
             </Link>
+            {peut(utilisateurConnecte, "RH", "CREER") ? (
+              <Link href="/app/rh/nouveau" className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                <UserPlus className="size-3.5" aria-hidden />
+                Nouvelle fiche
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -340,6 +356,44 @@ export default async function PageRH() {
         </div>
       ) : null}
 
+      {rhDisponible && anniversaires.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <Cake className="size-3.5" aria-hidden />
+            Anniversaires à venir
+          </h2>
+          <Card className="p-0">
+            <div className="flex flex-col divide-y divide-border">
+              {anniversaires.slice(0, 8).map((a) => {
+                const dossierId = a.type === "UTILISATEUR" ? dossierParUtilisateur[a.id] : null;
+                const jour = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${a.date}T00:00:00Z`));
+                const contenu = (
+                  <>
+                    <span className="font-medium">
+                      {a.nom}
+                      {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">(stagiaire)</span> : null}
+                    </span>
+                    <span className={`text-xs ${a.jours === 0 ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                      {libelleDelai(a.jours)} · {jour} · {a.age} ans
+                    </span>
+                  </>
+                );
+                return dossierId ? (
+                  <Link key={`${a.type}-${a.id}`} href={`/app/rh/${dossierId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                    {contenu}
+                  </Link>
+                ) : (
+                  <div key={`${a.type}-${a.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                    {contenu}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+          <p className="text-xs text-muted-foreground">Un email de rappel part chaque matin à l&apos;Administrateur et au responsable de la personne.</p>
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
         {!rhDisponible ? (
@@ -363,7 +417,10 @@ export default async function PageRH() {
                     aria-hidden
                     className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
                   />
-                  <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{d.nomComplet}</span>
+                  <span className="flex min-w-0 items-center gap-2.5 font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">
+                    <AvatarCollaborateur nom={d.nomComplet} adresse={adressePhoto("utilisateur", d.utilisateurId, d.photoCle)} taille="petit" version={d.photoCle ?? ""} />
+                    {d.nomComplet}
+                  </span>
                   <span className="text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">{d.poste}</span>
                 </Link>
               ))}

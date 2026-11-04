@@ -202,6 +202,8 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         // l'invitation — jamais la date d'activation du compte.
         dateEmbauche: invitationValide.dateEmbauchePropose ?? new Date(),
         dateFinContrat: invitationValide.dateFinPropose ?? undefined,
+        // Saisie par qui a invité (fiche collaborateur) ; sinon renseignée plus tard sur la fiche.
+        dateNaissance: invitationValide.dateNaissancePropose ?? undefined,
       });
     } else if (invitationValide.contactId) {
       // Portail client (échange du 2026-09-13) — lie le Contact CRM visé au

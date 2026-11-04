@@ -131,6 +131,7 @@ export async function trouverStagiaireAcademique(tx: TransactionDrizzle, utilisa
 
 export type SaisieStagiaire = {
   nom: string;
+  dateNaissance?: string; // AAAA-MM-JJ, contrôlée par l'action avant d'arriver ici
   telephone?: string;
   email?: string;
   etablissement: string;
@@ -161,6 +162,7 @@ function nettoyer(s: SaisieStagiaire) {
   const t = (v?: string) => v?.trim() || null;
   return {
     nom: s.nom.trim(),
+    dateNaissance: s.dateNaissance?.trim() || null,
     telephone: t(s.telephone),
     email: t(s.email)?.toLowerCase() ?? null,
     etablissement: s.etablissement.trim(),

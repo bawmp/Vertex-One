@@ -1163,6 +1163,13 @@
       "when": 1794632400000,
       "tag": "0165_section_analytique_client",
       "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1794718800000,
+      "tag": "0166_fiche_collaborateur",
+      "breakpoints": true
     }
   ]
 }

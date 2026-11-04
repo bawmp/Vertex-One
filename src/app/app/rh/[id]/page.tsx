@@ -30,6 +30,11 @@ import { ListeDocumentsRH } from "./liste-documents-rh";
 import { FormulaireRegularisation } from "./formulaire-regularisation";
 import { ListeRegularisations } from "./liste-regularisations";
 import { FormulaireShift } from "./formulaire-shift";
+import { PhotoFiche } from "./photo-fiche";
+import { FormulaireInfosPersonnelles } from "./formulaire-infos-personnelles";
+import { adressePhoto } from "@/lib/rh/photo-affichage";
+import { ageAu, libelleDelai, prochainAnniversaire } from "@/lib/rh/anniversaires-regles";
+import { estEnRetard, tachesDuCollaborateur } from "@/lib/rh/taches-collaborateur";
 
 const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
 
@@ -51,6 +56,12 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         id: dossierRH.id,
         utilisateurId: dossierRH.utilisateurId,
         poste: dossierRH.poste,
+        dateNaissance: dossierRH.dateNaissance,
+        telephone: dossierRH.telephone,
+        adresse: dossierRH.adresse,
+        urgenceNom: dossierRH.urgenceNom,
+        urgenceTelephone: dossierRH.urgenceTelephone,
+        photoCle: utilisateur.photoCleStockage,
         typeContrat: dossierRH.typeContrat,
         dateEmbauche: dossierRH.dateEmbauche,
         dateFinContrat: dossierRH.dateFinContrat,
@@ -76,6 +87,8 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (ids !== "TOUT" && !ids.includes(ligne.utilisateurId)) return null;
     }
+
+    const taches = await tachesDuCollaborateur(tx, utilisateurConnecte.entrepriseId, ligne.utilisateurId);
 
     const demandes = await tx.select().from(demandeConge).where(eq(demandeConge.dossierRHId, id)).orderBy(desc(demandeConge.creeLe));
 
@@ -167,6 +180,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
 
     return {
       ligne,
+      taches,
       demandes,
       evaluations,
       pointageDuJour,
@@ -185,12 +199,18 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
   });
 
   if (!donnees) notFound();
-  const { ligne, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
+  const { ligne, taches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
   const peutTraiterConges = !estProprietaire && peut(utilisateurConnecte, "RH", "MODIFIER");
   const peutEvaluer = !estProprietaire && peut(utilisateurConnecte, "RH", "MODIFIER");
+  // Informations personnelles : la personne, l'Administrateur ou son Manager (la portée a déjà été contrôlée plus haut).
+  const peutModifierInfos = estProprietaire || utilisateurConnecte.role === "ADMIN" || (utilisateurConnecte.role === "MANAGER" && peut(utilisateurConnecte, "RH", "MODIFIER"));
+  const aujourdhuiJour = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
+  const anniversaire = ligne.dateNaissance ? prochainAnniversaire(ligne.dateNaissance, aujourdhuiJour) : null;
+  const ageActuel = ligne.dateNaissance ? ageAu(ligne.dateNaissance, aujourdhuiJour) : null;
+  const maintenant = new Date();
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -200,9 +220,19 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       </Link>
 
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <User className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">{ligne.nomComplet}</h1>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <User className="size-5" aria-hidden />
+            <h1 className="text-2xl font-semibold tracking-tight">{ligne.nomComplet}</h1>
+          </div>
+          <PhotoFiche
+            nom={ligne.nomComplet}
+            adresse={adressePhoto("utilisateur", ligne.utilisateurId, ligne.photoCle)}
+            version={ligne.photoCle ?? ""}
+            utilisateurId={ligne.utilisateurId}
+            proprietaire={estProprietaire}
+            peutChangerPourAutre={utilisateurConnecte.role === "ADMIN" && !estProprietaire}
+          />
         </div>
         <div className="flex items-center gap-3">
           <Link href={`/app/rh/${ligne.id}/depart`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -291,6 +321,71 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               departementsAutorises={departementsAutorises}
             />
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">Informations personnelles</h2>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-muted-foreground">Date de naissance</p>
+              <p className="font-medium">
+                {ligne.dateNaissance ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${ligne.dateNaissance}T00:00:00Z`)) : "Non renseignée"}
+                {ageActuel !== null ? ` (${ageActuel} ans)` : ""}
+              </p>
+              {anniversaire && anniversaire.jours <= 30 ? <p className="text-xs text-primary">Anniversaire : {libelleDelai(anniversaire.jours).toLowerCase()}</p> : null}
+            </div>
+            <div>
+              <p className="text-muted-foreground">Téléphone</p>
+              <p className="font-medium">{ligne.telephone ?? "Non renseigné"}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="text-muted-foreground">Adresse</p>
+              <p className="font-medium">{ligne.adresse ?? "Non renseignée"}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="text-muted-foreground">Personne à prévenir en cas d&apos;urgence</p>
+              <p className="font-medium">{ligne.urgenceNom ? `${ligne.urgenceNom}${ligne.urgenceTelephone ? ` — ${ligne.urgenceTelephone}` : ""}` : "Non renseignée"}</p>
+            </div>
+          </div>
+          {peutModifierInfos ? (
+            <div className="border-t pt-3">
+              <FormulaireInfosPersonnelles
+                dossierRHId={ligne.id}
+                valeurs={{ dateNaissance: ligne.dateNaissance ?? "", telephone: ligne.telephone ?? "", adresse: ligne.adresse ?? "", urgenceNom: ligne.urgenceNom ?? "", urgenceTelephone: ligne.urgenceTelephone ?? "" }}
+              />
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Tâches</h2>
+            <p className="text-xs text-muted-foreground">
+              {taches.ouvertes.length} en cours{taches.enRetard > 0 ? ` · ${taches.enRetard} en retard` : ""} · {taches.termineesRecemment} terminée(s) ces 30 jours
+            </p>
+          </div>
+          {taches.ouvertes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune tâche en cours.</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-border rounded-lg border">
+              {taches.ouvertes.map((t) => (
+                <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium">{t.lien ? <Link href={t.lien} className="underline-offset-4 hover:underline">{t.titre}</Link> : t.titre}</p>
+                    <p className="text-xs text-muted-foreground">{t.origine}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {t.echeance ? <span className={`text-xs ${estEnRetard(t.echeance, maintenant) ? "font-medium text-destructive" : "text-muted-foreground"}`}>{estEnRetard(t.echeance, maintenant) ? "En retard · " : ""}{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "Africa/Douala" }).format(t.echeance)}</span> : null}
+                    <Badge variant="neutral">{t.statut === "EN_COURS" ? "En cours" : t.statut === "A_FAIRE" || t.statut === "NON_COMMENCEE" ? "À faire" : t.statut === "DIFFEREE" ? "Différée" : t.statut}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

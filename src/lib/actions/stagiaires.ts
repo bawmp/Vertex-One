@@ -10,6 +10,7 @@ import { entreprise, invitation, utilisateur } from "@/db/schema";
 import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { erreurDateNaissance } from "@/lib/rh/anniversaires-regles";
 import { disponible } from "@/lib/plans";
 import { cloturerStagiaireAcademique, convertirStagiaireEnInvitation, creerStagiaireAcademique, deciderStagePro, modifierStagiaireAcademique, supprimerStagiaireAcademique, type SaisieStagiaire } from "@/lib/rh/stage";
 
@@ -40,6 +41,7 @@ const dateIso = z.string().min(1, "Date requise.").transform((v) => new Date(`${
 
 const schemaStagiaire = z.object({
   nom: z.string().trim().min(2, "Le nom est trop court.").max(120),
+  dateNaissance: z.string().trim().optional(),
   telephone: texte(40),
   email: z.union([z.literal(""), z.email("Adresse email invalide.")]).optional(),
   etablissement: z.string().trim().min(2, "L'établissement est requis.").max(160),
@@ -58,10 +60,14 @@ const schemaStagiaire = z.object({
 });
 
 function lireSaisie(formData: FormData): { ok: true; saisie: SaisieStagiaire } | { ok: false; erreur: string } {
-  const brut = Object.fromEntries(["nom", "telephone", "email", "etablissement", "filiere", "niveau", "tuteurEcoleNom", "tuteurEcoleContact", "conventionReference", "mission", "serviceId", "maitreStageId", "dateDebut", "dateFin", "indemniteMensuelle", "evaluation"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const brut = Object.fromEntries(["nom", "dateNaissance", "telephone", "email", "etablissement", "filiere", "niveau", "tuteurEcoleNom", "tuteurEcoleContact", "conventionReference", "mission", "serviceId", "maitreStageId", "dateDebut", "dateFin", "indemniteMensuelle", "evaluation"].map((k) => [k, String(formData.get(k) ?? "")]));
   const a = schemaStagiaire.safeParse(brut);
   if (!a.success) return { ok: false, erreur: a.error.issues[0]?.message ?? "Formulaire invalide." };
   const d = a.data;
+  if (d.dateNaissance) {
+    const e = erreurDateNaissance(d.dateNaissance, new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date()));
+    if (e) return { ok: false, erreur: e };
+  }
   return {
     ok: true,
     saisie: { ...d, email: d.email || undefined, indemniteMensuelle: d.indemniteMensuelle === "" || d.indemniteMensuelle === undefined ? null : d.indemniteMensuelle },

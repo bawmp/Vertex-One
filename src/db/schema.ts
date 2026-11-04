@@ -278,6 +278,9 @@ export const utilisateur = pgTable(
     // mappés depuis auth.ts (user.fields) sur ces colonnes françaises.
     emailVerifie: boolean("email_verifie").notNull().default(false),
     image: text("image"),
+    // Photo de la fiche collaborateur (2026-11-04) : clé R2, jamais servie par son seul lien (route /app/rh/photo/...).
+    photoCleStockage: text("photo_cle_stockage"),
+    photoTypeMime: text("photo_type_mime"),
     role: roleSysteme("role").notNull().default("EMPLOYE"),
     statut: statutUtilisateur("statut").notNull().default("ACTIF"),
     managerId: text("manager_id"), // auto-référence vers utilisateur.id — portée "EQUIPE"
@@ -378,6 +381,8 @@ export const invitation = pgTable(
     postePropose: text("poste_propose"),
     typeContratPropose: text("type_contrat_propose"), // "CDI" | "CDD" | "STAGE" | "PRESTATAIRE"
     dateEmbauchePropose: timestamp("date_embauche_propose"), // saisie humaine, jamais déduite
+    // Date de naissance saisie par qui invite (AAAA-MM-JJ) : copiée sur la fiche RH à l'activation (fiche collaborateur, 2026-11-04).
+    dateNaissancePropose: text("date_naissance_propose"),
     // Fin du contrat (stage ou CDD) — copiée vers dossier_rh.date_fin_contrat à l'activation ; indispensable à un stagiaire professionnel (fin de stage).
     dateFinPropose: timestamp("date_fin_propose"),
     // Manager proposé (2026-09-15) — copié vers utilisateur.managerId à
@@ -707,6 +712,12 @@ export const dossierRH = pgTable(
       .unique()
       .references(() => utilisateur.id),
     poste: text("poste").notNull(),
+    // Fiche collaborateur (2026-11-04) : informations personnelles. Date de naissance AAAA-MM-JJ (rappel des anniversaires).
+    dateNaissance: text("date_naissance"),
+    telephone: text("telephone"),
+    adresse: text("adresse"),
+    urgenceNom: text("urgence_nom"),
+    urgenceTelephone: text("urgence_telephone"),
     typeContrat: text("type_contrat").notNull(), // "CDI" | "CDD" | "STAGE" | "PRESTATAIRE"
     dateEmbauche: timestamp("date_embauche").notNull(),
     // Palier 5 — voir docs/palier-5-ressources-humaines-specification-technique.md.
@@ -762,6 +773,9 @@ export const stagiaireAcademique = pgTable(
       .notNull()
       .references(() => entreprise.id),
     nom: text("nom").notNull(),
+    dateNaissance: text("date_naissance"), // AAAA-MM-JJ (rappel des anniversaires)
+    photoCleStockage: text("photo_cle_stockage"),
+    photoTypeMime: text("photo_type_mime"),
     telephone: text("telephone"),
     email: text("email"),
     etablissement: text("etablissement").notNull(),
@@ -5655,6 +5669,33 @@ export const declarationFiscale = pgTable(
   (table) => [
     uniqueIndex("declaration_fiscale_periode_unique").on(table.entrepriseId, table.type, table.periode),
     index("declaration_fiscale_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Rappel d'anniversaire déjà envoyé (2026-11-04) : une ligne par personne et par année, pour qu'une tâche rejouée ne prévienne jamais
+ * deux fois. `cibleType` : UTILISATEUR (collaborateur avec compte) ou STAGIAIRE (stagiaire académique).
+ */
+export const rappelAnniversaire = pgTable(
+  "rappel_anniversaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    cibleType: text("cible_type").notNull(),
+    cibleId: text("cible_id").notNull(),
+    annee: integer("annee").notNull(),
+    envoyeLe: timestamp("envoye_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("rappel_anniversaire_unique").on(table.entrepriseId, table.cibleType, table.cibleId, table.annee),
+    index("rappel_anniversaire_entreprise_idx").on(table.entrepriseId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

@@ -13,6 +13,8 @@ import { etatStage, joursRestants, trouverStagiaireAcademique } from "@/lib/rh/s
 import { Badge } from "@/components/ui/badge";
 import { FormulaireStagiaire } from "../formulaire-stagiaire";
 import { ActionsFinStage } from "./actions-fin-stage";
+import { PhotoStagiaire } from "./photo-stagiaire";
+import { adressePhoto } from "@/lib/rh/photo-affichage";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,7 @@ export default async function PageFicheStagiaire({ params }: { params: Promise<{
         {enCours && etat === "ECHU" ? <Badge variant="danger">Fin dépassée : décision à prendre</Badge> : null}
         {enCours && etat === "BIENTOT_FINI" ? <Badge variant="warning">Fin dans {joursRestants(fiche.dateFin)} j</Badge> : null}
       </div>
+      <PhotoStagiaire stagiaireId={fiche.id} nom={fiche.nom} adresse={adressePhoto("stagiaire", fiche.id, fiche.photoCleStockage)} version={fiche.photoCleStockage ?? ""} modifiable={enCours && peut(utilisateurConnecte, "RH", "MODIFIER")} />
       {fiche.decisionLe ? (
         <p className="text-sm text-muted-foreground">
           Clos le {dateFr(fiche.decisionLe)}
