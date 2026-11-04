@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and, ne } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck, UserPlus, Cake } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck, UserPlus, Cake, Network } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -21,6 +21,7 @@ import { traiterDemandeDepart } from "@/lib/actions/depart";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { anniversairesAVenir } from "@/lib/rh/anniversaires";
+import { anniversairesDesPartenaires, etatPartageFiches, partenairesFiches } from "@/lib/rh/groupe-fiches";
 import { libelleDelai } from "@/lib/rh/anniversaires-regles";
 import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
 
@@ -104,6 +105,8 @@ export default async function PageRH() {
         rapport: null as RapportEntreprise | null,
         anniversaires: [] as Awaited<ReturnType<typeof anniversairesAVenir>>,
         dossierParUtilisateur: {} as Record<string, string>,
+        anniversairesGroupe: [] as Awaited<ReturnType<typeof anniversairesDesPartenaires>>,
+        lienGroupe: false,
       };
     }
 
@@ -154,11 +157,16 @@ export default async function PageRH() {
     // Anniversaires des 30 prochains jours (Administrateur : toute l'entreprise ; Manager : son équipe et ses stagiaires).
     const anniversaires = await anniversairesAVenir(tx, utilisateurConnecte, new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date()), 30);
     const dossierParUtilisateur = Object.fromEntries(dossiers.map((d) => [d.utilisateurId, d.id]));
+    // Groupe : anniversaires des entreprises partenaires (partage activé des deux côtés) et lien vers « Équipes du groupe ».
+    const jourDouala = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
+    const anniversairesGroupe = await anniversairesDesPartenaires(utilisateurConnecte, jourDouala, 30);
+    const lienGroupe = utilisateurConnecte.role === "ADMIN" ? (await etatPartageFiches(utilisateurConnecte.entrepriseId)).groupe : (await partenairesFiches(utilisateurConnecte.entrepriseId)).length > 0;
 
-    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur };
+    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe };
   });
 
-  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur } = donnees;
+  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe } = donnees;
+  const anniversairesTous = [...anniversaires.map((a) => ({ ...a, entrepriseNom: null as string | null })), ...anniversairesGroupe].sort((a, b) => a.jours - b.jours || a.nom.localeCompare(b.nom, "fr"));
   const anniversairesParUtilisateur = Object.fromEntries(anniversaires.filter((a) => a.type === "UTILISATEUR").map((a) => [a.id, a]));
   const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
@@ -183,6 +191,12 @@ export default async function PageRH() {
               <GraduationCap className="size-3.5" aria-hidden />
               Stagiaires
             </Link>
+            {lienGroupe ? (
+              <Link href="/app/rh/groupe" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                <Network className="size-3.5" aria-hidden />
+                Groupe
+              </Link>
+            ) : null}
             {peut(utilisateurConnecte, "RH", "CREER") ? (
               <Link href="/app/rh/nouveau" className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                 <UserPlus className="size-3.5" aria-hidden />
@@ -358,15 +372,15 @@ export default async function PageRH() {
         </div>
       ) : null}
 
-      {rhDisponible && anniversaires.length > 0 ? (
+      {rhDisponible && anniversairesTous.length > 0 ? (
         <div className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <Cake className="size-3.5" aria-hidden />
             Anniversaires à venir
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {anniversaires.slice(0, 6).map((a) => {
-              const dossierId = a.type === "UTILISATEUR" ? dossierParUtilisateur[a.id] : null;
+            {anniversairesTous.slice(0, 6).map((a) => {
+              const dossierId = a.type === "UTILISATEUR" ? (dossierParUtilisateur[a.id] ?? null) : null;
               const d = new Date(`${a.date}T00:00:00Z`);
               const jourNum = new Intl.DateTimeFormat("fr-FR", { day: "numeric", timeZone: "UTC" }).format(d);
               const moisCourt = new Intl.DateTimeFormat("fr-FR", { month: "short", timeZone: "UTC" }).format(d).replace(".", "");
@@ -381,6 +395,7 @@ export default async function PageRH() {
                     <span className="block truncate text-sm font-medium">
                       {a.nom}
                       {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">(stagiaire)</span> : null}
+                      {a.entrepriseNom ? <span className="ml-1.5 rounded-full bg-marque-bleu-50 px-2 py-0.5 text-[10px] font-medium text-marque-bleu-800 dark:bg-marque-bleu-800/40 dark:text-marque-bleu-50">{a.entrepriseNom}</span> : null}
                     </span>
                     <span className={`block text-xs ${aujourdhui ? "font-semibold text-marque-orange-700 dark:text-marque-orange-300" : "text-muted-foreground"}`}>
                       {aujourdhui ? "Aujourd'hui" : libelleDelai(a.jours)} · {a.age} ans

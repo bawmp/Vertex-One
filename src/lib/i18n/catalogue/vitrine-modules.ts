@@ -114,6 +114,8 @@ export const VITRINE_MODULES: Record<string, string> = {
     "Birthday reminders: an upcoming-birthdays card for the administrator and managers, and an email every morning to the administrator and the person's manager",
   "Un manager peut créer la fiche d'un employé, d'un stagiaire ou d'un prestataire sans jamais voir ni saisir le salaire, réservé à l'administrateur":
     "A manager can create the record of an employee, intern or contractor without ever seeing or entering the salary, which stays with the administrator",
+  "Partage des fiches entre les entreprises d'un même groupe (nom, photo, poste, anniversaires) en lecture seule, activé des deux côtés, sans jamais partager le salaire":
+    "Sharing of team records between companies of the same group (name, photo, job title, birthdays), read-only, switched on by both sides, never sharing the salary",
   "Accès en lecture seule pour votre expert-comptable : il consulte la comptabilité et télécharge ses exports, sans rien voir d'autre ni rien modifier": "Read-only access for your chartered accountant: they view the accounting and download its exports, seeing nothing else and changing nothing",
   "Valeur du stock à n'importe quelle date passée et par dépôt, pour clôturer un exercice même plusieurs semaines après sa fin": "Stock value on any past date and per warehouse, so you can close a financial year even weeks after it ended",
   "Registre des immobilisations avec amortissement linéaire et dotations annuelles passées en comptabilité en un clic": "Fixed asset register with straight-line depreciation and yearly depreciation charges posted to the books in one click",

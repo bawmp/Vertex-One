@@ -7,6 +7,7 @@ import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
 import { lireObjetStockage } from "@/lib/documents/stockage";
 import { trouverStagiaireAcademique } from "@/lib/rh/stage";
+import { peutVoirPhotoPartenaire } from "@/lib/rh/groupe-fiches";
 
 /**
  * Photo d'un collaborateur ou d'un stagiaire. Jamais servie par son seul lien : session et droit de voir la fiche revérifiés à chaque
@@ -26,7 +27,13 @@ export async function GET(_requete: Request, { params }: { params: Promise<{ typ
     }
     // `utilisateur` reste en RLS permissive (Better-Auth) : le filtre sur l'entreprise est explicite.
     const [p] = await tx.select({ cle: utilisateur.photoCleStockage, mime: utilisateur.photoTypeMime }).from(utilisateur).where(and(eq(utilisateur.id, id), eq(utilisateur.entrepriseId, u.entrepriseId)));
-    if (!p?.cle || !p.mime) return null;
+    if (!p) {
+      // Pas dans mon entreprise : seulement une personne d'une entreprise partenaire du groupe (partage activé des deux côtés).
+      if (!(await peutVoirPhotoPartenaire(u, id))) return null;
+      const [autre] = await tx.select({ cle: utilisateur.photoCleStockage, mime: utilisateur.photoTypeMime }).from(utilisateur).where(eq(utilisateur.id, id));
+      return autre?.cle && autre.mime ? { cle: autre.cle, mime: autre.mime } : null;
+    }
+    if (!p.cle || !p.mime) return null;
     if (u.utilisateurId !== id) {
       if (!peut(u, "RH", "VOIR")) return null;
       const ids = await idsVisibles(tx, u, "RH");

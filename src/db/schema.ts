@@ -230,6 +230,9 @@ export const entreprise = pgTable("entreprise", {
   gerantPresencesId: text("gerant_presences_id"),
   // Même principe que le recrutement : deux entreprises du même groupe ne joignent leurs employés sur une fiche que si LES DEUX ont activé ce réglage.
   presencesPartageesGroupe: boolean("presences_partagees_groupe").notNull().default(false),
+  // Partage des fiches collaborateur dans un groupe (2026-11-04) : même principe (les DEUX entreprises doivent l'activer). Ne partage qu'une liste blanche de
+  // champs en lecture seule (nom, photo, poste, rôle, contrat, arrivée, département, téléphone, naissance) — JAMAIS le salaire ni le reste de la fiche.
+  fichesPartageesGroupe: boolean("fiches_partagees_groupe").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });

@@ -1170,6 +1170,13 @@
       "when": 1794718800000,
       "tag": "0166_fiche_collaborateur",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1794805200000,
+      "tag": "0167_partage_fiches_groupe",
+      "breakpoints": true
     }
   ]
 }

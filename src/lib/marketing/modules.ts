@@ -157,6 +157,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Fiche de présence journalière tenue par un gérant (Manager) que l'Administrateur peut changer, avec PDF prêt à imprimer, et jonction possible des entreprises d'un même groupe pour gérer tous les employés au même endroit"),
       m("Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)"),
       m("Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé"),
+      m("Partage des fiches entre les entreprises d'un même groupe (nom, photo, poste, anniversaires) en lecture seule, activé des deux côtés, sans jamais partager le salaire"),
       m("Fiche de chaque collaborateur (employé, manager, stagiaire, prestataire ou freelance) avec photo posée par la personne elle-même, date de naissance, coordonnées et tâches"),
       m("Rappel des anniversaires : carte à venir pour l'administrateur et les managers, et un email chaque matin à l'administrateur et au responsable de la personne"),
       m("Un manager peut créer la fiche d'un employé, d'un stagiaire ou d'un prestataire sans jamais voir ni saisir le salaire, réservé à l'administrateur"),
