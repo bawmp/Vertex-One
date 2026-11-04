@@ -314,7 +314,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
                 {taches.ouvertes.map((t) => {
                   const enRetard = estEnRetard(t.echeance, maintenant);
                   return (
-                    <li key={t.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm ${enRetard ? "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20" : "bg-card"}`}>
+                    <li key={t.id} className={`flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm ${enRetard ? "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20" : "bg-card"}`}>
                       <div className="min-w-0">
                         <p className="font-medium">{t.lien ? <Link href={t.lien} className="underline-offset-4 hover:underline">{t.titre}</Link> : t.titre}</p>
                         <p className="text-xs text-muted-foreground">{t.origine}</p>

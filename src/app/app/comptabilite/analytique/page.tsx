@@ -98,7 +98,7 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
         <p role="alert" className="text-sm text-destructive">{t("La date de début doit être avant la date de fin.")}</p>
       ) : resultat && resultat.lignes.length > 0 ? (
         <Card className="p-0">
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b px-4 py-2 text-xs font-medium text-muted-foreground">
+          <div className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_7rem] gap-x-4 border-b px-4 py-2 text-xs font-medium text-muted-foreground sm:grid">
             <span>{t("Section")}</span>
             <span className="text-right">{t("Produits")}</span>
             <span className="text-right">{t("Charges")}</span>
@@ -106,18 +106,22 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
           </div>
           <div className="flex flex-col divide-y divide-border">
             {resultat.lignes.map((r) => (
-              <div key={r.section ?? "aucune"} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-4 py-2.5 text-sm tabular-nums">
-                <span className="font-medium">{r.section ? `${r.code} — ${r.libelle}` : t("Non affecté")}</span>
-                <span className="text-right">{formaterFCFA(r.produits)}</span>
-                <span className="text-right">{formaterFCFA(r.charges)}</span>
-                <span className={`text-right font-medium ${r.resultat < 0 ? "text-destructive" : ""}`}>{formaterFCFA(r.resultat)}</span>
+              <div key={r.section ?? "aucune"} className="flex flex-col gap-1.5 px-4 py-2.5 text-sm tabular-nums sm:grid sm:grid-cols-[minmax(0,1fr)_7rem_7rem_7rem] sm:gap-x-4">
+                <span className="min-w-0 font-medium">{r.section ? `${r.code} — ${r.libelle}` : t("Non affecté")}</span>
+                <span className="grid grid-cols-3 gap-2 text-xs sm:contents sm:text-sm">
+                  <span className="sm:text-right"><span className="block text-muted-foreground sm:hidden">{t("Produits")}</span>{formaterFCFA(r.produits)}</span>
+                  <span className="sm:text-right"><span className="block text-muted-foreground sm:hidden">{t("Charges")}</span>{formaterFCFA(r.charges)}</span>
+                  <span className={`font-medium sm:text-right ${r.resultat < 0 ? "text-destructive" : ""}`}><span className="block font-normal text-muted-foreground sm:hidden">{t("Résultat")}</span>{formaterFCFA(r.resultat)}</span>
+                </span>
               </div>
             ))}
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 bg-muted/40 px-4 py-2.5 text-sm font-semibold tabular-nums">
+            <div className="flex flex-col gap-1.5 bg-muted/40 px-4 py-2.5 text-sm font-semibold tabular-nums sm:grid sm:grid-cols-[minmax(0,1fr)_7rem_7rem_7rem] sm:gap-x-4">
               <span>{t("Total")}</span>
-              <span className="text-right">{formaterFCFA(resultat.totalProduits)}</span>
-              <span className="text-right">{formaterFCFA(resultat.totalCharges)}</span>
-              <span className="text-right">{formaterFCFA(resultat.totalProduits - resultat.totalCharges)}</span>
+              <span className="grid grid-cols-3 gap-2 text-xs sm:contents sm:text-sm">
+                <span className="sm:text-right">{formaterFCFA(resultat.totalProduits)}</span>
+                <span className="sm:text-right">{formaterFCFA(resultat.totalCharges)}</span>
+                <span className="sm:text-right">{formaterFCFA(resultat.totalProduits - resultat.totalCharges)}</span>
+              </span>
             </div>
           </div>
         </Card>
@@ -156,8 +160,8 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
               <p className="border-b px-4 py-2 text-sm font-medium">{t("Dernières factures")}</p>
               <div className="flex flex-col divide-y divide-border">
                 {factures.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
-                    <span className="min-w-0 truncate">{f.numero} · {formaterFCFA(f.montantHT)}</span>
+                  <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{f.numero} · {formaterFCFA(f.montantHT)}</span>
                     <SelecteurSection type="FACTURE" documentId={f.id} courante={parFacture.get(f.id) ?? ""} sections={actives} />
                   </div>
                 ))}
@@ -167,8 +171,8 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
               <p className="border-b px-4 py-2 text-sm font-medium">{t("Dernières dépenses")}</p>
               <div className="flex flex-col divide-y divide-border">
                 {depenses.map((d) => (
-                  <div key={d.id} className="flex items-center justify-between gap-2 px-4 py-2 text-sm">
-                    <span className="min-w-0 truncate">{d.libelle} · {formaterFCFA(d.montantHT)}</span>
+                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{d.libelle} · {formaterFCFA(d.montantHT)}</span>
                     <SelecteurSection type="DEPENSE" documentId={d.id} courante={parDepense.get(d.id) ?? ""} sections={actives} />
                   </div>
                 ))}

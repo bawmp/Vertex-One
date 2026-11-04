@@ -736,3 +736,9 @@
     padding: 0 !important;
   }
 }
+
+/* Texte long sans espace (nom composé, numéro, titre…) : il revient à la ligne dans son cadre au lieu de déborder. La propriété abaisse aussi la
+ * largeur minimale du texte, donc une ligne flexible rétrécit au lieu de pousser ses voisines hors de l'écran. Limité au contenu des pages. */
+main :is(h1, h2, h3, h4, p, dd, dt, li, summary, label, span, a, td) {
+  overflow-wrap: anywhere;
+}

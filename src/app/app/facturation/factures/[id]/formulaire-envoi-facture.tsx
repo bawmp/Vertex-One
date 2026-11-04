@@ -16,7 +16,7 @@ export function FormulaireEnvoiFacture({ factureId, peutPersonnaliserModele }: {
 
   return (
     <form ref={formulaire} action={action} className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button type="submit" variant="outline" disabled={enCours}>
           {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
           {enCours ? t("Envoi en cours…") : t("Envoyer par email")}

@@ -153,6 +153,10 @@ Une fiche par personne (`dossier_rh` pour tout compte interne, `stagiaire_academ
 - **Design** : toute fiche (collaborateur, stagiaire) utilise les briques `src/components/fiche/fiche-ui.tsx` (`FicheHero`, `CarteFiche`, `ListeInfos`/`LigneInfo`, `TuileChiffre`) et les jetons de la charte (`marque-bleu-*`, `marque-orange-*`), jamais une couleur en dur ; la carte « Rémunération » reste en `confidentiel`. Un formulaire d'édition replié passe par `BlocRepliable` (état local : une mise à jour de page ne doit jamais le refermer).
 - Tests : `tests/fiche-collaborateur.test.ts` (dont fuite entre entreprises, Manager hors équipe refusé, création par un Manager), `tests/photo-collaborateur.test.ts`, `tests-e2e/fiche-collaborateur.spec.ts`.
 
+## Texte qui déborde — règle générale (2026-11-04)
+
+`globals.css` impose `overflow-wrap: anywhere` au contenu des pages (`main`) : un nom composé, un numéro ou un titre sans espace revient à la ligne dans son cadre au lieu de déborder, et une ligne flexible rétrécit au lieu de pousser ses voisines hors de l'écran. **Ne pas la retirer.** Pour une nouvelle page : un bloc de texte dans une ligne flexible porte `min-w-0`, une rangée d'actions ou de boutons porte `flex-wrap`, un tableau large est dans un conteneur `overflow-x-auto`, et un libellé volontairement coupé utilise `truncate` (jamais un texte rogné sans points de suspension). Contrôle : des données volontairement très longues (nom de 60 caractères sans espace, numéro de 40 chiffres) sur mobile (390 px), tablette (820 px) et bureau (1440 px) ; l'audit de 14 pages du 2026-11-04 n'a plus rien relevé.
+
 ## Documentation et site vitrine : chaque fonctionnalité suit (2026-10-10)
 
 Toute fonctionnalité visible par un client est (1) ajoutée à `docs/fonctionnalites-recentes.md` (mode d'emploi + repères de code), (2) reflétée sur le site vitrine : une capacité de plus dans `src/lib/marketing/modules.ts` avec sa traduction anglaise dans `src/lib/i18n/catalogue/vitrine-modules.ts` (le test `tests/i18n-catalogue.test.ts` détecte un oubli), sans rien promettre qui n'existe pas. Dans les textes publics, dire « Afrique », pas « Cameroun ».

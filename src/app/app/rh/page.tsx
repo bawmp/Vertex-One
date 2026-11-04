@@ -174,13 +174,13 @@ export default async function PageRH() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex items-center gap-2.5">
           <Users className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
         </div>
         {rhDisponible && (utilisateurConnecte.role === "ADMIN" || utilisateurConnecte.role === "MANAGER") ? (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {aFichePresence ? (
               <Link href="/app/rh/presences" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <ClipboardCheck className="size-3.5" aria-hidden />
@@ -391,11 +391,11 @@ export default async function PageRH() {
                     <span className="text-lg leading-none font-semibold tabular-nums">{jourNum}</span>
                     <span className="text-[10px] font-medium uppercase">{moisCourt}</span>
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium">
                       {a.nom}
                       {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">(stagiaire)</span> : null}
-                      {a.entrepriseNom ? <span className="ml-1.5 rounded-full bg-marque-bleu-50 px-2 py-0.5 text-[10px] font-medium text-marque-bleu-800 dark:bg-marque-bleu-800/40 dark:text-marque-bleu-50">{a.entrepriseNom}</span> : null}
+                      {a.entrepriseNom ? <span className="mt-0.5 block w-fit max-w-full rounded-full bg-marque-bleu-50 px-2 py-0.5 text-[10px] font-medium text-marque-bleu-800 dark:bg-marque-bleu-800/40 dark:text-marque-bleu-50">{a.entrepriseNom}</span> : null}
                     </span>
                     <span className={`block text-xs ${aujourdhui ? "font-semibold text-marque-orange-700 dark:text-marque-orange-300" : "text-muted-foreground"}`}>
                       {aujourdhui ? "Aujourd'hui" : libelleDelai(a.jours)} · {a.age} ans
@@ -403,9 +403,9 @@ export default async function PageRH() {
                   </span>
                 </>
               );
-              const classes = `flex items-center gap-3 rounded-2xl bg-card p-3 ring-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${aujourdhui ? "ring-marque-orange/50" : "ring-foreground/[0.06]"}`;
+              const classes = `flex min-w-0 items-center gap-3 rounded-2xl bg-card p-3 ring-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${aujourdhui ? "ring-marque-orange/50" : "ring-foreground/[0.06]"}`;
               return (
-                <li key={`${a.type}-${a.id}`}>
+                <li key={`${a.type}-${a.id}`} className="min-w-0">
                   {dossierId ? (
                     <Link href={`/app/rh/${dossierId}`} className={`${classes} survol-elevation`}>
                       {contenu}

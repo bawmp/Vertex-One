@@ -83,12 +83,12 @@ export function SelecteurSection({ type, documentId, courante, sections }: { typ
   const [etat, setEtat] = useState<EtatAnalytique>(null);
   const [enCours, startTransition] = useTransition();
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:max-w-[60%]">
       <select
         aria-label={t("Section analytique")}
         defaultValue={courante}
         disabled={enCours}
-        className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+        className="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-2 text-sm"
         onChange={(e) => {
           const v = e.target.value;
           setEtat(null);

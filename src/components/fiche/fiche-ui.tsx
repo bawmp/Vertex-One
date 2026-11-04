@@ -24,9 +24,9 @@ export function FicheHero({ avatar, nom, sousTitre, badges, puces = [], actions,
       </div>
       <div className="relative px-5 pb-5 sm:px-8 sm:pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
-            <div className="relative z-10 -mt-14 sm:-mt-16">{avatar}</div>
-            <div className="flex min-w-0 flex-col gap-1.5 sm:pt-4">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
+            <div className="relative z-10 -mt-14 shrink-0 sm:-mt-16">{avatar}</div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:pt-4">
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{nom}</h1>
               {sousTitre ? <p className="text-sm text-muted-foreground sm:text-base">{sousTitre}</p> : null}
               {badges ? <div className="mt-0.5 flex flex-wrap items-center gap-1.5">{badges}</div> : null}
@@ -37,9 +37,9 @@ export function FicheHero({ avatar, nom, sousTitre, badges, puces = [], actions,
         {puces.length > 0 ? (
           <ul className="mt-5 flex flex-wrap gap-2 border-t pt-4">
             {puces.map((p, i) => (
-              <li key={i} className="flex items-center gap-1.5 rounded-full bg-marque-bleu-50 px-3 py-1 text-xs font-medium text-marque-bleu-800 ring-1 ring-marque-bleu-100 dark:bg-marque-bleu-950/40 dark:text-marque-bleu-100 dark:ring-marque-bleu-800/50">
-                <p.icone className="size-3.5 opacity-80" aria-hidden />
-                {p.texte}
+              <li key={i} className="flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-marque-bleu-50 px-3 py-1 text-xs font-medium text-marque-bleu-800 ring-1 ring-marque-bleu-100 dark:bg-marque-bleu-950/40 dark:text-marque-bleu-100 dark:ring-marque-bleu-800/50">
+                <p.icone className="size-3.5 shrink-0 opacity-80" aria-hidden />
+                <span className="min-w-0">{p.texte}</span>
               </li>
             ))}
           </ul>
