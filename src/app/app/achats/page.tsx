@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NombreAnime } from "@/components/nombre-anime";
 import { FormulaireNouvelleDepense } from "./formulaire-nouvelle-depense";
+import { listerSections } from "@/lib/comptabilite/analytique";
 import { BoutonMarquerPayee } from "./bouton-marquer-payee";
 import { BoutonAnnulerFacture } from "./bouton-annuler-facture";
 import { ConvertirBonCommande } from "./bons-commande/convertir-bon-commande";
@@ -128,7 +129,8 @@ export default async function PageAchats() {
       .filter((d) => d.datePaiement >= debutDuMois)
       .reduce((somme, d) => somme + d.montantTTC, 0);
 
-    return { fournisseurs, comptesCharge, deals, depenses, facturesFournisseur, bonsCommande, paiementsEffectues, avoirsFournisseur, totalDuMois };
+    const sectionsAnalytiques = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? (await listerSections(tx, utilisateurConnecte.entrepriseId)).filter((x) => x.actif) : [];
+    return { fournisseurs, comptesCharge, deals, sectionsAnalytiques, depenses, facturesFournisseur, bonsCommande, paiementsEffectues, avoirsFournisseur, totalDuMois };
   });
 
   return (
@@ -249,7 +251,7 @@ export default async function PageAchats() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Dépenses</h2>
           {peut(utilisateurConnecte, "ACHATS", "CREER") ? (
-            <FormulaireNouvelleDepense comptesCharge={donnees.comptesCharge} fournisseurs={donnees.fournisseurs} deals={donnees.deals} />
+            <FormulaireNouvelleDepense comptesCharge={donnees.comptesCharge} fournisseurs={donnees.fournisseurs} deals={donnees.deals} sections={donnees.sectionsAnalytiques} />
           ) : null}
         </div>
 

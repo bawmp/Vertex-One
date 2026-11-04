@@ -18,6 +18,8 @@ import { EditeurNotes } from "@/components/editeur-notes";
 import { FormulaireInteraction } from "./formulaire-interaction";
 import { EspaceClientContact } from "./espace-client";
 import { ListePrixContact } from "./liste-prix-contact";
+import { SectionContact } from "./section-contact";
+import { listerSections } from "@/lib/comptabilite/analytique";
 import { listerListes } from "@/lib/produits/listes-prix";
 import { FormulaireMessageClient } from "./formulaire-message-client";
 import { BoutonEcrireAuClient } from "./bouton-ecrire-au-client";
@@ -108,10 +110,12 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
 
     const emailsEnvoyes = await listerSoucheContact(tx, utilisateurConnecte, id);
     const listesPrix = await listerListes(tx, utilisateurConnecte.entrepriseId);
+    const sectionsAnalytiques = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? (await listerSections(tx, utilisateurConnecte.entrepriseId)).filter((x) => x.actif || x.id === ligne.sectionAnalytiqueId) : [];
 
     return {
       fiche: ligne,
       listesPrix,
+      sectionsAnalytiques,
       compte: Array.isArray(compte) ? compte[0] : compte,
       interactions,
       emailsEnvoyes,
@@ -134,6 +138,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
   const {
     fiche,
     listesPrix,
+    sectionsAnalytiques,
     compte,
     interactions,
     emailsEnvoyes,
@@ -277,6 +282,14 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
             <Card>
               <CardContent>
                 <ListePrixContact contactId={fiche.id} listeActuelle={fiche.listePrixId} listes={listesPrix} peutModifier={peutModifier} />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {sectionsAnalytiques.length > 0 ? (
+            <Card>
+              <CardContent>
+                <SectionContact contactId={fiche.id} sectionActuelle={fiche.sectionAnalytiqueId} sections={sectionsAnalytiques} />
               </CardContent>
             </Card>
           ) : null}

@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { compteComptable, ecritureComptable, sectionAnalytique } from "@/db/schema";
+import { compteComptable, contact, ecritureComptable, recuVente, facture, sectionAnalytique } from "@/db/schema";
 import { m } from "@/lib/i18n/catalogue";
 import { axeValide, codeValide, nettoyerLibelle, normaliserCode, resultatParSection, type Axe, type ResultatSection } from "./analytique-regles";
 
@@ -96,4 +96,24 @@ export async function lireResultatAnalytique(tx: TransactionDrizzle, entrepriseI
   for (const s of sections) if (s.actif && !vus.has(s.id)) calcule.push({ section: s.id, produits: 0, charges: 0, resultat: 0 });
   const avecNoms = calcule.map((r) => ({ ...r, code: r.section ? (parId.get(r.section)?.code ?? null) : null, libelle: r.section ? (parId.get(r.section)?.libelle ?? null) : null }));
   return { lignes: avecNoms, totalProduits: avecNoms.reduce((s, r) => s + r.produits, 0), totalCharges: avecNoms.reduce((s, r) => s + r.charges, 0) };
+}
+
+/** Section par défaut d'un client : ses nouvelles factures et ses reçus y sont rattachés. `null` la retire (les écritures déjà passées ne bougent pas). */
+export async function definirSectionContact(tx: TransactionDrizzle, entrepriseId: string, contactId: string, sectionId: string | null): Promise<Resultat> {
+  if (sectionId) {
+    const [s] = await tx.select({ actif: sectionAnalytique.actif }).from(sectionAnalytique).where(and(eq(sectionAnalytique.id, sectionId), eq(sectionAnalytique.entrepriseId, entrepriseId)));
+    if (!s) return { ok: false, erreur: m("Section introuvable.") };
+    if (!s.actif) return { ok: false, erreur: m("Cette section est désactivée.") };
+  }
+  const mis = await tx.update(contact).set({ sectionAnalytiqueId: sectionId }).where(and(eq(contact.id, contactId), eq(contact.entrepriseId, entrepriseId))).returning({ id: contact.id });
+  return mis.length ? { ok: true } : { ok: false, erreur: m("Contact introuvable.") };
+}
+
+/** Section par défaut du client d'une facture ou d'un reçu de vente (si elle est encore active), pour les premières écritures du document. */
+export async function sectionParDefautDuClient(tx: TransactionDrizzle, entrepriseId: string, type: "FACTURE" | "RECU_VENTE", documentId: string): Promise<string | null> {
+  const [l] =
+    type === "FACTURE"
+      ? await tx.select({ s: contact.sectionAnalytiqueId, actif: sectionAnalytique.actif }).from(facture).innerJoin(contact, eq(facture.contactId, contact.id)).innerJoin(sectionAnalytique, eq(contact.sectionAnalytiqueId, sectionAnalytique.id)).where(and(eq(facture.id, documentId), eq(facture.entrepriseId, entrepriseId)))
+      : await tx.select({ s: contact.sectionAnalytiqueId, actif: sectionAnalytique.actif }).from(recuVente).innerJoin(contact, eq(recuVente.contactId, contact.id)).innerJoin(sectionAnalytique, eq(contact.sectionAnalytiqueId, sectionAnalytique.id)).where(and(eq(recuVente.id, documentId), eq(recuVente.entrepriseId, entrepriseId)));
+  return l?.actif ? l.s : null;
 }

@@ -87,9 +87,17 @@ export function lignesExtourne(lignes: LigneRegularisation[]): LigneRegularisati
   return lignes.map((l) => ({ numero: l.numero, debit: l.credit, credit: l.debit }));
 }
 
-/** Premier jour de l'exercice qui suit la date donnée (heure de Douala). */
-export function premierJanvierSuivant(date: Date): Date {
-  const annee = Number(new Intl.DateTimeFormat("en-CA", { year: "numeric", timeZone: "Africa/Douala" }).format(date));
-  return new Date(`${annee + 1}-01-01T00:00:00.000+01:00`);
+/**
+ * Premier jour de l'exercice qui suit la date donnée (heure de Douala) : la date de la reprise (extourne) d'une régularisation.
+ * `moisDebut` est le premier mois de l'exercice (1 = année civile, donc le 1er janvier suivant).
+ */
+export function debutExerciceSuivant(date: Date, moisDebut = 1): Date {
+  const [annee, mois] = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: "Africa/Douala" }).format(date).split("-").map(Number);
+  const anneeDuDebut = moisDebut === 1 ? annee + 1 : mois >= moisDebut ? annee + 1 : annee;
+  return new Date(`${anneeDuDebut}-${String(moisDebut).padStart(2, "0")}-01T00:00:00.000+01:00`);
 }
 
+/** Année civile : le 1er janvier qui suit (cas général, conservé pour les appels existants). */
+export function premierJanvierSuivant(date: Date): Date {
+  return debutExerciceSuivant(date, 1);
+}

@@ -51,3 +51,33 @@ export async function effacerSeries(tx: TransactionDrizzle, entrepriseId: string
   if (produitIds.length === 0) return;
   await tx.delete(numeroSerie).where(and(eq(numeroSerie.entrepriseId, entrepriseId), inArray(numeroSerie.produitId, produitIds)));
 }
+
+/** Numéros vendus par un document (facture, ticket), regroupés par produit et triés par numéro. */
+export async function seriesVenduesDuDocument(tx: TransactionDrizzle, entrepriseId: string, documentType: string, documentId: string): Promise<Map<string, string[]>> {
+  const lignes = await tx
+    .select({ produitId: numeroSerie.produitId, numero: numeroSerie.numero })
+    .from(numeroSerie)
+    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.statut, "VENDU"), eq(numeroSerie.documentType, documentType), eq(numeroSerie.documentId, documentId)))
+    .orderBy(asc(numeroSerie.numero));
+  const par = new Map<string, string[]>();
+  for (const l of lignes) par.set(l.produitId, [...(par.get(l.produitId) ?? []), l.numero]);
+  return par;
+}
+
+/**
+ * Retour d'une vente (avoir avec remise en stock) : `quantite` numéros vendus par ce document pour ce produit redeviennent « en stock »,
+ * en commençant par les derniers numéros. Le stock est déjà remonté par l'avoir : ici on ne change que l'état des numéros. Si ce ne sont
+ * pas les bons, « Changer le numéro » sur la facture les échange.
+ */
+export async function restituerSeriesRetour(tx: TransactionDrizzle, entrepriseId: string, produitId: string, documentType: string, documentId: string, quantite: number): Promise<number> {
+  if (quantite <= 0) return 0;
+  const vendus = await tx
+    .select({ id: numeroSerie.id })
+    .from(numeroSerie)
+    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId), eq(numeroSerie.statut, "VENDU"), eq(numeroSerie.documentType, documentType), eq(numeroSerie.documentId, documentId)))
+    .orderBy(desc(numeroSerie.numero))
+    .limit(Math.floor(quantite));
+  if (vendus.length === 0) return 0;
+  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null }).where(inArray(numeroSerie.id, vendus.map((v) => v.id)));
+  return vendus.length;
+}

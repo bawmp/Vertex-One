@@ -5,7 +5,7 @@ import { m } from "@/lib/i18n/catalogue";
 import { echapperMotifRecherche } from "@/lib/messagerie/mentions";
 import { MOTIFS_RETRAIT } from "./motifs-stock";
 import { effacerSeries } from "./series-sortie";
-import { MAX_SERIES_PAR_SAISIE, lireSeries as lireListeSeries, normaliserSerie, type StatutSerie } from "./series-regles";
+import { MAX_SERIES_PAR_SAISIE, lireSeries as lireListeSeries, normaliserSerie, remplacementPossible, type StatutSerie } from "./series-regles";
 import { corrigerStock } from "./stock";
 
 export type ResultatSerie = { ok: true; ajoutes?: number } | { ok: false; erreur: string };
@@ -106,4 +106,40 @@ export async function rechercherSeries(tx: TransactionDrizzle, entrepriseId: str
     .where(and(eq(numeroSerie.entrepriseId, entrepriseId), ilike(numeroSerie.numero, `%${echapperMotifRecherche(q)}%`)))
     .orderBy(desc(numeroSerie.entreLe))
     .limit(100)) as ResultatRecherche[];
+}
+
+export type SerieDeDocument = { id: string; numero: string; produitId: string; produit: string; disponibles: { id: string; numero: string }[] };
+
+/** Numéros vendus par une facture, avec pour chacun les numéros du même produit encore en stock par lesquels on peut le remplacer. */
+export async function seriesDeDocument(tx: TransactionDrizzle, entrepriseId: string, documentType: string, documentId: string): Promise<SerieDeDocument[]> {
+  const vendus = await tx
+    .select({ id: numeroSerie.id, numero: numeroSerie.numero, produitId: numeroSerie.produitId, produit: produit.nom })
+    .from(numeroSerie)
+    .innerJoin(produit, eq(numeroSerie.produitId, produit.id))
+    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.statut, "VENDU"), eq(numeroSerie.documentType, documentType), eq(numeroSerie.documentId, documentId)))
+    .orderBy(asc(produit.nom), asc(numeroSerie.numero));
+  const out: SerieDeDocument[] = [];
+  const cache = new Map<string, { id: string; numero: string }[]>();
+  for (const v of vendus) {
+    if (!cache.has(v.produitId)) {
+      cache.set(v.produitId, await tx.select({ id: numeroSerie.id, numero: numeroSerie.numero }).from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, v.produitId), eq(numeroSerie.statut, "EN_STOCK"))).orderBy(asc(numeroSerie.numero)).limit(LIMITE_LISTE));
+    }
+    out.push({ ...v, disponibles: cache.get(v.produitId)! });
+  }
+  return out;
+}
+
+/**
+ * Change le numéro de série vendu : l'ancien redevient « en stock », le nouveau (du même produit, en stock) prend sa place sur le
+ * document. Le stock ne change pas. Les deux numéros sont relus dans l'entreprise de la session.
+ */
+export async function remplacerSerieVendue(tx: TransactionDrizzle, entrepriseId: string, venduId: string, nouveauId: string): Promise<ResultatSerie> {
+  const lire = async (id: string) => (await tx.select().from(numeroSerie).where(and(eq(numeroSerie.id, id), eq(numeroSerie.entrepriseId, entrepriseId))).for("update"))[0];
+  const vendu = await lire(venduId);
+  const nouveau = await lire(nouveauId);
+  if (!vendu || !nouveau) return { ok: false, erreur: m("Numéro de série introuvable.") };
+  if (!remplacementPossible(vendu, nouveau, venduId)) return { ok: false, erreur: m("Ce numéro ne peut pas être échangé : il faut un numéro en stock du même produit.") };
+  await tx.update(numeroSerie).set({ statut: "VENDU", venduLe: vendu.venduLe, documentType: vendu.documentType, documentId: vendu.documentId }).where(eq(numeroSerie.id, nouveauId));
+  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null }).where(eq(numeroSerie.id, venduId));
+  return { ok: true };
 }

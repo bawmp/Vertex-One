@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { db, avecEntreprise } from "@/db/client";
 import { and, eq, isNull } from "drizzle-orm";
-import { compteComptable, entreprise } from "@/db/schema";
+import { compteComptable, contact, entreprise, facture, utilisateur } from "@/db/schema";
 import { codeValide, normaliserCode, nettoyerLibelle, resultatParSection } from "@/lib/comptabilite/analytique-regles";
-import { affecterDocument, creerSection, lireResultatAnalytique, listerSections, modifierSection } from "@/lib/comptabilite/analytique";
+import { affecterDocument, creerSection, definirSectionContact, lireResultatAnalytique, listerSections, modifierSection } from "@/lib/comptabilite/analytique";
 import { genererEcrituresDepense, genererEcrituresFactureEmise, genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
@@ -107,4 +107,27 @@ describe("Comptabilité analytique — base réelle", () => {
     expect(res.totalProduits).toBe(0);
     expect((await avecEntreprise(A, (tx) => listerSections(tx, A)))[0].libelle).toBe("Chantier");
   }, 60_000);
+
+  test("section par défaut d'un client : ses nouvelles factures y sont rattachées ; section désactivée ou autre entreprise refusées", async () => {
+    const [sA] = await avecEntreprise(A, (tx) => listerSections(tx, A));
+    const [uA] = await db.insert(utilisateur).values({ entrepriseId: A, email: `an-a-${suffixe}@vertexone.test`, nomComplet: "Admin AN A", role: "ADMIN" }).returning({ id: utilisateur.id });
+    // La section de A a été désactivée plus haut : on la réactive pour ce test.
+    await avecEntreprise(A, (tx) => modifierSection(tx, A, sA.id, { libelle: "Chantier", actif: true }));
+    const [c] = await avecEntreprise(A, (tx) => tx.insert(contact).values({ entrepriseId: A, nom: "Client Section", telephone: "690111333", assigneAId: uA.id }).returning({ id: contact.id }));
+    expect((await avecEntreprise(A, (tx) => definirSectionContact(tx, A, c.id, sA.id))).ok).toBe(true);
+    const [f] = await avecEntreprise(A, (tx) => tx.insert(facture).values({ entrepriseId: A, numero: `FAC-AN-${suffixe}`, contactId: c.id, assigneAId: uA.id, montantHT: 5_000, montantTVA: 0, montantTTC: 5_000, dateEcheance: date }).returning({ id: facture.id }));
+    await avecEntreprise(A, (tx) => genererEcrituresFactureEmise(tx, { id: f.id, entrepriseId: A, numero: `FAC-AN-${suffixe}`, dateEmission: date, montantHT: 5_000, montantTVA: 0, montantTTC: 5_000 }));
+    const res = await avecEntreprise(A, (tx) => lireResultatAnalytique(tx, A, periode));
+    expect(res.lignes.find((l) => l.section === sA.id)?.produits).toBe(5_000);
+    // Un règlement ultérieur suit, et retirer la section du client ne déplace pas les écritures déjà passées.
+    expect((await avecEntreprise(A, (tx) => definirSectionContact(tx, A, c.id, null))).ok).toBe(true);
+    expect((await avecEntreprise(A, (tx) => lireResultatAnalytique(tx, A, periode))).lignes.find((l) => l.section === sA.id)?.produits).toBe(5_000);
+    // Section désactivée refusée ; section d'une autre entreprise refusée.
+    await avecEntreprise(A, (tx) => modifierSection(tx, A, sA.id, { libelle: "Chantier", actif: false }));
+    expect((await avecEntreprise(A, (tx) => definirSectionContact(tx, A, c.id, sA.id))).ok).toBe(false);
+    const [sB] = await avecEntreprise(B, (tx) => listerSections(tx, B));
+    expect((await avecEntreprise(A, (tx) => definirSectionContact(tx, A, c.id, sB.id))).ok).toBe(false);
+    // L'autre entreprise ne peut pas poser une section sur le contact de A.
+    expect((await avecEntreprise(B, (tx) => definirSectionContact(tx, B, c.id, sB.id))).ok).toBe(false);
+  }, 120_000);
 });

@@ -4,7 +4,9 @@ import { compteComptable, dotationAmortissement, ecritureComptable, entreprise, 
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { m } from "@/lib/i18n/catalogue";
 import { verifierDateNonVerrouillee } from "./verrouillage";
-import { anneeMoisDouala, baseAmortissable, categorieImmobilisation, planAmortissement, type BienAmortissable } from "./immobilisations-regles";
+import { baseAmortissable, categorieImmobilisation, exerciceDuBien, planAmortissement, type BienAmortissable } from "./immobilisations-regles";
+import { finExerciceDate } from "./exercice-regles";
+import { moisDebutExercice } from "./cloture";
 
 /** Contreparties proposées pour l'écriture d'acquisition (le bien a été payé par la banque, la caisse, ou est dû au fournisseur). */
 export const CONTREPARTIES_ACQUISITION = ["512000", "571000", "401000"] as const;
@@ -22,11 +24,10 @@ export type ParametresImmobilisation = {
 
 export type ResultatSimple = { ok: true; message?: string } | { ok: false; erreur: string };
 
-const anneeCourante = (maintenant: Date) => anneeMoisDouala(maintenant).annee;
-const finDAnnee = (annee: number) => new Date(`${annee}-12-31T00:00:00.000+01:00`);
+const anneeCourante = (maintenant: Date, moisDebut: number) => exerciceDuBien(maintenant, moisDebut).annee;
 
-function bienDe(i: { valeurAcquisition: number; valeurResiduelle: number; dureeAnnees: number; dateAcquisition: Date }): BienAmortissable {
-  const { annee, mois } = anneeMoisDouala(i.dateAcquisition);
+function bienDe(i: { valeurAcquisition: number; valeurResiduelle: number; dureeAnnees: number; dateAcquisition: Date }, moisDebut: number): BienAmortissable {
+  const { annee, mois } = exerciceDuBien(i.dateAcquisition, moisDebut);
   return { valeurAcquisition: i.valeurAcquisition, valeurResiduelle: i.valeurResiduelle, dureeAnnees: i.dureeAnnees, anneeAcquisition: annee, moisAcquisition: mois };
 }
 
@@ -87,7 +88,8 @@ export type LigneRegistre = {
   plan: { annee: number; montant: number }[];
 };
 
-export async function lireRegistre(tx: TransactionDrizzle): Promise<LigneRegistre[]> {
+/** `moisDebut` : premier mois de l'exercice de l'entreprise (1 = année civile) ; les années du plan sont des numéros d'exercice. */
+export async function lireRegistre(tx: TransactionDrizzle, moisDebut = 1): Promise<LigneRegistre[]> {
   const [biens, dotations] = await Promise.all([
     tx.select().from(immobilisation).orderBy(immobilisation.dateAcquisition),
     tx.select({ immobilisationId: dotationAmortissement.immobilisationId, annee: dotationAmortissement.annee, montant: dotationAmortissement.montant }).from(dotationAmortissement),
@@ -107,7 +109,7 @@ export async function lireRegistre(tx: TransactionDrizzle): Promise<LigneRegistr
       amortissementsCumules: cumul,
       valeurNette: b.valeurAcquisition - cumul,
       anneesPassees: siennes.map((d) => d.annee).sort(),
-      plan: planAmortissement(bienDe(b)),
+      plan: planAmortissement(bienDe(b, moisDebut)),
     };
   });
 }
@@ -127,17 +129,19 @@ export type ResultatDotations = { ok: true; numero: string | null; nombre: numbe
 /**
  * Passe les dotations aux amortissements d'un exercice : une écriture (débit 681000, crédits des comptes d'amortissement) pour tous les
  * biens dont la dotation de l'année n'est pas encore passée. Rejouable sans risque : un bien déjà traité pour cette année (index unique)
- * est ignoré, donc un second appel ne passe que les biens ajoutés depuis. Date de l'écriture : le 31 décembre.
+ * est ignoré, donc un second appel ne passe que les biens ajoutés depuis. Date de l'écriture : le dernier jour de l'exercice (le 31
+ * décembre pour une année civile). `annee` est le numéro de l'exercice (l'année où il se termine).
  */
 export async function passerDotationsExercice(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string, annee: number, maintenant: Date = new Date()): Promise<ResultatDotations> {
-  if (!Number.isInteger(annee) || annee < 2000 || annee > anneeCourante(maintenant)) return { ok: false, erreur: m("Exercice invalide.") };
-  const date = finDAnnee(annee);
+  const moisDebut = await moisDebutExercice(tx, entrepriseId);
+  const date = finExerciceDate(annee, moisDebut);
+  if (!Number.isInteger(annee) || annee < 2000 || annee > anneeCourante(maintenant, moisDebut) || !date) return { ok: false, erreur: m("Exercice invalide.") };
 
   const [monEntreprise] = await tx.select({ verrou: entreprise.dateVerrouillageComptable }).from(entreprise).where(eq(entreprise.id, entrepriseId));
   const erreurVerrou = verifierDateNonVerrouillee(monEntreprise?.verrou ?? null, date);
   if (erreurVerrou) return { ok: false, erreur: erreurVerrou };
 
-  const registre = await lireRegistre(tx);
+  const registre = await lireRegistre(tx, moisDebut);
   const aPasser = registre
     .filter((b) => !b.anneesPassees.includes(annee))
     .map((b) => ({ b, montant: b.plan.find((d) => d.annee === annee)?.montant ?? 0 }))

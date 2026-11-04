@@ -947,6 +947,8 @@ export const contact = pgTable(
     // parcours (devis accepté, facture payée) — voir src/lib/client-documents/espace-client.ts.
     espaceClientUrl: text("espace_client_url"),
     // Liste de prix appliquée à ce client (2026-11-03, priorité 3.10) : propose ses prix à la création d'un devis, bon de commande, reçu…
+    // Section analytique par défaut (priorité 4.5 suite) : les factures et reçus de ce client y sont rattachés à leur création.
+    sectionAnalytiqueId: text("section_analytique_id").references((): AnyPgColumn => sectionAnalytique.id, { onDelete: "set null" }),
     listePrixId: text("liste_prix_id").references((): AnyPgColumn => listePrix.id, { onDelete: "set null" }),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },

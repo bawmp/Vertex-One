@@ -21,6 +21,9 @@ Légende : [ ] à faire — noter l'écart si le résultat attendu n'est pas obt
 - [ ] Vendre une unité (ticket de vente ou facture) : un numéro passe « Vendu » avec lien vers le document.
 - [ ] Annuler cette vente : le numéro redevient « En stock ».
 - [ ] Retirer un numéro (motif « Casse ») : le stock baisse de 1 ; le remettre en stock fonctionne.
+- [ ] Fiche de la facture : carte « Numéros de série vendus » ; « Changer le numéro » échange le numéro (l'ancien revient en stock, le stock ne change pas).
+- [ ] Le PDF de la facture et du ticket affiche « N° de série : … » sous la ligne.
+- [ ] Avoir avec remise en stock d'un produit à numéros : un numéro revient « En stock » par unité rendue.
 
 ## 3. Exports comptables (P4.1, P4.2)
 - [ ] Comptabilité > Livres comptables > **Pour Sage** / **Pour Ciel** / **Fichier des écritures** : un fichier se télécharge, les écritures sont celles de la période.
@@ -32,6 +35,8 @@ Légende : [ ] à faire — noter l'écart si le résultat attendu n'est pas obt
 - [ ] Rattacher une facture à la section : « 2 écriture(s) rattachée(s) ».
 - [ ] Enregistrer un règlement sur cette facture, puis recharger : le résultat de la section inclut la facture, et « Non affecté » ne change pas.
 - [ ] Désactiver la section : elle n'est plus proposée dans les listes de rattachement.
+- [ ] Fiche d'un client > « Section analytique » : choisir une section, puis créer une facture pour ce client : elle est rattachée toute seule.
+- [ ] Achats > Nouvelle dépense : la liste « Section analytique (optionnel) » rattache la dépense à la section choisie.
 
 ## 5. Devises (P4.7)
 - [ ] Paramètres > Devises et taux de change : ajouter EUR à 655,957.
@@ -41,6 +46,8 @@ Légende : [ ] à faire — noter l'écart si le résultat attendu n'est pas obt
 ## 6. Exercice décalé (P4.6)
 - [ ] Comptabilité > Clôture d'exercice : choisir un autre mois de début ; les exercices affichent « du … au … » avec les bonnes dates.
 - [ ] États financiers : le titre du bilan indique la vraie date de fin ; le PDF aussi.
+- [ ] Immobilisations : avec un début en juillet, un bien acquis en septembre s'amortit au prorata des mois restants jusqu'au 30 juin ; « Passer les dotations » date l'écriture du 30 juin.
+- [ ] Régularisations : la date proposée est le dernier jour de l'exercice, la reprise tombe au premier jour du suivant.
 - [ ] Ne rien clôturer en production pour ce contrôle (la clôture verrouille la comptabilité).
 - [ ] Remettre le début sur janvier si le test a été fait sur votre vraie entreprise.
 

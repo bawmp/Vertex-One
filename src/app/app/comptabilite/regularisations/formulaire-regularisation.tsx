@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { ChoixCartes } from "@/components/formulaire/choix-cartes";
 import { enregistrerRegularisationAction, type EtatRegularisation } from "@/lib/actions/regularisation";
-import { REGULARISATIONS, definitionRegularisation, lignesRegularisation, premierJanvierSuivant, type TypeRegularisation } from "@/lib/comptabilite/regularisations-regles";
+import { REGULARISATIONS, definitionRegularisation, lignesRegularisation, debutExerciceSuivant, type TypeRegularisation } from "@/lib/comptabilite/regularisations-regles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -16,10 +16,10 @@ type Compte = { numero: string; libelle: string; classe: number };
 
 /**
  * Régularisation guidée : on choisit la situation en clair, on saisit le montant, et l'écran montre l'écriture qui sera passée
- * (débit / crédit) avant l'enregistrement. L'extourne au 1er janvier suivant est proposée (cochée) quand elle a du sens.
+ * (débit / crédit) avant l'enregistrement. L'extourne au premier jour de l'exercice suivant est proposée (cochée) quand elle a du sens.
  * Tous les contrôles sont refaits côté serveur.
  */
-export function FormulaireRegularisation({ comptes, dateParDefaut }: { comptes: Compte[]; dateParDefaut: string }) {
+export function FormulaireRegularisation({ comptes, dateParDefaut, moisDebut = 1 }: { comptes: Compte[]; dateParDefaut: string; moisDebut?: number }) {
   const t = useT();
   const [type, setType] = useState<TypeRegularisation>("CHARGE_A_PAYER");
   const [compte, setCompte] = useState("");
@@ -39,7 +39,7 @@ export function FormulaireRegularisation({ comptes, dateParDefaut }: { comptes: 
   };
   const dateExtourne = (() => {
     const d = new Date(`${date}T12:00:00+01:00`);
-    return Number.isNaN(d.getTime()) ? null : premierJanvierSuivant(d);
+    return Number.isNaN(d.getTime()) ? null : debutExerciceSuivant(d, moisDebut);
   })();
 
   return (
@@ -86,7 +86,7 @@ export function FormulaireRegularisation({ comptes, dateParDefaut }: { comptes: 
               </ChampSelect>
             ) : null}
             <Champ label={t("Montant (FCFA)")} name="montant" type="number" inputMode="numeric" min={1} step={1} required value={montant} onChange={(e) => setMontant(e.target.value)} />
-            <Champ label={t("Date de l'écriture")} name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} aide={t("En général le 31 décembre de l'exercice.")} />
+            <Champ label={t("Date de l'écriture")} name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} aide={t("En général le dernier jour de l'exercice.")} />
             <Champ label={t("Libellé")} name="libelle" required maxLength={120} placeholder={t("Ex. Électricité de décembre")} className="sm:col-span-2" />
           </div>
 
@@ -94,7 +94,7 @@ export function FormulaireRegularisation({ comptes, dateParDefaut }: { comptes: 
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" name="extourne" value="oui" checked={extourne} onChange={(e) => setExtourne(e.target.checked)} className="mt-1 size-4 accent-primary" />
               <span>
-                <strong>{t("Annuler automatiquement cette écriture au 1er janvier suivant")}</strong> ({t("extourne")})
+                <strong>{t("Annuler automatiquement cette écriture au début de l'exercice suivant")}</strong> ({t("extourne")})
                 <span className="block text-muted-foreground">{t("Recommandé : l'année suivante, la vraie facture ou le vrai encaissement s'enregistre normalement, sans doublon.")}</span>
               </span>
             </label>

@@ -1156,6 +1156,13 @@
       "when": 1794546000000,
       "tag": "0164_declarations_fiscales",
       "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1794632400000,
+      "tag": "0165_section_analytique_client",
+      "breakpoints": true
     }
   ]
 }

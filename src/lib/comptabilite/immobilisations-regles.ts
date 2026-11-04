@@ -22,6 +22,15 @@ export type BienAmortissable = { valeurAcquisition: number; valeurResiduelle: nu
 export type DotationPrevue = { annee: number; montant: number };
 
 /** Année et mois (1 à 12) d'une date, à l'heure de Douala. */
+/**
+ * Exercice d'un bien à son acquisition : le numéro de l'exercice (année où il se termine) et le rang du mois d'acquisition DANS cet
+ * exercice (1 = premier mois), qui sert au prorata de la première dotation. Avec un exercice qui commence en janvier : l'année civile.
+ */
+export function exerciceDuBien(date: Date, moisDebut = 1): { annee: number; mois: number } {
+  const { annee, mois } = anneeMoisDouala(date);
+  return { annee: moisDebut > 1 && mois >= moisDebut ? annee + 1 : annee, mois: ((mois - moisDebut + 12) % 12) + 1 };
+}
+
 export function anneeMoisDouala(date: Date): { annee: number; mois: number } {
   const [annee, mois] = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: "Africa/Douala" }).format(date).split("-").map(Number);
   return { annee, mois };

@@ -22,6 +22,7 @@ import type { UtilisateurConnecte } from "@/lib/session";
 import { logoPourPDF } from "@/lib/pdf/logo";
 import { adresseEspaceClientSure } from "@/lib/client-documents/espace-client";
 import { groupeNomPourPDF } from "@/lib/pdf/groupe";
+import { lignesAvecSeries } from "@/lib/pdf/series-lignes";
 
 /** Libellé français fixe, indépendant de la langue de l'interface — voir CLAUDE.md, i18n (les PDF restent en français). */
 const LIBELLE_MOYEN_PAIEMENT: Record<string, string> = {
@@ -111,7 +112,7 @@ export async function recupererFacturePourPDF(tx: TransactionDrizzle, utilisateu
   ]);
 
   // `paye` : total déjà réglé, pour que le PDF affiche « Déjà réglé » et « Reste à payer » (paiement en plusieurs fois).
-  return { facture: f, lignes, client, entreprise: await avecLogo(tx, monEntreprise), paye: calculerSolde(f.montantTTC, reglements).paye, acomptesDeduits: extraireAcomptesDeduits(reglements) };
+  return { facture: f, lignes: await lignesAvecSeries(tx, utilisateurConnecte.entrepriseId, "FACTURE", factureId, lignes), client, entreprise: await avecLogo(tx, monEntreprise), paye: calculerSolde(f.montantTTC, reglements).paye, acomptesDeduits: extraireAcomptesDeduits(reglements) };
 }
 
 /**
@@ -152,7 +153,7 @@ export async function recupererFacturePourClient(tx: TransactionDrizzle, entrepr
   // le rediriger tout seul que juste après avoir payé, jamais en rouvrant plus tard une facture déjà réglée.
   return {
     facture: f,
-    lignes,
+    lignes: await lignesAvecSeries(tx, entrepriseId, "FACTURE", factureId, lignes),
     client,
     entreprise: await avecLogo(tx, monEntreprise),
     espaceClientUrl: adresseEspaceClientSure(leContact?.espaceClientUrl),
@@ -203,7 +204,7 @@ export async function recupererRecuVentePourPDF(tx: TransactionDrizzle, utilisat
 
   return {
     recuVente: rv,
-    lignes,
+    lignes: await lignesAvecSeries(tx, utilisateurConnecte.entrepriseId, "RECU_VENTE", recuVenteId, lignes),
     client,
     entreprise: await avecLogo(tx, monEntreprise),
     moyenPaiementLibelle: LIBELLE_MOYEN_PAIEMENT[rv.moyenPaiement] ?? rv.moyenPaiement,

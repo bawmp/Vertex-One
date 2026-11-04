@@ -2,13 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
-import { entreprise } from "@/db/schema";
+import { contact, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
-import { affecterDocument, creerSection, modifierSection } from "@/lib/comptabilite/analytique";
+import { affecterDocument, creerSection, definirSectionContact, modifierSection } from "@/lib/comptabilite/analytique";
+import { idsVisibles } from "@/lib/portee";
+import { m } from "@/lib/i18n/catalogue";
 import { getT } from "@/lib/i18n/langue";
 
 export type EtatAnalytique = { erreur?: string; message?: string } | null;
@@ -55,4 +57,19 @@ export async function affecterDocumentAnalytique(type: string, documentId: strin
   if (!r.ok) return { erreur: t(r.erreur) };
   revalidatePath("/app/comptabilite/analytique");
   return { message: sectionId ? t("{n} écriture(s) rattachée(s) à la section.", { n: r.lignes }) : t("{n} écriture(s) détachée(s).", { n: r.lignes }) };
+}
+
+/** Section analytique par défaut d'un client : ses factures et reçus y seront rattachés. Droit comptable ET accès au contact (portée CRM), contact relu dans l'entreprise de la session. */
+export async function definirSectionDuClient(contactId: string, sectionId: string | null): Promise<EtatAnalytique> {
+  const { t, u, refus } = await garde("MODIFIER");
+  if (refus) return { erreur: refus };
+  const r = await avecEntreprise(u.entrepriseId, async (tx) => {
+    const visibles = await idsVisibles(tx, u, "CRM");
+    const [c] = await tx.select({ assigneAId: contact.assigneAId }).from(contact).where(and(eq(contact.id, String(contactId)), eq(contact.entrepriseId, u.entrepriseId)));
+    if (!c || (visibles !== "TOUT" && !visibles.includes(c.assigneAId))) return { ok: false, erreur: m("Contact introuvable.") } as const;
+    return definirSectionContact(tx, u.entrepriseId, String(contactId), sectionId ? String(sectionId) : null);
+  });
+  if (!r.ok) return { erreur: t(r.erreur) };
+  revalidatePath(`/app/contacts/${contactId}`);
+  return { message: t("Section du client enregistrée.") };
 }

@@ -11,11 +11,17 @@ import { Card } from "@/components/ui/card";
 import { REGULARISATIONS } from "@/lib/comptabilite/regularisations-regles";
 import { FormulaireRegularisation } from "./formulaire-regularisation";
 import { getT } from "@/lib/i18n/langue";
+import { moisDebutExercice } from "@/lib/comptabilite/cloture";
+import { finExerciceDate } from "@/lib/comptabilite/exercice-regles";
+import { exerciceDuBien } from "@/lib/comptabilite/immobilisations-regles";
 
-/** Date proposée : le 31 décembre de l'exercice qui vient de se terminer en début d'année (janvier à mars), sinon aujourd'hui (heure de Douala). */
-function dateParDefaut(maintenant: Date): string {
-  const [annee, mois] = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: "Africa/Douala" }).format(maintenant).split("-").map(Number);
-  if (mois <= 3) return `${annee - 1}-12-31`;
+/** Date proposée : le dernier jour de l'exercice qui vient de se terminer pendant ses trois premiers mois, sinon aujourd'hui (heure de Douala). */
+function dateParDefaut(maintenant: Date, moisDebut: number): string {
+  const { annee, mois } = exerciceDuBien(maintenant, moisDebut);
+  if (mois <= 3) {
+    const fin = finExerciceDate(annee - 1, moisDebut);
+    if (fin) return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(fin);
+  }
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(maintenant);
 }
 
@@ -36,6 +42,7 @@ export default async function PageRegularisations() {
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
+    const moisDebut = await moisDebutExercice(tx, utilisateurConnecte.entrepriseId);
     const [comptes, historique] = await Promise.all([
       tx.select({ numero: compteComptable.numero, libelle: compteComptable.libelle, classe: compteComptable.classe }).from(compteComptable).orderBy(compteComptable.numero),
       tx
@@ -45,7 +52,7 @@ export default async function PageRegularisations() {
         .orderBy(desc(journalManuel.dateEcriture))
         .limit(30),
     ]);
-    return { comptes, historique };
+    return { comptes, historique, moisDebut };
   });
 
   if (!donnees) {
@@ -74,7 +81,7 @@ export default async function PageRegularisations() {
         {t("Pour que le résultat de l'année soit juste : rattachez à chaque exercice ce qui lui appartient, même si la facture ou le paiement arrive plus tard. Choisissez la situation, saisissez le montant : l'écriture est préparée pour vous.")}
       </p>
 
-      {peutCreer ? <FormulaireRegularisation comptes={donnees.comptes} dateParDefaut={dateParDefaut(new Date())} /> : null}
+      {peutCreer ? <FormulaireRegularisation comptes={donnees.comptes} dateParDefaut={dateParDefaut(new Date(), donnees.moisDebut)} moisDebut={donnees.moisDebut} /> : null}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Régularisations passées")}</h2>

@@ -22,10 +22,13 @@ export function FormulaireNouvelleDepense({
   comptesCharge,
   fournisseurs,
   deals,
+  sections = [],
 }: {
   comptesCharge: { id: string; numero: string; libelle: string }[];
   fournisseurs: { id: string; nom: string }[];
   deals: { id: string; titre: string }[];
+  /** Sections analytiques actives (vide si l'utilisateur ne gère pas la comptabilité analytique). */
+  sections?: { id: string; code: string; libelle: string }[];
 }) {
   const [etat, action, enCours] = useActionState(creerDepense, null);
   const [ouvert, setOuvert] = useState(false);
@@ -86,6 +89,20 @@ export function FormulaireNouvelleDepense({
                 ))}
               </Select>
             </div>
+
+            {sections.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sectionAnalytiqueId">Section analytique (optionnel)</Label>
+                <Select id="sectionAnalytiqueId" name="sectionAnalytiqueId" defaultValue="">
+                  <option value="">Aucune</option>
+                  {sections.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.code} — {x.libelle}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="montantHT">Montant HT (FCFA)</Label>

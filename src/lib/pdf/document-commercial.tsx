@@ -86,7 +86,8 @@ const styles = StyleSheet.create({
   piedDePageMention: { textAlign: "center", fontSize: 7, color: STONE_400, marginTop: 10 },
 });
 
-export type LigneAffichagePDF = { designation: string; quantite: number; prixUnitaire: number; tauxTVA: number };
+/** `series` : numéros de série vendus (produit suivi par numéro), imprimés sous la désignation. */
+export type LigneAffichagePDF = { designation: string; quantite: number; prixUnitaire: number; tauxTVA: number; series?: string[] };
 
 export type TypeDocumentCommercial = "DEVIS" | "FACTURE" | "BON_COMMANDE" | "RECU_VENTE" | "FACTURE_ACOMPTE";
 
@@ -246,7 +247,10 @@ export function DocumentCommercialPDF({
               </View>
               {lignes.map((ligne, index) => (
                 <View key={index} style={styles.ligneTableau}>
-                  <Text style={styles.colDesignation}>{ligne.designation}</Text>
+                  <View style={styles.colDesignation}>
+                    <Text>{ligne.designation}</Text>
+                    {ligne.series && ligne.series.length > 0 ? <Text style={{ fontSize: 7.5, color: "#78716c", marginTop: 1 }}>{`N° de série : ${ligne.series.join(", ")}`}</Text> : null}
+                  </View>
                   <Text style={styles.colQuantite}>{ligne.quantite}</Text>
                   <Text style={styles.colPrixUnitaire}>{formaterFCFA(ligne.prixUnitaire)}</Text>
                   <Text style={styles.colTVA}>{entreprise.assujettiTVA ? `${ligne.tauxTVA}%` : "N/A"}</Text>

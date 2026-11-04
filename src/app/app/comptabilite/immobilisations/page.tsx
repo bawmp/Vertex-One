@@ -10,7 +10,8 @@ import { disponible } from "@/lib/plans";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { Card } from "@/components/ui/card";
 import { lireRegistre } from "@/lib/comptabilite/immobilisations";
-import { anneeMoisDouala } from "@/lib/comptabilite/immobilisations-regles";
+import { exerciceDuBien } from "@/lib/comptabilite/immobilisations-regles";
+import { moisDebutExercice } from "@/lib/comptabilite/cloture";
 import { BoutonRetirer, FormulaireDotations, FormulaireImmobilisation } from "./formulaires";
 import { getT } from "@/lib/i18n/langue";
 
@@ -28,13 +29,14 @@ export default async function PageImmobilisations() {
     );
   }
 
-  const registre = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const donneesImmo = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
-    return lireRegistre(tx);
+    const moisDebut = await moisDebutExercice(tx, utilisateurConnecte.entrepriseId);
+    return { moisDebut, registre: await lireRegistre(tx, moisDebut) };
   });
 
-  if (!registre) {
+  if (!donneesImmo) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -43,15 +45,16 @@ export default async function PageImmobilisations() {
     );
   }
 
+  const { registre, moisDebut } = donneesImmo;
   const peutCreer = peut(utilisateurConnecte, "COMPTABILITE", "CREER");
   const peutModifier = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER");
   const maintenant = new Date();
-  const anneeCourante = anneeMoisDouala(maintenant).annee;
+  const anneeCourante = exerciceDuBien(maintenant, moisDebut).annee;
   const aujourdhui = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(maintenant);
-  const premiere = registre.length > 0 ? Math.min(...registre.map((b) => anneeMoisDouala(b.dateAcquisition).annee)) : anneeCourante;
+  const premiere = registre.length > 0 ? Math.min(...registre.map((b) => exerciceDuBien(b.dateAcquisition, moisDebut).annee)) : anneeCourante;
   const annees: number[] = [];
   for (let a = anneeCourante; a >= Math.max(premiere, anneeCourante - 15); a--) annees.push(a);
-  const anneeParDefaut = anneeMoisDouala(maintenant).mois <= 3 ? anneeCourante - 1 : anneeCourante;
+  const anneeParDefaut = exerciceDuBien(maintenant, moisDebut).mois <= 3 ? anneeCourante - 1 : anneeCourante;
 
   const totalBrut = registre.reduce((s, b) => s + b.valeurAcquisition, 0);
   const totalAmort = registre.reduce((s, b) => s + b.amortissementsCumules, 0);
@@ -72,7 +75,7 @@ export default async function PageImmobilisations() {
         {t("Le registre de vos biens durables (matériel, mobilier, informatique, véhicules). Chaque année, une seule action passe en comptabilité la perte de valeur de tous les biens : le bilan et le résultat s'en trouvent justes.")}
       </p>
 
-      {peutCreer ? <FormulaireImmobilisation aujourdhui={aujourdhui} /> : null}
+      {peutCreer ? <FormulaireImmobilisation aujourdhui={aujourdhui} moisDebut={moisDebut} /> : null}
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">{t("Registre")}</h2>
@@ -111,7 +114,7 @@ export default async function PageImmobilisations() {
         <Card className="flex flex-col gap-3 p-4">
           <h2 className="font-medium">{t("Passer les dotations de l'exercice")}</h2>
           <p className="text-sm text-muted-foreground">
-            {t("À faire une fois par an, avant la clôture. Écriture au 31 décembre : charge « Dotations aux amortissements » (681000) en face des comptes d'amortissement. Sans risque de doublon : un bien déjà traité pour l'année est ignoré.")}
+            {t("À faire une fois par exercice, avant la clôture. Écriture à la fin de l'exercice : charge « Dotations aux amortissements » (681000) en face des comptes d'amortissement. Sans risque de doublon : un bien déjà traité pour l'année est ignoré.")}
           </p>
           <FormulaireDotations annees={annees} anneeParDefaut={anneeParDefaut} />
         </Card>

@@ -8,6 +8,7 @@ import { resoudrePromessesFacture } from "./promesse";
 import { genererEcrituresAvoirClient } from "@/lib/comptabilite/ecritures";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
 import { entrerStockDocument } from "@/lib/produits/stock";
+import { restituerSeriesRetour } from "@/lib/produits/series-sortie";
 import { m } from "@/lib/i18n/catalogue";
 
 /**
@@ -111,6 +112,8 @@ export async function creerAvoirClient(tx: TransactionDrizzle, entrepriseId: str
       .where(and(eq(mouvementStock.entrepriseId, entrepriseId), eq(mouvementStock.documentType, "FACTURE"), eq(mouvementStock.documentId, factureId), eq(mouvementStock.produitId, l.produitId!), eq(mouvementStock.type, "VENTE")))
       .limit(1);
     await entrerStockDocument(tx, entrepriseId, l.produitId!, d.quantite, { type: "AVOIR_CLIENT", id: avoir.id, depotId: sortie?.depotId ?? null, utilisateurId });
+    // Produit suivi par numéro de série : les numéros rendus redeviennent « en stock » (le stock vient déjà de remonter ci-dessus).
+    await restituerSeriesRetour(tx, entrepriseId, l.produitId!, "FACTURE", factureId, d.quantite);
   }
 
   // Statut de la facture : entièrement créditée = annulée ; sinon payée dès que les règlements couvrent le net restant dû.

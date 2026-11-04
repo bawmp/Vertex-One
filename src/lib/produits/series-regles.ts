@@ -48,3 +48,25 @@ export function numerosAVendre<T extends { numero: string; entreLe: Date }>(enSt
 
 /** Après une sortie de stock quelconque, combien de numéros « en stock » dépassent le stock réel (à retirer, les plus récents d'abord). */
 export const exces = (numerosEnStock: number, stock: number) => Math.max(0, numerosEnStock - Math.max(stock, 0));
+
+/**
+ * Répartit les numéros vendus d'un document sur ses lignes : chaque ligne d'un produit prend, dans l'ordre, autant de numéros que
+ * d'unités vendues (quantité arrondie à l'entier supérieur) ; les numéros en trop restent sur la dernière ligne du produit. Une ligne
+ * sans produit, ou d'un produit sans numéro, n'en reçoit aucun.
+ */
+export function repartirSeries<L extends { produitId: string | null; quantite: number }>(lignes: L[], parProduit: Map<string, string[]>): (L & { series: string[] })[] {
+  const restants = new Map([...parProduit].map(([p, s]) => [p, [...s]]));
+  const derniere = new Map<string, number>();
+  lignes.forEach((l, i) => l.produitId && derniere.set(l.produitId, i));
+  return lignes.map((l, i) => {
+    const file = l.produitId ? restants.get(l.produitId) : undefined;
+    if (!l.produitId || !file || file.length === 0) return { ...l, series: [] };
+    const n = i === derniere.get(l.produitId) ? file.length : Math.ceil(l.quantite);
+    return { ...l, series: file.splice(0, n) };
+  });
+}
+
+/** Un numéro vendu peut être remplacé par un numéro en stock du MÊME produit ; jamais par lui-même. */
+export function remplacementPossible(vendu: { produitId: string; statut: string }, nouveau: { produitId: string; statut: string; id: string }, venduId: string): boolean {
+  return vendu.statut === "VENDU" && nouveau.statut === "EN_STOCK" && vendu.produitId === nouveau.produitId && nouveau.id !== venduId;
+}

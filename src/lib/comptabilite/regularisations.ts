@@ -3,7 +3,8 @@ import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, ecritureComptable, entreprise, journalManuel } from "@/db/schema";
 import { genererNumeroJournalManuel } from "@/lib/facturation/numerotation";
 import { m } from "@/lib/i18n/catalogue";
-import { definitionRegularisation, lignesExtourne, lignesRegularisation, premierJanvierSuivant, type LigneRegularisation, type TypeRegularisation } from "./regularisations-regles";
+import { moisDebutExercice } from "./cloture";
+import { definitionRegularisation, lignesExtourne, lignesRegularisation, debutExerciceSuivant, type LigneRegularisation, type TypeRegularisation } from "./regularisations-regles";
 import { verifierDateNonVerrouillee } from "./verrouillage";
 
 export type ParametresRegularisation = {
@@ -45,7 +46,7 @@ export async function enregistrerRegularisation(tx: TransactionDrizzle, entrepri
   }
 
   const [monEntreprise] = await tx.select({ verrou: entreprise.dateVerrouillageComptable }).from(entreprise).where(and(eq(entreprise.id, entrepriseId)));
-  const dateExtourne = p.extourne && def.extourne ? premierJanvierSuivant(p.date) : null;
+  const dateExtourne = p.extourne && def.extourne ? debutExerciceSuivant(p.date, await moisDebutExercice(tx, entrepriseId)) : null;
   for (const d of [p.date, dateExtourne]) {
     if (!d) continue;
     const erreur = verifierDateNonVerrouillee(monEntreprise?.verrou ?? null, d);

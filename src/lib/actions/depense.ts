@@ -8,6 +8,7 @@ import { depense, compteComptable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { affecterDocument } from "@/lib/comptabilite/analytique";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererEcrituresDepense } from "@/lib/comptabilite/ecritures";
 
@@ -48,6 +49,7 @@ export async function creerDepense(_etat: EtatDepense, formData: FormData): Prom
     dealId: formData.get("dealId") || undefined,
     datePaiement: formData.get("datePaiement"),
   });
+  const sectionChoisie = String(formData.get("sectionAnalytiqueId") ?? "");
   if (!analyse.success) {
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
@@ -88,6 +90,8 @@ export async function creerDepense(_etat: EtatDepense, formData: FormData): Prom
       moyenPaiement,
       datePaiement: new Date(datePaiement),
     });
+    // Comptabilité analytique : la section choisie à la saisie (réservée à qui peut la gérer, relue côté serveur).
+    if (sectionChoisie && peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) await affecterDocument(tx, utilisateurConnecte.entrepriseId, "DEPENSE", laDepense.id, sectionChoisie);
   });
 
   revalidatePath("/app/achats");

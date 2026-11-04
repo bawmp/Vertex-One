@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { ajouterImmobilisationAction, passerDotationsAction, retirerImmobilisationAction, type EtatImmobilisation } from "@/lib/actions/immobilisation";
-import { CATEGORIES_IMMOBILISATION, categorieImmobilisation, planAmortissement, anneeMoisDouala } from "@/lib/comptabilite/immobilisations-regles";
+import { CATEGORIES_IMMOBILISATION, categorieImmobilisation, planAmortissement, exerciceDuBien } from "@/lib/comptabilite/immobilisations-regles";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -23,7 +23,7 @@ function Retour({ etat }: { etat: EtatImmobilisation }) {
 }
 
 /** Ajout d'un bien : catégorie (qui fixe la durée conseillée), prix, date ; l'écran montre la dotation annuelle avant d'enregistrer. */
-export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string }) {
+export function FormulaireImmobilisation({ aujourdhui, moisDebut = 1 }: { aujourdhui: string; moisDebut?: number }) {
   const t = useT();
   const [categorie, setCategorie] = useState(CATEGORIES_IMMOBILISATION[0].compteActif);
   const [duree, setDuree] = useState(String(CATEGORIES_IMMOBILISATION[0].dureeConseillee));
@@ -34,7 +34,7 @@ export function FormulaireImmobilisation({ aujourdhui }: { aujourdhui: string })
   const [enCours, startTransition] = useTransition();
 
   const d = new Date(`${date}T12:00:00+01:00`);
-  const { annee, mois } = Number.isNaN(d.getTime()) ? { annee: 0, mois: 0 } : anneeMoisDouala(d);
+  const { annee, mois } = Number.isNaN(d.getTime()) ? { annee: 0, mois: 0 } : exerciceDuBien(d, moisDebut);
   const plan = planAmortissement({ valeurAcquisition: Number(valeur), valeurResiduelle: Number(residuelle) || 0, dureeAnnees: Number(duree), anneeAcquisition: annee, moisAcquisition: mois });
 
   return (

@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { compteComptable, ecritureComptable, entreprise } from "@/db/schema";
 import { verifierDateNonVerrouillee } from "./verrouillage";
-import { sectionDuDocument } from "./analytique";
+import { sectionDuDocument, sectionParDefautDuClient } from "./analytique";
 
 // compteId : quand le compte est déjà connu (ex. catégorie de charge choisie
 // par l'utilisateur pour une Dépense) — évite une résolution par numéro pour
@@ -54,7 +54,8 @@ async function creerEcritures(
 
   // Comptabilité analytique : un règlement ou un avoir suit la section déjà donnée à sa facture / sa dépense.
   const section =
-    reference.factureId ? await sectionDuDocument(tx, entrepriseId, "FACTURE", reference.factureId)
+    reference.factureId ? ((await sectionDuDocument(tx, entrepriseId, "FACTURE", reference.factureId)) ?? (await sectionParDefautDuClient(tx, entrepriseId, "FACTURE", reference.factureId)))
+    : reference.recuVenteId ? await sectionParDefautDuClient(tx, entrepriseId, "RECU_VENTE", reference.recuVenteId)
     : reference.depenseId ? await sectionDuDocument(tx, entrepriseId, "DEPENSE", reference.depenseId)
     : reference.factureFournisseurId ? await sectionDuDocument(tx, entrepriseId, "FACTURE_FOURNISSEUR", reference.factureFournisseurId)
     : null;

@@ -6,7 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
-import { ajouterSeries, definirSuiviSerie, remettreSerieEnStock, retirerSerie } from "@/lib/produits/series";
+import { ajouterSeries, definirSuiviSerie, remettreSerieEnStock, remplacerSerieVendue, retirerSerie } from "@/lib/produits/series";
 import { getT } from "@/lib/i18n/langue";
 
 export type EtatSeries = { erreur?: string; message?: string } | null;
@@ -67,4 +67,17 @@ export async function remettreSerieProduit(serieId: string, produitId: string): 
   if (!r.ok) return { erreur: t(r.erreur) };
   rafraichir(produitId);
   return { message: t("Unité remise en stock.") };
+}
+
+/** Change le numéro de série vendu sur une facture (depuis la fiche facture) : droit de modifier la facturation et gestion de stock active. */
+export async function changerSerieVendue(factureId: string, venduId: string, nouveauId: string): Promise<EtatSeries> {
+  const t = await getT();
+  const u = await recupererUtilisateurConnecte();
+  if (!u) redirect("/connexion");
+  if (!peut(u, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier cette facture.") };
+  const r = await avecEntreprise(u.entrepriseId, async (tx) => ((await gestionStockActive(tx, u.entrepriseId)) ? remplacerSerieVendue(tx, u.entrepriseId, String(venduId), String(nouveauId)) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)));
+  if (!r.ok) return { erreur: t(r.erreur) };
+  revalidatePath(`/app/facturation/factures/${factureId}`);
+  revalidatePath("/app/produits/series");
+  return { message: t("Numéro de série échangé.") };
 }

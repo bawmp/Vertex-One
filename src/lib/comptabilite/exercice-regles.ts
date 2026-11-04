@@ -38,3 +38,11 @@ export function debutExerciceTexte(annee: number, moisDebut: number = MOIS_DEBUT
   if (!p) return "";
   return new Intl.DateTimeFormat("fr-FR", { timeZone: "Africa/Douala", day: "2-digit", month: "2-digit", year: "numeric" }).format(p.du);
 }
+
+/** Dernier jour de l'exercice, à minuit (heure de Douala) : la date des écritures de fin d'exercice (dotations, régularisations). */
+export function finExerciceDate(annee: number, moisDebut: number = MOIS_DEBUT_DEFAUT): Date | null {
+  if (!Number.isInteger(annee) || annee < 2000 || annee > 2100 || !moisDebutValide(moisDebut)) return null;
+  const moisFin = moisDebut === 1 ? 12 : moisDebut - 1;
+  const dernier = new Date(Date.UTC(annee, moisFin, 0)).getUTCDate();
+  return dateDouala(`${annee}-${String(moisFin).padStart(2, "0")}-${String(dernier).padStart(2, "0")}`, false);
+}

@@ -25,6 +25,8 @@ import { obtenirOuCreerLien, urlPubliqueFacture } from "@/lib/client-documents/l
 import { getT } from "@/lib/i18n/langue";
 import { EquivalentsDevises } from "@/components/equivalents-devises";
 import { CarteAvoirs } from "./carte-avoirs";
+import { CarteSeries } from "./carte-series";
+import { seriesDeDocument } from "@/lib/produits/series";
 import { lignesCreditables, listerAvoirsFacture } from "@/lib/facturation/avoir-client";
 
 export default async function PageDetailFacture({ params }: { params: Promise<{ id: string }> }) {
@@ -69,11 +71,12 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
     const lignesAvoir = await lignesCreditables(tx, utilisateurConnecte.entrepriseId, id);
     const avoirsEmis = await listerAvoirsFacture(tx, utilisateurConnecte.entrepriseId, id);
 
-    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses, lignesAvoir, avoirsEmis };
+    const series = monEntreprise.gereStock ? await seriesDeDocument(tx, utilisateurConnecte.entrepriseId, "FACTURE", id) : [];
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses, lignesAvoir, avoirsEmis, series };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses, lignesAvoir, avoirsEmis } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses, lignesAvoir, avoirsEmis, series } = donnees;
   const totalAvoirs = avoirsEmis.reduce((s, a) => s + a.montantTTC, 0);
   const montantNet = Math.max(0, laFacture.montantTTC - totalAvoirs);
 
@@ -206,6 +209,8 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
           </Card>
         </div>
       ) : null}
+
+      {series.length > 0 ? <CarteSeries factureId={laFacture.id} series={series.map((x) => ({ id: x.id, numero: x.numero, produit: x.produit, disponibles: x.disponibles }))} modifiable={peutModifier && laFacture.statut !== "ANNULEE"} /> : null}
 
       <CarteAvoirs
         factureId={laFacture.id}
