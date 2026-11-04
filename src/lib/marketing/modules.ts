@@ -64,6 +64,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel"),
       m("Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux"),
       m("Les demandes reçues sur votre site web deviennent automatiquement des prospects, grâce à une clé d'API (Paramètres → Intégrations)"),
+      m("Votre assistant WhatsApp Kyria se connecte en un clic depuis son portail : chaque conversation devient un prospect dans votre CRM, conversations passées comprises"),
     ],
   },
   {

@@ -15,6 +15,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Import de vos données depuis Asana, Zoho ou un fichier Excel/CSV, avec une simulation avant l'import réel": "Import of your data from Asana, Zoho or an Excel/CSV file, with a dry run before the real import",
   "Export de vos données en CSV et transfert d'un espace Vertex One à un autre, sans accès croisé entre les deux": "Export of your data as CSV and transfer from one Vertex One workspace to another, with no cross access between them",
   "Les demandes reçues sur votre site web deviennent automatiquement des prospects, grâce à une clé d'API (Paramètres → Intégrations)": "Requests received on your website automatically become leads, using an API key (Settings → Integrations)",
+  "Votre assistant WhatsApp Kyria se connecte en un clic depuis son portail : chaque conversation devient un prospect dans votre CRM, conversations passées comprises": "Your Kyria WhatsApp assistant connects in one click from its portal: every conversation becomes a lead in your CRM, past conversations included",
 
   // One Books
   "Facturation, achats et comptabilité SYSCOHADA dans un seul module — du devis au paiement Mobile Money.": "Invoicing, purchasing and SYSCOHADA accounting in a single module — from quote to Mobile Money payment.",

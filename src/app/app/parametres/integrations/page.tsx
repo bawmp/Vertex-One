@@ -7,6 +7,7 @@ import { peut } from "@/lib/permissions";
 import { getT } from "@/lib/i18n/langue";
 import { GestionClesApi } from "./gestion-cles-api";
 import { PagesFacebook } from "./pages-facebook";
+import { CarteKyria } from "./carte-kyria";
 import { facebookConfigure } from "@/lib/facebook/graph";
 import { listerPagesAChoisir } from "@/lib/actions/facebook";
 
@@ -48,6 +49,8 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
         pagesAChoisir={pagesAChoisir}
         retour={facebook && facebook !== "choisir" ? facebook : null}
       />
+
+      <CarteKyria cles={cles.map((c) => ({ nom: c.nom, revoqueeLe: c.revoqueeLe?.toISOString() ?? null, dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null }))} />
 
       <GestionClesApi
         cles={cles.map((c) => ({
