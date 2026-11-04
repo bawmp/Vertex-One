@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import { NextResponse } from "next/server";
 import { chargerFactureParJeton } from "@/lib/client-documents/chargement";
 import { rendreDocumentCommercialPDF } from "@/lib/pdf/rendu";
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ jet
     montantHT: donnees.facture.montantHT,
     montantTVA: donnees.facture.montantTVA,
     montantTTC: donnees.facture.montantTTC,
-    montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits,
+    montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits, mentionDevise: mentionDevise(donnees.facture),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

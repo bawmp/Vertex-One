@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 "use server";
 
 import { and, eq } from "drizzle-orm";
@@ -269,7 +270,7 @@ export async function envoyerFacture(factureId: string, _etat: EtatEnvoiFacture,
         montantHT: donnees.facture.montantHT,
         montantTVA: donnees.facture.montantTVA,
         montantTTC: donnees.facture.montantTTC,
-        montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits,
+        montantRegle: donnees.paye, acomptesDeduits: donnees.acomptesDeduits, mentionDevise: mentionDevise(donnees.facture),
       }),
     ]);
 

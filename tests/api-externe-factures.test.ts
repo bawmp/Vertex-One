@@ -265,6 +265,61 @@ describe("POST /api/externe/factures — données refusées", () => {
   }, 240_000);
 });
 
+describe("POST /api/externe/factures — facture dans une autre devise", () => {
+  test("EUR : la facture garde le montant en euros et le taux déduit ; la comptabilité reste en FCFA", async () => {
+    const r = await creer(cleA, { devise: "EUR", montantDevise: 45.75, montantTTC: 30010 });
+    expect(r.statut).toBe(201);
+    const f = (await facturesDe(idA)).find((x) => x.numero === r.corps.numero)!;
+    expect(f).toMatchObject({ devise: "EUR", montantDeviseCentimes: 4575, montantTTC: 30010, statut: "PAYEE" });
+    expect(f.tauxChangeMilliemes).toBe(Math.round((30010 * 1000 * 100) / 4575)); // 656 000 : 1 EUR vaut 656,000 FCFA
+    const reglements = await avecEntreprise(idA, (tx) => tx.select().from(paiement).where(eq(paiement.factureId, f.id)));
+    expect(reglements[0].montant).toBe(30010); // le règlement est bien en FCFA
+  });
+
+  test("XOF : à parité 1 pour 1 avec le FCFA ; un autre montant est refusé", async () => {
+    const bon = await creer(cleA, { devise: "XOF", montantDevise: 30000, montantTTC: 30000 });
+    expect(bon.statut).toBe(201);
+    const f = (await facturesDe(idA)).find((x) => x.numero === bon.corps.numero)!;
+    expect(f).toMatchObject({ devise: "XOF", montantDeviseCentimes: 3000000, tauxChangeMilliemes: 1000 });
+    const mauvais = await appeler(cleA, { reference: `xof-${suffixe}`, client: { nom: "Linda Mballa" }, designation: "Test", montantTTC: 30000, devise: "XOF", montantDevise: 29000 });
+    expect(mauvais.status).toBe(400);
+  });
+
+  test("devise inconnue, devise sans montant (ou l'inverse), plus de deux décimales : jamais de facture", async () => {
+    const avant = await facturesDe(idA);
+    const base = { reference: `dev-${suffixe}`, client: { nom: "Linda Mballa" }, designation: "Test", montantTTC: 30000 };
+    for (const corps of [
+      { ...base, devise: "GBP", montantDevise: 40 },
+      { ...base, devise: "EUR" },
+      { ...base, montantDevise: 40 },
+      { ...base, devise: "EUR", montantDevise: 45.756 },
+      { ...base, devise: "EUR", montantDevise: -3 },
+      { ...base, devise: "EUR", montantDevise: 0 },
+    ]) {
+      expect((await appeler(cleA, corps)).status, JSON.stringify(corps)).toBe(400);
+    }
+    expect(await facturesDe(idA)).toHaveLength(avant.length);
+  });
+
+  test("une facture ordinaire n'a aucune devise", async () => {
+    const r = await creer(cleA);
+    const f = (await facturesDe(idA)).find((x) => x.numero === r.corps.numero)!;
+    expect(f).toMatchObject({ devise: null, montantDeviseCentimes: null, tauxChangeMilliemes: null });
+  });
+});
+
+describe("mention de devise (PDF et page publique)", () => {
+  test("texte clair pour une devise, rien pour une facture en FCFA", async () => {
+    const { mentionDevise, tauxDepuisMontants } = await import("@/lib/devises/facture");
+    expect(mentionDevise({ devise: null, montantDeviseCentimes: null, tauxChangeMilliemes: null })).toBeNull();
+    const texte = mentionDevise({ devise: "EUR", montantDeviseCentimes: 8000, tauxChangeMilliemes: 655957 })!;
+    expect(texte).toContain("taux appliqué");
+    expect(texte).toContain("655,957");
+    expect(tauxDepuisMontants(52477, 8000)).toBe(655963);
+    expect(tauxDepuisMontants(0, 8000)).toBeNull();
+  });
+});
+
 describe("POST /api/externe/factures — cas limites de l'entreprise", () => {
   test("comptabilité verrouillée : la facture est tout de même créée, à la date du jour", async () => {
     await db.update(entreprise).set({ dateVerrouillageComptable: new Date(Date.now() - 86_400_000) }).where(eq(entreprise.id, idA));

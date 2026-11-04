@@ -140,6 +140,8 @@ export type DocumentCommercialProps = {
   // Facture déjà payée en partie ou en totalité (paiement en plusieurs fois) : total des règlements reçus ; affiche « Déjà réglé » et
   // « Reste à payer » sous le total. Absent ou 0 = rien n'est affiché (document identique à avant).
   montantRegle?: number;
+  // Facture émise dans une autre devise (site connecté) : mention « Facturé en … — taux appliqué … » sous le total. Les montants restent en FCFA.
+  mentionDevise?: string | null;
   // Acomptes déjà encaissés et déduits de cette facture (inclus dans `montantRegle`) : affichés ligne par ligne, avant le reste à payer.
   acomptesDeduits?: { numero: string; montant: number }[];
   // Logo en filigrane quand l'entreprise en a un (défaut : oui) ; sans logo, rien n'est ajouté.
@@ -172,6 +174,7 @@ export function DocumentCommercialPDF({
   moyenPaiement,
   montantRestant,
   montantRegle,
+  mentionDevise,
   acomptesDeduits,
   filigrane = true,
 }: DocumentCommercialProps) {
@@ -272,6 +275,7 @@ export function DocumentCommercialPDF({
                 <Text>Total TTC</Text>
                 <Text>{formaterFCFA(montantTTC)}</Text>
               </View>
+              {mentionDevise ? <Text style={styles.detailMontantUnique}>{mentionDevise}</Text> : null}
               {montantRegle != null && montantRegle > 0 ? (
                 <>
                   {(acomptesDeduits ?? []).map((a) => (

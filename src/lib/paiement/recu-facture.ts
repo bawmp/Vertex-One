@@ -1,3 +1,4 @@
+import { mentionDevise } from "@/lib/devises/facture";
 import "server-only";
 import { after } from "next/server";
 import { avecEntreprise } from "@/db/client";
@@ -87,7 +88,7 @@ async function envoyerRecuAuClient(n: NotificationPaiementFacture): Promise<void
     montantHT: d.facture.montantHT,
     montantTVA: d.facture.montantTVA,
     montantTTC: d.facture.montantTTC,
-    montantRegle: d.paye, acomptesDeduits: d.acomptesDeduits,
+    montantRegle: d.paye, acomptesDeduits: d.acomptesDeduits, mentionDevise: mentionDevise(d.facture),
   });
 
   const { subject, html } = gabaritRecuPaiementClient({

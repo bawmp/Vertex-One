@@ -8,13 +8,15 @@ import { moyenPaiementDepuisOperateur } from "@/lib/aangaraa/utilitaires";
 import { obtenirOuCreerLien } from "@/lib/client-documents/liens";
 import { adressesAAlerter } from "@/lib/notifications/equipe";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";
+import { DEVISES_FACTURE, tauxDepuisMontants } from "@/lib/devises/facture";
 
 /**
  * Corps accepté par `POST /api/externe/factures` : un site connecté vient d'encaisser un paiement (Mobile Money confirmé de son côté) et
  * demande à Vertex One d'émettre la facture PAYÉE correspondante. Vertex One reste la seule source de numérotation et de comptabilité :
  * le site n'invente jamais un numéro de facture. Tout est borné, jamais de confiance dans la taille ni le contenu.
  */
-export const schemaFactureExterne = z.object({
+export const schemaFactureExterne = z
+  .object({
   source: z.string().trim().min(1).max(80).default("Site web"),
   // Clé d'idempotence côté site (ex. l'identifiant de la demande payée) : un renvoi de la même référence ne crée JAMAIS une seconde facture.
   reference: z.string().trim().min(1, "La référence du paiement est requise.").max(120),
@@ -30,7 +32,21 @@ export const schemaFactureExterne = z.object({
   operateur: z.string().trim().max(60).optional(),
   // Date du paiement (ISO 8601) ; absente = maintenant. Jamais dans le futur.
   payeLe: z.string().datetime({ offset: true }).optional(),
-});
+  // Facture dans une autre devise : le client a vu et accepté `montantDevise` (en `devise`) ; `montantTTC` reste ce qui a été RÉELLEMENT
+  // encaissé en FCFA, et la comptabilité reste en FCFA. Les deux champs vont ensemble ; absents = facture ordinaire en FCFA.
+  devise: z.enum(DEVISES_FACTURE, { error: "Devise non prise en charge (EUR, USD, CAD, XOF)." }).optional(),
+  montantDevise: z.number().positive("Le montant en devise doit être positif.").max(1_000_000_000, "Montant trop élevé.").optional(),
+  })
+  .superRefine((d, ctx) => {
+    if ((d.devise === undefined) !== (d.montantDevise === undefined)) ctx.addIssue({ code: "custom", message: "La devise et le montant en devise vont ensemble.", path: ["devise"] });
+    if (d.montantDevise !== undefined && Math.round(d.montantDevise * 100) !== d.montantDevise * 100 && Math.abs(Math.round(d.montantDevise * 100) - d.montantDevise * 100) > 1e-6) {
+      ctx.addIssue({ code: "custom", message: "Le montant en devise a deux décimales au plus.", path: ["montantDevise"] });
+    }
+    // Le XOF et le FCFA (XAF) valent exactement la même chose : un autre montant serait une erreur du site.
+    if (d.devise === "XOF" && d.montantDevise !== undefined && d.montantDevise !== d.montantTTC) {
+      ctx.addIssue({ code: "custom", message: "Le XOF est à parité 1 pour 1 avec le FCFA : le montant doit être identique.", path: ["montantDevise"] });
+    }
+  });
 
 export type FactureExterne = z.infer<typeof schemaFactureExterne>;
 
@@ -173,6 +189,9 @@ export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: 
       // Le client a payé : la facture est de fait reconnue.
       reponseClient: "ACCEPTEE",
       reponseClientLe: payeLe,
+      ...(donnees.devise && donnees.montantDevise !== undefined
+        ? { devise: donnees.devise, montantDeviseCentimes: Math.round(donnees.montantDevise * 100), tauxChangeMilliemes: tauxDepuisMontants(donnees.montantTTC, Math.round(donnees.montantDevise * 100)) }
+        : {}),
     })
     .returning({ id: facture.id });
 

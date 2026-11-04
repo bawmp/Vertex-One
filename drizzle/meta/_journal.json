@@ -1184,6 +1184,13 @@
       "when": 1794891600000,
       "tag": "0168_anniversaire_garantie",
       "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1794978000000,
+      "tag": "0169_facture_devise",
+      "breakpoints": true
     }
   ]
 }

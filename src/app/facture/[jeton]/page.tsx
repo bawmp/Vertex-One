@@ -1,4 +1,5 @@
 import { formaterFCFA } from "@/lib/facturation/calcul";
+import { mentionDevise } from "@/lib/devises/facture";
 import Link from "next/link";
 import { Download, CheckCircle2 } from "lucide-react";
 import { chargerFactureParJeton } from "@/lib/client-documents/chargement";
@@ -65,6 +66,8 @@ export default async function PageFactureClient({ params, searchParams }: { para
       </div>
 
       <LignesDocumentClient lignes={lignes} montantHT={facture.montantHT} montantTVA={facture.montantTVA} montantTTC={facture.montantTTC} />
+
+      {mentionDevise(facture) ? <p className="self-end text-sm text-muted-foreground">{mentionDevise(facture)}</p> : null}
 
       {paye > 0 && !annulee ? (
         <div className="flex flex-col gap-1.5 self-end rounded-2xl bg-muted/50 p-4 text-sm sm:min-w-72">

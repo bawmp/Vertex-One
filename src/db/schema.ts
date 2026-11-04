@@ -1386,6 +1386,12 @@ export const facture = pgTable(
     reponseClient: text("reponse_client"),
     reponseClientLe: timestamp("reponse_client_le"),
     motifContestation: text("motif_contestation"),
+    // Facture émise pour un paiement fait dans une autre devise (site connecté, 2026-11-04) : code à trois lettres (EUR, USD, CAD, XOF),
+    // montant en centièmes de cette devise et taux appliqué (FCFA pour une unité, en millièmes). Nuls = facture en FCFA. La comptabilité
+    // et tous les totaux restent en FCFA : ces trois colonnes ne servent qu'à AFFICHER ce que le client a vu et réglé.
+    devise: text("devise"),
+    montantDeviseCentimes: integer("montant_devise_centimes"),
+    tauxChangeMilliemes: integer("taux_change_milliemes"),
   },
   (table) => [
     uniqueIndex("facture_entreprise_numero_unique").on(table.entrepriseId, table.numero),
