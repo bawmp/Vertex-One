@@ -11,7 +11,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { StockDesactive } from "@/components/stock-desactive";
 import { gestionStockActive } from "@/lib/produits/gestion-stock";
-import { rechercherSeries } from "@/lib/produits/series";
+import { garantiesASurveiller, rechercherSeries } from "@/lib/produits/series";
+import { etatGarantie, joursAvantFinGarantie } from "@/lib/produits/series-regles";
 import { getT } from "@/lib/i18n/langue";
 
 /** Retrouver un numéro de série (en entier ou en partie) : le produit, l'état, la date d'entrée et le document de vente. */
@@ -29,7 +30,10 @@ export default async function PageRechercheSeries({ searchParams }: { searchPara
     );
   }
   const saisie = (q ?? "").slice(0, 60);
-  const resultats = await avecEntreprise(u.entrepriseId, async (tx) => ((await gestionStockActive(tx, u.entrepriseId)) ? rechercherSeries(tx, u.entrepriseId, saisie) : null));
+  const aujourdhui = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
+  const donnees = await avecEntreprise(u.entrepriseId, async (tx) => ((await gestionStockActive(tx, u.entrepriseId)) ? { resultats: await rechercherSeries(tx, u.entrepriseId, saisie), garanties: await garantiesASurveiller(tx, u.entrepriseId, aujourdhui) } : null));
+  const resultats = donnees?.resultats ?? null;
+  const garanties = donnees?.garanties ?? [];
   if (!resultats) return <StockDesactive peutActiver={peut(u, "PARAMETRES", "MODIFIER")} />;
   const date = (d: Date | null) => (d ? d.toLocaleDateString("fr-FR", { timeZone: "Africa/Douala" }) : "");
 
@@ -51,6 +55,29 @@ export default async function PageRechercheSeries({ searchParams }: { searchPara
         </Button>
       </form>
 
+      {saisie.trim().length < 2 && garanties.length > 0 ? (
+        <Card className="p-0">
+          <p className="border-b px-4 py-2.5 text-sm font-medium">{t("Garanties à surveiller (30 jours)")}</p>
+          <div className="flex flex-col divide-y divide-border">
+            {garanties.map((g) => {
+              const etat = etatGarantie(g.garantieFin, aujourdhui);
+              const reste = joursAvantFinGarantie(g.garantieFin, aujourdhui);
+              return (
+                <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium tabular-nums">{g.numero}</p>
+                    <p className="text-xs text-muted-foreground">
+                      <Link href={`/app/produits/${g.produitId}`} className="underline-offset-4 hover:underline">{g.produit}</Link> · {t("garantie jusqu'au {date}", { date: g.garantieFin.split("-").reverse().join("/") })}
+                    </p>
+                  </div>
+                  {etat === "EXPIREE" ? <Badge variant="danger">{t("Expirée depuis {n} j", { n: Math.abs(reste ?? 0) })}</Badge> : <Badge variant="warning">{t("Se termine dans {n} j", { n: reste ?? 0 })}</Badge>}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
+
       {saisie.trim().length < 2 ? (
         <EtatVide icone={Hash} titre={t("Saisissez un numéro de série.")} description={t("Deux caractères au moins. Vous verrez le produit, l'état de l'unité et le document de vente.")} />
       ) : resultats.length === 0 ? (
@@ -68,6 +95,7 @@ export default async function PageRechercheSeries({ searchParams }: { searchPara
                       <Link href={`/app/produits/${r.produitId}`} className="underline-offset-4 hover:underline">{r.produit}</Link> · {t("entré le {date}", { date: date(r.entreLe) })}
                       {r.statut === "VENDU" ? ` · ${t("vendu le {date}", { date: date(r.venduLe) })}` : ""}
                       {lien ? <> · <Link href={lien} className="underline-offset-4 hover:underline">{t("voir le document")}</Link></> : null}
+                      {r.statut === "VENDU" && r.garantieFin ? ` · ${t("garantie jusqu'au {date}", { date: r.garantieFin.split("-").reverse().join("/") })}` : ""}
                     </p>
                   </div>
                   {r.statut === "EN_STOCK" ? <Badge variant="success">{t("En stock")}</Badge> : r.statut === "VENDU" ? <Badge variant="info">{t("Vendu")}</Badge> : <Badge variant="neutral">{t("Retiré")}</Badge>}

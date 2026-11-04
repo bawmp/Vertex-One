@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { cloturerDepart } from "@/lib/actions/depart";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireCloture({ demandeDepartId }: { demandeDepartId: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(cloturerDepart, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -17,7 +19,7 @@ export function FormulaireCloture({ demandeDepartId }: { demandeDepartId: string
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <DoorClosed data-icon="inline-start" aria-hidden />
-        Clôturer le départ
+        {t("Clôturer le départ")}
       </Button>
     );
   }
@@ -25,19 +27,19 @@ export function FormulaireCloture({ demandeDepartId }: { demandeDepartId: string
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Clôturer le départ</CardTitle>
+        <CardTitle>{t("Clôturer le départ")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-3">
           <input type="hidden" name="demandeDepartId" value={demandeDepartId} />
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="entretienSortie">Entretien de sortie (optionnel)</Label>
+            <Label htmlFor="entretienSortie">{t("Entretien de sortie (optionnel)")}</Label>
             <Textarea id="entretienSortie" name="entretienSortie" rows={3} />
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Ceci désactive le compte de l&apos;employé et met fin à ses sessions actives — action définitive.
+            {t("Ceci désactive le compte de l'employé et met fin à ses sessions actives — action définitive.")}
           </p>
 
           {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}
@@ -45,10 +47,10 @@ export function FormulaireCloture({ demandeDepartId }: { demandeDepartId: string
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={enCours}>
               {enCours ? <Spinner /> : null}
-              {enCours ? "Clôture…" : "Clôturer"}
+              {enCours ? t("Clôture…") : t("Clôturer")}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-              Annuler
+              {t("Annuler")}
             </Button>
           </div>
         </form>

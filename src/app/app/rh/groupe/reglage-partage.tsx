@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { definirPartageFichesAction } from "@/lib/actions/groupe-fiches";
+import { useT } from "@/lib/i18n/contexte";
 
 /** Interrupteur du partage des fiches avec le groupe (Administrateur seulement) ; l'effet réel demande que l'autre entreprise l'ait activé aussi. */
 export function ReglagePartage({ actif }: { actif: boolean }) {
+  const t = useT();
   const [valeur, setValeur] = useState(actif);
   const [erreur, setErreur] = useState<string | null>(null);
   const [attente, demarrer] = useTransition();
@@ -34,7 +36,7 @@ export function ReglagePartage({ actif }: { actif: boolean }) {
           <span aria-hidden className="h-6 w-11 rounded-full bg-muted-foreground/30 transition-colors peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary" />
           <span aria-hidden className="absolute left-0.5 size-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
         </span>
-        Partager les fiches de mon entreprise avec le groupe
+        {t("Partager les fiches de mon entreprise avec le groupe")}
       </label>
       {erreur ? <p role="alert" className="text-xs text-destructive">{erreur}</p> : null}
     </div>

@@ -14,9 +14,9 @@ import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
 import { ChoixDepotDocument } from "@/components/choix-depot-document";
 
-type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string };
+type Ligne = { produitId: string; designation: string; quantite: string; prixUnitaire: string; tauxTVA: string; series: string };
 
-const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25" };
+const LIGNE_VIDE: Ligne = { produitId: "", designation: "", quantite: "1", prixUnitaire: "0", tauxTVA: "19.25", series: "" };
 
 const MOYENS_PAIEMENT: { valeur: string; libelle: string }[] = [
   { valeur: "orange_money", libelle: m("Orange Money") },
@@ -33,7 +33,7 @@ export function FormulaireRecuVente({
 }: {
   dealId?: string;
   contactId?: string;
-  produits: { id: string; nom: string; prixVente: number }[];
+  produits: { id: string; nom: string; prixVente: number; suiviSerie: boolean; series: string[] }[];
 }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerRecuVente, null);
@@ -47,7 +47,7 @@ export function FormulaireRecuVente({
     const p = produits.find((p) => p.id === produitId);
     setLignes((precedent) =>
       precedent.map((l, i) =>
-        i === index ? { ...l, produitId, designation: p ? p.nom : l.designation, prixUnitaire: p ? String(p.prixVente) : l.prixUnitaire } : l
+        i === index ? { ...l, produitId, series: "", designation: p ? p.nom : l.designation, prixUnitaire: p ? String(p.prixVente) : l.prixUnitaire } : l
       )
     );
   }
@@ -157,6 +157,23 @@ export function FormulaireRecuVente({
                 >
                   <X className="size-4" aria-hidden />
                 </Button>
+                {(() => {
+                  const p = produits.find((x) => x.id === ligne.produitId);
+                  if (!p?.suiviSerie) return <input type="hidden" name="seriesChoisies" value="" />;
+                  return (
+                    <div className="col-span-full flex flex-col gap-1">
+                      <Label htmlFor={`series-${index}`} className="text-xs text-muted-foreground">
+                        {t("N° de série vendus (facultatif)")} — {t("{n} en stock", { n: p.series.length })}
+                      </Label>
+                      <Input id={`series-${index}`} name="seriesChoisies" list={`liste-series-${index}`} value={ligne.series} onChange={(e) => majLigne(index, "series", e.target.value)} placeholder={t("Sans choix, les plus anciens partent d'abord. Séparez par une virgule.")} />
+                      <datalist id={`liste-series-${index}`}>
+                        {p.series.map((n) => (
+                          <option key={n} value={n} />
+                        ))}
+                      </datalist>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
 

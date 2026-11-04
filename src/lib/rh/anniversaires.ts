@@ -46,7 +46,7 @@ export async function anniversairesAVenir(tx: TransactionDrizzle, u: Utilisateur
   return anniversairesProches(await personnesVisiblesAvecNaissance(tx, u), aujourdhui, fenetre);
 }
 
-export type ResultatRappels = { anniversaires: number; destinataires: number };
+export type ResultatRappels = { anniversaires: number; destinataires: number; /** Mots d'anniversaire envoyés aux personnes elles-mêmes (réglage facultatif de l'Administrateur). */ souhaits?: number };
 
 /**
  * Rappel du jour pour UNE entreprise : un email par destinataire (Administrateurs actifs, et le responsable direct de la personne : son
@@ -56,7 +56,7 @@ export type ResultatRappels = { anniversaires: number; destinataires: number };
  */
 export async function traiterRappelsAnniversaires(tx: TransactionDrizzle, entrepriseId: string, aujourdhui: string): Promise<ResultatRappels> {
   const annee = Number(aujourdhui.slice(0, 4));
-  const [e] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, entrepriseId));
+  const [e] = await tx.select({ nom: entreprise.nom, souhait: entreprise.souhaitAnniversaireEmail }).from(entreprise).where(eq(entreprise.id, entrepriseId));
   if (!e) return { anniversaires: 0, destinataires: 0 };
 
   const comptes = await tx
@@ -65,9 +65,10 @@ export async function traiterRappelsAnniversaires(tx: TransactionDrizzle, entrep
     .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
     .where(and(eq(dossierRH.entrepriseId, entrepriseId), eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), isNotNull(dossierRH.dateNaissance)));
   const stagiaires = await tx
-    .select({ id: stagiaireAcademique.id, nom: stagiaireAcademique.nom, naissance: stagiaireAcademique.dateNaissance, maitre: stagiaireAcademique.maitreStageId })
+    .select({ id: stagiaireAcademique.id, nom: stagiaireAcademique.nom, naissance: stagiaireAcademique.dateNaissance, maitre: stagiaireAcademique.maitreStageId, email: stagiaireAcademique.email })
     .from(stagiaireAcademique)
     .where(and(eq(stagiaireAcademique.entrepriseId, entrepriseId), eq(stagiaireAcademique.statut, "EN_COURS"), isNotNull(stagiaireAcademique.dateNaissance)));
+  const emailStagiaire = new Map(stagiaires.map((x) => [x.id, x.email]));
 
   const aujourdHui = [
     ...comptes.filter((c) => prochainAnniversaire(c.naissance!, aujourdhui)?.jours === 0).map((c) => ({ type: "UTILISATEUR" as const, id: c.id, nom: c.nom, naissance: c.naissance!, responsable: c.managerId })),
@@ -111,6 +112,18 @@ export async function traiterRappelsAnniversaires(tx: TransactionDrizzle, entrep
     );
   }
 
+  // Mot d'anniversaire à la personne elle-même, si l'Administrateur l'a activé (jamais par défaut) : une seule fois par an, comme le rappel.
+  let souhaits = 0;
+  if (e.souhait) {
+    for (const p of nouveaux) {
+      const adresse = p.type === "UTILISATEUR" ? parId.get(p.id)?.email : emailStagiaire.get(p.id);
+      if (!adresse) continue;
+      const prenom = p.nom.trim().split(/\s+/)[0] ?? p.nom;
+      await alerterParEmail([adresse], "Joyeux anniversaire !", `<p>Bonjour ${echapper(prenom)},</p><p>Toute l'équipe de <strong>${echapper(e.nom)}</strong> vous souhaite un très joyeux anniversaire !</p><p style="color:#666;font-size:12px">Message automatique de ${echapper(e.nom)} sur Vertex One.</p>`);
+      souhaits += 1;
+    }
+  }
+
   await tx.insert(rappelAnniversaire).values(nouveaux.map((p) => ({ entrepriseId, cibleType: p.type, cibleId: p.id, annee }))).onConflictDoNothing();
-  return { anniversaires: nouveaux.length, destinataires: aPrevenir.size };
+  return { anniversaires: nouveaux.length, destinataires: aPrevenir.size, souhaits };
 }

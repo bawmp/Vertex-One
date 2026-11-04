@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { creerCategorieTicketRH } from "@/lib/actions/ticket-rh";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireNouvelleCategorie({ utilisateurs }: { utilisateurs: { id: string; nomComplet: string }[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerCategorieTicketRH, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -17,7 +19,7 @@ export function FormulaireNouvelleCategorie({ utilisateurs }: { utilisateurs: { 
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Plus data-icon="inline-start" aria-hidden />
-        Nouvelle catégorie
+        {t("Nouvelle catégorie")}
       </Button>
     );
   }
@@ -26,13 +28,13 @@ export function FormulaireNouvelleCategorie({ utilisateurs }: { utilisateurs: { 
     <form action={action} className="flex flex-col gap-3 rounded-lg border p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="nom">Nom de la catégorie</Label>
-          <Input id="nom" name="nom" placeholder="ex : Congés, Matériel, Général" required />
+          <Label htmlFor="nom">{t("Nom de la catégorie")}</Label>
+          <Input id="nom" name="nom" placeholder={t("ex : Congés, Matériel, Général")} required />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="agentId">Agent par défaut</Label>
+          <Label htmlFor="agentId">{t("Agent par défaut")}</Label>
           <Select id="agentId" name="agentId" required>
-            <option value="">Sélectionner…</option>
+            <option value="">{t("Sélectionner…")}</option>
             {utilisateurs.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.nomComplet}
@@ -47,10 +49,10 @@ export function FormulaireNouvelleCategorie({ utilisateurs }: { utilisateurs: { 
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Création…" : "Créer"}
+          {enCours ? t("Création…") : t("Créer")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

@@ -2,12 +2,14 @@ import { CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { validerClearance, supprimerClearance } from "@/lib/actions/depart";
+import { getT } from "@/lib/i18n/langue";
 
 type Clearance = { id: string; libelle: string; responsableId: string; responsableNom: string; complete: boolean; completeLe: Date | null };
 
-export function ListeClearances({ clearances, utilisateurId, peutSupprimer }: { clearances: Clearance[]; utilisateurId: string; peutSupprimer: boolean }) {
+export async function ListeClearances({ clearances, utilisateurId, peutSupprimer }: { clearances: Clearance[]; utilisateurId: string; peutSupprimer: boolean }) {
+  const t = await getT();
   if (clearances.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucune clôture pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucune clôture pour le moment.")}</p>;
   }
 
   return (
@@ -25,20 +27,20 @@ export function ListeClearances({ clearances, utilisateurId, peutSupprimer }: { 
                 {c.complete ? <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden /> : <Circle className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
                 <div>
                   <p className={c.complete ? "font-medium line-through text-muted-foreground" : "font-medium"}>{c.libelle}</p>
-                  <p className="text-xs text-muted-foreground">Responsable : {c.responsableNom}</p>
+                  <p className="text-xs text-muted-foreground">{t("Responsable : {nom}", { nom: c.responsableNom })}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {peutValider ? (
                   <form action={validerClearance.bind(null, c.id)}>
                     <Button type="submit" size="xs" variant="outline">
-                      Valider
+                      {t("Valider")}
                     </Button>
                   </form>
                 ) : null}
                 {peutSupprimer ? (
                   <form action={supprimerClearance.bind(null, c.id)}>
-                    <Button type="submit" size="icon-xs" variant="ghost" className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                    <Button type="submit" size="icon-xs" variant="ghost" className="text-muted-foreground hover:text-destructive" aria-label={t("Supprimer")}>
                       <Trash2 className="size-3.5" aria-hidden />
                     </Button>
                   </form>

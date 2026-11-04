@@ -1,10 +1,12 @@
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n/langue";
 
 type Evaluation = { id: string; periode: string; commentaire: string | null; evaluateurNom: string; creeLe: Date };
 
-export function ListeEvaluations({ evaluations }: { evaluations: Evaluation[] }) {
+export async function ListeEvaluations({ evaluations }: { evaluations: Evaluation[] }) {
+  const t = await getT();
   if (evaluations.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucune évaluation pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucune évaluation pour le moment.")}</p>;
   }
 
   return (
@@ -19,7 +21,7 @@ export function ListeEvaluations({ evaluations }: { evaluations: Evaluation[] })
             <div className="flex items-center justify-between">
               <p className="font-medium">{e.periode}</p>
               <span className="text-xs text-muted-foreground">
-                {e.evaluateurNom} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(e.creeLe)}
+                {e.evaluateurNom} — {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(e.creeLe)}
               </span>
             </div>
             {e.commentaire ? <p className="text-muted-foreground">{e.commentaire}</p> : null}

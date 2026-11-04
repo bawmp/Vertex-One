@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, asc, count, eq, gte, ne, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { projet, tache, tacheCrm } from "@/db/schema";
@@ -35,7 +36,7 @@ export async function tachesDuCollaborateur(tx: TransactionDrizzle, entrepriseId
   ]);
   const ouvertes: TacheDeFiche[] = [
     ...projets.map((t): TacheDeFiche => ({ id: t.id, titre: t.titre, statut: t.statut, echeance: t.echeance, origine: `Projet ${t.projetTitre}`, lien: `/app/projets/${t.projetId}` })),
-    ...crm.map((t): TacheDeFiche => ({ id: t.id, titre: t.objet, statut: t.statut, echeance: t.echeance, origine: "Activité CRM", lien: null })),
+    ...crm.map((t): TacheDeFiche => ({ id: t.id, titre: t.objet, statut: t.statut, echeance: t.echeance, origine: m("Activité CRM"), lien: null })),
   ].sort((a, b) => (a.echeance?.getTime() ?? Infinity) - (b.echeance?.getTime() ?? Infinity));
   return { ouvertes, termineesRecemment: (tp?.n ?? 0) + (tc?.n ?? 0), enRetard: ouvertes.filter((t) => estEnRetard(t.echeance, maintenant)).length };
 }

@@ -78,7 +78,7 @@ export function BasculeSection({ id, libelle, actif }: { id: string; libelle: st
 }
 
 /** Rattache un document (facture, dépense) à une section : ses écritures, règlements compris, suivent. */
-export function SelecteurSection({ type, documentId, courante, sections }: { type: "FACTURE" | "DEPENSE"; documentId: string; courante: string; sections: { id: string; libelle: string; code: string }[] }) {
+export function SelecteurSection({ type, documentId, courante, sections }: { type: "FACTURE" | "DEPENSE" | "FACTURE_FOURNISSEUR"; documentId: string; courante: string; sections: { id: string; libelle: string; code: string }[] }) {
   const t = useT();
   const [etat, setEtat] = useState<EtatAnalytique>(null);
   const [enCours, startTransition] = useTransition();

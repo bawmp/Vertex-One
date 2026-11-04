@@ -1177,6 +1177,13 @@
       "when": 1794805200000,
       "tag": "0167_partage_fiches_groupe",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1794891600000,
+      "tag": "0168_anniversaire_garantie",
+      "breakpoints": true
     }
   ]
 }

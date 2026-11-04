@@ -2,6 +2,7 @@ import { Download, Trash2, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { effacerDocumentRH } from "@/lib/actions/document-rh";
+import { getT } from "@/lib/i18n/langue";
 
 type DocumentRH = { id: string; nom: string; tailleOctets: number; televerseParNom: string; creeLe: Date };
 
@@ -11,9 +12,10 @@ function formaterTaille(octets: number): string {
   return `${(octets / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-export function ListeDocumentsRH({ documents, dossierRHId, peutSupprimer }: { documents: DocumentRH[]; dossierRHId: string; peutSupprimer: boolean }) {
+export async function ListeDocumentsRH({ documents, dossierRHId, peutSupprimer }: { documents: DocumentRH[]; dossierRHId: string; peutSupprimer: boolean }) {
+  const t = await getT();
   if (documents.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucun fichier pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucun fichier pour le moment.")}</p>;
   }
 
   return (
@@ -30,7 +32,7 @@ export function ListeDocumentsRH({ documents, dossierRHId, peutSupprimer }: { do
               <div className="min-w-0">
                 <p className="truncate font-medium">{d.nom}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formaterTaille(d.tailleOctets)} — {d.televerseParNom} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.creeLe)}
+                  {formaterTaille(d.tailleOctets)} — {d.televerseParNom} — {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(d.creeLe)}
                 </p>
               </div>
             </div>
@@ -40,13 +42,13 @@ export function ListeDocumentsRH({ documents, dossierRHId, peutSupprimer }: { do
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
-                aria-label={`Télécharger ${d.nom}`}
+                aria-label={t("Télécharger {nom}", { nom: d.nom })}
               >
                 <Download className="size-4" aria-hidden />
               </a>
               {peutSupprimer ? (
                 <form action={effacerDocumentRH.bind(null, d.id)}>
-                  <Button type="submit" size="icon-xs" variant="ghost" className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                  <Button type="submit" size="icon-xs" variant="ghost" className="text-muted-foreground hover:text-destructive" aria-label={t("Supprimer")}>
                     <Trash2 className="size-3.5" aria-hidden />
                   </Button>
                 </form>

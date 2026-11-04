@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, desc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { generateRandomString } from "better-auth/crypto";
 import type { TransactionDrizzle } from "@/db/client";
@@ -43,14 +44,14 @@ export async function deciderStagePro(tx: TransactionDrizzle, entrepriseId: stri
     .select({ typeContrat: dossierRH.typeContrat, decisionStage: dossierRH.decisionStage, utilisateurId: dossierRH.utilisateurId })
     .from(dossierRH)
     .where(and(eq(dossierRH.id, dossierRHId), eq(dossierRH.entrepriseId, entrepriseId)));
-  if (!d) return { erreur: "Dossier RH introuvable." };
-  if (d.typeContrat !== "STAGE") return { erreur: "Ce dossier n'est pas celui d'un stagiaire." };
-  if (d.decisionStage) return { erreur: "Une décision a déjà été prise pour ce stage." };
-  if (Number.isNaN(dateEffet.getTime())) return { erreur: "Date invalide." };
+  if (!d) return { erreur: m("Dossier RH introuvable.") };
+  if (d.typeContrat !== "STAGE") return { erreur: m("Ce dossier n'est pas celui d'un stagiaire.") };
+  if (d.decisionStage) return { erreur: m("Une décision a déjà été prise pour ce stage.") };
+  if (Number.isNaN(dateEffet.getTime())) return { erreur: m("Date invalide.") };
   const motifPropre = motif?.trim().slice(0, 500) || null;
 
   if (decision.decision === "EMBAUCHE") {
-    if (decision.typeContrat === "CDD" && (!decision.dateFinCDD || Number.isNaN(decision.dateFinCDD.getTime()) || decision.dateFinCDD <= dateEffet)) return { erreur: "Un CDD a besoin d'une date de fin postérieure à la date d'embauche." };
+    if (decision.typeContrat === "CDD" && (!decision.dateFinCDD || Number.isNaN(decision.dateFinCDD.getTime()) || decision.dateFinCDD <= dateEffet)) return { erreur: m("Un CDD a besoin d'une date de fin postérieure à la date d'embauche.") };
     await tx
       .update(dossierRH)
       .set({ typeContrat: decision.typeContrat, dateFinContrat: decision.typeContrat === "CDD" ? (decision.dateFinCDD ?? null) : null, decisionStage: "EMBAUCHE", dateDecisionStage: dateEffet, motifDecisionStage: motifPropre })
@@ -152,8 +153,8 @@ export type SaisieStagiaire = {
 /** Le maître de stage et le département doivent être de CETTE entreprise (`utilisateur` est en RLS permissive : filtre explicite). */
 async function referencesValides(tx: TransactionDrizzle, entrepriseId: string, s: Pick<SaisieStagiaire, "maitreStageId">): Promise<string | null> {
   if (s.maitreStageId) {
-    const [m] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, s.maitreStageId), eq(utilisateur.entrepriseId, entrepriseId)));
-    if (!m) return "Maître de stage introuvable.";
+    const [maitre] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, s.maitreStageId), eq(utilisateur.entrepriseId, entrepriseId)));
+    if (!maitre) return m("Maître de stage introuvable.");
   }
   return null;
 }
@@ -181,7 +182,7 @@ function nettoyer(s: SaisieStagiaire) {
 }
 
 export async function creerStagiaireAcademique(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, saisie: SaisieStagiaire): Promise<{ erreur?: string; id?: string }> {
-  if (saisie.dateFin < saisie.dateDebut) return { erreur: "La fin du stage ne peut pas précéder son début." };
+  if (saisie.dateFin < saisie.dateDebut) return { erreur: m("La fin du stage ne peut pas précéder son début.") };
   const erreurRef = await referencesValides(tx, utilisateurConnecte.entrepriseId, saisie);
   if (erreurRef) return { erreur: erreurRef };
   const [cree] = await tx
@@ -193,9 +194,9 @@ export async function creerStagiaireAcademique(tx: TransactionDrizzle, utilisate
 
 export async function modifierStagiaireAcademique(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, id: string, saisie: SaisieStagiaire): Promise<{ erreur?: string }> {
   const fiche = await trouverStagiaireAcademique(tx, utilisateurConnecte, id);
-  if (!fiche) return { erreur: "Fiche introuvable." };
-  if (fiche.statut !== "EN_COURS") return { erreur: "Ce stage est clos : la fiche n'est plus modifiable." };
-  if (saisie.dateFin < saisie.dateDebut) return { erreur: "La fin du stage ne peut pas précéder son début." };
+  if (!fiche) return { erreur: m("Fiche introuvable.") };
+  if (fiche.statut !== "EN_COURS") return { erreur: m("Ce stage est clos : la fiche n'est plus modifiable.") };
+  if (saisie.dateFin < saisie.dateDebut) return { erreur: m("La fin du stage ne peut pas précéder son début.") };
   const erreurRef = await referencesValides(tx, utilisateurConnecte.entrepriseId, saisie);
   if (erreurRef) return { erreur: erreurRef };
   await tx
@@ -208,8 +209,8 @@ export async function modifierStagiaireAcademique(tx: TransactionDrizzle, utilis
 /** Clôture : stage terminé ou interrompu (avec l'évaluation et le motif). L'embauche passe par convertirStagiaireEnInvitation(). */
 export async function cloturerStagiaireAcademique(tx: TransactionDrizzle, utilisateurConnecte: UtilisateurConnecte, id: string, statut: "TERMINE" | "INTERROMPU", evaluation?: string, motif?: string): Promise<{ erreur?: string }> {
   const fiche = await trouverStagiaireAcademique(tx, utilisateurConnecte, id);
-  if (!fiche) return { erreur: "Fiche introuvable." };
-  if (fiche.statut !== "EN_COURS") return { erreur: "Ce stage est déjà clos." };
+  if (!fiche) return { erreur: m("Fiche introuvable.") };
+  if (fiche.statut !== "EN_COURS") return { erreur: m("Ce stage est déjà clos.") };
   await tx
     .update(stagiaireAcademique)
     .set({ statut, decisionLe: new Date(), motifDecision: motif?.trim().slice(0, 500) || null, evaluation: evaluation?.trim() || fiche.evaluation })
@@ -229,15 +230,15 @@ export async function convertirStagiaireEnInvitation(
   dateEmbauche: Date
 ): Promise<{ erreur?: string; jeton?: string }> {
   const [fiche] = await tx.select().from(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, id), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
-  if (!fiche) return { erreur: "Fiche introuvable." };
-  if (fiche.invitationId) return { erreur: "Ce stagiaire a déjà été embauché." };
-  if (!fiche.email) return { erreur: "Cette fiche n'a pas d'adresse email : impossible d'envoyer une invitation." };
-  if (Number.isNaN(dateEmbauche.getTime())) return { erreur: "Date invalide." };
+  if (!fiche) return { erreur: m("Fiche introuvable.") };
+  if (fiche.invitationId) return { erreur: m("Ce stagiaire a déjà été embauché.") };
+  if (!fiche.email) return { erreur: m("Cette fiche n'a pas d'adresse email : impossible d'envoyer une invitation.") };
+  if (Number.isNaN(dateEmbauche.getTime())) return { erreur: m("Date invalide.") };
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
   const [inv] = await tx
     .insert(invitation)
-    .values({ entrepriseId, email: fiche.email, roleProposee: role, postePropose: fiche.mission ?? "Non renseigné", typeContratPropose: typeContrat, dateEmbauchePropose: dateEmbauche, jeton, expireLe: new Date(Date.now() + DUREE_EXPIRATION_INVITATION_MS) })
+    .values({ entrepriseId, email: fiche.email, roleProposee: role, postePropose: fiche.mission ?? m("Non renseigné"), typeContratPropose: typeContrat, dateEmbauchePropose: dateEmbauche, jeton, expireLe: new Date(Date.now() + DUREE_EXPIRATION_INVITATION_MS) })
     .returning({ id: invitation.id });
   await tx.update(stagiaireAcademique).set({ statut: "EMBAUCHE", decisionLe: new Date(), invitationId: inv.id }).where(eq(stagiaireAcademique.id, id));
   return { jeton };
@@ -245,8 +246,8 @@ export async function convertirStagiaireEnInvitation(
 
 export async function supprimerStagiaireAcademique(tx: TransactionDrizzle, entrepriseId: string, id: string): Promise<{ erreur?: string }> {
   const [fiche] = await tx.select({ invitationId: stagiaireAcademique.invitationId }).from(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, id), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
-  if (!fiche) return { erreur: "Fiche introuvable." };
-  if (fiche.invitationId) return { erreur: "Ce stagiaire a été embauché : la fiche garde la trace de l'embauche et ne peut pas être supprimée." };
+  if (!fiche) return { erreur: m("Fiche introuvable.") };
+  if (fiche.invitationId) return { erreur: m("Ce stagiaire a été embauché : la fiche garde la trace de l'embauche et ne peut pas être supprimée.") };
   await tx.delete(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, id), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
   return {};
 }

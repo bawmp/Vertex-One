@@ -8,6 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { factureFournisseur, ligneFactureFournisseur, paiementEffectue, avoirFournisseur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { affecterDocument } from "@/lib/comptabilite/analytique";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererEcrituresFactureFournisseur, genererEcrituresPaiementEffectue } from "@/lib/comptabilite/ecritures";
 import { defaireMouvementsDocument, incrementerStockAchat } from "@/lib/produits/stock";
@@ -47,6 +48,7 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
   const depotChoisi = verifDepot.depotId;
 
   const compteComptableId = String(formData.get("compteComptableId") ?? "");
+  const sectionChoisie = String(formData.get("sectionAnalytiqueId") ?? "");
   const dateFacture = String(formData.get("dateFacture") ?? "");
   const dateEcheance = String(formData.get("dateEcheance") ?? "");
 
@@ -113,6 +115,8 @@ export async function creerFactureFournisseur(_etat: EtatFactureFournisseur, for
       montantTVA: montants.montantTVA,
       montantTTC: montants.montantTTC,
     });
+    // Comptabilité analytique : la section choisie à la saisie (réservée à qui peut la gérer, relue côté serveur).
+    if (sectionChoisie && peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) await affecterDocument(tx, utilisateurConnecte.entrepriseId, "FACTURE_FOURNISSEUR", nouvelleFacture.id, sectionChoisie);
   });
 
   revalidatePath(CHEMIN);

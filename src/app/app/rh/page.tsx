@@ -1,7 +1,8 @@
+import { m } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq, inArray, and, ne } from "drizzle-orm";
-import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck, UserPlus, Cake, Network } from "lucide-react";
+import { Users, Lock, CalendarClock, LogOut, Briefcase, Wallet, Ticket, Smile, GraduationCap, ClipboardCheck, UserPlus, Cake, Network, Workflow } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, demandeConge, demandeDepart, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -21,15 +22,18 @@ import { traiterDemandeDepart } from "@/lib/actions/depart";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { anniversairesAVenir } from "@/lib/rh/anniversaires";
+import { ReglageSouhait } from "./reglage-souhait";
 import { anniversairesDesPartenaires, etatPartageFiches, partenairesFiches } from "@/lib/rh/groupe-fiches";
 import { libelleDelai } from "@/lib/rh/anniversaires-regles";
 import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
+import { getT } from "@/lib/i18n/langue";
 
-const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: "Congé payé", MALADIE: "Maladie", SANS_SOLDE: "Sans solde", AUTRE: "Autre" };
-const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: "Démission", LICENCIEMENT: "Licenciement", FIN_CONTRAT: "Fin de contrat", AUTRE: "Autre" };
-const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
+const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: m("Congé payé"), MALADIE: m("Maladie"), SANS_SOLDE: m("Sans solde"), AUTRE: m("Autre") };
+const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: m("Démission"), LICENCIEMENT: m("Licenciement"), FIN_CONTRAT: m("Fin de contrat"), AUTRE: m("Autre") };
+const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: m("Stage"), PRESTATAIRE: m("Prestataire") };
 
 export default async function PageRH() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
@@ -37,7 +41,7 @@ export default async function PageRH() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas accès aux Ressources Humaines.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès aux Ressources Humaines.")}</p>
       </div>
     );
   }
@@ -62,7 +66,7 @@ export default async function PageRH() {
       return (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Lock className="size-8 text-muted-foreground" aria-hidden />
-          <p className="text-muted-foreground">Les Ressources Humaines sont disponibles à partir du forfait Business.</p>
+          <p className="text-muted-foreground">{t("Les Ressources Humaines sont disponibles à partir du forfait Business.")}</p>
         </div>
       );
     }
@@ -78,7 +82,7 @@ export default async function PageRH() {
   // tête de page.
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
-      .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
+      .select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement, souhaitAnniversaire: entreprise.souhaitAnniversaireEmail })
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
 
@@ -107,6 +111,7 @@ export default async function PageRH() {
         dossierParUtilisateur: {} as Record<string, string>,
         anniversairesGroupe: [] as Awaited<ReturnType<typeof anniversairesDesPartenaires>>,
         lienGroupe: false,
+        souhaitAnniversaire: false,
       };
     }
 
@@ -162,45 +167,49 @@ export default async function PageRH() {
     const anniversairesGroupe = await anniversairesDesPartenaires(utilisateurConnecte, jourDouala, 30);
     const lienGroupe = utilisateurConnecte.role === "ADMIN" ? (await etatPartageFiches(utilisateurConnecte.entrepriseId)).groupe : (await partenairesFiches(utilisateurConnecte.entrepriseId)).length > 0;
 
-    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe };
+    return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe, souhaitAnniversaire: monEntreprise.souhaitAnniversaire };
   });
 
-  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe } = donnees;
+  const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe, souhaitAnniversaire } = donnees;
   const anniversairesTous = [...anniversaires.map((a) => ({ ...a, entrepriseNom: null as string | null })), ...anniversairesGroupe].sort((a, b) => a.jours - b.jours || a.nom.localeCompare(b.nom, "fr"));
   const anniversairesParUtilisateur = Object.fromEntries(anniversaires.filter((a) => a.type === "UTILISATEUR").map((a) => [a.id, a]));
   const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
   const ticketsOuverts = rapport ? (rapport.ticketsParStatut["OUVERT"] ?? 0) + (rapport.ticketsParStatut["EN_COURS"] ?? 0) : 0;
-  const t = traduire(utilisateurConnecte.langue);
+  const dico = traduire(utilisateurConnecte.langue);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex items-center gap-2.5">
           <Users className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">{t.pages.rh.titre}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{dico.pages.rh.titre}</h1>
         </div>
         {rhDisponible && (utilisateurConnecte.role === "ADMIN" || utilisateurConnecte.role === "MANAGER") ? (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {aFichePresence ? (
               <Link href="/app/rh/presences" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <ClipboardCheck className="size-3.5" aria-hidden />
-                Présences
+                {t("Présences")}
               </Link>
             ) : null}
             <Link href="/app/rh/stagiaires" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <GraduationCap className="size-3.5" aria-hidden />
-              Stagiaires
+              {t("Stagiaires")}
+            </Link>
+            <Link href="/app/rh/organigramme" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <Workflow className="size-3.5" aria-hidden />
+              {t("Organigramme")}
             </Link>
             {lienGroupe ? (
               <Link href="/app/rh/groupe" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <Network className="size-3.5" aria-hidden />
-                Groupe
+                {t("Groupe")}
               </Link>
             ) : null}
             {peut(utilisateurConnecte, "RH", "CREER") ? (
               <Link href="/app/rh/nouveau" className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                 <UserPlus className="size-3.5" aria-hidden />
-                Nouvelle fiche
+                {t("Nouvelle fiche")}
               </Link>
             ) : null}
           </div>
@@ -211,7 +220,7 @@ export default async function PageRH() {
         <div className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <CalendarClock className="size-4" aria-hidden />
-            Demandes de congé en attente
+            {t("Demandes de congé en attente")}
           </h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
@@ -222,21 +231,20 @@ export default async function PageRH() {
                   className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
                 >
                   <div>
-                    <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? "Employé"}</p>
+                    <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? t("Employé")}</p>
                     <p className="text-xs text-muted-foreground">
-                      {LIBELLE_TYPE_CONGE[d.type] ?? d.type} — {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.dateDebut)} au{" "}
-                      {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.dateFin)} ({d.nombreJours} j.)
+                      {t("{type} — {debut} au {fin} ({n} j.)", { type: t(LIBELLE_TYPE_CONGE[d.type] ?? d.type), debut: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(d.dateDebut), fin: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(d.dateFin), n: d.nombreJours })}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <form action={traiterDemandeConge.bind(null, d.id, "approuver")}>
                       <Button type="submit" size="xs" variant="outline">
-                        Approuver
+                        {t("Approuver")}
                       </Button>
                     </form>
                     <form action={traiterDemandeConge.bind(null, d.id, "refuser")}>
                       <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
-                        Refuser
+                        {t("Refuser")}
                       </Button>
                     </form>
                   </div>
@@ -251,7 +259,7 @@ export default async function PageRH() {
         <div className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <LogOut className="size-4" aria-hidden />
-            Demandes de départ en attente
+            {t("Demandes de départ en attente")}
           </h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
@@ -262,20 +270,20 @@ export default async function PageRH() {
                   className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between gap-3 px-4 py-2.5 text-sm duration-300 fill-mode-both"
                 >
                   <div>
-                    <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? "Employé"}</p>
+                    <p className="font-medium">{nomParDossierRHId[d.dossierRHId] ?? t("Employé")}</p>
                     <p className="text-xs text-muted-foreground">
-                      {LIBELLE_TYPE_DEPART[d.type] ?? d.type} — souhaitée le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d.dateDepartSouhaitee)}
+                      {t("{type} — souhaitée le {date}", { type: t(LIBELLE_TYPE_DEPART[d.type] ?? d.type), date: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(d.dateDepartSouhaitee) })}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <form action={traiterDemandeDepart.bind(null, d.id, "approuver", undefined)}>
                       <Button type="submit" size="xs" variant="outline">
-                        Approuver
+                        {t("Approuver")}
                       </Button>
                     </form>
                     <form action={traiterDemandeDepart.bind(null, d.id, "refuser", undefined)}>
                       <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
-                        Refuser
+                        {t("Refuser")}
                       </Button>
                     </form>
                   </div>
@@ -288,7 +296,7 @@ export default async function PageRH() {
 
       {projetsDisponible ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Activité de l&apos;équipe (tâches terminées ce mois-ci)</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Activité de l'équipe (tâches terminées ce mois-ci)")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
               {activite.map((a, index) => (
@@ -298,10 +306,10 @@ export default async function PageRH() {
                   className="flex animate-in fade-in slide-in-from-bottom-1 items-center justify-between px-4 py-2.5 text-sm duration-300 fill-mode-both"
                 >
                   <span>{a.nomComplet}</span>
-                  <Badge variant="neutral">{a.tachesTerminees} tâche(s)</Badge>
+                  <Badge variant="neutral">{t("{n} tâche(s)", { n: a.tachesTerminees })}</Badge>
                 </div>
               ))}
-              {activite.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">Aucune donnée pour le moment.</p> : null}
+              {activite.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">{t("Aucune donnée pour le moment.")}</p> : null}
             </div>
           </Card>
         </div>
@@ -309,13 +317,13 @@ export default async function PageRH() {
 
       {rapport ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Aperçu</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Aperçu")}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Briefcase className="size-3.5" aria-hidden />
-                  Dossiers actifs
+                  {t("Dossiers actifs")}
                 </p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={rapport.dossiersActifs} />
@@ -323,7 +331,7 @@ export default async function PageRH() {
                 {Object.keys(rapport.repartitionContrats).length > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     {Object.entries(rapport.repartitionContrats)
-                      .map(([type, n]) => `${LIBELLE_TYPE_CONTRAT[type] ?? type} : ${n}`)
+                      .map(([type, n]) => `${t(LIBELLE_TYPE_CONTRAT[type] ?? type)} : ${n}`)
                       .join(" · ")}
                   </p>
                 ) : null}
@@ -334,7 +342,7 @@ export default async function PageRH() {
                 <CardContent className="flex flex-col gap-1">
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Ticket className="size-3.5" aria-hidden />
-                    Tickets ouverts
+                    {t("Tickets ouverts")}
                   </p>
                   <p className="text-xl font-semibold">
                     <NombreAnime valeur={ticketsOuverts} />
@@ -347,7 +355,7 @@ export default async function PageRH() {
                 <CardContent className="flex flex-col gap-1">
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Wallet className="size-3.5" aria-hidden />
-                    Masse salariale (base, mensuelle)
+                    {t("Masse salariale (base, mensuelle)")}
                   </p>
                   <p className="text-xl font-semibold">{new Intl.NumberFormat("fr-FR").format(rapport.masseSalariale)} FCFA</p>
                 </CardContent>
@@ -359,10 +367,10 @@ export default async function PageRH() {
                   <CardContent className="flex flex-col gap-1">
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Smile className="size-3.5" aria-hidden />
-                      Dernier sondage — {rapport.dernierSondage.titre}
+                      {t("Dernier sondage — {titre}", { titre: rapport.dernierSondage.titre })}
                     </p>
                     <p className="text-xl font-semibold">
-                      <NombreAnime valeur={rapport.dernierSondage.tauxParticipation} suffixe="% de participation" />
+                      <NombreAnime valeur={rapport.dernierSondage.tauxParticipation} suffixe={t("% de participation")} />
                     </p>
                   </CardContent>
                 </Card>
@@ -372,18 +380,19 @@ export default async function PageRH() {
         </div>
       ) : null}
 
-      {rhDisponible && anniversairesTous.length > 0 ? (
+      {rhDisponible && (anniversairesTous.length > 0 || utilisateurConnecte.role === "ADMIN") ? (
         <div className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <Cake className="size-3.5" aria-hidden />
-            Anniversaires à venir
+            {t("Anniversaires à venir")}
           </h2>
+          {anniversairesTous.length === 0 ? <p className="rounded-xl border border-dashed py-5 text-center text-sm text-muted-foreground">{t("Aucun anniversaire dans les 30 prochains jours.")}</p> : null}
           <ul className="grid gap-3 sm:grid-cols-2">
             {anniversairesTous.slice(0, 6).map((a) => {
               const dossierId = a.type === "UTILISATEUR" ? (dossierParUtilisateur[a.id] ?? null) : null;
               const d = new Date(`${a.date}T00:00:00Z`);
-              const jourNum = new Intl.DateTimeFormat("fr-FR", { day: "numeric", timeZone: "UTC" }).format(d);
-              const moisCourt = new Intl.DateTimeFormat("fr-FR", { month: "short", timeZone: "UTC" }).format(d).replace(".", "");
+              const jourNum = new Intl.DateTimeFormat(t.locale, { day: "numeric", timeZone: "UTC" }).format(d);
+              const moisCourt = new Intl.DateTimeFormat(t.locale, { month: "short", timeZone: "UTC" }).format(d).replace(".", "");
               const aujourdhui = a.jours === 0;
               const contenu = (
                 <>
@@ -394,11 +403,11 @@ export default async function PageRH() {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">
                       {a.nom}
-                      {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">(stagiaire)</span> : null}
+                      {a.type === "STAGIAIRE" ? <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t("(stagiaire)")}</span> : null}
                       {a.entrepriseNom ? <span className="mt-0.5 block w-fit max-w-full rounded-full bg-marque-bleu-50 px-2 py-0.5 text-[10px] font-medium text-marque-bleu-800 dark:bg-marque-bleu-800/40 dark:text-marque-bleu-50">{a.entrepriseNom}</span> : null}
                     </span>
                     <span className={`block text-xs ${aujourdhui ? "font-semibold text-marque-orange-700 dark:text-marque-orange-300" : "text-muted-foreground"}`}>
-                      {aujourdhui ? "Aujourd'hui" : libelleDelai(a.jours)} · {a.age} ans
+                      {aujourdhui ? t("Aujourd'hui") : libelleDelai(a.jours, t)} · {t("{n} ans", { n: a.age })}
                     </span>
                   </span>
                 </>
@@ -417,21 +426,22 @@ export default async function PageRH() {
               );
             })}
           </ul>
-          <p className="text-xs text-muted-foreground">Un email de rappel part chaque matin à l&apos;Administrateur et au responsable de la personne.</p>
+          <p className="text-xs text-muted-foreground">{t("Un email de rappel part chaque matin à l'Administrateur et au responsable de la personne.")}</p>
+          {utilisateurConnecte.role === "ADMIN" ? <ReglageSouhait actif={souhaitAnniversaire} /> : null}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Dossiers RH</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Dossiers RH")}</h2>
         {!rhDisponible ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
             <Lock className="size-6 text-muted-foreground" aria-hidden />
             <p className="text-sm text-muted-foreground">
-              Dossiers RH, congés, pointage et salaires sont disponibles à partir du forfait Business.
+              {t("Dossiers RH, congés, pointage et salaires sont disponibles à partir du forfait Business.")}
             </p>
           </div>
         ) : dossiers.length === 0 ? (
-          <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">Aucun dossier RH pour le moment.</p>
+          <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">{t("Aucun dossier RH pour le moment.")}</p>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {dossiers.map((d, index) => {
@@ -448,7 +458,7 @@ export default async function PageRH() {
                       {anniv && anniv.jours <= 7 ? (
                         <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white ring-1 ring-white/30 backdrop-blur-md">
                           <Cake className="size-3" aria-hidden />
-                          {anniv.jours === 0 ? "Aujourd'hui" : libelleDelai(anniv.jours)}
+                          {anniv.jours === 0 ? t("Aujourd'hui") : libelleDelai(anniv.jours, t)}
                         </span>
                       ) : null}
                     </span>
@@ -459,8 +469,8 @@ export default async function PageRH() {
                       <span className="mt-1 text-sm font-semibold transition-colors group-hover/carte:text-primary">{d.nomComplet}</span>
                       <span className="text-xs text-muted-foreground">{d.poste}</span>
                       <span className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-                        <Badge variant="brand">{LIBELLE_ROLE[d.role] ?? d.role}</Badge>
-                        <Badge variant="neutral">{LIBELLE_CONTRAT[d.typeContrat] ?? d.typeContrat}</Badge>
+                        <Badge variant="brand">{t(LIBELLE_ROLE[d.role] ?? d.role)}</Badge>
+                        <Badge variant="neutral">{t(LIBELLE_CONTRAT[d.typeContrat] ?? d.typeContrat)}</Badge>
                       </span>
                     </span>
                   </Link>

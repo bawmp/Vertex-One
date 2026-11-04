@@ -9,15 +9,17 @@ import { entreprise, politiqueConge, politiqueCongePalier, dossierRH } from "@/d
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
 import { calculerDroitAnnuelConge } from "@/lib/rh/politique-conge";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/rh/politiques-conges";
 
 export type EtatPolitiqueConge = { erreur?: string } | null;
 
 const schemaPolitique = z.object({
-  nom: z.string().trim().min(1, "Le nom est requis."),
+  nom: z.string().trim().min(1, m("Le nom est requis.")),
   type: z.enum(["FIXE", "ANCIENNETE"]),
-  joursBaseParAn: z.coerce.number().int().min(0, "Le nombre de jours doit être positif ou nul."),
+  joursBaseParAn: z.coerce.number().int().min(0, m("Le nombre de jours doit être positif ou nul.")),
 });
 
 /**
@@ -27,10 +29,11 @@ const schemaPolitique = z.object({
  * inclut aussi un Manager de portée EQUIPE.
  */
 export async function creerPolitiqueConge(_etat: EtatPolitiqueConge, formData: FormData): Promise<EtatPolitiqueConge> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut créer une politique de congé." };
+    return { erreur: t("Seul l'Administrateur peut créer une politique de congé.") };
   }
 
   const analyse = schemaPolitique.safeParse({
@@ -39,13 +42,13 @@ export async function creerPolitiqueConge(_etat: EtatPolitiqueConge, formData: F
     joursBaseParAn: formData.get("joursBaseParAn"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { nom, type, joursBaseParAn } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     await tx.insert(politiqueConge).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
@@ -65,15 +68,16 @@ export async function creerPolitiqueConge(_etat: EtatPolitiqueConge, formData: F
 
 const schemaPalier = z.object({
   politiqueCongeId: z.string().min(1),
-  anneesAncienneteMin: z.coerce.number().int().min(0, "Le nombre d'années doit être positif ou nul."),
-  joursSupplementaires: z.coerce.number().int().min(1, "Le nombre de jours supplémentaires doit être positif."),
+  anneesAncienneteMin: z.coerce.number().int().min(0, m("Le nombre d'années doit être positif ou nul.")),
+  joursSupplementaires: z.coerce.number().int().min(1, m("Le nombre de jours supplémentaires doit être positif.")),
 });
 
 export async function ajouterPalierAnciennete(_etat: EtatPolitiqueConge, formData: FormData): Promise<EtatPolitiqueConge> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut modifier une politique de congé." };
+    return { erreur: t("Seul l'Administrateur peut modifier une politique de congé.") };
   }
 
   const analyse = schemaPalier.safeParse({
@@ -82,14 +86,14 @@ export async function ajouterPalierAnciennete(_etat: EtatPolitiqueConge, formDat
     joursSupplementaires: formData.get("joursSupplementaires"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { politiqueCongeId, anneesAncienneteMin, joursSupplementaires } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [laPolitique] = await tx.select({ type: politiqueConge.type }).from(politiqueConge).where(eq(politiqueConge.id, politiqueCongeId));
-    if (!laPolitique) return { erreur: "Politique de congé introuvable." };
-    if (laPolitique.type !== "ANCIENNETE") return { erreur: "Seule une politique par ancienneté peut avoir des paliers." };
+    if (!laPolitique) return { erreur: t("Politique de congé introuvable.") };
+    if (laPolitique.type !== "ANCIENNETE") return { erreur: t("Seule une politique par ancienneté peut avoir des paliers.") };
 
     await tx.insert(politiqueCongePalier).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
@@ -144,10 +148,11 @@ const schemaAssignation = z.object({
  * décisions différentes dans un seul formulaire.
  */
 export async function assignerPolitiqueConge(_etat: EtatPolitiqueConge, formData: FormData): Promise<EtatPolitiqueConge> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut assigner une politique de congé." };
+    return { erreur: t("Seul l'Administrateur peut assigner une politique de congé.") };
   }
 
   const analyse = schemaAssignation.safeParse({
@@ -155,7 +160,7 @@ export async function assignerPolitiqueConge(_etat: EtatPolitiqueConge, formData
     politiqueCongeId: formData.get("politiqueCongeId") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierRHId, politiqueCongeId } = analyse.data;
 

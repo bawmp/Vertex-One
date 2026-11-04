@@ -12,12 +12,14 @@ import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { approuverDemandeConge, refuserDemandeConge } from "@/lib/rh/conges";
 import { pointerArrivee, pointerDepart } from "@/lib/rh/pointage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaDemandeConge = z.object({
   type: z.enum(["CONGE_PAYE", "MALADIE", "SANS_SOLDE", "AUTRE"]),
-  dateDebut: z.string().min(1, "La date de début est requise."),
-  dateFin: z.string().min(1, "La date de fin est requise."),
-  nombreJours: z.coerce.number().positive("Le nombre de jours doit être positif."),
+  dateDebut: z.string().min(1, m("La date de début est requise.")),
+  dateFin: z.string().min(1, m("La date de fin est requise.")),
+  nombreJours: z.coerce.number().positive(m("Le nombre de jours doit être positif.")),
   motif: z.string().trim().optional(),
 });
 
@@ -29,10 +31,11 @@ export type EtatDemandeConge = { erreur?: string } | null;
  * section 9, étape 2).
  */
 export async function creerDemandeConge(_etat: EtatDemandeConge, formData: FormData): Promise<EtatDemandeConge> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de demander un congé." };
+    return { erreur: t("Vous n'avez pas le droit de demander un congé.") };
   }
 
   const analyse = schemaDemandeConge.safeParse({
@@ -43,16 +46,16 @@ export async function creerDemandeConge(_etat: EtatDemandeConge, formData: FormD
     motif: formData.get("motif") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { type, dateDebut, dateFin, nombreJours, motif } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
-    if (!monDossier) return { erreur: "Aucun dossier RH associé à votre compte." };
+    if (!monDossier) return { erreur: t("Aucun dossier RH associé à votre compte.") };
 
     await tx.insert(demandeConge).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
@@ -138,7 +141,7 @@ export async function pointerDepartAction() {
 
 const schemaModificationDossier = z.object({
   dossierRHId: z.string(),
-  poste: z.string().trim().min(1, "Le poste est requis."),
+  poste: z.string().trim().min(1, m("Le poste est requis.")),
   typeContrat: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]),
   dateEmbauche: z.string().min(1),
   dateFinContrat: z.string().optional(),
@@ -160,10 +163,11 @@ export type EtatDossierRH = { erreur?: string } | null;
  * silencieusement une valeur sans laisser de trace dans revisionSalaire.
  */
 export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData): Promise<EtatDossierRH> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut modifier un dossier RH." };
+    return { erreur: t("Seul l'Administrateur peut modifier un dossier RH.") };
   }
 
   const analyse = schemaModificationDossier.safeParse({
@@ -177,7 +181,7 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
     serviceId: formData.get("serviceId") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierRHId, poste, typeContrat, dateEmbauche, dateFinContrat, nombrePersonnesACharge, managerId, serviceId } = analyse.data;
 
@@ -232,17 +236,18 @@ export async function modifierDossierRH(_etat: EtatDossierRH, formData: FormData
 
 const schemaEvaluation = z.object({
   dossierRHId: z.string(),
-  periode: z.string().trim().min(1, "La période est requise."),
+  periode: z.string().trim().min(1, m("La période est requise.")),
   commentaire: z.string().trim().optional(),
 });
 
 export type EtatEvaluation = { erreur?: string } | null;
 
 export async function creerEvaluation(_etat: EtatEvaluation, formData: FormData): Promise<EtatEvaluation> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter une évaluation." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter une évaluation.") };
   }
 
   const analyse = schemaEvaluation.safeParse({
@@ -251,18 +256,18 @@ export async function creerEvaluation(_etat: EtatEvaluation, formData: FormData)
     commentaire: formData.get("commentaire") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierRHId, periode, commentaire } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
-    if (!leDossier) return { erreur: "Dossier RH introuvable." };
+    if (!leDossier) return { erreur: t("Dossier RH introuvable.") };
 
     if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
       if (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId)) {
-        return { erreur: "Ce dossier n'est pas dans votre équipe." };
+        return { erreur: t("Ce dossier n'est pas dans votre équipe.") };
       }
     }
 

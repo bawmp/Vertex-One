@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { dossierRH } from "@/db/schema";
@@ -22,12 +23,12 @@ export function validerInfosPersonnelles(s: SaisieInfosPersonnelles, aujourdhui:
   }
   const telephone = propre(s.telephone);
   const urgenceTelephone = propre(s.urgenceTelephone);
-  if (telephone && !TELEPHONE.test(telephone)) return { ok: false, erreur: "Le téléphone n'est pas valide." };
-  if (urgenceTelephone && !TELEPHONE.test(urgenceTelephone)) return { ok: false, erreur: "Le téléphone de la personne à prévenir n'est pas valide." };
+  if (telephone && !TELEPHONE.test(telephone)) return { ok: false, erreur: m("Le téléphone n'est pas valide.") };
+  if (urgenceTelephone && !TELEPHONE.test(urgenceTelephone)) return { ok: false, erreur: m("Le téléphone de la personne à prévenir n'est pas valide.") };
   const adresse = propre(s.adresse);
   const urgenceNom = propre(s.urgenceNom);
-  if (adresse.length > 200) return { ok: false, erreur: "L'adresse est trop longue (200 caractères au maximum)." };
-  if (urgenceNom.length > 120) return { ok: false, erreur: "Le nom de la personne à prévenir est trop long." };
+  if (adresse.length > 200) return { ok: false, erreur: m("L'adresse est trop longue (200 caractères au maximum).") };
+  if (urgenceNom.length > 120) return { ok: false, erreur: m("Le nom de la personne à prévenir est trop long.") };
   return { ok: true, valeurs: { dateNaissance: naissance || null, telephone: telephone || null, adresse: adresse || null, urgenceNom: urgenceNom || null, urgenceTelephone: urgenceTelephone || null } };
 }
 
@@ -44,9 +45,9 @@ export async function modifierInfosPersonnelles(tx: TransactionDrizzle, u: Utili
   const verdict = validerInfosPersonnelles(saisie, aujourdhui);
   if (!verdict.ok) return verdict;
   const [d] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(and(eq(dossierRH.id, dossierRHId), eq(dossierRH.entrepriseId, u.entrepriseId)));
-  if (!d) return { ok: false, erreur: "Fiche introuvable." };
+  if (!d) return { ok: false, erreur: m("Fiche introuvable.") };
   const ids = u.utilisateurId === d.utilisateurId || u.role === "ADMIN" ? "TOUT" : await idsVisibles(tx, u, "RH");
-  if (!peutModifierInfos(u, d.utilisateurId, ids)) return { ok: false, erreur: "Vous n'avez pas le droit de modifier ces informations." };
+  if (!peutModifierInfos(u, d.utilisateurId, ids)) return { ok: false, erreur: m("Vous n'avez pas le droit de modifier ces informations.") };
   await tx.update(dossierRH).set(verdict.valeurs).where(and(eq(dossierRH.id, dossierRHId), eq(dossierRH.entrepriseId, u.entrepriseId)));
   return { ok: true };
 }

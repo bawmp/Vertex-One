@@ -47,7 +47,7 @@ test("Fiche collaborateur : infos, photo, anniversaire, salaire réservé", asyn
   await employe.locator("#photo-fiche").setInputFiles({ name: "moi.png", mimeType: "image/png", buffer: PNG });
   await expect(employe.getByText("Photo enregistrée.")).toBeVisible(ATTENTE);
   await employe.reload();
-  await expect(employe.locator('img[alt="Photo de Bob Employé"]')).toHaveAttribute("src", /\/app\/rh\/photo\/utilisateur\//);
+  await expect(employe.locator('main img[alt="Photo de Bob Employé"]')).toHaveAttribute("src", /\/app\/rh\/photo\/utilisateur\//);
 
   // Une image truquée est refusée.
   await employe.locator("#photo-fiche").setInputFiles({ name: "faux.png", mimeType: "image/png", buffer: Buffer.from("pas une image") });
@@ -63,9 +63,9 @@ test("Fiche collaborateur : infos, photo, anniversaire, salaire réservé", asyn
   await expect(admin.getByText("Marie Employé — 677 00 11 22")).toBeVisible(ATTENTE);
   await expect(admin.getByText("Salaire de base")).toBeVisible(ATTENTE);
   await expect(admin.getByText("Aucune tâche en cours.")).toBeVisible(ATTENTE);
-  await expect(admin.locator('img[alt="Photo de Bob Employé"]')).toBeVisible(ATTENTE);
+  await expect(admin.locator('main img[alt="Photo de Bob Employé"]')).toBeVisible(ATTENTE);
   // La photo est servie par la route contrôlée : une session sans cookie n'y accède pas.
-  const src = (await admin.locator('img[alt="Photo de Bob Employé"]').getAttribute("src"))!.split("?")[0];
+  const src = (await admin.locator('main img[alt="Photo de Bob Employé"]').getAttribute("src"))!.split("?")[0];
   const anonyme = await (await browser.newContext()).request.get(new URL(src, "http://localhost:3000").toString(), { maxRedirects: 0 });
   expect([307, 401, 404]).toContain(anonyme.status());
 

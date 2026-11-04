@@ -4,12 +4,14 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { changerStatutTicket, reassignerTicket } from "@/lib/actions/ticket-rh";
+import { useT } from "@/lib/i18n/contexte";
+import { m } from "@/lib/i18n/catalogue";
 
 const STATUTS = [
-  { valeur: "OUVERT", libelle: "Ouvert" },
-  { valeur: "EN_COURS", libelle: "En cours" },
-  { valeur: "RESOLU", libelle: "Résolu" },
-  { valeur: "FERME", libelle: "Fermé" },
+  { valeur: "OUVERT", libelle: m("Ouvert") },
+  { valeur: "EN_COURS", libelle: m("En cours") },
+  { valeur: "RESOLU", libelle: m("Résolu") },
+  { valeur: "FERME", libelle: m("Fermé") },
 ] as const;
 
 export function ControlesTicket({
@@ -27,11 +29,12 @@ export function ControlesTicket({
   agents: { id: string; nomComplet: string }[];
   agentActuelId: string | null;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-end gap-3">
       {peutChangerStatut ? (
         <div className="flex flex-col gap-1">
-          <Label htmlFor="statut">Statut</Label>
+          <Label htmlFor="statut">{t("Statut")}</Label>
           <Select
             id="statut"
             defaultValue={statut}
@@ -48,7 +51,7 @@ export function ControlesTicket({
       ) : null}
       {peutReassigner ? (
         <div className="flex flex-col gap-1">
-          <Label htmlFor="agent">Agent assigné</Label>
+          <Label htmlFor="agent">{t("Agent assigné")}</Label>
           <SelecteurPersonne
             id="agent"
             personnes={agents}

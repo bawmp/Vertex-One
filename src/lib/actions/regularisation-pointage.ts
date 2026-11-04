@@ -12,12 +12,14 @@ import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
 import { debutJournee } from "@/lib/rh/pointage";
 import { approuverRegularisation, refuserRegularisation } from "@/lib/rh/regularisation";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaRegularisation = z.object({
-  date: z.string().min(1, "La date est requise."),
+  date: z.string().min(1, m("La date est requise.")),
   heureArriveeProposee: z.string().optional(),
   heureDepartProposee: z.string().optional(),
-  motif: z.string().trim().min(1, "Le motif est requis."),
+  motif: z.string().trim().min(1, m("Le motif est requis.")),
 });
 
 export type EtatRegularisation = { erreur?: string } | null;
@@ -27,10 +29,11 @@ export type EtatRegularisation = { erreur?: string } | null;
  * client — même choix que creerDemandeConge() (src/lib/actions/rh.ts).
  */
 export async function creerRegularisation(_etat: EtatRegularisation, formData: FormData): Promise<EtatRegularisation> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de demander une régularisation." };
+    return { erreur: t("Vous n'avez pas le droit de demander une régularisation.") };
   }
 
   const analyse = schemaRegularisation.safeParse({
@@ -40,24 +43,24 @@ export async function creerRegularisation(_etat: EtatRegularisation, formData: F
     motif: formData.get("motif"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { date, heureArriveeProposee, heureDepartProposee, motif } = analyse.data;
   if (!heureArriveeProposee && !heureDepartProposee) {
-    return { erreur: "Proposez au moins une heure d'arrivée ou de départ." };
+    return { erreur: t("Proposez au moins une heure d'arrivée ou de départ.") };
   }
 
   const dateJour = debutJournee(new Date(date));
   if (dateJour.getTime() > debutJournee(new Date()).getTime()) {
-    return { erreur: "Impossible de régulariser une date future." };
+    return { erreur: t("Impossible de régulariser une date future.") };
   }
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
-    if (!monDossier) return { erreur: "Aucun dossier RH associé à votre compte." };
+    if (!monDossier) return { erreur: t("Aucun dossier RH associé à votre compte.") };
 
     // "heure" saisie en HH:MM (input type="time") — combinée avec la date
     // du jour concerné, jamais la date système du moment de la demande.

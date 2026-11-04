@@ -1,31 +1,31 @@
-import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { numeroSerie, produit } from "@/db/schema";
 import { m } from "@/lib/i18n/catalogue";
 import { echapperMotifRecherche } from "@/lib/messagerie/mentions";
 import { MOTIFS_RETRAIT } from "./motifs-stock";
 import { effacerSeries } from "./series-sortie";
-import { MAX_SERIES_PAR_SAISIE, lireSeries as lireListeSeries, normaliserSerie, remplacementPossible, type StatutSerie } from "./series-regles";
+import { MAX_SERIES_PAR_SAISIE, dureeGarantieValide, lireSeries as lireListeSeries, normaliserSerie, joursAvantFinGarantie, remplacementPossible, type StatutSerie } from "./series-regles";
 import { corrigerStock } from "./stock";
 
 export type ResultatSerie = { ok: true; ajoutes?: number } | { ok: false; erreur: string };
 
-export type SerieLisible = { id: string; numero: string; statut: StatutSerie; entreLe: Date; venduLe: Date | null; documentType: string | null; documentId: string | null };
+export type SerieLisible = { id: string; numero: string; statut: StatutSerie; entreLe: Date; venduLe: Date | null; documentType: string | null; documentId: string | null; garantieFin: string | null };
 
 const LIMITE_LISTE = 300;
 
 /** Les numéros de série d'un produit (en stock d'abord, puis vendus et retirés) et ce qui reste de stock sans numéro. */
-export async function lireSeriesProduit(tx: TransactionDrizzle, entrepriseId: string, produitId: string): Promise<{ suiviSerie: boolean; suiviLots: boolean; stock: number; series: SerieLisible[]; enStock: number; sansNumero: number } | null> {
-  const [p] = await tx.select({ stock: produit.stockActuel, suiviSerie: produit.suiviSerie, suiviLots: produit.suiviLots }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)));
+export async function lireSeriesProduit(tx: TransactionDrizzle, entrepriseId: string, produitId: string): Promise<{ suiviSerie: boolean; suiviLots: boolean; stock: number; series: SerieLisible[]; enStock: number; sansNumero: number; dureeGarantieMois: number | null } | null> {
+  const [p] = await tx.select({ stock: produit.stockActuel, suiviSerie: produit.suiviSerie, suiviLots: produit.suiviLots, dureeGarantieMois: produit.dureeGarantieMois }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)));
   if (!p) return null;
   const series = (await tx
-    .select({ id: numeroSerie.id, numero: numeroSerie.numero, statut: numeroSerie.statut, entreLe: numeroSerie.entreLe, venduLe: numeroSerie.venduLe, documentType: numeroSerie.documentType, documentId: numeroSerie.documentId })
+    .select({ id: numeroSerie.id, numero: numeroSerie.numero, statut: numeroSerie.statut, entreLe: numeroSerie.entreLe, venduLe: numeroSerie.venduLe, documentType: numeroSerie.documentType, documentId: numeroSerie.documentId, garantieFin: numeroSerie.garantieFin })
     .from(numeroSerie)
     .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId)))
     .orderBy(sql`case ${numeroSerie.statut} when 'EN_STOCK' then 0 when 'VENDU' then 1 else 2 end`, asc(numeroSerie.numero))
     .limit(LIMITE_LISTE)) as SerieLisible[];
   const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId), eq(numeroSerie.statut, "EN_STOCK")));
-  return { suiviSerie: p.suiviSerie, suiviLots: p.suiviLots, stock: p.stock, series, enStock: n, sansNumero: Math.max(p.stock - n, 0) };
+  return { suiviSerie: p.suiviSerie, suiviLots: p.suiviLots, stock: p.stock, series, enStock: n, sansNumero: Math.max(p.stock - n, 0), dureeGarantieMois: p.dureeGarantieMois };
 }
 
 /** Active ou coupe le suivi par numéro de série d'un bien suivi en stock (jamais en même temps que les lots). Couper efface les numéros ; le stock ne change pas. */
@@ -89,18 +89,18 @@ export async function remettreSerieEnStock(tx: TransactionDrizzle, entrepriseId:
   if (!s || s.statut === "EN_STOCK") return { ok: false, erreur: m("Numéro de série introuvable ou déjà en stock.") };
   const r = await corrigerStock(tx, entrepriseId, s.produitId, { mode: "AJOUT", quantite: 1, motif: s.statut === "VENDU" ? "RETOUR_CLIENT" : "TROUVE", note: `N° ${s.numero}` }, utilisateurId);
   if (!r.ok) return { ok: false, erreur: r.erreur };
-  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null }).where(eq(numeroSerie.id, s.id));
+  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null, garantieFin: null }).where(eq(numeroSerie.id, s.id));
   return { ok: true };
 }
 
-export type ResultatRecherche = { id: string; numero: string; statut: StatutSerie; produitId: string; produit: string; entreLe: Date; venduLe: Date | null; documentType: string | null; documentId: string | null };
+export type ResultatRecherche = { id: string; numero: string; statut: StatutSerie; produitId: string; produit: string; entreLe: Date; venduLe: Date | null; documentType: string | null; documentId: string | null; garantieFin: string | null };
 
 /** Retrouve un numéro de série (en entier ou en partie) parmi tous les produits : où il est, quand il est entré, à quel document il a été vendu. */
 export async function rechercherSeries(tx: TransactionDrizzle, entrepriseId: string, saisie: string): Promise<ResultatRecherche[]> {
   const q = normaliserSerie(saisie);
   if (q.length < 2) return [];
   return (await tx
-    .select({ id: numeroSerie.id, numero: numeroSerie.numero, statut: numeroSerie.statut, produitId: produit.id, produit: produit.nom, entreLe: numeroSerie.entreLe, venduLe: numeroSerie.venduLe, documentType: numeroSerie.documentType, documentId: numeroSerie.documentId })
+    .select({ id: numeroSerie.id, numero: numeroSerie.numero, statut: numeroSerie.statut, produitId: produit.id, produit: produit.nom, entreLe: numeroSerie.entreLe, venduLe: numeroSerie.venduLe, documentType: numeroSerie.documentType, documentId: numeroSerie.documentId, garantieFin: numeroSerie.garantieFin })
     .from(numeroSerie)
     .innerJoin(produit, eq(numeroSerie.produitId, produit.id))
     .where(and(eq(numeroSerie.entrepriseId, entrepriseId), ilike(numeroSerie.numero, `%${echapperMotifRecherche(q)}%`)))
@@ -139,7 +139,62 @@ export async function remplacerSerieVendue(tx: TransactionDrizzle, entrepriseId:
   const nouveau = await lire(nouveauId);
   if (!vendu || !nouveau) return { ok: false, erreur: m("Numéro de série introuvable.") };
   if (!remplacementPossible(vendu, nouveau, venduId)) return { ok: false, erreur: m("Ce numéro ne peut pas être échangé : il faut un numéro en stock du même produit.") };
-  await tx.update(numeroSerie).set({ statut: "VENDU", venduLe: vendu.venduLe, documentType: vendu.documentType, documentId: vendu.documentId }).where(eq(numeroSerie.id, nouveauId));
-  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null }).where(eq(numeroSerie.id, venduId));
+  await tx.update(numeroSerie).set({ statut: "VENDU", venduLe: vendu.venduLe, documentType: vendu.documentType, documentId: vendu.documentId, garantieFin: vendu.garantieFin }).where(eq(numeroSerie.id, nouveauId));
+  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null, garantieFin: null }).where(eq(numeroSerie.id, venduId));
   return { ok: true };
+}
+
+/** Durée de garantie d'un produit suivi par numéro de série (en mois, `null` pour ne plus suivre de garantie). Ne touche pas les garanties déjà courantes. */
+export async function definirDureeGarantie(tx: TransactionDrizzle, entrepriseId: string, produitId: string, mois: number | null): Promise<ResultatSerie> {
+  if (mois !== null && !dureeGarantieValide(mois)) return { ok: false, erreur: m("La garantie est un nombre entier de mois, de 1 à 120.") };
+  const [p] = await tx.select({ id: produit.id, suiviSerie: produit.suiviSerie }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId), eq(produit.type, "BIEN"), eq(produit.suiviStock, true)));
+  if (!p) return { ok: false, erreur: m("Le suivi du stock n'est pas activé pour ce produit.") };
+  if (!p.suiviSerie) return { ok: false, erreur: m("Le suivi par numéro de série n'est pas activé pour ce produit.") };
+  await tx.update(produit).set({ dureeGarantieMois: mois }).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)));
+  return { ok: true };
+}
+
+export type GarantieSuivie = { id: string; numero: string; produitId: string; produit: string; venduLe: Date | null; garantieFin: string; documentType: string | null; documentId: string | null };
+
+/** Garanties qui se terminent dans les `jours` prochains jours ou sont terminées depuis moins de `jours` jours (unités vendues), les plus proches de la fin d'abord. */
+export async function garantiesASurveiller(tx: TransactionDrizzle, entrepriseId: string, aujourdhui: string, jours = 30): Promise<GarantieSuivie[]> {
+  const lignes = await tx
+    .select({ id: numeroSerie.id, numero: numeroSerie.numero, produitId: produit.id, produit: produit.nom, venduLe: numeroSerie.venduLe, garantieFin: numeroSerie.garantieFin, documentType: numeroSerie.documentType, documentId: numeroSerie.documentId })
+    .from(numeroSerie)
+    .innerJoin(produit, eq(numeroSerie.produitId, produit.id))
+    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.statut, "VENDU"), sql`${numeroSerie.garantieFin} is not null`))
+    .orderBy(asc(numeroSerie.garantieFin))
+    .limit(500);
+  return (lignes as (Omit<GarantieSuivie, "garantieFin"> & { garantieFin: string | null })[])
+    .filter((l) => l.garantieFin !== null && (joursAvantFinGarantie(l.garantieFin, aujourdhui) ?? Infinity) <= jours && (joursAvantFinGarantie(l.garantieFin, aujourdhui) ?? -Infinity) >= -jours)
+    .map((l) => ({ ...l, garantieFin: l.garantieFin! }));
+}
+
+export type DemandeSeries = { produitId: string; quantite: number; numeros: string[] };
+
+/**
+ * Contrôle des numéros de série choisis à la vente, AVANT toute écriture : le produit suit ses numéros, on n'en choisit pas plus que d'unités
+ * vendues, et chaque numéro est bien en stock pour CE produit (de cette entreprise). Renvoie un message clair ou null si tout est bon.
+ */
+export async function validerSeriesChoisies(tx: TransactionDrizzle, entrepriseId: string, demandes: DemandeSeries[]): Promise<string | null> {
+  for (const d of demandes) {
+    if (d.numeros.length === 0) continue;
+    const [p] = await tx.select({ nom: produit.nom, suiviSerie: produit.suiviSerie }).from(produit).where(and(eq(produit.id, d.produitId), eq(produit.entrepriseId, entrepriseId)));
+    if (!p?.suiviSerie) return m("Ce produit ne suit pas ses numéros de série.");
+    if (d.numeros.length > Math.ceil(d.quantite)) return m("Vous avez choisi plus de numéros de série que d'unités vendues.");
+    if (new Set(d.numeros).size !== d.numeros.length) return m("Un numéro de série est saisi deux fois.");
+    const enStock = await tx.select({ numero: numeroSerie.numero }).from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, d.produitId), eq(numeroSerie.statut, "EN_STOCK")));
+    const dispo = new Set(enStock.map((x) => x.numero));
+    if (d.numeros.some((n) => !dispo.has(n))) return m("Un numéro de série choisi n'est pas en stock pour ce produit.");
+  }
+  return null;
+}
+
+/** Numéros en stock des produits donnés (pour proposer la saisie), au plus `limite` par produit, dans l'ordre. */
+export async function seriesEnStockParProduit(tx: TransactionDrizzle, entrepriseId: string, produitIds: string[], limite = 200): Promise<Record<string, string[]>> {
+  const par: Record<string, string[]> = {};
+  if (produitIds.length === 0) return par;
+  const lignes = await tx.select({ produitId: numeroSerie.produitId, numero: numeroSerie.numero }).from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.statut, "EN_STOCK"), inArray(numeroSerie.produitId, produitIds))).orderBy(asc(numeroSerie.numero)).limit(produitIds.length * limite);
+  for (const l of lignes) if ((par[l.produitId] ??= []).length < limite) par[l.produitId].push(l.numero);
+  return par;
 }

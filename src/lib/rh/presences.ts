@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, eq, gte, inArray, isNull, lte, ne, or, notInArray } from "drizzle-orm";
 import { ROLES_NON_COLLEGUES } from "@/lib/equipe/collegues";
 import { db, avecEntreprise } from "@/db/client";
@@ -76,7 +77,7 @@ export async function gerantsPossibles(entrepriseId: string): Promise<{ id: stri
 export async function definirGerantPresences(entrepriseId: string, gerantId: string | null): Promise<{ erreur?: string }> {
   if (gerantId !== null) {
     const candidats = await gerantsPossibles(entrepriseId);
-    if (!candidats.some((c) => c.id === gerantId)) return { erreur: "Le gérant doit être un Manager ou un Administrateur actif de l'entreprise." };
+    if (!candidats.some((c) => c.id === gerantId)) return { erreur: m("Le gérant doit être un Manager ou un Administrateur actif de l'entreprise.") };
   }
   await db.update(entreprise).set({ gerantPresencesId: gerantId }).where(eq(entreprise.id, entrepriseId));
   return {};
@@ -126,10 +127,10 @@ export async function joindrePartenairePresence(entrepriseId: string, creeParId:
     return {};
   }
   const { groupe, partageActif, autres } = await partenairesPossibles(entrepriseId);
-  if (!groupe) return { erreur: "Votre entreprise n'appartient à aucun groupe." };
-  if (!partageActif) return { erreur: "Activez d'abord le partage des présences avec le groupe pour votre entreprise." };
+  if (!groupe) return { erreur: m("Votre entreprise n'appartient à aucun groupe.") };
+  if (!partageActif) return { erreur: m("Activez d'abord le partage des présences avec le groupe pour votre entreprise.") };
   const cible = autres.find((a) => a.id === partenaireId);
-  if (!cible) return { erreur: "Cette entreprise n'est pas dans votre groupe." };
+  if (!cible) return { erreur: m("Cette entreprise n'est pas dans votre groupe.") };
   if (!cible.partageActif) return { erreur: `${cible.nom} n'a pas activé le partage des présences : son Administrateur doit le faire d'abord.` };
   if (cible.joint) return {};
   await avecEntreprise(entrepriseId, (tx) => tx.insert(jonctionPresence).values({ entrepriseId, partenaireId, creeParId }));
@@ -234,27 +235,27 @@ async function entrepriseAutorisee(utilisateurConnecte: UtilisateurConnecte, cib
 
 async function fichePermiseEnEcriture(utilisateurConnecte: UtilisateurConnecte, jour: Date): Promise<{ droit: DroitFiche } | { erreur: string }> {
   const droit = await droitSurFiche(utilisateurConnecte);
-  if (!droit) return { erreur: "Seuls l'Administrateur et le gérant de la fiche de présence peuvent la modifier." };
-  if (!jourModifiable(jour, droit)) return { erreur: droit === "GERANT" ? `Cette journée n'est plus modifiable (jours futurs et plus de ${JOURS_MODIFIABLES_GERANT} jours en arrière : demandez à l'Administrateur).` : "Impossible de renseigner une journée à venir." };
+  if (!droit) return { erreur: m("Seuls l'Administrateur et le gérant de la fiche de présence peuvent la modifier.") };
+  if (!jourModifiable(jour, droit)) return { erreur: droit === "GERANT" ? `Cette journée n'est plus modifiable (jours futurs et plus de ${JOURS_MODIFIABLES_GERANT} jours en arrière : demandez à l'Administrateur).` : m("Impossible de renseigner une journée à venir.") };
   const validee = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => (await tx.select({ id: validationPresence.id }).from(validationPresence).where(and(eq(validationPresence.entrepriseId, utilisateurConnecte.entrepriseId), eq(validationPresence.date, jour))))[0]);
-  if (validee && droit !== "ADMIN") return { erreur: "La fiche de ce jour est validée : l'Administrateur doit la rouvrir pour la modifier." };
+  if (validee && droit !== "ADMIN") return { erreur: m("La fiche de ce jour est validée : l'Administrateur doit la rouvrir pour la modifier.") };
   return { droit };
 }
 
 export async function enregistrerPresence(utilisateurConnecte: UtilisateurConnecte, s: SaisiePresence): Promise<{ erreur?: string }> {
   const jour = jourDepuisIso(s.date);
-  if (!jour) return { erreur: "Date invalide." };
-  if (!STATUTS_PRESENCE.includes(s.statut)) return { erreur: "Statut invalide." };
+  if (!jour) return { erreur: m("Date invalide.") };
+  if (!STATUTS_PRESENCE.includes(s.statut)) return { erreur: m("Statut invalide.") };
   const permis = await fichePermiseEnEcriture(utilisateurConnecte, jour);
   if ("erreur" in permis) return permis;
-  if (!(await entrepriseAutorisee(utilisateurConnecte, s.entrepriseId))) return { erreur: "Cette entreprise n'est pas jointe à votre fiche de présence." };
+  if (!(await entrepriseAutorisee(utilisateurConnecte, s.entrepriseId))) return { erreur: m("Cette entreprise n'est pas jointe à votre fiche de présence.") };
 
   const sansHeures = s.statut === "ABSENT" || s.statut === "CONGE";
   const arrivee = sansHeures ? null : heureSurJour(jour, s.heureArrivee);
   const depart = sansHeures ? null : heureSurJour(jour, s.heureDepart);
-  if (!sansHeures && s.heureArrivee && !arrivee) return { erreur: "Heure d'arrivée invalide (HH:MM)." };
-  if (!sansHeures && s.heureDepart && !depart) return { erreur: "Heure de départ invalide (HH:MM)." };
-  if (arrivee && depart && depart < arrivee) return { erreur: "Le départ ne peut pas précéder l'arrivée." };
+  if (!sansHeures && s.heureArrivee && !arrivee) return { erreur: m("Heure d'arrivée invalide (HH:MM).") };
+  if (!sansHeures && s.heureDepart && !depart) return { erreur: m("Heure de départ invalide (HH:MM).") };
+  if (arrivee && depart && depart < arrivee) return { erreur: m("Le départ ne peut pas précéder l'arrivée.") };
   const remarque = s.remarque?.trim().slice(0, 300) || null;
 
   return avecEntreprise(s.entrepriseId, async (tx) => {
@@ -264,7 +265,7 @@ export async function enregistrerPresence(utilisateurConnecte: UtilisateurConnec
       .from(dossierRH)
       .innerJoin(utilisateur, eq(dossierRH.utilisateurId, utilisateur.id))
       .where(and(eq(dossierRH.id, s.dossierRHId), eq(dossierRH.entrepriseId, s.entrepriseId), eq(utilisateur.statut, "ACTIF")));
-    if (!d) return { erreur: "Employé introuvable." };
+    if (!d) return { erreur: m("Employé introuvable.") };
 
     const valeurs = { statut: s.statut, heureArrivee: arrivee, heureDepart: depart, remarque, saisiParId: utilisateurConnecte.utilisateurId, saisiLe: new Date() };
     const [existant] = await tx.select({ id: pointage.id }).from(pointage).where(and(eq(pointage.dossierRHId, s.dossierRHId), eq(pointage.date, jour)));
@@ -277,12 +278,12 @@ export async function enregistrerPresence(utilisateurConnecte: UtilisateurConnec
 /** Marque « présent » tous ceux qui n'ont encore ni ligne ni congé approuvé ce jour-là (appel rapide) ; renvoie le nombre de lignes créées. */
 export async function marquerTousPresents(utilisateurConnecte: UtilisateurConnecte, dateIso: string): Promise<{ erreur?: string; nombre?: number }> {
   const jour = jourDepuisIso(dateIso);
-  if (!jour) return { erreur: "Date invalide." };
+  if (!jour) return { erreur: m("Date invalide.") };
   const permis = await fichePermiseEnEcriture(utilisateurConnecte, jour);
   if ("erreur" in permis) return permis;
 
   const fiche = await chargerFiche(utilisateurConnecte, dateIso);
-  if (!fiche) return { erreur: "Fiche introuvable." };
+  if (!fiche) return { erreur: m("Fiche introuvable.") };
   let nombre = 0;
   for (const section of fiche.sections) {
     const aMarquer = section.lignes.filter((l) => statutEffectif(l) === null);
@@ -300,7 +301,7 @@ export async function marquerTousPresents(utilisateurConnecte: UtilisateurConnec
 /** Le gérant (ou l'Administrateur) valide la fiche du jour : elle n'est plus modifiable que par l'Administrateur. */
 export async function validerFiche(utilisateurConnecte: UtilisateurConnecte, dateIso: string): Promise<{ erreur?: string }> {
   const jour = jourDepuisIso(dateIso);
-  if (!jour) return { erreur: "Date invalide." };
+  if (!jour) return { erreur: m("Date invalide.") };
   const permis = await fichePermiseEnEcriture(utilisateurConnecte, jour);
   if ("erreur" in permis) return permis;
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.insert(validationPresence).values({ entrepriseId: utilisateurConnecte.entrepriseId, date: jour, valideeParId: utilisateurConnecte.utilisateurId }).onConflictDoNothing());
@@ -308,9 +309,9 @@ export async function validerFiche(utilisateurConnecte: UtilisateurConnecte, dat
 }
 
 export async function rouvrirFiche(utilisateurConnecte: UtilisateurConnecte, dateIso: string): Promise<{ erreur?: string }> {
-  if (utilisateurConnecte.role !== "ADMIN") return { erreur: "Seul l'Administrateur peut rouvrir une fiche validée." };
+  if (utilisateurConnecte.role !== "ADMIN") return { erreur: m("Seul l'Administrateur peut rouvrir une fiche validée.") };
   const jour = jourDepuisIso(dateIso);
-  if (!jour) return { erreur: "Date invalide." };
+  if (!jour) return { erreur: m("Date invalide.") };
   await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.delete(validationPresence).where(and(eq(validationPresence.entrepriseId, utilisateurConnecte.entrepriseId), eq(validationPresence.date, jour))));
   return {};
 }

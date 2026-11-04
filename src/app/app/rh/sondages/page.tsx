@@ -10,21 +10,24 @@ import { disponible } from "@/lib/plans";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormulaireNouveauSondage } from "./formulaire-nouveau-sondage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const LIBELLE_STATUT: Record<string, { libelle: string; variante: "success" | "warning" | "neutral" }> = {
-  BROUILLON: { libelle: "Brouillon", variante: "neutral" },
-  OUVERT: { libelle: "Ouvert", variante: "success" },
-  FERME: { libelle: "Fermé", variante: "warning" },
+  BROUILLON: { libelle: m("Brouillon"), variante: "neutral" },
+  OUVERT: { libelle: m("Ouvert"), variante: "success" },
+  FERME: { libelle: m("Fermé"), variante: "warning" },
 };
 
 export default async function PageSondages() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas accès aux Ressources Humaines.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès aux Ressources Humaines.")}</p>
       </div>
     );
   }
@@ -60,7 +63,7 @@ export default async function PageSondages() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Les Ressources Humaines sont disponibles à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("Les Ressources Humaines sont disponibles à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -71,13 +74,13 @@ export default async function PageSondages() {
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/rh" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Ressources Humaines
+        {t("Ressources Humaines")}
       </Link>
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <MessageCircleHeart className="size-5" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">Sondages d&apos;engagement</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Sondages d'engagement")}</h1>
         </div>
         {estAdmin ? <FormulaireNouveauSondage /> : null}
       </div>
@@ -99,13 +102,13 @@ export default async function PageSondages() {
                 />
                 <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{s.titre}</span>
                 <div className="flex items-center gap-2">
-                  {s.statut === "OUVERT" && idsRepondus.has(s.id) ? <Badge variant="neutral">Déjà répondu</Badge> : null}
-                  <Badge variant={info.variante}>{info.libelle}</Badge>
+                  {s.statut === "OUVERT" && idsRepondus.has(s.id) ? <Badge variant="neutral">{t("Déjà répondu")}</Badge> : null}
+                  <Badge variant={info.variante}>{t(info.libelle)}</Badge>
                 </div>
               </Link>
             );
           })}
-          {sondages.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun sondage pour le moment.</p> : null}
+          {sondages.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun sondage pour le moment.")}</p> : null}
         </div>
       </Card>
     </div>

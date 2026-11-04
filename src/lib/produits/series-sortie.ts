@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { numeroSerie, produit } from "@/db/schema";
-import { exces, numerosAVendre } from "./series-regles";
+import { exces, finGarantie, numerosAVendreAvecChoix } from "./series-regles";
 
 /**
  * Effet des mouvements de stock sur les numéros de série. Séparé de `series.ts` (gestion) pour que `stock.ts` puisse l'appeler sans import
@@ -9,18 +9,21 @@ import { exces, numerosAVendre } from "./series-regles";
  */
 
 /** Une vente sort `quantite` unités : elle emporte les numéros en stock les plus anciens et les rattache au document de vente. */
-export async function vendreSeries(tx: TransactionDrizzle, entrepriseId: string, produitId: string, quantite: number, document: { type?: string; id?: string }): Promise<void> {
+export async function vendreSeries(tx: TransactionDrizzle, entrepriseId: string, produitId: string, quantite: number, document: { type?: string; id?: string }, choisis: string[] = []): Promise<void> {
+  // Tous les numéros en stock (les choisis peuvent ne pas être parmi les plus anciens) : le choix est appliqué par la règle pure.
   const enStock = await tx
     .select({ id: numeroSerie.id, numero: numeroSerie.numero, entreLe: numeroSerie.entreLe })
     .from(numeroSerie)
-    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId), eq(numeroSerie.statut, "EN_STOCK")))
-    .orderBy(asc(numeroSerie.entreLe), asc(numeroSerie.numero))
-    .limit(Math.max(quantite, 0));
-  const pris = numerosAVendre(enStock, quantite);
+    .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId), eq(numeroSerie.statut, "EN_STOCK")));
+  const pris = numerosAVendreAvecChoix(enStock, quantite, choisis);
   if (pris.length === 0) return;
+  // Garantie : la fin se calcule d'après la durée du produit, à partir du jour de la vente (heure de Douala).
+  const [p] = await tx.select({ mois: produit.dureeGarantieMois }).from(produit).where(and(eq(produit.id, produitId), eq(produit.entrepriseId, entrepriseId)));
+  const jour = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
+  const garantieFin = p?.mois ? finGarantie(jour, p.mois) : null;
   await tx
     .update(numeroSerie)
-    .set({ statut: "VENDU", venduLe: sql`now()`, documentType: document.type ?? null, documentId: document.id ?? null })
+    .set({ statut: "VENDU", venduLe: sql`now()`, documentType: document.type ?? null, documentId: document.id ?? null, garantieFin })
     .where(inArray(numeroSerie.id, pris.map((p) => p.id)));
 }
 
@@ -42,7 +45,7 @@ export async function harmoniserSeries(tx: TransactionDrizzle, entrepriseId: str
 export async function restituerSeries(tx: TransactionDrizzle, entrepriseId: string, produitId: string, documentType: string, documentId: string): Promise<void> {
   await tx
     .update(numeroSerie)
-    .set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null })
+    .set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null, garantieFin: null })
     .where(and(eq(numeroSerie.entrepriseId, entrepriseId), eq(numeroSerie.produitId, produitId), eq(numeroSerie.statut, "VENDU"), eq(numeroSerie.documentType, documentType), eq(numeroSerie.documentId, documentId)));
 }
 
@@ -78,6 +81,6 @@ export async function restituerSeriesRetour(tx: TransactionDrizzle, entrepriseId
     .orderBy(desc(numeroSerie.numero))
     .limit(Math.floor(quantite));
   if (vendus.length === 0) return 0;
-  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null }).where(inArray(numeroSerie.id, vendus.map((v) => v.id)));
+  await tx.update(numeroSerie).set({ statut: "EN_STOCK", venduLe: null, documentType: null, documentId: null, garantieFin: null }).where(inArray(numeroSerie.id, vendus.map((v) => v.id)));
   return vendus.length;
 }

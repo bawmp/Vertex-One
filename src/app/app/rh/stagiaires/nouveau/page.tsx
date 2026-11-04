@@ -10,15 +10,17 @@ import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { creerStagiaireAcademiqueAction } from "@/lib/actions/stagiaires";
 import { FormulaireStagiaire } from "../formulaire-stagiaire";
+import { getT } from "@/lib/i18n/langue";
 
 export default async function PageNouveauStagiaire() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if ((utilisateurConnecte.role !== "ADMIN" && utilisateurConnecte.role !== "MANAGER") || !peut(utilisateurConnecte, "RH", "CREER")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas le droit de créer une fiche de stagiaire.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas le droit de créer une fiche de stagiaire.")}</p>
       </div>
     );
   }
@@ -39,13 +41,13 @@ export default async function PageNouveauStagiaire() {
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/rh/stagiaires" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Stagiaires
+        {t("Stagiaires")}
       </Link>
       <div className="flex items-center gap-2.5">
         <GraduationCap className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Nouveau stagiaire académique</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Nouveau stagiaire académique")}</h1>
       </div>
-      <FormulaireStagiaire action={creerStagiaireAcademiqueAction} personnes={donnees.personnes} services={donnees.services} peutIndemnite={utilisateurConnecte.role === "ADMIN"} libelleBouton="Créer la fiche" />
+      <FormulaireStagiaire action={creerStagiaireAcademiqueAction} personnes={donnees.personnes} services={donnees.services} peutIndemnite={utilisateurConnecte.role === "ADMIN"} libelleBouton={t("Créer la fiche")} />
     </div>
   );
 }

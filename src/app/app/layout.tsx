@@ -17,6 +17,7 @@ import { BarreSuperieure } from "./barre-superieure";
 import { BadgeMessagerie } from "./messagerie/badge-messagerie";
 import { cleVapidPublique } from "@/lib/messagerie/push";
 import { MenuCompte } from "./menu-compte";
+import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { MenuParametres } from "./menu-parametres";
 import { CadreSidebar } from "./cadre-sidebar";
 
@@ -369,6 +370,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     .select({
       nomComplet: utilisateur.nomComplet,
       email: utilisateur.email,
+      photoCle: utilisateur.photoCleStockage,
       entrepriseNom: entreprise.nom,
       logoCleStockage: entreprise.logoCleStockage,
       couleurMarque: entreprise.couleurMarque,
@@ -461,6 +463,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           <MenuCompte
             nom={ligne?.nomComplet ?? utilisateurConnecte.role}
             email={ligne?.email ?? ""}
+            photo={adressePhoto("utilisateur", utilisateurConnecte.utilisateurId, ligne?.photoCle ?? null)}
+            photoVersion={ligne?.photoCle ?? ""}
             role={utilisateurConnecte.role}
             langue={utilisateurConnecte.langue}
             afficherEspacePersonnel={utilisateurConnecte.role === "ADMIN"}

@@ -19,10 +19,13 @@ export function FormulaireFactureFournisseur({
   fournisseurs,
   comptesCharge,
   produits,
+  sections = [],
 }: {
   fournisseurs: { id: string; nom: string }[];
   comptesCharge: { id: string; numero: string; libelle: string }[];
   produits: { id: string; nom: string; prixAchat: number }[];
+  /** Sections analytiques actives (vide si l'utilisateur ne gère pas la comptabilité analytique). */
+  sections?: { id: string; code: string; libelle: string }[];
 }) {
   const [etat, action, enCours] = useActionState(creerFactureFournisseur, null);
   const [lignes, setLignes] = useState<Ligne[]>([{ ...LIGNE_VIDE }]);
@@ -81,6 +84,20 @@ export function FormulaireFactureFournisseur({
                 ))}
               </Select>
             </div>
+
+            {sections.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sectionAnalytiqueId">Section analytique (optionnel)</Label>
+                <Select id="sectionAnalytiqueId" name="sectionAnalytiqueId" defaultValue="">
+                  <option value="">Aucune</option>
+                  {sections.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.code} — {x.libelle}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="dateFacture">Date de la facture</Label>

@@ -64,6 +64,16 @@ Légende : [ ] à faire — noter l'écart si le résultat attendu n'est pas obt
 - [ ] Un Employé ou Manager ne voit pas Comptabilité (accès refusé), mais voit Stock selon ses modules.
 - [ ] Deux entreprises : ce que l'une crée (section, taux, déclaration, numéros de série) n'apparaît jamais chez l'autre.
 
+## 9 bis. Fiches collaborateur, groupe, organigramme, garantie (2026-11-04)
+- [ ] Une fiche affiche photo, naissance, tâches ; le salaire n'est visible que de l'Administrateur et de la personne (jamais d'un Manager).
+- [ ] Un Manager crée une fiche d'employé sans champ salaire ; la photo ne s'ouvre pas sans session (lien direct refusé).
+- [ ] RH > Groupe : le partage n'est actif que si les DEUX entreprises l'ont activé ; jamais de salaire chez le partenaire.
+- [ ] Organigramme : l'arbre s'affiche, chaque carte ouvre la fiche.
+- [ ] Anniversaire : carte visible, email du jour reçu une seule fois ; mot de félicitations seulement si l'interrupteur est activé.
+- [ ] Produit suivi par numéro : fixer une garantie, vendre un numéro choisi au ticket de vente, vérifier la fin de garantie et le badge.
+- [ ] Facture fournisseur avec section analytique, puis export CSV : la ligne de la section apparaît.
+- [ ] Textes très longs sur mobile (390 px) : rien ne déborde.
+
 ## 10. Après la mise en ligne
 - [ ] Déploiements Vercel et Railway en succès.
 - [ ] Aucune erreur dans les journaux Vercel dans l'heure qui suit.

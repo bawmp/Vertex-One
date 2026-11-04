@@ -11,6 +11,7 @@ const envoyes: { to: string; subject: string; html: string }[] = [];
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: async (m: { to: string; subject: string; html: string }) => { envoyes.push(m); return { envoye: true }; } }));
 vi.mock("@/lib/invitations/envoi", () => ({ envoyerEmailInvitation: async () => ({ envoye: true }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/i18n/langue", () => ({ getT: async () => Object.assign((texte: string, v?: Record<string, string | number>) => (v ? texte.replace(/{(w+)}/g, (b, k: string) => String(v[k] ?? b)) : texte), { locale: "fr-FR" }) }));
 vi.mock("next/navigation", () => ({ redirect: (u: string) => { throw new Error(`REDIRECT ${u}`); } }));
 let connecte: UtilisateurConnecte | null = null;
 vi.mock("@/lib/session", () => ({ recupererUtilisateurConnecte: async () => connecte }));
@@ -191,6 +192,31 @@ describe("Fiche collaborateur — base réelle", () => {
     expect(rb.anniversaires).toBe(1);
     expect(envoyes.every((m) => m.to.includes("B") || m.to.includes("adminB"))).toBe(true);
     expect((await avecEntreprise(B, (tx) => tx.select().from(rappelAnniversaire))).length).toBe(1);
+  }, 180_000);
+
+  test("mot d'anniversaire à la personne : seulement si l'Administrateur l'a activé, une fois par an, jamais chez une entreprise qui ne l'a pas activé", async () => {
+    // Chez B (réglage coupé par défaut) : le rappel part aux responsables, jamais à la personne elle-même.
+    const rb = await avecEntreprise(B, (tx) => traiterRappelsAnniversaires(tx, B, "2027-11-04"));
+    expect(rb.anniversaires).toBe(1);
+    expect(rb.souhaits).toBe(0);
+    expect(envoyes.some((m) => m.subject === "Joyeux anniversaire !")).toBe(false);
+
+    // Chez A : réglage activé, la personne née le 25 décembre reçoit son mot (année 2027, pas encore traitée).
+    await db.update(entreprise).set({ souhaitAnniversaireEmail: true }).where(eq(entreprise.id, A));
+    await avecEntreprise(A, (tx) => tx.update(dossierRH).set({ dateNaissance: "1990-12-25" }).where(eq(dossierRH.utilisateurId, id.horsEquipeA)));
+    envoyes.length = 0;
+    const ra = await avecEntreprise(A, (tx) => traiterRappelsAnniversaires(tx, A, "2027-12-25"));
+    expect(ra.anniversaires).toBe(1);
+    expect(ra.souhaits).toBe(1);
+    const mot = envoyes.filter((m) => m.subject === "Joyeux anniversaire !");
+    expect(mot).toHaveLength(1);
+    expect(mot[0].to).toBe(`fc-horsEquipeA-${suffixe}@vertexone.test`);
+    expect(mot[0].html).toContain("Personne");
+    // Rejouer ne renvoie rien.
+    envoyes.length = 0;
+    const rejeu = await avecEntreprise(A, (tx) => traiterRappelsAnniversaires(tx, A, "2027-12-25"));
+    expect(rejeu).toEqual({ anniversaires: 0, destinataires: 0 });
+    expect(envoyes).toHaveLength(0);
   }, 180_000);
 
   test("tâches de la fiche : projets et activités CRM non terminées, terminées récentes comptées, jamais celles d'un autre", async () => {

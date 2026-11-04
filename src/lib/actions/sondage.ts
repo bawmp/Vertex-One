@@ -9,19 +9,21 @@ import { entreprise, sondage, sondageQuestion, sondageReponse, sondageParticipat
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/rh/sondages";
 
 export type EtatSondage = { erreur?: string } | null;
 
 const schemaQuestion = z.object({
-  libelle: z.string().trim().min(1, "Chaque question doit avoir un libellé."),
+  libelle: z.string().trim().min(1, m("Chaque question doit avoir un libellé.")),
   type: z.enum(["NPS", "ETOILES", "TEXTE"]),
 });
 
 const schemaSondage = z.object({
-  titre: z.string().trim().min(1, "Le titre est requis."),
-  questions: z.array(schemaQuestion).min(1, "Un sondage doit avoir au moins une question."),
+  titre: z.string().trim().min(1, m("Le titre est requis.")),
+  questions: z.array(schemaQuestion).min(1, m("Un sondage doit avoir au moins une question.")),
 });
 
 /**
@@ -31,10 +33,11 @@ const schemaSondage = z.object({
  * portée EQUIPE — un sondage est par nature à l'échelle de l'entreprise.
  */
 export async function creerSondage(_etat: EtatSondage, formData: FormData): Promise<EtatSondage> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut créer un sondage." };
+    return { erreur: t("Seul l'Administrateur peut créer un sondage.") };
   }
 
   const libelles = formData.getAll("libelle").map(String);
@@ -43,13 +46,13 @@ export async function creerSondage(_etat: EtatSondage, formData: FormData): Prom
 
   const analyse = schemaSondage.safeParse({ titre: formData.get("titre"), questions: questionsBrutes });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { titre, questions } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [leSondage] = await tx.insert(sondage).values({ entrepriseId: utilisateurConnecte.entrepriseId, titre, creeParId: utilisateurConnecte.utilisateurId }).returning({ id: sondage.id });
 
@@ -117,30 +120,31 @@ export async function supprimerSondage(sondageId: string) {
  * lien vers les réponses, empêche une double soumission.
  */
 export async function repondreSondage(sondageId: string, _etat: EtatSondage, formData: FormData): Promise<EtatSondage> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de répondre à un sondage." };
+    return { erreur: t("Vous n'avez pas le droit de répondre à un sondage.") };
   }
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [leSondage] = await tx.select({ statut: sondage.statut }).from(sondage).where(eq(sondage.id, sondageId));
-    if (!leSondage || leSondage.statut !== "OUVERT") return { erreur: "Ce sondage n'est plus ouvert aux réponses." };
+    if (!leSondage || leSondage.statut !== "OUVERT") return { erreur: t("Ce sondage n'est plus ouvert aux réponses.") };
 
     const [dejaRepondu] = await tx
       .select({ id: sondageParticipation.id })
       .from(sondageParticipation)
       .where(and(eq(sondageParticipation.sondageId, sondageId), eq(sondageParticipation.utilisateurId, utilisateurConnecte.utilisateurId)));
-    if (dejaRepondu) return { erreur: "Vous avez déjà répondu à ce sondage." };
+    if (dejaRepondu) return { erreur: t("Vous avez déjà répondu à ce sondage.") };
 
     const questions = await tx.select({ id: sondageQuestion.id }).from(sondageQuestion).where(eq(sondageQuestion.sondageId, sondageId));
     const reponses = questions
       .map((q) => ({ questionId: q.id, valeur: formData.get(`question-${q.id}`) }))
       .filter((r): r is { questionId: string; valeur: FormDataEntryValue } => r.valeur != null && String(r.valeur).trim() !== "");
-    if (reponses.length === 0) return { erreur: "Répondez à au moins une question." };
+    if (reponses.length === 0) return { erreur: t("Répondez à au moins une question.") };
 
     await tx.insert(sondageReponse).values(
       reponses.map((r) => ({ entrepriseId: utilisateurConnecte.entrepriseId, sondageId, questionId: r.questionId, valeur: String(r.valeur).trim() }))

@@ -8,6 +8,8 @@ import { avecEntreprise } from "@/db/client";
 import { recuVente, ligneRecuVente, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { validerSeriesChoisies } from "@/lib/produits/series";
+import { lireSeries as lireListeSeries } from "@/lib/produits/series-regles";
 import { calculerMontants } from "@/lib/facturation/calcul";
 import { genererNumeroRecuVente } from "@/lib/facturation/numerotation";
 import { genererEcrituresRecuVente } from "@/lib/comptabilite/ecritures";
@@ -75,6 +77,21 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
   const lignes = analyseLignes.data;
   const montants = calculerMontants(lignes);
 
+  // Numéros de série choisis (un champ par ligne, même position que la ligne) : contrôlés avant toute écriture.
+  const seriesBrutes = formData.getAll("seriesChoisies").map((v) => String(v ?? ""));
+  const seriesChoisies: Record<string, string[]> = {};
+  const demandesSeries: { produitId: string; quantite: number; numeros: string[] }[] = [];
+  lignes.forEach((l, i) => {
+    const lecture = lireListeSeries(seriesBrutes[i] ?? "");
+    if (!l.produitId || lecture.numeros.length === 0) return;
+    seriesChoisies[l.produitId] = [...(seriesChoisies[l.produitId] ?? []), ...lecture.numeros];
+    demandesSeries.push({ produitId: l.produitId, quantite: l.quantite, numeros: lecture.numeros });
+  });
+  if (demandesSeries.length > 0) {
+    const refus = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => validerSeriesChoisies(tx, utilisateurConnecte.entrepriseId, demandesSeries));
+    if (refus) return { erreur: t(refus) };
+  }
+
   // « Interdire la vente en rupture » : refus clair AVANT toute écriture quand le dépôt n'a pas assez d'un produit suivi.
   const manque = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierStockSuffisant(tx, utilisateurConnecte.entrepriseId, lignes, depotChoisi));
   if (manque) return { erreur: t(manque.cle, manque.valeurs) };
@@ -123,7 +140,7 @@ export async function creerRecuVente(_etat: EtatRecuVente, formData: FormData): 
       }))
     );
 
-    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "RECU_VENTE", documentId: recu.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: depotChoisi });
+    await decrementerStockVente(tx, utilisateurConnecte.entrepriseId, lignes, { documentType: "RECU_VENTE", documentId: recu.id, utilisateurId: utilisateurConnecte.utilisateurId, depotId: depotChoisi, seriesChoisies });
 
     await genererEcrituresRecuVente(tx, {
       id: recu.id,

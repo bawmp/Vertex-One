@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { reviserSalaire } from "@/lib/actions/revision-salaire";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireRevisionSalaire({ dossierRHId, salaireActuel }: { dossierRHId: string; salaireActuel: number | null }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(reviserSalaire, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -16,7 +18,7 @@ export function FormulaireRevisionSalaire({ dossierRHId, salaireActuel }: { doss
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Pencil data-icon="inline-start" aria-hidden />
-        Réviser le salaire
+        {t("Réviser le salaire")}
       </Button>
     );
   }
@@ -27,12 +29,12 @@ export function FormulaireRevisionSalaire({ dossierRHId, salaireActuel }: { doss
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="nouveauSalaire">Nouveau salaire (FCFA)</Label>
+          <Label htmlFor="nouveauSalaire">{t("Nouveau salaire (FCFA)")}</Label>
           <Input id="nouveauSalaire" name="nouveauSalaire" type="number" min={1} defaultValue={salaireActuel ?? ""} required />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="motif">Motif (optionnel)</Label>
-          <Input id="motif" name="motif" placeholder="ex : Augmentation annuelle" />
+          <Label htmlFor="motif">{t("Motif (optionnel)")}</Label>
+          <Input id="motif" name="motif" placeholder={t("ex : Augmentation annuelle")} />
         </div>
       </div>
 
@@ -41,10 +43,10 @@ export function FormulaireRevisionSalaire({ dossierRHId, salaireActuel }: { doss
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Enregistrement…" : "Enregistrer"}
+          {enCours ? t("Enregistrement…") : t("Enregistrer")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

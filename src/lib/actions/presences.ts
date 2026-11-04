@@ -8,24 +8,34 @@ import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
 import { definirGerantPresences, definirPartagePresences, enregistrerPresence, joindrePartenairePresence, marquerTousPresents, rouvrirFiche, validerFiche, type SaisiePresence } from "@/lib/rh/presences";
+import { getT } from "@/lib/i18n/langue";
 
 const CHEMIN = "/app/rh/presences";
 
 type Retour = { erreur?: string };
 
+/** Les règles (`src/lib/rh/presences.ts`) renvoient leurs messages sous forme de clés françaises : on les traduit ici. */
+async function trad<T extends Retour>(r: T): Promise<T> {
+  if (!r.erreur) return r;
+  const t = await getT();
+  return { ...r, erreur: t(r.erreur) };
+}
+
 /** Connecté, et module RH disponible (forfait) : les droits fins (Administrateur, gérant) sont revérifiés par la logique elle-même. */
 async function garde(): Promise<{ utilisateurConnecte: UtilisateurConnecte } | { erreur: string }> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   const [e] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)));
-  if (!e || !disponible(e, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+  if (!e || !disponible(e, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
   return { utilisateurConnecte };
 }
 
 async function gardeAdmin(): Promise<{ utilisateurConnecte: UtilisateurConnecte } | { erreur: string }> {
+  const t = await getT();
   const g = await garde();
   if ("erreur" in g) return g;
-  if (g.utilisateurConnecte.role !== "ADMIN") return { erreur: "Seul l'Administrateur peut modifier ce réglage." };
+  if (g.utilisateurConnecte.role !== "ADMIN") return { erreur: t("Seul l'Administrateur peut modifier ce réglage.") };
   return g;
 }
 
@@ -43,7 +53,7 @@ export async function enregistrerPresenceAction(saisie: SaisiePresence): Promise
     remarque: saisie.remarque ? String(saisie.remarque) : null,
   });
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }
 
 export async function marquerTousPresentsAction(date: string): Promise<Retour & { nombre?: number }> {
@@ -51,7 +61,7 @@ export async function marquerTousPresentsAction(date: string): Promise<Retour & 
   if ("erreur" in g) return g;
   const r = await marquerTousPresents(g.utilisateurConnecte, String(date));
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }
 
 export async function validerFicheAction(date: string): Promise<Retour> {
@@ -59,7 +69,7 @@ export async function validerFicheAction(date: string): Promise<Retour> {
   if ("erreur" in g) return g;
   const r = await validerFiche(g.utilisateurConnecte, String(date));
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }
 
 export async function rouvrirFicheAction(date: string): Promise<Retour> {
@@ -67,7 +77,7 @@ export async function rouvrirFicheAction(date: string): Promise<Retour> {
   if ("erreur" in g) return g;
   const r = await rouvrirFiche(g.utilisateurConnecte, String(date));
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }
 
 /** L'Administrateur change le gérant de la fiche (`null` = aucun). */
@@ -76,7 +86,7 @@ export async function definirGerantAction(gerantId: string | null): Promise<Reto
   if ("erreur" in g) return g;
   const r = await definirGerantPresences(g.utilisateurConnecte.entrepriseId, gerantId ? String(gerantId) : null);
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }
 
 export async function definirPartageAction(actif: boolean): Promise<Retour> {
@@ -92,5 +102,5 @@ export async function joindrePartenaireAction(partenaireId: string, joindre: boo
   if ("erreur" in g) return g;
   const r = await joindrePartenairePresence(g.utilisateurConnecte.entrepriseId, g.utilisateurConnecte.utilisateurId, String(partenaireId), joindre === true);
   if (!r.erreur) revalidatePath(CHEMIN);
-  return r;
+  return trad(r);
 }

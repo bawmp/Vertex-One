@@ -3,7 +3,7 @@ import Link from "next/link";
 import { desc, eq, sql } from "drizzle-orm";
 import { ArrowLeft, Layers, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { depense, ecritureComptable, entreprise, facture } from "@/db/schema";
+import { depense, ecritureComptable, entreprise, facture, factureFournisseur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
@@ -46,15 +46,17 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
     if (!disponible(e, "COMPTABILITE_COMPLETE")) return null;
     const sections = await listerSections(tx, u.entrepriseId);
     const resultat = periodeOk ? await lireResultatAnalytique(tx, u.entrepriseId, { du, au }) : null;
-    const affectees = async (colonne: typeof ecritureComptable.factureId | typeof ecritureComptable.depenseId) =>
+    const affectees = async (colonne: typeof ecritureComptable.factureId | typeof ecritureComptable.depenseId | typeof ecritureComptable.factureFournisseurId) =>
       new Map((await tx.selectDistinct({ doc: colonne, s: ecritureComptable.sectionAnalytiqueId }).from(ecritureComptable).where(sql`${colonne} is not null and ${ecritureComptable.sectionAnalytiqueId} is not null`)).map((l) => [l.doc as string, l.s as string]));
-    const [factures, depenses, parFacture, parDepense] = await Promise.all([
+    const [factures, depenses, parFacture, parDepense, facturesFournisseur, parFactureFournisseur] = await Promise.all([
       tx.select({ id: facture.id, numero: facture.numero, montantHT: facture.montantHT }).from(facture).orderBy(desc(facture.dateEmission)).limit(30),
       tx.select({ id: depense.id, libelle: depense.libelle, montantHT: depense.montantHT }).from(depense).orderBy(desc(depense.creeLe)).limit(30),
       affectees(ecritureComptable.factureId),
       affectees(ecritureComptable.depenseId),
+      tx.select({ id: factureFournisseur.id, numero: factureFournisseur.numero, montantHT: factureFournisseur.montantHT }).from(factureFournisseur).orderBy(desc(factureFournisseur.creeLe)).limit(30),
+      affectees(ecritureComptable.factureFournisseurId),
     ]);
-    return { sections, resultat, factures, depenses, parFacture, parDepense };
+    return { sections, resultat, factures, depenses, parFacture, parDepense, facturesFournisseur, parFactureFournisseur };
   });
   if (!donnees) {
     return (
@@ -64,7 +66,7 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
       </div>
     );
   }
-  const { sections, resultat, factures, depenses, parFacture, parDepense } = donnees;
+  const { sections, resultat, factures, depenses, parFacture, parDepense, facturesFournisseur, parFactureFournisseur } = donnees;
   const actives = sections.filter((s) => s.actif);
   const peutModifier = peut(u, "COMPTABILITE", "MODIFIER");
 
@@ -92,6 +94,9 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
         <button type="submit" className="h-10 rounded-lg border border-input px-4 text-sm font-medium hover:bg-muted">
           {t("Afficher")}
         </button>
+        <a href={`/app/comptabilite/analytique/export?du=${duTexte}&au=${auTexte}`} className="flex h-10 items-center rounded-lg border border-input px-4 text-sm font-medium hover:bg-muted">
+          {t("Exporter en CSV")}
+        </a>
       </form>
 
       {!periodeOk ? (
@@ -155,7 +160,7 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
       {peutModifier && actives.length > 0 ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t("Rattacher des documents")}</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Card className="p-0">
               <p className="border-b px-4 py-2 text-sm font-medium">{t("Dernières factures")}</p>
               <div className="flex flex-col divide-y divide-border">
@@ -163,6 +168,17 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
                   <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
                     <span className="min-w-0 flex-1 truncate">{f.numero} · {formaterFCFA(f.montantHT)}</span>
                     <SelecteurSection type="FACTURE" documentId={f.id} courante={parFacture.get(f.id) ?? ""} sections={actives} />
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card className="p-0">
+              <p className="border-b px-4 py-2 text-sm font-medium">{t("Dernières factures fournisseurs")}</p>
+              <div className="flex flex-col divide-y divide-border">
+                {facturesFournisseur.map((f) => (
+                  <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{f.numero} · {formaterFCFA(f.montantHT)}</span>
+                    <SelecteurSection type="FACTURE_FOURNISSEUR" documentId={f.id} courante={parFactureFournisseur.get(f.id) ?? ""} sections={actives} />
                   </div>
                 ))}
               </div>

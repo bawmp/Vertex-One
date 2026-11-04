@@ -8,6 +8,15 @@ import { useTraduction } from "@/lib/i18n/contexte";
 import type { Langue } from "@/lib/session";
 import { useActionsCompte } from "./actions-compte";
 
+/** Photo de profil dans un rond, ou les initiales à défaut. */
+function Pastille({ photo, version, nom, initiales, classes }: { photo: string | null; version: string; nom: string; initiales: string; classes: string }) {
+  if (photo) {
+    // eslint-disable-next-line @next/next/no-img-element -- photo servie par une route authentifiée, jamais optimisable par next/image
+    return <img src={version ? `${photo}?v=${encodeURIComponent(version)}` : photo} alt={`Photo de ${nom}`} className={`${classes} shrink-0 rounded-full bg-muted object-cover`} />;
+  }
+  return <span className={`${classes} flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground`}>{initiales}</span>;
+}
+
 function initialesDe(nom: string): string {
   return (
     nom
@@ -29,12 +38,17 @@ function initialesDe(nom: string): string {
 export function MenuCompte({
   nom,
   email,
+  photo = null,
+  photoVersion = "",
   role,
   langue: langueInitiale,
   afficherEspacePersonnel,
 }: {
   nom: string;
   email: string;
+  /** Adresse de la photo de profil (route contrôlée), ou null : les initiales s'affichent alors. */
+  photo?: string | null;
+  photoVersion?: string;
   role: string;
   langue?: Langue;
   afficherEspacePersonnel: boolean;
@@ -51,7 +65,7 @@ export function MenuCompte({
       classesBouton="pl-1.5"
       declencheur={
         <>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{initiales}</span>
+          <Pastille photo={photo} version={photoVersion} nom={nom} initiales={initiales} classes="size-8 text-xs" />
           <span className="hidden max-w-40 truncate sm:block">{nom}</span>
           <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
         </>
@@ -60,7 +74,7 @@ export function MenuCompte({
       {(fermer) => (
         <>
           <div className="flex items-center gap-3 px-2.5 py-2.5">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">{initiales}</span>
+            <Pastille photo={photo} version={photoVersion} nom={nom} initiales={initiales} classes="size-10 text-sm" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{nom}</p>
               <p className="truncate text-xs text-muted-foreground">{email}</p>

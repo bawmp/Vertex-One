@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import { modifierDossierRH } from "@/lib/actions/rh";
+import { useT } from "@/lib/i18n/contexte";
 
 function versDateInput(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : "";
@@ -41,6 +42,7 @@ export function FormulaireDossierRH({
   /** Départements — autres que le sien — que cette personne peut voir en plus, en RH (accordé par l'Admin). */
   departementsAutorises: string[];
 }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(modifierDossierRH, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -48,7 +50,7 @@ export function FormulaireDossierRH({
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Pencil data-icon="inline-start" aria-hidden />
-        Modifier
+        {t("Modifier")}
       </Button>
     );
   }
@@ -56,53 +58,53 @@ export function FormulaireDossierRH({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Modifier le dossier RH</CardTitle>
+        <CardTitle>{t("Modifier le dossier RH")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <input type="hidden" name="dossierRHId" value={dossierRHId} />
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="poste">Poste</Label>
+            <Label htmlFor="poste">{t("Poste")}</Label>
             <Input id="poste" name="poste" defaultValue={poste} required />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="typeContrat">Type de contrat</Label>
+              <Label htmlFor="typeContrat">{t("Type de contrat")}</Label>
               <Select id="typeContrat" name="typeContrat" defaultValue={typeContrat}>
                 <option value="CDI">CDI</option>
                 <option value="CDD">CDD</option>
-                <option value="STAGE">Stage</option>
-                <option value="PRESTATAIRE">Prestataire</option>
+                <option value="STAGE">{t("Stage")}</option>
+                <option value="PRESTATAIRE">{t("Prestataire")}</option>
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="nombrePersonnesACharge">Personnes à charge</Label>
+              <Label htmlFor="nombrePersonnesACharge">{t("Personnes à charge")}</Label>
               <Input id="nombrePersonnesACharge" name="nombrePersonnesACharge" type="number" min={0} defaultValue={nombrePersonnesACharge} />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dateEmbauche">Date d&apos;embauche</Label>
+              <Label htmlFor="dateEmbauche">{t("Date d'embauche")}</Label>
               <Input id="dateEmbauche" name="dateEmbauche" type="date" defaultValue={versDateInput(dateEmbauche)} required />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dateFinContrat">Fin de contrat (si CDD)</Label>
+              <Label htmlFor="dateFinContrat">{t("Fin de contrat (si CDD)")}</Label>
               <Input id="dateFinContrat" name="dateFinContrat" type="date" defaultValue={versDateInput(dateFinContrat)} />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="managerId">Manager</Label>
-              <SelecteurPersonne id="managerId" name="managerId" personnes={collegues} defaultValue={managerId} placeholder="Rechercher un manager…" />
+              <Label htmlFor="managerId">{t("Manager")}</Label>
+              <SelecteurPersonne id="managerId" name="managerId" personnes={collegues} defaultValue={managerId} placeholder={t("Rechercher un manager…")} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="serviceId">Département</Label>
+              <Label htmlFor="serviceId">{t("Département")}</Label>
               <Select id="serviceId" name="serviceId" defaultValue={serviceId ?? ""}>
-                <option value="">Aucun</option>
+                <option value="">{t("Aucun")}</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>{s.nom}</option>
                 ))}
@@ -112,9 +114,9 @@ export function FormulaireDossierRH({
 
           {services.filter((s) => s.id !== serviceId).length > 0 ? (
             <div className="flex flex-col gap-2">
-              <Label>Accès à d&apos;autres départements (RH)</Label>
+              <Label>{t("Accès à d'autres départements (RH)")}</Label>
               <p className="text-xs text-muted-foreground">
-                En plus de son propre département et de son équipe, cette personne verra aussi les dossiers RH des départements cochés.
+                {t("En plus de son propre département et de son équipe, cette personne verra aussi les dossiers RH des départements cochés.")}
               </p>
               <div className="flex flex-col gap-1.5">
                 {services
@@ -140,10 +142,10 @@ export function FormulaireDossierRH({
           <div className="flex gap-2">
             <Button type="submit" disabled={enCours}>
               {enCours ? <Spinner /> : null}
-              {enCours ? "Enregistrement…" : "Enregistrer"}
+              {enCours ? t("Enregistrement…") : t("Enregistrer")}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setOuvert(false)}>
-              Annuler
+              {t("Annuler")}
             </Button>
           </div>
         </form>

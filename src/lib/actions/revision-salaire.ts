@@ -7,10 +7,12 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { dossierRH, revisionSalaire } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const schemaRevision = z.object({
   dossierRHId: z.string().min(1),
-  nouveauSalaire: z.coerce.number().int().positive("Le salaire doit être positif."),
+  nouveauSalaire: z.coerce.number().int().positive(m("Le salaire doit être positif.")),
   motif: z.string().trim().optional(),
 });
 
@@ -25,10 +27,11 @@ export type EtatRevisionSalaire = { erreur?: string } | null;
  * d'écraser la valeur, jamais un simple UPDATE silencieux.
  */
 export async function reviserSalaire(_etat: EtatRevisionSalaire, formData: FormData): Promise<EtatRevisionSalaire> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut réviser un salaire." };
+    return { erreur: t("Seul l'Administrateur peut réviser un salaire.") };
   }
 
   const analyse = schemaRevision.safeParse({
@@ -37,13 +40,13 @@ export async function reviserSalaire(_etat: EtatRevisionSalaire, formData: FormD
     motif: formData.get("motif") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { dossierRHId, nouveauSalaire, motif } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDossier] = await tx.select({ salaireBase: dossierRH.salaireBase }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
-    if (!leDossier) return { erreur: "Dossier RH introuvable." };
+    if (!leDossier) return { erreur: t("Dossier RH introuvable.") };
 
     await tx.insert(revisionSalaire).values({
       entrepriseId: utilisateurConnecte.entrepriseId,

@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { and, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { stagiaireAcademique, utilisateur } from "@/db/schema";
@@ -12,8 +13,8 @@ export type ResultatPhoto = { ok: true } | { ok: false; erreur: string };
 
 /** Valide le fichier reçu (avant tout accès à la base ou au stockage). */
 export async function preparerPhoto(fichier: unknown): Promise<{ ok: true; photo: PhotoPreparee } | { ok: false; erreur: string }> {
-  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: "Choisissez une photo." };
-  if (fichier.size > TAILLE_MAX_PHOTO) return { ok: false, erreur: "La photo est trop lourde (2 Mo au maximum)." };
+  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, erreur: m("Choisissez une photo.") };
+  if (fichier.size > TAILLE_MAX_PHOTO) return { ok: false, erreur: m("La photo est trop lourde (2 Mo au maximum).") };
   const octets = Buffer.from(await fichier.arrayBuffer());
   const verdict = validerFichier({ taille: octets.length, octets, categories: ["IMAGE"] });
   if (!verdict.ok) return { ok: false, erreur: verdict.erreur };
@@ -28,9 +29,9 @@ async function stocker(entrepriseId: string, cible: "utilisateurs" | "stagiaires
 /** Remplace la photo d'un collaborateur (la précédente est effacée du stockage). Le collaborateur est relu dans l'entreprise. */
 export async function enregistrerPhotoUtilisateur(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string, photo: PhotoPreparee): Promise<ResultatPhoto> {
   const [u] = await tx.select({ ancienne: utilisateur.photoCleStockage }).from(utilisateur).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
-  if (!u) return { ok: false, erreur: "Collaborateur introuvable." };
+  if (!u) return { ok: false, erreur: m("Collaborateur introuvable.") };
   const cle = await stocker(entrepriseId, "utilisateurs", utilisateurId, photo);
-  if (!cle) return { ok: false, erreur: "Le stockage des fichiers n'est pas disponible pour le moment." };
+  if (!cle) return { ok: false, erreur: m("Le stockage des fichiers n'est pas disponible pour le moment.") };
   await tx.update(utilisateur).set({ photoCleStockage: cle, photoTypeMime: photo.mime }).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
   if (u.ancienne) await effacerObjetStockage(u.ancienne);
   return { ok: true };
@@ -38,7 +39,7 @@ export async function enregistrerPhotoUtilisateur(tx: TransactionDrizzle, entrep
 
 export async function retirerPhotoUtilisateur(tx: TransactionDrizzle, entrepriseId: string, utilisateurId: string): Promise<ResultatPhoto> {
   const [u] = await tx.select({ ancienne: utilisateur.photoCleStockage }).from(utilisateur).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
-  if (!u) return { ok: false, erreur: "Collaborateur introuvable." };
+  if (!u) return { ok: false, erreur: m("Collaborateur introuvable.") };
   await tx.update(utilisateur).set({ photoCleStockage: null, photoTypeMime: null }).where(and(eq(utilisateur.id, utilisateurId), eq(utilisateur.entrepriseId, entrepriseId)));
   if (u.ancienne) await effacerObjetStockage(u.ancienne);
   return { ok: true };
@@ -47,9 +48,9 @@ export async function retirerPhotoUtilisateur(tx: TransactionDrizzle, entreprise
 /** Photo d'un stagiaire académique (sans compte : posée par l'Administrateur ou le responsable). */
 export async function enregistrerPhotoStagiaire(tx: TransactionDrizzle, entrepriseId: string, stagiaireId: string, photo: PhotoPreparee): Promise<ResultatPhoto> {
   const [s] = await tx.select({ ancienne: stagiaireAcademique.photoCleStockage }).from(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, stagiaireId), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
-  if (!s) return { ok: false, erreur: "Stagiaire introuvable." };
+  if (!s) return { ok: false, erreur: m("Stagiaire introuvable.") };
   const cle = await stocker(entrepriseId, "stagiaires", stagiaireId, photo);
-  if (!cle) return { ok: false, erreur: "Le stockage des fichiers n'est pas disponible pour le moment." };
+  if (!cle) return { ok: false, erreur: m("Le stockage des fichiers n'est pas disponible pour le moment.") };
   await tx.update(stagiaireAcademique).set({ photoCleStockage: cle, photoTypeMime: photo.mime }).where(and(eq(stagiaireAcademique.id, stagiaireId), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
   if (s.ancienne) await effacerObjetStockage(s.ancienne);
   return { ok: true };

@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
@@ -11,18 +12,20 @@ import { idsVisibles } from "@/lib/portee";
 import { rapportPersonnel, rapportEquipe, rapportEntreprise } from "@/lib/rh/rapports";
 import { Card, CardContent } from "@/components/ui/card";
 import { NombreAnime } from "@/components/nombre-anime";
+import { getT } from "@/lib/i18n/langue";
 
-const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: "Stage", PRESTATAIRE: "Prestataire" };
-const LIBELLE_STATUT_TICKET: Record<string, string> = { OUVERT: "Ouvert", EN_COURS: "En cours", RESOLU: "Résolu", FERME: "Fermé" };
+const LIBELLE_TYPE_CONTRAT: Record<string, string> = { CDI: "CDI", CDD: "CDD", STAGE: m("Stage"), PRESTATAIRE: m("Prestataire") };
+const LIBELLE_STATUT_TICKET: Record<string, string> = { OUVERT: m("Ouvert"), EN_COURS: m("En cours"), RESOLU: m("Résolu"), FERME: m("Fermé") };
 
 export default async function PageRapportsRH() {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "VOIR")) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Vous n&apos;avez pas accès aux Ressources Humaines.</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès aux Ressources Humaines.")}</p>
       </div>
     );
   }
@@ -60,7 +63,7 @@ export default async function PageRapportsRH() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">Les Ressources Humaines sont disponibles à partir du forfait Business.</p>
+        <p className="text-muted-foreground">{t("Les Ressources Humaines sont disponibles à partir du forfait Business.")}</p>
       </div>
     );
   }
@@ -71,21 +74,21 @@ export default async function PageRapportsRH() {
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/app/rh" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Ressources Humaines
+        {t("Ressources Humaines")}
       </Link>
 
       <div className="flex items-center gap-2.5">
         <ChartBar className="size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">Rapports RH</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Rapports RH")}</h1>
       </div>
 
       {personnel ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Mes données</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Mes données")}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Solde de congés</p>
+                <p className="text-xs text-muted-foreground">{t("Solde de congés")}</p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={personnel.soldeConges} suffixe=" j." />
                 </p>
@@ -93,7 +96,7 @@ export default async function PageRapportsRH() {
             </Card>
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Congé payé pris ({new Date().getFullYear()})</p>
+                <p className="text-xs text-muted-foreground">{t("Congé payé pris ({annee})", { annee: new Date().getFullYear() })}</p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={personnel.congesPrisAnnee} suffixe=" j." />
                 </p>
@@ -101,7 +104,7 @@ export default async function PageRapportsRH() {
             </Card>
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Régularisations en attente</p>
+                <p className="text-xs text-muted-foreground">{t("Régularisations en attente")}</p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={personnel.regularisationsEnAttente} />
                 </p>
@@ -109,7 +112,7 @@ export default async function PageRapportsRH() {
             </Card>
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Mes tickets ouverts</p>
+                <p className="text-xs text-muted-foreground">{t("Mes tickets ouverts")}</p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={personnel.ticketsOuverts} />
                 </p>
@@ -121,7 +124,7 @@ export default async function PageRapportsRH() {
 
       {equipe.length > 0 ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Équipe</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Équipe")}</h2>
           <Card className="p-0">
             <div className="flex flex-col divide-y divide-border">
               {equipe.map((e, index) => (
@@ -137,9 +140,9 @@ export default async function PageRapportsRH() {
                   />
                   <span className="font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{e.nomComplet}</span>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground transition-transform duration-150 group-hover/ligne:translate-x-1">
-                    <span>{e.soldeConges} j. de solde</span>
-                    {e.demandesCongeEnAttente > 0 ? <span className="text-amber-600 dark:text-amber-400">{e.demandesCongeEnAttente} demande(s) en attente</span> : null}
-                    <span>{e.presentAujourdhui ? "Présent aujourd'hui" : "Pas encore pointé"}</span>
+                    <span>{t("{n} j. de solde", { n: e.soldeConges })}</span>
+                    {e.demandesCongeEnAttente > 0 ? <span className="text-amber-600 dark:text-amber-400">{t("{n} demande(s) en attente", { n: e.demandesCongeEnAttente })}</span> : null}
+                    <span>{e.presentAujourdhui ? t("Présent aujourd'hui") : t("Pas encore pointé")}</span>
                   </div>
                 </Link>
               ))}
@@ -150,24 +153,24 @@ export default async function PageRapportsRH() {
 
       {entrepriseRapport ? (
         <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Entreprise</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{t("Entreprise")}</h2>
           <div className="grid gap-3 sm:grid-cols-3">
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Dossiers actifs</p>
+                <p className="text-xs text-muted-foreground">{t("Dossiers actifs")}</p>
                 <p className="text-xl font-semibold">
                   <NombreAnime valeur={entrepriseRapport.dossiersActifs} />
                 </p>
-                {entrepriseRapport.dossiersPartis > 0 ? <p className="text-xs text-muted-foreground">{entrepriseRapport.dossiersPartis} parti(s)</p> : null}
+                {entrepriseRapport.dossiersPartis > 0 ? <p className="text-xs text-muted-foreground">{t("{n} parti(s)", { n: entrepriseRapport.dossiersPartis })}</p> : null}
               </CardContent>
             </Card>
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Répartition des contrats</p>
+                <p className="text-xs text-muted-foreground">{t("Répartition des contrats")}</p>
                 <div className="flex flex-wrap gap-x-3 text-sm">
                   {Object.entries(entrepriseRapport.repartitionContrats).map(([type, n]) => (
                     <span key={type}>
-                      {LIBELLE_TYPE_CONTRAT[type] ?? type} : {n}
+                      {t(LIBELLE_TYPE_CONTRAT[type] ?? type)} : {n}
                     </span>
                   ))}
                 </div>
@@ -175,7 +178,7 @@ export default async function PageRapportsRH() {
             </Card>
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
-                <p className="text-xs text-muted-foreground">Masse salariale (base, mensuelle)</p>
+                <p className="text-xs text-muted-foreground">{t("Masse salariale (base, mensuelle)")}</p>
                 <p className="text-xl font-semibold">{new Intl.NumberFormat("fr-FR").format(entrepriseRapport.masseSalariale)} FCFA</p>
               </CardContent>
             </Card>
@@ -183,14 +186,14 @@ export default async function PageRapportsRH() {
 
           <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
             <CardContent className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Tickets d&apos;assistance RH</p>
+              <p className="text-xs text-muted-foreground">{t("Tickets d'assistance RH")}</p>
               <div className="flex flex-wrap gap-x-3 text-sm">
                 {Object.entries(entrepriseRapport.ticketsParStatut).map(([statut, n]) => (
                   <span key={statut}>
-                    {LIBELLE_STATUT_TICKET[statut] ?? statut} : {n}
+                    {t(LIBELLE_STATUT_TICKET[statut] ?? statut)} : {n}
                   </span>
                 ))}
-                {Object.keys(entrepriseRapport.ticketsParStatut).length === 0 ? <span className="text-muted-foreground">Aucun ticket.</span> : null}
+                {Object.keys(entrepriseRapport.ticketsParStatut).length === 0 ? <span className="text-muted-foreground">{t("Aucun ticket.")}</span> : null}
               </div>
             </CardContent>
           </Card>
@@ -198,13 +201,13 @@ export default async function PageRapportsRH() {
           {entrepriseRapport.dernierSondage ? (
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
               <CardContent className="flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground">Dernier sondage fermé — {entrepriseRapport.dernierSondage.titre}</p>
-                <p className="text-sm">Taux de participation : {entrepriseRapport.dernierSondage.tauxParticipation}%</p>
+                <p className="text-xs text-muted-foreground">{t("Dernier sondage fermé — {titre}", { titre: entrepriseRapport.dernierSondage.titre })}</p>
+                <p className="text-sm">{t("Taux de participation : {taux}%", { taux: entrepriseRapport.dernierSondage.tauxParticipation })}</p>
                 <div className="flex flex-wrap gap-3 text-sm">
                   {entrepriseRapport.dernierSondage.resultats.map((r, i) =>
                     r.type === "NPS" ? (
                       <span key={i}>
-                        eNPS : {r.scoreENPS > 0 ? "+" : ""}
+                        {t("eNPS :")} {r.scoreENPS > 0 ? "+" : ""}
                         {r.scoreENPS}
                       </span>
                     ) : r.type === "ETOILES" ? (

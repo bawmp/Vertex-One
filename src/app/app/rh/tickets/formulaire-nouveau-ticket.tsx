@@ -9,8 +9,10 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerTicketRH } from "@/lib/actions/ticket-rh";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireNouveauTicket({ categories }: { categories: { id: string; nom: string }[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerTicketRH, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -20,7 +22,7 @@ export function FormulaireNouveauTicket({ categories }: { categories: { id: stri
     return (
       <Button size="sm" onClick={() => setOuvert(true)}>
         <Plus data-icon="inline-start" aria-hidden />
-        Nouveau ticket
+        {t("Nouveau ticket")}
       </Button>
     );
   }
@@ -29,7 +31,7 @@ export function FormulaireNouveauTicket({ categories }: { categories: { id: stri
     <form action={action} className="flex flex-col gap-3 rounded-lg border p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="categorieId">Catégorie</Label>
+          <Label htmlFor="categorieId">{t("Catégorie")}</Label>
           <Select id="categorieId" name="categorieId" required>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -39,13 +41,13 @@ export function FormulaireNouveauTicket({ categories }: { categories: { id: stri
           </Select>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="titre">Titre</Label>
+          <Label htmlFor="titre">{t("Titre")}</Label>
           <Input id="titre" name="titre" required />
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="description">Description (optionnel)</Label>
+        <Label htmlFor="description">{t("Description (optionnel)")}</Label>
         <Textarea id="description" name="description" rows={3} />
       </div>
 
@@ -54,10 +56,10 @@ export function FormulaireNouveauTicket({ categories }: { categories: { id: stri
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Envoi…" : "Ouvrir le ticket"}
+          {enCours ? t("Envoi…") : t("Ouvrir le ticket")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

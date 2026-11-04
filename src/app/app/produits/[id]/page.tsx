@@ -278,11 +278,15 @@ export default async function PageDetailProduit({ params, searchParams }: { para
                 suiviLots={seriesEtat.suiviLots}
                 enStock={seriesEtat.enStock}
                 sansNumero={seriesEtat.sansNumero}
+                dureeGarantieMois={seriesEtat.dureeGarantieMois}
+                aujourdhui={new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date())}
                 series={seriesEtat.series.map((x) => ({
                   id: x.id,
                   numero: x.numero,
                   statut: x.statut,
                   venduLe: x.venduLe ? x.venduLe.toLocaleDateString("fr-FR", { timeZone: "Africa/Douala" }) : null,
+                  garantieFin: x.garantieFin,
+                  garantieFinTexte: x.garantieFin ? x.garantieFin.split("-").reverse().join("/") : null,
                   lien: x.documentType === "FACTURE" && x.documentId ? `/app/facturation/factures/${x.documentId}` : x.documentType === "RECU_VENTE" ? "/app/facturation#tickets-de-vente" : null,
                 }))}
               />

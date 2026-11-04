@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import type { EtatStagiaire } from "@/lib/actions/stagiaires";
+import { useT } from "@/lib/i18n/contexte";
 
 export type ValeursStagiaire = {
   nom?: string;
@@ -33,7 +34,8 @@ export type ValeursStagiaire = {
 type Action = (etat: EtatStagiaire, formData: FormData) => Promise<EtatStagiaire>;
 
 /** Fiche d'un stagiaire académique (création ou modification). L'indemnité n'est proposée qu'à l'Administrateur. */
-export function FormulaireStagiaire({ action, valeurs = {}, personnes, services, peutIndemnite, verrouille = false, libelleBouton = "Enregistrer" }: { action: Action; valeurs?: ValeursStagiaire; personnes: PersonneSelectionnable[]; services: { id: string; nom: string }[]; peutIndemnite: boolean; verrouille?: boolean; libelleBouton?: string }) {
+export function FormulaireStagiaire({ action, valeurs = {}, personnes, services, peutIndemnite, verrouille = false, libelleBouton }: { action: Action; valeurs?: ValeursStagiaire; personnes: PersonneSelectionnable[]; services: { id: string; nom: string }[]; peutIndemnite: boolean; verrouille?: boolean; libelleBouton?: string }) {
+  const t = useT();
   const [etat, envoyer, enCours] = useActionState<EtatStagiaire, FormData>(action, null);
   const champ = (id: string, libelle: string, props: React.ComponentProps<typeof Input> = {}) => (
     <div className="flex flex-col gap-1.5">
@@ -45,40 +47,40 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
   return (
     <form action={envoyer} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
-        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Le stagiaire</legend>
+        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("Le stagiaire")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {champ("nom", "Nom complet", { required: true, maxLength: 120 })}
-          {champ("dateNaissance", "Date de naissance (rappel d'anniversaire)", { type: "date" })}
-          {champ("telephone", "Téléphone", { maxLength: 40 })}
-          {champ("email", "Email (pour l'inviter s'il est embauché)", { type: "email" })}
+          {champ("nom", t("Nom complet"), { required: true, maxLength: 120 })}
+          {champ("dateNaissance", t("Date de naissance (rappel d'anniversaire)"), { type: "date" })}
+          {champ("telephone", t("Téléphone"), { maxLength: 40 })}
+          {champ("email", t("Email (pour l'inviter s'il est embauché)"), { type: "email" })}
         </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
-        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">École et convention</legend>
+        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("École et convention")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {champ("etablissement", "Établissement", { required: true, maxLength: 160 })}
-          {champ("filiere", "Filière", { maxLength: 120 })}
-          {champ("niveau", "Niveau (ex. Licence 3, Master 2)", { maxLength: 80 })}
-          {champ("conventionReference", "Référence de la convention de stage", { maxLength: 120 })}
-          {champ("tuteurEcoleNom", "Tuteur à l'école — nom", { maxLength: 120 })}
-          {champ("tuteurEcoleContact", "Tuteur à l'école — contact", { maxLength: 160 })}
+          {champ("etablissement", t("Établissement"), { required: true, maxLength: 160 })}
+          {champ("filiere", t("Filière"), { maxLength: 120 })}
+          {champ("niveau", t("Niveau (ex. Licence 3, Master 2)"), { maxLength: 80 })}
+          {champ("conventionReference", t("Référence de la convention de stage"), { maxLength: 120 })}
+          {champ("tuteurEcoleNom", t("Tuteur à l'école — nom"), { maxLength: 120 })}
+          {champ("tuteurEcoleContact", t("Tuteur à l'école — contact"), { maxLength: 160 })}
         </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
-        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Le stage</legend>
+        <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("Le stage")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
-          {champ("dateDebut", "Début du stage", { type: "date", required: true })}
-          {champ("dateFin", "Fin prévue du stage", { type: "date", required: true })}
+          {champ("dateDebut", t("Début du stage"), { type: "date", required: true })}
+          {champ("dateFin", t("Fin prévue du stage"), { type: "date", required: true })}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="maitreStageId">Maître de stage</Label>
-            <SelecteurPersonne id="maitreStageId" name="maitreStageId" personnes={personnes} defaultValue={valeurs.maitreStageId ?? undefined} placeholder="Rechercher un collègue…" />
+            <Label htmlFor="maitreStageId">{t("Maître de stage")}</Label>
+            <SelecteurPersonne id="maitreStageId" name="maitreStageId" personnes={personnes} defaultValue={valeurs.maitreStageId ?? undefined} placeholder={t("Rechercher un collègue…")} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="serviceId">Département</Label>
+            <Label htmlFor="serviceId">{t("Département")}</Label>
             <Select id="serviceId" name="serviceId" defaultValue={valeurs.serviceId ?? ""}>
-              <option value="">Aucun</option>
+              <option value="">{t("Aucun")}</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nom}
@@ -88,19 +90,19 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
           </div>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="mission">Mission</Label>
+          <Label htmlFor="mission">{t("Mission")}</Label>
           <Textarea id="mission" name="mission" rows={2} maxLength={300} defaultValue={valeurs.mission ?? ""} />
         </div>
         {peutIndemnite ? (
           <div className="flex max-w-xs flex-col gap-1.5">
-            <Label htmlFor="indemniteMensuelle">Indemnité mensuelle (FCFA) — visible de l&apos;Administrateur seul</Label>
+            <Label htmlFor="indemniteMensuelle">{t("Indemnité mensuelle (FCFA) — visible de l'Administrateur seul")}</Label>
             <Input id="indemniteMensuelle" name="indemniteMensuelle" type="number" min={0} step={1} inputMode="numeric" defaultValue={valeurs.indemniteMensuelle ?? ""} />
           </div>
         ) : null}
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="evaluation">Évaluation du maître de stage</Label>
+        <Label htmlFor="evaluation">{t("Évaluation du maître de stage")}</Label>
         <Textarea id="evaluation" name="evaluation" rows={4} maxLength={4000} disabled={verrouille} defaultValue={valeurs.evaluation ?? ""} />
       </div>
 
@@ -109,7 +111,7 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
       {verrouille ? null : (
         <Button type="submit" disabled={enCours} className="self-start">
           {enCours ? <Spinner /> : null}
-          {libelleBouton}
+          {libelleBouton ?? t("Enregistrer")}
         </Button>
       )}
     </form>

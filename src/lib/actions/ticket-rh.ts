@@ -10,14 +10,16 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { peutVoirTicket } from "@/lib/rh/ticket";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const CHEMIN = "/app/rh/tickets";
 
 export type EtatTicketRH = { erreur?: string } | null;
 
 const schemaCategorie = z.object({
-  nom: z.string().trim().min(1, "Le nom est requis."),
-  agentId: z.string().min(1, "L'agent est requis."),
+  nom: z.string().trim().min(1, m("Le nom est requis.")),
+  agentId: z.string().min(1, m("L'agent est requis.")),
 });
 
 /**
@@ -25,21 +27,22 @@ const schemaCategorie = z.object({
  * l'Administrateur (même niveau que creerPolitiqueConge()/creerSondage()).
  */
 export async function creerCategorieTicketRH(_etat: EtatTicketRH, formData: FormData): Promise<EtatTicketRH> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut créer une catégorie." };
+    return { erreur: t("Seul l'Administrateur peut créer une catégorie.") };
   }
 
   const analyse = schemaCategorie.safeParse({ nom: formData.get("nom"), agentId: formData.get("agentId") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { nom, agentId } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     await tx.insert(categorieTicketRH).values({ entrepriseId: utilisateurConnecte.entrepriseId, nom, agentId });
     return null;
@@ -52,8 +55,8 @@ export async function creerCategorieTicketRH(_etat: EtatTicketRH, formData: Form
 }
 
 const schemaTicket = z.object({
-  categorieId: z.string().min(1, "La catégorie est requise."),
-  titre: z.string().trim().min(1, "Le titre est requis."),
+  categorieId: z.string().min(1, m("La catégorie est requise.")),
+  titre: z.string().trim().min(1, m("Le titre est requis.")),
   description: z.string().trim().optional(),
 });
 
@@ -63,10 +66,11 @@ const schemaTicket = z.object({
  * catégorie, jamais choisi par le demandeur.
  */
 export async function creerTicketRH(_etat: EtatTicketRH, formData: FormData): Promise<EtatTicketRH> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit d'ouvrir un ticket." };
+    return { erreur: t("Vous n'avez pas le droit d'ouvrir un ticket.") };
   }
 
   const analyse = schemaTicket.safeParse({
@@ -75,16 +79,16 @@ export async function creerTicketRH(_etat: EtatTicketRH, formData: FormData): Pr
     description: formData.get("description") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { categorieId, titre, description } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [laCategorie] = await tx.select({ agentId: categorieTicketRH.agentId }).from(categorieTicketRH).where(eq(categorieTicketRH.id, categorieId));
-    if (!laCategorie) return { erreur: "Catégorie introuvable." };
+    if (!laCategorie) return { erreur: t("Catégorie introuvable.") };
 
     await tx.insert(ticketRH).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
@@ -147,21 +151,22 @@ export async function reassignerTicket(ticketId: string, nouvelAgentId: string) 
   revalidatePath(`${CHEMIN}/${ticketId}`);
 }
 
-const schemaMessage = z.object({ contenu: z.string().trim().min(1, "Le message ne peut pas être vide.") });
+const schemaMessage = z.object({ contenu: z.string().trim().min(1, m("Le message ne peut pas être vide.")) });
 
 export async function ajouterMessageTicket(ticketId: string, _etat: EtatTicketRH, formData: FormData): Promise<EtatTicketRH> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   const analyse = schemaMessage.safeParse({ contenu: formData.get("contenu") });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Message invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Message invalide.") };
   }
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leTicket] = await tx.select().from(ticketRH).where(eq(ticketRH.id, ticketId));
-    if (!leTicket) return { erreur: "Ticket introuvable." };
-    if (!peutVoirTicket(utilisateurConnecte, leTicket)) return { erreur: "Vous n'avez pas accès à ce ticket." };
+    if (!leTicket) return { erreur: t("Ticket introuvable.") };
+    if (!peutVoirTicket(utilisateurConnecte, leTicket)) return { erreur: t("Vous n'avez pas accès à ce ticket.") };
 
     await tx.insert(messageTicketRH).values({ entrepriseId: utilisateurConnecte.entrepriseId, ticketId, auteurId: utilisateurConnecte.utilisateurId, contenu: analyse.data.contenu });
     return null;

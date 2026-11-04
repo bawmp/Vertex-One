@@ -11,6 +11,7 @@ import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
 import { validerNouveauCollaborateur } from "@/lib/rh/nouveau-collaborateur";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatNouveauCollaborateur = { erreur?: string; succes?: string } | null;
 
@@ -24,13 +25,14 @@ const aujourdhuiDouala = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Afr
  * n'est saisi ici — la rémunération est réservée à l'Administrateur, depuis la fiche. Rien du rôle ni de l'entreprise ne vient du navigateur.
  */
 export async function inviterCollaborateur(_etat: EtatNouveauCollaborateur, formData: FormData): Promise<EtatNouveauCollaborateur> {
+  const t = await getT();
   const u = await recupererUtilisateurConnecte();
   if (!u) redirect("/connexion");
-  if ((u.role !== "ADMIN" && u.role !== "MANAGER") || !peut(u, "RH", "CREER")) return { erreur: "Vous n'avez pas le droit de créer la fiche d'un collaborateur." };
+  if ((u.role !== "ADMIN" && u.role !== "MANAGER") || !peut(u, "RH", "CREER")) return { erreur: t("Vous n'avez pas le droit de créer la fiche d'un collaborateur.") };
 
   const champ = (k: string) => String(formData.get(k) ?? "");
   const v = validerNouveauCollaborateur({ email: champ("email"), poste: champ("poste"), typeContrat: champ("typeContrat"), dateEmbauche: champ("dateEmbauche"), dateFin: champ("dateFin"), dateNaissance: champ("dateNaissance") }, aujourdhuiDouala());
-  if (!v.ok) return { erreur: v.erreur };
+  if (!v.ok) return { erreur: t(v.erreur) };
   const { email, poste, typeContrat, dateEmbauche, dateFin, dateNaissance } = v.valeurs;
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
@@ -39,16 +41,16 @@ export async function inviterCollaborateur(_etat: EtatNouveauCollaborateur, form
 
   const r = await avecEntreprise(u.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
-    if (!e || !disponible(e, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!e || !disponible(e, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
     if (u.role === "ADMIN" && demande) {
       // `utilisateur` est en RLS permissive : le filtre sur l'entreprise est explicite.
       const [resp] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, demande), eq(utilisateur.entrepriseId, u.entrepriseId)));
-      if (!resp) return { erreur: "Responsable introuvable." };
+      if (!resp) return { erreur: t("Responsable introuvable.") };
       responsableId = resp.id;
     }
     // Comparaison sans tenir compte de la casse : l'adresse est unique sur toute la plateforme.
     const [dejaCompte] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(sql`lower(${utilisateur.email}) = ${email}`);
-    if (dejaCompte) return { erreur: "Cette adresse email a déjà un compte." };
+    if (dejaCompte) return { erreur: t("Cette adresse email a déjà un compte.") };
     await tx.insert(invitation).values({
       entrepriseId: u.entrepriseId,
       email,
@@ -64,9 +66,9 @@ export async function inviterCollaborateur(_etat: EtatNouveauCollaborateur, form
     });
     return null;
   });
-  if (r?.erreur) return { erreur: r.erreur };
+  if (r?.erreur) return { erreur: t(r.erreur) };
 
   const { envoye } = await envoyerEmailInvitation({ entrepriseId: u.entrepriseId, email, role: "EMPLOYE", jeton, invitantId: u.utilisateurId, dureeHeures: DUREE_INVITATION_MS / 3_600_000 });
   revalidatePath("/app/rh");
-  return { succes: envoye ? `Invitation envoyée par email à ${email}. La fiche se crée dès qu'il active son compte depuis le lien reçu.` : `Invitation créée, mais l'email n'a pas pu partir : transmettez ce lien à la personne : /invitation/${jeton}` };
+  return { succes: envoye ? t("Invitation envoyée par email à {email}. La fiche se crée dès qu'il active son compte depuis le lien reçu.", { email }) : t("Invitation créée, mais l'email n'a pas pu partir : transmettez ce lien à la personne : {lien}", { lien: `/invitation/${jeton}` }) };
 }

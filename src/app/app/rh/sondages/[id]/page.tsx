@@ -11,14 +11,17 @@ import { Button } from "@/components/ui/button";
 import { ouvrirSondage, fermerSondage, supprimerSondage } from "@/lib/actions/sondage";
 import { FormulaireReponseSondage } from "./formulaire-reponse-sondage";
 import { ResultatsSondage } from "./resultats-sondage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const LIBELLE_STATUT: Record<string, { libelle: string; variante: "success" | "warning" | "neutral" }> = {
-  BROUILLON: { libelle: "Brouillon", variante: "neutral" },
-  OUVERT: { libelle: "Ouvert", variante: "success" },
-  FERME: { libelle: "Fermé", variante: "warning" },
+  BROUILLON: { libelle: m("Brouillon"), variante: "neutral" },
+  OUVERT: { libelle: m("Ouvert"), variante: "success" },
+  FERME: { libelle: m("Fermé"), variante: "warning" },
 };
 
 export default async function PageSondage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -63,7 +66,7 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/rh/sondages" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Sondages
+        {t("Sondages")}
       </Link>
 
       <div className="flex items-center justify-between gap-3">
@@ -71,22 +74,22 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
           <MessageCircleHeart className="size-5" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">{leSondage.titre}</h1>
         </div>
-        <Badge variant={info.variante}>{info.libelle}</Badge>
+        <Badge variant={info.variante}>{t(info.libelle)}</Badge>
       </div>
 
       {estAdmin ? (
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted-foreground">{nombreParticipants} participation(s)</p>
+          <p className="text-sm text-muted-foreground">{t("{n} participation(s)", { n: nombreParticipants })}</p>
           {leSondage.statut === "BROUILLON" ? (
             <>
               <form action={ouvrirSondage.bind(null, leSondage.id)}>
                 <Button type="submit" size="xs" variant="outline">
-                  Ouvrir aux réponses
+                  {t("Ouvrir aux réponses")}
                 </Button>
               </form>
               <form action={supprimerSondage.bind(null, leSondage.id)}>
                 <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
-                  Supprimer
+                  {t("Supprimer")}
                 </Button>
               </form>
             </>
@@ -94,7 +97,7 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
           {leSondage.statut === "OUVERT" ? (
             <form action={fermerSondage.bind(null, leSondage.id)}>
               <Button type="submit" size="xs" variant="outline">
-                Fermer le sondage
+                {t("Fermer le sondage")}
               </Button>
             </form>
           ) : null}
@@ -107,7 +110,7 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
         <FormulaireReponseSondage sondageId={leSondage.id} questions={questions} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          {aDejaRepondu ? "Merci, vous avez déjà répondu à ce sondage." : "Ce sondage n'est plus ouvert aux réponses."}
+          {aDejaRepondu ? t("Merci, vous avez déjà répondu à ce sondage.") : t("Ce sondage n'est plus ouvert aux réponses.")}
         </p>
       )}
     </div>

@@ -4,8 +4,10 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { desactiverShift } from "@/lib/actions/shift";
+import { useT } from "@/lib/i18n/contexte";
 
 export function BoutonDesactiverShift({ shiftId }: { shiftId: string }) {
+  const t = useT();
   const [enCours, startTransition] = useTransition();
 
   return (
@@ -16,13 +18,13 @@ export function BoutonDesactiverShift({ shiftId }: { shiftId: string }) {
       disabled={enCours}
       className="text-muted-foreground hover:text-destructive"
       onClick={() => {
-        if (confirm("Désactiver ce shift ? Il ne sera plus assignable, mais les employés qui l'ont déjà gardent leur assignation.")) {
+        if (confirm(t("Désactiver ce shift ? Il ne sera plus assignable, mais les employés qui l'ont déjà gardent leur assignation."))) {
           startTransition(() => desactiverShift(shiftId));
         }
       }}
     >
       {enCours ? <Spinner className="size-3.5" /> : null}
-      Désactiver
+      {t("Désactiver")}
     </Button>
   );
 }

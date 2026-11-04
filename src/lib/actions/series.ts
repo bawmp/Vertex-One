@@ -6,7 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { gestionStockActive, MESSAGE_STOCK_DESACTIVE } from "@/lib/produits/gestion-stock";
-import { ajouterSeries, definirSuiviSerie, remettreSerieEnStock, remplacerSerieVendue, retirerSerie } from "@/lib/produits/series";
+import { ajouterSeries, definirDureeGarantie, definirSuiviSerie, remettreSerieEnStock, remplacerSerieVendue, retirerSerie } from "@/lib/produits/series";
 import { getT } from "@/lib/i18n/langue";
 
 export type EtatSeries = { erreur?: string; message?: string } | null;
@@ -80,4 +80,15 @@ export async function changerSerieVendue(factureId: string, venduId: string, nou
   revalidatePath(`/app/facturation/factures/${factureId}`);
   revalidatePath("/app/produits/series");
   return { message: t("Numéro de série échangé.") };
+}
+
+/** Durée de garantie du produit (en mois ; vide pour ne plus la suivre) : appliquée aux prochaines ventes. */
+export async function definirGarantieProduit(produitId: string, mois: number | null): Promise<EtatSeries> {
+  const { t, u, refus } = await garde();
+  if (refus) return { erreur: refus };
+  const valeur = mois === null || mois === undefined ? null : Number(mois);
+  const r = await avecEntreprise(u.entrepriseId, async (tx) => ((await gestionStockActive(tx, u.entrepriseId)) ? definirDureeGarantie(tx, u.entrepriseId, String(produitId), valeur) : ({ ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const)));
+  if (!r.ok) return { erreur: t(r.erreur) };
+  rafraichir(produitId);
+  return { message: valeur === null ? t("Plus de garantie suivie pour ce produit.") : t("Garantie enregistrée : {n} mois pour les prochaines ventes.", { n: valeur }) };
 }

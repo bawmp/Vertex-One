@@ -23,7 +23,7 @@ export function nouveauCoutMoyen(stockAvant: number, coutAvant: number, quantite
 }
 
 /** D'où vient un mouvement de vente ou d'achat : le document qui l'a provoqué (pour retrouver sa fiche) et la personne, s'il y en a une. */
-export type ContexteMouvement = { documentType?: string; documentId?: string; utilisateurId?: string | null; /** Dépôt choisi sur le document (priorité 1.3) ; absent = le dépôt principal. */ depotId?: string | null };
+export type ContexteMouvement = { documentType?: string; documentId?: string; utilisateurId?: string | null; /** Dépôt choisi sur le document (priorité 1.3) ; absent = le dépôt principal. */ depotId?: string | null; /** Numéros de série choisis à la vente, par produit (déjà contrôlés par la saisie) ; absent = les plus anciens. */ seriesChoisies?: Record<string, string[]> };
 
 /**
  * Catalogue Produits/Tarifs (échange du 2026-09-07, zoho-books-full-spec.md
@@ -79,7 +79,7 @@ async function ajusterStock(tx: TransactionDrizzle, entrepriseId: string, lignes
     // Une vente sort d'abord les lots qui se périment le plus tôt (priorité 3.4).
     if (suiviLots && sens === -1) await consommerLotsFEFO(tx, entrepriseId, id, quantite);
     // …et emporte les numéros de série en stock les plus anciens, rattachés au document de vente.
-    if (suiviSerie && sens === -1) await vendreSeries(tx, entrepriseId, id, quantite, { type: contexte?.documentType, id: contexte?.documentId });
+    if (suiviSerie && sens === -1) await vendreSeries(tx, entrepriseId, id, quantite, { type: contexte?.documentType, id: contexte?.documentId }, contexte?.seriesChoisies?.[id] ?? []);
     await tx.insert(mouvementStock).values({
       entrepriseId,
       produitId: id,

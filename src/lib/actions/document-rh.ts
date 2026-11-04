@@ -8,6 +8,7 @@ import { dossierRH, documentRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peutVoirSalaire } from "@/lib/rh/acces";
 import { televerserDocument as televerserVersR2, effacerObjetStockage } from "@/lib/documents/stockage";
+import { getT } from "@/lib/i18n/langue";
 
 export type EtatDocumentRH = { erreur?: string } | null;
 
@@ -20,24 +21,25 @@ export type EtatDocumentRH = { erreur?: string } | null;
  * client — même flux que televerserImageProduit()/ajouterDocument().
  */
 export async function televerserDocumentRH(_etat: EtatDocumentRH, formData: FormData): Promise<EtatDocumentRH> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
   const dossierRHId = formData.get("dossierRHId");
   if (typeof dossierRHId !== "string" || !dossierRHId) {
-    return { erreur: "Formulaire invalide." };
+    return { erreur: t("Formulaire invalide.") };
   }
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Sélectionnez un fichier." };
+    return { erreur: t("Sélectionnez un fichier.") };
   }
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, dossierRHId));
-    if (!leDossier) return { erreur: "Dossier RH introuvable." };
+    if (!leDossier) return { erreur: t("Dossier RH introuvable.") };
     if (!peutVoirSalaire(utilisateurConnecte, leDossier.utilisateurId)) {
-      return { erreur: "Vous n'avez pas le droit d'ajouter un fichier à ce dossier." };
+      return { erreur: t("Vous n'avez pas le droit d'ajouter un fichier à ce dossier.") };
     }
 
     const contenu = Buffer.from(await fichier.arrayBuffer());
@@ -47,7 +49,7 @@ export async function televerserDocumentRH(_etat: EtatDocumentRH, formData: Form
       typeMime: fichier.type || "application/octet-stream",
       contenu,
     });
-    if (!televerse) return { erreur: erreur ?? "Échec du téléversement." };
+    if (!televerse) return { erreur: erreur ?? t("Échec du téléversement.") };
 
     await tx.insert(documentRH).values({
       entrepriseId: utilisateurConnecte.entrepriseId,

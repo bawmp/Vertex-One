@@ -2,10 +2,10 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, numeroSerie, produit, utilisateur } from "@/db/schema";
-import { remplacementPossible, repartirSeries } from "@/lib/produits/series-regles";
-import { ajouterSeries, definirSuiviSerie, remplacerSerieVendue, seriesDeDocument } from "@/lib/produits/series";
+import { dureeGarantieValide, etatGarantie, finGarantie, joursAvantFinGarantie, remplacementPossible, repartirSeries } from "@/lib/produits/series-regles";
+import { ajouterSeries, definirDureeGarantie, definirSuiviSerie, garantiesASurveiller, remplacerSerieVendue, seriesDeDocument } from "@/lib/produits/series";
 import { restituerSeriesRetour, seriesVenduesDuDocument } from "@/lib/produits/series-sortie";
-import { decrementerStockVente } from "@/lib/produits/stock";
+import { decrementerStockVente, defaireMouvementsDocument } from "@/lib/produits/stock";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
 /** Numéros de série sur la facture : impression, échange d'un numéro vendu, retour par avoir. */
@@ -30,6 +30,31 @@ describe("Numéros de série sur la facture — règles pures", () => {
     expect(remplacementPossible({ produitId: "p", statut: "VENDU" }, { produitId: "q", statut: "EN_STOCK", id: "n" }, "v")).toBe(false);
     expect(remplacementPossible({ produitId: "p", statut: "VENDU" }, { produitId: "p", statut: "VENDU", id: "n" }, "v")).toBe(false);
     expect(remplacementPossible({ produitId: "p", statut: "VENDU" }, { produitId: "p", statut: "EN_STOCK", id: "v" }, "v")).toBe(false);
+  });
+});
+
+describe("Garantie des numéros de série — règles pures", () => {
+  test("fin de garantie : mois entiers, fin de mois et année bissextile", () => {
+    expect(finGarantie("2026-03-10", 12)).toBe("2027-03-10");
+    expect(finGarantie("2026-01-31", 1)).toBe("2026-02-28");
+    expect(finGarantie("2027-01-31", 1)).toBe("2027-02-28");
+    expect(finGarantie("2023-12-31", 2)).toBe("2024-02-29"); // 2024 est bissextile
+    expect(finGarantie("2026-11-04", 24)).toBe("2028-11-04");
+    expect(finGarantie("2026-02-31", 12)).toBeNull();
+    expect(finGarantie("2026-03-10", 0)).toBeNull();
+    expect(finGarantie("2026-03-10", 121)).toBeNull();
+    expect(dureeGarantieValide(12)).toBe(true);
+    expect(dureeGarantieValide(1.5)).toBe(false);
+  });
+
+  test("état d'une garantie : active, bientôt, expirée", () => {
+    expect(etatGarantie("2027-03-10", "2026-11-04")).toBe("ACTIVE");
+    expect(etatGarantie("2026-11-20", "2026-11-04")).toBe("BIENTOT");
+    expect(etatGarantie("2026-11-04", "2026-11-04")).toBe("BIENTOT"); // se termine aujourd'hui : encore valable
+    expect(etatGarantie("2026-11-03", "2026-11-04")).toBe("EXPIREE");
+    expect(etatGarantie(null, "2026-11-04")).toBeNull();
+    expect(joursAvantFinGarantie("2026-11-14", "2026-11-04")).toBe(10);
+    expect(joursAvantFinGarantie("2026-11-01", "2026-11-04")).toBe(-3);
   });
 });
 
@@ -97,6 +122,40 @@ describe("Numéros de série sur la facture — base réelle", () => {
     expect(await avecEntreprise(A, (tx) => restituerSeriesRetour(tx, A, tel, "FACTURE", "autre-facture", 3))).toBe(0);
     expect(await avecEntreprise(A, (tx) => restituerSeriesRetour(tx, A, tel, "FACTURE", fac, 0))).toBe(0);
   }, 90_000);
+
+  test("garantie : calculée à la vente d'après la durée du produit, suit l'échange, disparaît au retour ; durée invalide ou autre entreprise refusées", async () => {
+    // Durée invalide / produit d'une autre entreprise refusés.
+    expect((await avecEntreprise(A, (tx) => definirDureeGarantie(tx, A, tel, 0))).ok).toBe(false);
+    expect((await avecEntreprise(A, (tx) => definirDureeGarantie(tx, A, tel, 200))).ok).toBe(false);
+    expect((await avecEntreprise(B, (tx) => definirDureeGarantie(tx, B, tel, 12))).ok).toBe(false);
+    expect((await avecEntreprise(A, (tx) => definirDureeGarantie(tx, A, tel, 12))).ok).toBe(true);
+
+    // Une nouvelle vente de 1 unité (SN2 est en stock) : sa garantie court 12 mois à partir d'aujourd'hui.
+    const facG = `facg-${suffixe}`;
+    await avecEntreprise(A, (tx) => decrementerStockVente(tx, A, [{ produitId: tel, quantite: 1 }], { documentType: "FACTURE", documentId: facG, utilisateurId: uA }));
+    const jour = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
+    const vendues = await avecEntreprise(A, (tx) => tx.select().from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, A), eq(numeroSerie.documentId, facG))));
+    expect(vendues).toHaveLength(1);
+    expect(vendues[0].garantieFin).toBe(finGarantie(jour, 12));
+    // Les unités vendues AVANT le réglage n'ont pas de garantie.
+    expect((await etat("SN1")).garantieFin).toBeNull();
+
+    // L'échange déplace la garantie vers le nouveau numéro.
+    const libre = (await avecEntreprise(A, (tx) => tx.select().from(numeroSerie).where(and(eq(numeroSerie.entrepriseId, A), eq(numeroSerie.statut, "EN_STOCK")))))[0];
+    expect((await avecEntreprise(A, (tx) => remplacerSerieVendue(tx, A, vendues[0].id, libre.id))).ok).toBe(true);
+    expect((await etat(vendues[0].numero)).garantieFin).toBeNull();
+    expect((await etat(libre.numero)).garantieFin).toBe(finGarantie(jour, 12));
+
+    // À surveiller : une garantie qui se termine dans 10 jours apparaît, une qui se termine dans un an non.
+    await avecEntreprise(A, (tx) => tx.update(numeroSerie).set({ garantieFin: "2026-11-14" }).where(eq(numeroSerie.id, libre.id)));
+    const proches = await avecEntreprise(A, (tx) => garantiesASurveiller(tx, A, "2026-11-04", 30));
+    expect(proches.map((g) => g.numero)).toEqual([libre.numero]);
+    expect((await avecEntreprise(B, (tx) => garantiesASurveiller(tx, B, "2026-11-04", 30)))).toEqual([]);
+
+    // L'annulation de la vente remet l'unité en stock, sans garantie.
+    await avecEntreprise(A, (tx) => defaireMouvementsDocument(tx, A, "FACTURE", facG, uA));
+    expect((await etat(libre.numero)).garantieFin).toBeNull();
+  }, 180_000);
 
   test("FUITE : une autre entreprise ne lit ni n'échange les numéros d'une facture de la première", async () => {
     expect((await avecEntreprise(B, (tx) => seriesDeDocument(tx, B, "FACTURE", fac))).length).toBe(0);

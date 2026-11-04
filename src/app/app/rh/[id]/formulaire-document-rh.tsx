@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { televerserDocumentRH } from "@/lib/actions/document-rh";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireDocumentRH({ dossierRHId }: { dossierRHId: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(televerserDocumentRH, null);
 
   return (
@@ -16,12 +18,12 @@ export function FormulaireDocumentRH({ dossierRHId }: { dossierRHId: string }) {
       <input type="hidden" name="dossierRHId" value={dossierRHId} />
       <div className="flex items-end gap-2">
         <div className="flex flex-col gap-1">
-          <Label htmlFor="fichier">Fichier</Label>
+          <Label htmlFor="fichier">{t("Fichier")}</Label>
           <Input id="fichier" name="fichier" type="file" required className="max-w-64" />
         </div>
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : <Upload data-icon="inline-start" aria-hidden />}
-          {enCours ? "Téléversement…" : "Ajouter"}
+          {enCours ? t("Téléversement…") : t("Ajouter")}
         </Button>
       </div>
       {etat?.erreur ? <p className="text-sm text-destructive">{etat.erreur}</p> : null}

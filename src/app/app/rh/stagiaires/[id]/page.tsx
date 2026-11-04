@@ -1,3 +1,4 @@
+import { m } from "@/lib/i18n/catalogue";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { and, eq, ne, notInArray } from "drizzle-orm";
@@ -17,14 +18,16 @@ import { FormulaireStagiaire } from "../formulaire-stagiaire";
 import { ActionsFinStage } from "./actions-fin-stage";
 import { PhotoStagiaire } from "./photo-stagiaire";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
+import { getT } from "@/lib/i18n/langue";
 
 export const dynamic = "force-dynamic";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
-const dateFr = (d: Date) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(d);
-const LIBELLE_STATUT: Record<string, string> = { EN_COURS: "En cours", TERMINE: "Terminé", INTERROMPU: "Interrompu", EMBAUCHE: "Embauché(e)" };
+const LIBELLE_STATUT: Record<string, string> = { EN_COURS: m("En cours"), TERMINE: m("Terminé"), INTERROMPU: m("Interrompu"), EMBAUCHE: m("Embauché(e)") };
 
 export default async function PageFicheStagiaire({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
+  const dateFr = (d: Date) => new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(d);
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -54,7 +57,7 @@ export default async function PageFicheStagiaire({ params }: { params: Promise<{
     <div className="flex max-w-4xl flex-col gap-6">
       <Link href="/app/rh/stagiaires" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Stagiaires
+        {t("Stagiaires")}
       </Link>
 
       <FicheHero
@@ -63,32 +66,32 @@ export default async function PageFicheStagiaire({ params }: { params: Promise<{
         sousTitre={`${fiche.etablissement}${fiche.filiere ? ` · ${fiche.filiere}` : ""}${fiche.niveau ? ` · ${fiche.niveau}` : ""}`}
         badges={
           <>
-            <Badge variant="brand">Stagiaire académique</Badge>
-            <Badge variant={enCours ? "info" : fiche.statut === "EMBAUCHE" ? "success" : "neutral"}>{LIBELLE_STATUT[fiche.statut] ?? fiche.statut}</Badge>
-            {enCours && etat === "ECHU" ? <Badge variant="danger">Fin dépassée : décision à prendre</Badge> : null}
-            {enCours && etat === "BIENTOT_FINI" ? <Badge variant="warning">Fin dans {joursRestants(fiche.dateFin)} j</Badge> : null}
+            <Badge variant="brand">{t("Stagiaire académique")}</Badge>
+            <Badge variant={enCours ? "info" : fiche.statut === "EMBAUCHE" ? "success" : "neutral"}>{t(LIBELLE_STATUT[fiche.statut] ?? fiche.statut)}</Badge>
+            {enCours && etat === "ECHU" ? <Badge variant="danger">{t("Fin dépassée : décision à prendre")}</Badge> : null}
+            {enCours && etat === "BIENTOT_FINI" ? <Badge variant="warning">{t("Fin dans {n} j", { n: joursRestants(fiche.dateFin) ?? 0 })}</Badge> : null}
           </>
         }
         ruban={
-          anniversaire && anniversaire.jours <= 7 ? <RubanHero icone={Cake}>{anniversaire.jours === 0 ? "Joyeux anniversaire !" : `Anniversaire ${libelleDelai(anniversaire.jours).toLowerCase()}`}</RubanHero> : null
+          anniversaire && anniversaire.jours <= 7 ? <RubanHero icone={Cake}>{anniversaire.jours === 0 ? t("Joyeux anniversaire !") : t("Anniversaire {delai}", { delai: libelleDelai(anniversaire.jours, t).toLowerCase() })}</RubanHero> : null
         }
         puces={[
-          { icone: CalendarDays, texte: `Du ${dateFr(fiche.dateDebut)} au ${dateFr(fiche.dateFin)}` },
+          { icone: CalendarDays, texte: t("Du {debut} au {fin}", { debut: dateFr(fiche.dateDebut), fin: dateFr(fiche.dateFin) }) },
           { icone: School, texte: fiche.etablissement },
-          ...(maitre ? [{ icone: UserRound, texte: `Maître de stage : ${maitre}` }] : []),
+          ...(maitre ? [{ icone: UserRound, texte: t("Maître de stage : {nom}", { nom: maitre }) }] : []),
           ...(fiche.telephone ? [{ icone: Phone, texte: fiche.telephone }] : []),
         ]}
       />
 
       {fiche.decisionLe ? (
         <p className="rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
-          Clos le {dateFr(fiche.decisionLe)}
+          {t("Clos le {date}", { date: dateFr(fiche.decisionLe) })}
           {fiche.motifDecision ? ` — ${fiche.motifDecision}` : ""}
-          {fiche.invitationId ? " — une invitation d'embauche a été créée (Paramètres → Équipe)." : ""}
+          {fiche.invitationId ? t(" — une invitation d'embauche a été créée (Paramètres → Équipe).") : ""}
         </p>
       ) : null}
 
-      <CarteFiche icone={GraduationCap} titre="Fiche du stagiaire" aide="École, convention, stage et évaluation">
+      <CarteFiche icone={GraduationCap} titre={t("Fiche du stagiaire")} aide={t("École, convention, stage et évaluation")}>
       <FormulaireStagiaire
         action={modifierStagiaireAcademiqueAction.bind(null, fiche.id)}
         valeurs={{ ...fiche, dateDebut: iso(fiche.dateDebut), dateFin: iso(fiche.dateFin) }}

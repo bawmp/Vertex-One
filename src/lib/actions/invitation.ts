@@ -19,6 +19,7 @@ import { getT } from "@/lib/i18n/langue";
 import { annulerInvitationsNonUtilisees } from "@/lib/invitations/annulation";
 import { m } from "@/lib/i18n/catalogue";
 import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
+import { erreurDateNaissance } from "@/lib/rh/anniversaires-regles";
 
 const DUREE_EXPIRATION_MS = 72 * 60 * 60 * 1000; // 72 heures — voir docs/palier-0-*, section 8
 
@@ -29,6 +30,8 @@ const schemaInvitation = z.object({
   typeContratPropose: z.enum(["CDI", "CDD", "STAGE", "PRESTATAIRE"]).optional(),
   dateEmbauchePropose: z.string().optional(),
   dateFinPropose: z.string().optional(),
+  // Date de naissance (AAAA-MM-JJ, facultative) : copiée sur la fiche RH à l'activation, pour le rappel des anniversaires.
+  dateNaissancePropose: z.string().trim().optional(),
   // Assistance client (échange du 2026-09-13) — renseigné uniquement pour
   // inviter un Contact CRM précis au portail (roleProposee = "CLIENT"),
   // jamais pour un collaborateur interne.
@@ -63,6 +66,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     typeContratPropose: formData.get("typeContratPropose") || undefined,
     dateEmbauchePropose: formData.get("dateEmbauchePropose") || undefined,
     dateFinPropose: formData.get("dateFinPropose") || undefined,
+    dateNaissancePropose: formData.get("dateNaissancePropose") || undefined,
     contactId: formData.get("contactId") || undefined,
     managerPropose: formData.get("managerPropose") || undefined,
     modulesPropose: formData.get("restreindreModules") === "1" ? formData.getAll("modules").map(String) : undefined,
@@ -72,7 +76,12 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
     return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
 
-  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, dateFinPropose, contactId, managerPropose, modulesPropose } = analyse.data;
+  const { email, roleProposee, postePropose, typeContratPropose, dateEmbauchePropose, dateFinPropose, dateNaissancePropose, contactId, managerPropose, modulesPropose } = analyse.data;
+
+  if (dateNaissancePropose) {
+    const erreurNaissance = erreurDateNaissance(dateNaissancePropose, new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date()));
+    if (erreurNaissance) return { erreur: t(erreurNaissance) };
+  }
 
   // Un stage a toujours une fin : sans elle, aucun suivi de fin de stage ni décision n'est possible. Un CDD aussi.
   const avecFin = roleProposee !== "CLIENT" && roleProposee !== "COMPTABLE" && (typeContratPropose === "STAGE" || typeContratPropose === "CDD");
@@ -111,6 +120,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
       typeContratPropose,
       dateEmbauchePropose: dateEmbauchePropose ? new Date(dateEmbauchePropose) : undefined,
       dateFinPropose: avecFin && dateFinPropose ? new Date(dateFinPropose) : undefined,
+      dateNaissancePropose: dateNaissancePropose || undefined,
       contactId,
       managerPropose,
       modulesPropose: modulesAEnregistrer,

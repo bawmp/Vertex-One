@@ -7,24 +7,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { ChampSelect, ChampZone } from "@/components/formulaire/champ";
-import { ajouterSeriesProduit, definirSuiviSerieProduit, remettreSerieProduit, retirerSerieProduit, type EtatSeries } from "@/lib/actions/series";
+import { Champ, ChampSelect, ChampZone } from "@/components/formulaire/champ";
+import { ajouterSeriesProduit, definirGarantieProduit, definirSuiviSerieProduit, remettreSerieProduit, retirerSerieProduit, type EtatSeries } from "@/lib/actions/series";
 import { MOTIFS_RETRAIT } from "@/lib/produits/motifs-stock";
-import { lireSeries } from "@/lib/produits/series-regles";
+import { etatGarantie, lireSeries } from "@/lib/produits/series-regles";
 import { useT } from "@/lib/i18n/contexte";
 
-export type SerieClient = { id: string; numero: string; statut: "EN_STOCK" | "VENDU" | "RETIRE"; venduLe: string | null; lien: string | null };
+export type SerieClient = { id: string; numero: string; statut: "EN_STOCK" | "VENDU" | "RETIRE"; venduLe: string | null; lien: string | null; garantieFin: string | null; garantieFinTexte: string | null };
 
 /**
  * Numéros de série d'un produit : un numéro par unité, de l'entrée à la vente. Une vente emporte toute seule les plus anciens numéros en
  * stock ; annuler la vente les remet en stock. Ajouter : unités déjà en stock (sans numéro) ou nouvelle entrée. Contrôles refaits côté serveur.
  */
-export function SeriesProduit({ produitId, suiviSerie, suiviLots, series, enStock, sansNumero }: { produitId: string; suiviSerie: boolean; suiviLots: boolean; series: SerieClient[]; enStock: number; sansNumero: number }) {
+export function SeriesProduit({ produitId, suiviSerie, suiviLots, series, enStock, sansNumero, dureeGarantieMois, aujourdhui }: { produitId: string; suiviSerie: boolean; suiviLots: boolean; series: SerieClient[]; enStock: number; sansNumero: number; dureeGarantieMois: number | null; aujourdhui: string }) {
   const t = useT();
   const [etat, setEtat] = useState<EtatSeries>(null);
   const [enCours, startTransition] = useTransition();
   const [motif, setMotif] = useState("CASSE");
   const [saisie, setSaisie] = useState("");
+  const [garantie, setGarantie] = useState(dureeGarantieMois === null ? "" : String(dureeGarantieMois));
   const apercu = lireSeries(saisie);
 
   const retour = etat?.erreur ? (
@@ -72,6 +73,12 @@ export function SeriesProduit({ produitId, suiviSerie, suiviLots, series, enStoc
                       <p className="text-xs text-muted-foreground">
                         {s.venduLe ? t("vendu le {date}", { date: s.venduLe }) : t("vendu")}
                         {s.lien ? <> · <Link href={s.lien} className="underline-offset-4 hover:underline">{t("voir le document")}</Link></> : null}
+                      </p>
+                    ) : null}
+                    {s.statut === "VENDU" && s.garantieFin && s.garantieFinTexte ? (
+                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                        {t("Garantie jusqu'au {date}", { date: s.garantieFinTexte })}
+                        {etatGarantie(s.garantieFin, aujourdhui) === "EXPIREE" ? <Badge variant="danger">{t("Expirée")}</Badge> : etatGarantie(s.garantieFin, aujourdhui) === "BIENTOT" ? <Badge variant="warning">{t("Se termine bientôt")}</Badge> : <Badge variant="success">{t("Sous garantie")}</Badge>}
                       </p>
                     ) : null}
                   </div>
@@ -131,6 +138,24 @@ export function SeriesProduit({ produitId, suiviSerie, suiviLots, series, enStoc
             ) : null}
             <p className="text-sm text-muted-foreground">{t("{n} numéro(s) en stock.", { n: enStock })}</p>
 
+            <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
+              <div className="w-48">
+                <Champ label={t("Garantie (mois)")} name="dureeGarantie" type="number" inputMode="numeric" min={1} max={120} value={garantie} onChange={(e) => setGarantie(e.target.value)} />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={enCours}
+                onClick={() => {
+                  setEtat(null);
+                  startTransition(async () => setEtat(await definirGarantieProduit(produitId, garantie.trim() === "" ? null : Number(garantie))));
+                }}
+              >
+                {t("Enregistrer la garantie")}
+              </Button>
+              <p className="w-full text-xs text-muted-foreground">{t("Appliquée aux prochaines ventes : la fin de garantie de chaque unité vendue se calcule à partir du jour de la vente. Laissez vide pour ne pas suivre de garantie.")}</p>
+            </div>
             <form
               className="flex flex-col gap-3 rounded-lg border p-3"
               aria-label={t("Ajouter des numéros de série")}

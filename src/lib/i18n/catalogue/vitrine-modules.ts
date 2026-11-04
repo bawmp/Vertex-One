@@ -231,4 +231,6 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Isolation stricte entre entreprises clientes": "Strict isolation between client companies",
   "Listes de prix par type de client (revendeurs, grossistes) : remise globale et prix fixes par produit, proposés automatiquement sur ses devis, commandes et reçus": "Price lists by customer type (resellers, wholesalers): an overall discount and fixed prices per product, suggested automatically on their quotes, orders and receipts",
   "Numéros de série : un numéro par unité, repris automatiquement à la vente, et recherche d'un numéro pour retrouver le produit, son état et le document de vente": "Serial numbers: one number per unit, taken automatically at sale, and a number search to find the product, its status and the sales document",
+  "Garantie des produits suivis par numéro de série : fin de garantie enregistrée à la vente, alertes avant expiration, et choix du numéro vendu au ticket de vente": "Warranty for serial-tracked products: warranty end recorded at sale, alerts before it expires, and choice of the serial number sold at the sales ticket",
+  "Organigramme de l'équipe en arbre, et mot d'anniversaire envoyé à la personne si vous l'activez": "Team org chart as a tree, and a birthday greeting sent to the person if you turn it on",
 };

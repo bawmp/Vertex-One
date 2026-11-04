@@ -233,6 +233,8 @@ export const entreprise = pgTable("entreprise", {
   // Partage des fiches collaborateur dans un groupe (2026-11-04) : même principe (les DEUX entreprises doivent l'activer). Ne partage qu'une liste blanche de
   // champs en lecture seule (nom, photo, poste, rôle, contrat, arrivée, département, téléphone, naissance) — JAMAIS le salaire ni le reste de la fiche.
   fichesPartageesGroupe: boolean("fiches_partagees_groupe").notNull().default(false),
+  // Souhait d'anniversaire (2026-11-04) : si vrai, la tâche quotidienne envoie aussi un email « Joyeux anniversaire » à la personne concernée (désactivé par défaut).
+  souhaitAnniversaireEmail: boolean("souhait_anniversaire_email").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
   // toutes une colonne entrepriseId — jamais de table sans cette clé (voir CLAUDE.md).
 });
@@ -3630,6 +3632,8 @@ export const produit = pgTable(
     suiviLots: boolean("suivi_lots").notNull().default(false),
     // Numéros de série (2026-11-03, priorité 3.4 suite) : chaque unité a son numéro, suivi de l'entrée à la vente. Exclusif avec le suivi par lots.
     suiviSerie: boolean("suivi_serie").notNull().default(false),
+    // Durée de garantie en mois (2026-11-04) : à la vente d'une unité à numéro de série, sa garantie court jusqu'à cette durée plus tard. Nul = aucune.
+    dureeGarantieMois: integer("duree_garantie_mois"),
     // Variantes et unités (2026-11-02, priorité 3.5) : la famille et le libellé de la variante (« M / Rouge »), l'unité de base (« pièce »,
     // « kg »). Le stock est toujours compté dans l'unité de base ; les conditionnements (carton de 12) ne servent qu'à saisir et à afficher.
     familleId: text("famille_id").references(() => familleProduit.id),
@@ -5577,6 +5581,8 @@ export const numeroSerie = pgTable(
     venduLe: timestamp("vendu_le"),
     documentType: text("document_type"),
     documentId: text("document_id"),
+    // Garantie (2026-11-04) : date de fin AAAA-MM-JJ, posée à la vente d'après `produit.dureeGarantieMois` ; nulle = pas de garantie suivie.
+    garantieFin: text("garantie_fin"),
   },
   (table) => [
     uniqueIndex("numero_serie_produit_numero_unique").on(table.produitId, table.numero),

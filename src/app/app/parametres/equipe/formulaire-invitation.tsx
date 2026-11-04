@@ -87,6 +87,11 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
             <Input id="dateEmbauchePropose" name="dateEmbauchePropose" type="date" />
           </div>
 
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="dateNaissancePropose">{t("Date de naissance (facultatif)")}</Label>
+            <Input id="dateNaissancePropose" name="dateNaissancePropose" type="date" />
+          </div>
+
           {contrat === "STAGE" || contrat === "CDD" ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="dateFinPropose">{contrat === "STAGE" ? t("Fin du stage") : t("Fin du CDD")}</Label>

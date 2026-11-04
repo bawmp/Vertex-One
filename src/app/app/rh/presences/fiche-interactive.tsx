@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { enregistrerPresenceAction, marquerTousPresentsAction, rouvrirFicheAction, validerFicheAction } from "@/lib/actions/presences";
 import { estEnRetard, isoDuJour, statutEffectif, totauxDe, type DroitFiche, type LignePresence, type SectionPresence, type StatutPresence } from "@/lib/rh/presences-commun";
+import { useT } from "@/lib/i18n/contexte";
+import { m } from "@/lib/i18n/catalogue";
 
 type FicheClient = {
   date: string;
@@ -19,15 +21,15 @@ type FicheClient = {
 };
 
 const STATUTS: { valeur: StatutPresence; libelle: string; Icone: typeof Check; actif: string; inactif: string }[] = [
-  { valeur: "PRESENT", libelle: "Présent", Icone: UserCheck, actif: "bg-emerald-600 text-white ring-emerald-600", inactif: "text-emerald-700 ring-emerald-200 hover:bg-emerald-50" },
-  { valeur: "RETARD", libelle: "Retard", Icone: Clock, actif: "bg-amber-500 text-white ring-amber-500", inactif: "text-amber-700 ring-amber-200 hover:bg-amber-50" },
-  { valeur: "ABSENT", libelle: "Absent", Icone: UserX, actif: "bg-red-600 text-white ring-red-600", inactif: "text-red-700 ring-red-200 hover:bg-red-50" },
-  { valeur: "CONGE", libelle: "Congé", Icone: Palmtree, actif: "bg-sky-600 text-white ring-sky-600", inactif: "text-sky-700 ring-sky-200 hover:bg-sky-50" },
+  { valeur: "PRESENT", libelle: m("Présent"), Icone: UserCheck, actif: "bg-emerald-600 text-white ring-emerald-600", inactif: "text-emerald-700 ring-emerald-200 hover:bg-emerald-50" },
+  { valeur: "RETARD", libelle: m("Retard"), Icone: Clock, actif: "bg-amber-500 text-white ring-amber-500", inactif: "text-amber-700 ring-amber-200 hover:bg-amber-50" },
+  { valeur: "ABSENT", libelle: m("Absent"), Icone: UserX, actif: "bg-red-600 text-white ring-red-600", inactif: "text-red-700 ring-red-200 hover:bg-red-50" },
+  { valeur: "CONGE", libelle: m("Congé"), Icone: Palmtree, actif: "bg-sky-600 text-white ring-sky-600", inactif: "text-sky-700 ring-sky-200 hover:bg-sky-50" },
 ];
 
 type Filtre = "TOUS" | "A_RENSEIGNER" | StatutPresence;
 
-const dateLongue = (iso: string) => new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${iso}T00:00:00`));
+const dateLongue = (iso: string, locale: string) => new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${iso}T00:00:00`));
 const decaler = (iso: string, jours: number) => {
   const d = new Date(`${iso}T00:00:00`);
   d.setDate(d.getDate() + jours);
@@ -40,6 +42,7 @@ const maintenantHHmm = () => {
 };
 
 export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
+  const t = useT();
   const router = useRouter();
   const [sections, setSections] = useState<SectionPresence[]>(fiche.sections);
   const [filtre, setFiltre] = useState<Filtre>("TOUS");
@@ -76,7 +79,7 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
       void enregistrerPresenceAction({ entrepriseId, dossierRHId: l.dossierRHId, date: fiche.date, ...patch }).then((r) => {
         if (r.erreur) {
           setEnregistrement((e) => ({ ...e, [k]: "erreur" }));
-          setErreurs((e) => ({ ...e, [k]: r.erreur ?? "Enregistrement impossible." }));
+          setErreurs((e) => ({ ...e, [k]: r.erreur ?? t("Enregistrement impossible.") }));
         } else {
           setEnregistrement((e) => ({ ...e, [k]: "ok" }));
         }
@@ -129,12 +132,12 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
   };
 
   const cartes: { id: Filtre; libelle: string; valeur: number; couleur: string }[] = [
-    { id: "TOUS", libelle: "Effectif", valeur: totaux.total, couleur: "text-foreground" },
-    { id: "PRESENT", libelle: "Présents", valeur: totaux.presents, couleur: "text-emerald-600" },
-    { id: "RETARD", libelle: "Retards", valeur: totaux.retards, couleur: "text-amber-600" },
-    { id: "ABSENT", libelle: "Absents", valeur: totaux.absents, couleur: "text-red-600" },
-    { id: "CONGE", libelle: "Congés", valeur: totaux.conges, couleur: "text-sky-600" },
-    { id: "A_RENSEIGNER", libelle: "À renseigner", valeur: totaux.nonRenseignes, couleur: "text-muted-foreground" },
+    { id: "TOUS", libelle: t("Effectif"), valeur: totaux.total, couleur: "text-foreground" },
+    { id: "PRESENT", libelle: t("Présents"), valeur: totaux.presents, couleur: "text-emerald-600" },
+    { id: "RETARD", libelle: t("Retards"), valeur: totaux.retards, couleur: "text-amber-600" },
+    { id: "ABSENT", libelle: t("Absents"), valeur: totaux.absents, couleur: "text-red-600" },
+    { id: "CONGE", libelle: t("Congés"), valeur: totaux.conges, couleur: "text-sky-600" },
+    { id: "A_RENSEIGNER", libelle: t("À renseigner"), valeur: totaux.nonRenseignes, couleur: "text-muted-foreground" },
   ];
 
   return (
@@ -142,34 +145,33 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
       {/* Navigation de jour */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-sm">
         <div className="flex items-center gap-1.5">
-          <Button type="button" variant="outline" size="icon" aria-label="Jour précédent" onClick={() => router.push(`/app/rh/presences?date=${decaler(fiche.date, -1)}`)}>
+          <Button type="button" variant="outline" size="icon" aria-label={t("Jour précédent")} onClick={() => router.push(`/app/rh/presences?date=${decaler(fiche.date, -1)}`)}>
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
-          <Input type="date" value={fiche.date} max={aujourdhui} onChange={(e) => e.target.value && router.push(`/app/rh/presences?date=${e.target.value}`)} className="w-40" aria-label="Choisir un jour" />
-          <Button type="button" variant="outline" size="icon" aria-label="Jour suivant" disabled={fiche.date >= aujourdhui} onClick={() => router.push(`/app/rh/presences?date=${decaler(fiche.date, 1)}`)}>
+          <Input type="date" value={fiche.date} max={aujourdhui} onChange={(e) => e.target.value && router.push(`/app/rh/presences?date=${e.target.value}`)} className="w-40" aria-label={t("Choisir un jour")} />
+          <Button type="button" variant="outline" size="icon" aria-label={t("Jour suivant")} disabled={fiche.date >= aujourdhui} onClick={() => router.push(`/app/rh/presences?date=${decaler(fiche.date, 1)}`)}>
             <ChevronRight className="size-4" aria-hidden />
           </Button>
           {fiche.date !== aujourdhui ? (
             <Button type="button" variant="ghost" size="sm" onClick={() => router.push("/app/rh/presences")}>
-              Aujourd&apos;hui
+              {t("Aujourd'hui")}
             </Button>
           ) : null}
         </div>
         <div className="text-right">
-          <p className="text-base font-semibold capitalize">{dateLongue(fiche.date)}</p>
-          <p className="text-xs text-muted-foreground">{fiche.gerantNom ? `Gérant : ${fiche.gerantNom}` : "Aucun gérant désigné"}</p>
+          <p className="text-base font-semibold capitalize">{dateLongue(fiche.date, t.locale)}</p>
+          <p className="text-xs text-muted-foreground">{fiche.gerantNom ? t("Gérant : {nom}", { nom: fiche.gerantNom }) : t("Aucun gérant désigné")}</p>
         </div>
       </div>
 
       {fiche.valideePar ? (
         <p className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
           <Lock className="size-4 shrink-0" aria-hidden />
-          Fiche validée par {fiche.valideePar}
-          {fiche.valideeLe ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(fiche.valideeLe))}` : ""}.{" "}
-          {fiche.droit === "ADMIN" ? "Vous pouvez la modifier ou la rouvrir." : "Seul l'Administrateur peut la rouvrir."}
+          {fiche.valideeLe ? t("Fiche validée par {nom} le {date}.", { nom: fiche.valideePar ?? "", date: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(fiche.valideeLe)) }) : t("Fiche validée par {nom}.", { nom: fiche.valideePar ?? "" })}{" "}
+          {fiche.droit === "ADMIN" ? t("Vous pouvez la modifier ou la rouvrir.") : t("Seul l'Administrateur peut la rouvrir.")}
         </p>
       ) : null}
-      {!editable && !fiche.valideePar ? <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">Cette journée n&apos;est plus modifiable (jour à venir, ou antérieur à 31 jours : l&apos;Administrateur peut la corriger).</p> : null}
+      {!editable && !fiche.valideePar ? <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">{t("Cette journée n'est plus modifiable (jour à venir, ou antérieur à 31 jours : l'Administrateur peut la corriger).")}</p> : null}
 
       {/* Synthèse (cliquable : filtre la liste) */}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -185,12 +187,12 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-52 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un employé…" className="pl-9" aria-label="Rechercher un employé" />
+          <Input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder={t("Rechercher un employé…")} className="pl-9" aria-label={t("Rechercher un employé")} />
         </div>
         {editable ? (
-          <Button type="button" variant="outline" disabled={attente || totaux.nonRenseignes === 0} onClick={() => action(() => marquerTousPresentsAction(fiche.date), (n) => `${n ?? 0} employé(s) marqué(s) présent(s).`)}>
+          <Button type="button" variant="outline" disabled={attente || totaux.nonRenseignes === 0} onClick={() => action(() => marquerTousPresentsAction(fiche.date), (n) => t("{n} employé(s) marqué(s) présent(s).", { n: n ?? 0 }))}>
             <CheckCheck data-icon="inline-start" aria-hidden />
-            Tous présents ({totaux.nonRenseignes})
+            {t("Tous présents ({n})", { n: totaux.nonRenseignes })}
           </Button>
         ) : null}
         <a href={`/app/rh/presences/pdf?date=${fiche.date}`} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-sm font-medium hover:bg-muted">
@@ -198,15 +200,15 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
           PDF
         </a>
         {!fiche.valideePar && editable ? (
-          <Button type="button" disabled={attente} onClick={() => action(() => validerFicheAction(fiche.date), () => "Fiche validée.")}>
+          <Button type="button" disabled={attente} onClick={() => action(() => validerFicheAction(fiche.date), () => t("Fiche validée."))}>
             <Lock data-icon="inline-start" aria-hidden />
-            Valider la fiche
+            {t("Valider la fiche")}
           </Button>
         ) : null}
         {fiche.valideePar && fiche.droit === "ADMIN" ? (
-          <Button type="button" variant="outline" disabled={attente} onClick={() => action(() => rouvrirFicheAction(fiche.date), () => "Fiche rouverte.")}>
+          <Button type="button" variant="outline" disabled={attente} onClick={() => action(() => rouvrirFicheAction(fiche.date), () => t("Fiche rouverte."))}>
             <LockOpen data-icon="inline-start" aria-hidden />
-            Rouvrir
+            {t("Rouvrir")}
           </Button>
         ) : null}
       </div>
@@ -224,8 +226,8 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
             {sections.length > 1 ? (
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 {s.entrepriseNom}
-                {!s.propre ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">Groupe</span> : null}
-                <span className="text-xs font-normal text-muted-foreground">{s.lignes.length} employé(s)</span>
+                {!s.propre ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">{t("Groupe")}</span> : null}
+                <span className="text-xs font-normal text-muted-foreground">{t("{n} employé(s)", { n: s.lignes.length })}</span>
               </h2>
             ) : null}
             <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -249,8 +251,8 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
                       </div>
 
                       <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
-                        {l.enCongeApprouve && l.statut === null ? <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-800">Congé approuvé</span> : null}
-                        <div role="group" aria-label={`Statut de ${l.nom}`} className="flex gap-1">
+                        {l.enCongeApprouve && l.statut === null ? <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-800">{t("Congé approuvé")}</span> : null}
+                        <div role="group" aria-label={t("Statut de {nom}", { nom: l.nom })} className="flex gap-1">
                           {STATUTS.map(({ valeur, libelle, Icone, actif, inactif }) => (
                             <button
                               key={valeur}
@@ -269,32 +271,32 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
                         {avecHeures ? (
                           <div className="flex items-center gap-1.5">
                             <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                              Arrivée
+                              {t("Arrivée")}
                               <input type="time" value={l.heureArrivee ?? ""} disabled={!editable} onChange={(e) => changerHeure(s.entrepriseId, l, "heureArrivee", e.target.value)} className="h-8 rounded-md border bg-background px-1.5 text-sm text-foreground" />
                             </label>
                             <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                              Départ
+                              {t("Départ")}
                               <input type="time" value={l.heureDepart ?? ""} disabled={!editable} onChange={(e) => changerHeure(s.entrepriseId, l, "heureDepart", e.target.value)} className="h-8 rounded-md border bg-background px-1.5 text-sm text-foreground" />
                             </label>
                             {editable && fiche.date === aujourdhui ? (
-                              <button type="button" onClick={() => changerHeure(s.entrepriseId, l, l.heureArrivee && !l.heureDepart ? "heureDepart" : "heureArrivee", maintenantHHmm())} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted" title="Mettre l'heure actuelle">
+                              <button type="button" onClick={() => changerHeure(s.entrepriseId, l, l.heureArrivee && !l.heureDepart ? "heureDepart" : "heureArrivee", maintenantHHmm())} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted" title={t("Mettre l'heure actuelle")}>
                                 <Clock className="size-4" aria-hidden />
                               </button>
                             ) : null}
                           </div>
                         ) : null}
 
-                        <button type="button" onClick={() => setRemarquesOuvertes((o) => ({ ...o, [k]: !o[k] }))} className={`rounded-md p-1.5 hover:bg-muted ${l.remarque ? "text-primary" : "text-muted-foreground"}`} title="Remarque" aria-label={`Remarque pour ${l.nom}`}>
+                        <button type="button" onClick={() => setRemarquesOuvertes((o) => ({ ...o, [k]: !o[k] }))} className={`rounded-md p-1.5 hover:bg-muted ${l.remarque ? "text-primary" : "text-muted-foreground"}`} title={t("Remarque")} aria-label={t("Remarque pour {nom}", { nom: l.nom })}>
                           <MessageSquare className="size-4" aria-hidden />
                         </button>
                         <span className="w-5 text-center" aria-live="polite">
-                          {enregistrement[k] === "encours" ? <span className="inline-block size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : enregistrement[k] === "ok" ? <Check className="size-4 text-emerald-600" aria-label="Enregistré" /> : enregistrement[k] === "erreur" ? <AlertCircle className="size-4 text-destructive" aria-label="Erreur" /> : null}
+                          {enregistrement[k] === "encours" ? <span className="inline-block size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> : enregistrement[k] === "ok" ? <Check className="size-4 text-emerald-600" aria-label={t("Enregistré")} /> : enregistrement[k] === "erreur" ? <AlertCircle className="size-4 text-destructive" aria-label={t("Erreur")} /> : null}
                         </span>
                       </div>
 
                       {retardSuggere ? (
                         <p className="w-full text-xs text-amber-700 sm:text-right">
-                          Arrivée après {l.shiftDebut} : <button type="button" className="font-semibold underline" onClick={() => choisirStatut(s.entrepriseId, l, "RETARD")}>marquer en retard</button> ?
+                          {t("Arrivée après {heure} :", { heure: l.shiftDebut ?? "" })} <button type="button" className="font-semibold underline" onClick={() => choisirStatut(s.entrepriseId, l, "RETARD")}>{t("marquer en retard")}</button> ?
                         </p>
                       ) : null}
                       {erreurs[k] ? <p className="w-full text-xs text-destructive sm:text-right">{erreurs[k]}</p> : null}
@@ -303,19 +305,19 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
                           <Input
                             value={l.remarque ?? ""}
                             disabled={!editable || !l.statut}
-                            placeholder={l.statut ? "Remarque (justification, motif…)" : "Choisissez d'abord un statut"}
+                            placeholder={l.statut ? t("Remarque (justification, motif…)") : t("Choisissez d'abord un statut")}
                             maxLength={300}
                             onChange={(e) => majLigne(s.entrepriseId, l.dossierRHId, { remarque: e.target.value })}
                             onBlur={() => changerRemarque(s.entrepriseId, l)}
                             className="h-8 text-sm"
                           />
-                          {l.saisiPar ? <p className="mt-0.5 text-[11px] text-muted-foreground">Dernière saisie : {l.saisiPar}</p> : null}
+                          {l.saisiPar ? <p className="mt-0.5 text-[11px] text-muted-foreground">{t("Dernière saisie : {nom}", { nom: l.saisiPar })}</p> : null}
                         </div>
                       ) : null}
                     </li>
                   );
                 })}
-                {lignes.length === 0 ? <li className="px-4 py-6 text-center text-sm text-muted-foreground">{s.lignes.length === 0 ? "Aucun employé sur cette fiche." : "Aucun employé ne correspond à ce filtre."}</li> : null}
+                {lignes.length === 0 ? <li className="px-4 py-6 text-center text-sm text-muted-foreground">{s.lignes.length === 0 ? t("Aucun employé sur cette fiche.") : t("Aucun employé ne correspond à ce filtre.")}</li> : null}
               </ul>
             </div>
           </section>

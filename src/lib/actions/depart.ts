@@ -11,6 +11,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut, portee } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { idsVisibles } from "@/lib/portee";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const cheminDossier = (dossierRHId: string) => `/app/rh/${dossierRHId}/depart`;
 
@@ -18,7 +20,7 @@ export type EtatDepart = { erreur?: string } | null;
 
 const schemaDemande = z.object({
   type: z.enum(["DEMISSION", "LICENCIEMENT", "FIN_CONTRAT", "AUTRE"]),
-  dateDepartSouhaitee: z.string().min(1, "La date de départ souhaitée est requise."),
+  dateDepartSouhaitee: z.string().min(1, m("La date de départ souhaitée est requise.")),
   motif: z.string().trim().optional(),
 });
 
@@ -29,10 +31,11 @@ const schemaDemande = z.object({
  * tiers, gardé simple ici tant qu'aucun vrai besoin ne l'exige.
  */
 export async function creerDemandeDepart(_etat: EtatDepart, formData: FormData): Promise<EtatDepart> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) {
-    return { erreur: "Vous n'avez pas le droit de faire une demande de départ." };
+    return { erreur: t("Vous n'avez pas le droit de faire une demande de départ.") };
   }
 
   const analyse = schemaDemande.safeParse({
@@ -41,22 +44,22 @@ export async function creerDemandeDepart(_etat: EtatDepart, formData: FormData):
     motif: formData.get("motif") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { type, dateDepartSouhaitee, motif } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
 
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
-    if (!monDossier) return { erreur: "Aucun dossier RH associé à votre compte." };
+    if (!monDossier) return { erreur: t("Aucun dossier RH associé à votre compte.") };
 
     const [demandeExistante] = await tx
       .select({ id: demandeDepart.id })
       .from(demandeDepart)
       .where(and(eq(demandeDepart.dossierRHId, monDossier.id), inArray(demandeDepart.statut, ["EN_ATTENTE", "APPROUVEE"])));
-    if (demandeExistante) return { erreur: "Une demande de départ est déjà en cours pour votre dossier." };
+    if (demandeExistante) return { erreur: t("Une demande de départ est déjà en cours pour votre dossier.") };
 
     await tx.insert(demandeDepart).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
@@ -121,8 +124,8 @@ export async function traiterDemandeDepart(demandeId: string, decision: "approuv
 
 const schemaClearance = z.object({
   demandeDepartId: z.string().min(1),
-  libelle: z.string().trim().min(1, "Le libellé est requis."),
-  responsableId: z.string().min(1, "Le responsable est requis."),
+  libelle: z.string().trim().min(1, m("Le libellé est requis.")),
+  responsableId: z.string().min(1, m("Le responsable est requis.")),
 });
 
 /**
@@ -132,10 +135,11 @@ const schemaClearance = z.object({
  * approuvée.
  */
 export async function ajouterClearance(_etat: EtatDepart, formData: FormData): Promise<EtatDepart> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "MODIFIER")) {
-    return { erreur: "Vous n'avez pas le droit d'ajouter une clôture." };
+    return { erreur: t("Vous n'avez pas le droit d'ajouter une clôture.") };
   }
 
   const analyse = schemaClearance.safeParse({
@@ -144,19 +148,19 @@ export async function ajouterClearance(_etat: EtatDepart, formData: FormData): P
     responsableId: formData.get("responsableId"),
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { demandeDepartId, libelle, responsableId } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [demande] = await tx.select({ statut: demandeDepart.statut, dossierRHId: demandeDepart.dossierRHId }).from(demandeDepart).where(eq(demandeDepart.id, demandeDepartId));
-    if (!demande) return { erreur: "Demande de départ introuvable." };
-    if (demande.statut !== "APPROUVEE") return { erreur: "La demande doit être approuvée avant d'ajouter une clôture." };
+    if (!demande) return { erreur: t("Demande de départ introuvable.") };
+    if (demande.statut !== "APPROUVEE") return { erreur: t("La demande doit être approuvée avant d'ajouter une clôture.") };
 
     if (portee(utilisateurConnecte, "RH") !== "TOUT") {
       const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
       const ids = await idsVisibles(tx, utilisateurConnecte, "RH");
-      if (!leDossier || (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId))) return { erreur: "Ce dossier n'est pas dans votre équipe." };
+      if (!leDossier || (ids !== "TOUT" && !ids.includes(leDossier.utilisateurId))) return { erreur: t("Ce dossier n'est pas dans votre équipe.") };
     }
 
     await tx.insert(clearanceDepart).values({ entrepriseId: utilisateurConnecte.entrepriseId, demandeDepartId, libelle, responsableId });
@@ -245,10 +249,11 @@ const schemaCloture = z.object({
  * cookie.
  */
 export async function cloturerDepart(_etat: EtatDepart, formData: FormData): Promise<EtatDepart> {
+  const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (utilisateurConnecte.role !== "ADMIN") {
-    return { erreur: "Seul l'Administrateur peut clôturer un départ." };
+    return { erreur: t("Seul l'Administrateur peut clôturer un départ.") };
   }
 
   const analyse = schemaCloture.safeParse({
@@ -256,22 +261,22 @@ export async function cloturerDepart(_etat: EtatDepart, formData: FormData): Pro
     entretienSortie: formData.get("entretienSortie") || undefined,
   });
   if (!analyse.success) {
-    return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
+    return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { demandeDepartId, entretienSortie } = analyse.data;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [demande] = await tx.select().from(demandeDepart).where(eq(demandeDepart.id, demandeDepartId));
-    if (!demande) return { erreur: "Demande de départ introuvable." };
-    if (demande.statut !== "APPROUVEE") return { erreur: "Seule une demande approuvée peut être clôturée." };
+    if (!demande) return { erreur: t("Demande de départ introuvable.") };
+    if (demande.statut !== "APPROUVEE") return { erreur: t("Seule une demande approuvée peut être clôturée.") };
 
     const clearances = await tx.select({ complete: clearanceDepart.complete }).from(clearanceDepart).where(eq(clearanceDepart.demandeDepartId, demandeDepartId));
     if (clearances.some((c) => !c.complete)) {
-      return { erreur: "Toutes les clôtures doivent être validées (ou supprimées) avant de clôturer le départ." };
+      return { erreur: t("Toutes les clôtures doivent être validées (ou supprimées) avant de clôturer le départ.") };
     }
 
     const [leDossier] = await tx.select({ utilisateurId: dossierRH.utilisateurId }).from(dossierRH).where(eq(dossierRH.id, demande.dossierRHId));
-    if (!leDossier) return { erreur: "Dossier RH introuvable." };
+    if (!leDossier) return { erreur: t("Dossier RH introuvable.") };
 
     await tx.update(demandeDepart).set({ statut: "CLOTUREE", entretienSortie }).where(eq(demandeDepart.id, demandeDepartId));
     await tx.update(dossierRH).set({ dateDepart: demande.dateDepartConfirmee ?? demande.dateDepartSouhaitee }).where(eq(dossierRH.id, demande.dossierRHId));

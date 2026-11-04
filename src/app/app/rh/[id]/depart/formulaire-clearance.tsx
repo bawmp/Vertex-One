@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { SelecteurPersonne } from "@/components/selecteur-personne";
 import { ajouterClearance } from "@/lib/actions/depart";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDepartId: string; collegues: { id: string; nomComplet: string }[] }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(ajouterClearance, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -17,7 +19,7 @@ export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDep
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <Plus data-icon="inline-start" aria-hidden />
-        Ajouter une clôture
+        {t("Ajouter une clôture")}
       </Button>
     );
   }
@@ -28,11 +30,11 @@ export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDep
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="libelle">Libellé</Label>
-          <Input id="libelle" name="libelle" placeholder="ex : Restitution du matériel" required />
+          <Label htmlFor="libelle">{t("Libellé")}</Label>
+          <Input id="libelle" name="libelle" placeholder={t("ex : Restitution du matériel")} required />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="responsableId">Responsable</Label>
+          <Label htmlFor="responsableId">{t("Responsable")}</Label>
           <SelecteurPersonne id="responsableId" name="responsableId" personnes={collegues} required />
         </div>
       </div>
@@ -42,10 +44,10 @@ export function FormulaireClearance({ demandeDepartId, collegues }: { demandeDep
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : null}
-          {enCours ? "Ajout…" : "Ajouter"}
+          {enCours ? t("Ajout…") : t("Ajouter")}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>

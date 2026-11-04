@@ -55,3 +55,24 @@ describe("Affichage de la fiche — règles pures", async () => {
     expect(libelleStatutTache("EN_COURS")).toBe("En cours");
   });
 });
+
+describe("Organigramme — règle pure", async () => {
+  const { construireOrganigramme, compterPersonnes } = await import("@/lib/rh/organigramme");
+  const p = (id: string, managerId: string | null, nom = id) => ({ id, dossierId: `d-${id}`, nom, role: "EMPLOYE", poste: "Poste", departement: null, managerId, photoCle: null });
+
+  test("arbre à plusieurs niveaux, trié par nom ; un responsable hors liste fait une racine", () => {
+    const arbre = construireOrganigramme([p("dg", null, "Zoé"), p("m1", "dg", "Marc"), p("m2", "dg", "Alain"), p("e1", "m1", "Paul"), p("ext", "inconnu", "Bea")]);
+    expect(arbre.map((n) => n.nom)).toEqual(["Bea", "Zoé"]);
+    const dg = arbre.find((n) => n.id === "dg")!;
+    expect(dg.enfants.map((n) => n.nom)).toEqual(["Alain", "Marc"]);
+    expect(dg.enfants[1].enfants.map((n) => n.id)).toEqual(["e1"]);
+    expect(compterPersonnes(arbre)).toBe(5);
+  });
+
+  test("un cycle ne boucle jamais : les personnes prises dedans deviennent des racines", () => {
+    const arbre = construireOrganigramme([p("a", "b"), p("b", "a"), p("c", "a")]);
+    expect(compterPersonnes(arbre)).toBe(3);
+    expect(arbre.map((n) => n.id).sort()).toEqual(["a", "b"]);
+    expect(construireOrganigramme([p("solo", "solo")]).map((n) => n.id)).toEqual(["solo"]);
+  });
+});

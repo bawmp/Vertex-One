@@ -7,19 +7,21 @@ import { fournisseur, compteComptable, produit } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { FormulaireFactureFournisseur } from "./formulaire-facture-fournisseur";
+import { listerSections } from "@/lib/comptabilite/analytique";
 
 export default async function PageNouvelleFactureFournisseur() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "ACHATS", "CREER")) redirect("/app/achats");
 
-  const { fournisseurs, comptesCharge, produits } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const { fournisseurs, comptesCharge, produits, sections } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [fournisseurs, comptesCharge, produits] = await Promise.all([
       tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur),
       tx.select({ id: compteComptable.id, numero: compteComptable.numero, libelle: compteComptable.libelle }).from(compteComptable).where(eq(compteComptable.classe, 6)),
       tx.select({ id: produit.id, nom: produit.nom, prixAchat: produit.prixAchat }).from(produit),
     ]);
-    return { fournisseurs, comptesCharge, produits };
+    const sections = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? (await listerSections(tx, utilisateurConnecte.entrepriseId)).filter((x) => x.actif) : [];
+    return { fournisseurs, comptesCharge, produits, sections };
   });
 
   return (
@@ -29,7 +31,7 @@ export default async function PageNouvelleFactureFournisseur() {
         Achats
       </Link>
       <h1 className="text-2xl font-semibold tracking-tight">Nouvelle facture fournisseur</h1>
-      <FormulaireFactureFournisseur fournisseurs={fournisseurs} comptesCharge={comptesCharge} produits={produits} />
+      <FormulaireFactureFournisseur fournisseurs={fournisseurs} comptesCharge={comptesCharge} produits={produits} sections={sections} />
     </div>
   );
 }

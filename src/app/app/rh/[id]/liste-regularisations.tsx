@@ -2,11 +2,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { traiterRegularisation } from "@/lib/actions/regularisation-pointage";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const LIBELLE_STATUT: Record<string, { libelle: string; variante: "success" | "warning" | "neutral" }> = {
-  EN_ATTENTE: { libelle: "En attente", variante: "warning" },
-  APPROUVEE: { libelle: "Approuvée", variante: "success" },
-  REFUSEE: { libelle: "Refusée", variante: "neutral" },
+  EN_ATTENTE: { libelle: m("En attente"), variante: "warning" },
+  APPROUVEE: { libelle: m("Approuvée"), variante: "success" },
+  REFUSEE: { libelle: m("Refusée"), variante: "neutral" },
 };
 
 type Regularisation = {
@@ -18,13 +20,14 @@ type Regularisation = {
   statut: string;
 };
 
-function formaterHeure(d: Date | null): string | null {
-  return d ? new Intl.DateTimeFormat("fr-FR", { timeStyle: "short" }).format(d) : null;
+function formaterHeure(d: Date | null, locale: string): string | null {
+  return d ? new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(d) : null;
 }
 
-export function ListeRegularisations({ regularisations, peutTraiter }: { regularisations: Regularisation[]; peutTraiter: boolean }) {
+export async function ListeRegularisations({ regularisations, peutTraiter }: { regularisations: Regularisation[]; peutTraiter: boolean }) {
+  const t = await getT();
   if (regularisations.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucune régularisation pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucune régularisation pour le moment.")}</p>;
   }
 
   return (
@@ -32,8 +35,8 @@ export function ListeRegularisations({ regularisations, peutTraiter }: { regular
       <div className="flex flex-col divide-y divide-border">
         {regularisations.map((r, index) => {
           const info = LIBELLE_STATUT[r.statut] ?? { libelle: r.statut, variante: "neutral" as const };
-          const arrivee = formaterHeure(r.heureArriveeProposee);
-          const depart = formaterHeure(r.heureDepartProposee);
+          const arrivee = formaterHeure(r.heureArriveeProposee, t.locale);
+          const depart = formaterHeure(r.heureDepartProposee, t.locale);
           return (
             <div
               key={r.id}
@@ -42,23 +45,23 @@ export function ListeRegularisations({ regularisations, peutTraiter }: { regular
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">
-                  {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(r.date)}
-                  {arrivee ? ` — arrivée ${arrivee}` : ""}
-                  {depart ? ` — départ ${depart}` : ""}
+                  {new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(r.date)}
+                  {arrivee ? ` — ${t("arrivée {heure}", { heure: arrivee })}` : ""}
+                  {depart ? ` — ${t("départ {heure}", { heure: depart })}` : ""}
                 </p>
-                <Badge variant={info.variante}>{info.libelle}</Badge>
+                <Badge variant={info.variante}>{t(info.libelle)}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">{r.motif}</p>
               {r.statut === "EN_ATTENTE" && peutTraiter ? (
                 <div className="flex gap-2">
                   <form action={traiterRegularisation.bind(null, r.id, "approuver")}>
                     <Button type="submit" size="xs" variant="outline">
-                      Approuver
+                      {t("Approuver")}
                     </Button>
                   </form>
                   <form action={traiterRegularisation.bind(null, r.id, "refuser")}>
                     <Button type="submit" size="xs" variant="ghost" className="hover:text-destructive">
-                      Refuser
+                      {t("Refuser")}
                     </Button>
                   </form>
                 </div>

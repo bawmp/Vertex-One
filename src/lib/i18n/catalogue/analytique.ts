@@ -101,4 +101,6 @@ export const ANALYTIQUE: Record<string, string> = {
   "Mois invalide.": "Invalid month.",
   "Statut inconnu.": "Unknown status.",
   "Le montant est un entier positif.": "The amount is a positive whole number.",
+  "Dernières factures fournisseurs": "Latest supplier invoices",
+  "Exporter en CSV": "Export as CSV",
 };

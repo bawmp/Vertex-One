@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { compteComptable, contact, entreprise, facture, utilisateur } from "@/db/schema";
 import { codeValide, normaliserCode, nettoyerLibelle, resultatParSection } from "@/lib/comptabilite/analytique-regles";
 import { affecterDocument, creerSection, definirSectionContact, lireResultatAnalytique, listerSections, modifierSection } from "@/lib/comptabilite/analytique";
-import { genererEcrituresDepense, genererEcrituresFactureEmise, genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
+import { genererEcrituresDepense, genererEcrituresFactureEmise, genererEcrituresFactureFournisseur, genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
 /** Priorité 4.5 : comptabilité analytique — résultat par section, rattachement d'un document, règlements qui suivent. */
@@ -129,5 +129,18 @@ describe("Comptabilité analytique — base réelle", () => {
     expect((await avecEntreprise(A, (tx) => definirSectionContact(tx, A, c.id, sB.id))).ok).toBe(false);
     // L'autre entreprise ne peut pas poser une section sur le contact de A.
     expect((await avecEntreprise(B, (tx) => definirSectionContact(tx, B, c.id, sB.id))).ok).toBe(false);
+  }, 120_000);
+
+  test("facture fournisseur : rattachée à une section, ses charges y apparaissent ; une autre entreprise ne peut pas la rattacher", async () => {
+    await avecEntreprise(A, (tx) => creerSection(tx, A, { axe: "AGENCE", code: "FOURN-1", libelle: "Agence Douala" }));
+    const section = (await avecEntreprise(A, (tx) => listerSections(tx, A))).find((x) => x.code === "FOURN-1")!;
+    await avecEntreprise(A, async (tx) => {
+      const [c] = await tx.select({ id: compteComptable.id }).from(compteComptable).where(and(eq(compteComptable.numero, "601000"), isNull(compteComptable.entrepriseId)));
+      await genererEcrituresFactureFournisseur(tx, { id: "ff-test-1", entrepriseId: A, numero: "FF-1", compteComptableId: c.id, dateFacture: date, montantHT: 3_000, montantTVA: 0, montantTTC: 3_000 });
+    });
+    expect((await avecEntreprise(B, (tx) => affecterDocument(tx, B, "FACTURE_FOURNISSEUR", "ff-test-1", null))).ok).toBe(false); // rien chez B
+    expect(await avecEntreprise(A, (tx) => affecterDocument(tx, A, "FACTURE_FOURNISSEUR", "ff-test-1", section.id))).toMatchObject({ ok: true, lignes: 2 });
+    const res = await avecEntreprise(A, (tx) => lireResultatAnalytique(tx, A, periode));
+    expect(res.lignes.find((l) => l.section === section.id)).toMatchObject({ charges: 3_000, produits: 0, resultat: -3_000 });
   }, 120_000);
 });

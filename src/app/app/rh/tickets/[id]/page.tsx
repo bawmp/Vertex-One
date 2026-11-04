@@ -11,15 +11,18 @@ import { Badge } from "@/components/ui/badge";
 import { ControlesTicket } from "./controles-ticket";
 import { ListeMessagesTicket } from "./liste-messages-ticket";
 import { FormulaireMessageTicket } from "./formulaire-message-ticket";
+import { getT } from "@/lib/i18n/langue";
+import { m } from "@/lib/i18n/catalogue";
 
 const LIBELLE_STATUT: Record<string, { libelle: string; variante: "success" | "warning" | "neutral" }> = {
-  OUVERT: { libelle: "Ouvert", variante: "warning" },
-  EN_COURS: { libelle: "En cours", variante: "warning" },
-  RESOLU: { libelle: "Résolu", variante: "success" },
-  FERME: { libelle: "Fermé", variante: "neutral" },
+  OUVERT: { libelle: m("Ouvert"), variante: "warning" },
+  EN_COURS: { libelle: m("En cours"), variante: "warning" },
+  RESOLU: { libelle: m("Résolu"), variante: "success" },
+  FERME: { libelle: m("Fermé"), variante: "neutral" },
 };
 
 export default async function PageTicketRH({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -69,7 +72,7 @@ export default async function PageTicketRH({ params }: { params: Promise<{ id: s
     <div className="flex max-w-2xl flex-col gap-6">
       <Link href="/app/rh/tickets" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" aria-hidden />
-        Assistance RH
+        {t("Assistance RH")}
       </Link>
 
       <div className="flex items-start justify-between gap-3">
@@ -78,11 +81,11 @@ export default async function PageTicketRH({ params }: { params: Promise<{ id: s
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{leTicket.titre}</h1>
             <p className="text-sm text-muted-foreground">
-              {leTicket.categorieNom} — ouvert par {leTicket.demandeurNom} le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(leTicket.creeLe)}
+              {t("{categorie} — ouvert par {nom} le {date}", { categorie: leTicket.categorieNom, nom: leTicket.demandeurNom, date: new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(leTicket.creeLe) })}
             </p>
           </div>
         </div>
-        <Badge variant={info.variante}>{info.libelle}</Badge>
+        <Badge variant={info.variante}>{t(info.libelle)}</Badge>
       </div>
 
       {leTicket.description ? <p className="whitespace-pre-line text-sm text-muted-foreground">{leTicket.description}</p> : null}
@@ -99,7 +102,7 @@ export default async function PageTicketRH({ params }: { params: Promise<{ id: s
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Messages</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">{t("Messages")}</h2>
         <ListeMessagesTicket messages={messages} />
         <FormulaireMessageTicket ticketId={leTicket.id} />
       </div>

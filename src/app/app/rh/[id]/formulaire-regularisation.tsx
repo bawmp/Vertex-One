@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerRegularisation } from "@/lib/actions/regularisation-pointage";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireRegularisation() {
+  const t = useT();
   const [etat, action, enCours] = useActionState(creerRegularisation, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -18,7 +20,7 @@ export function FormulaireRegularisation() {
     return (
       <Button variant="outline" size="sm" onClick={() => setOuvert(true)}>
         <ClockAlert data-icon="inline-start" aria-hidden />
-        Demander une régularisation
+        {t("Demander une régularisation")}
       </Button>
     );
   }
@@ -26,28 +28,28 @@ export function FormulaireRegularisation() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Demander une régularisation de pointage</CardTitle>
+        <CardTitle>{t("Demander une régularisation de pointage")}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="date">Jour concerné</Label>
+            <Label htmlFor="date">{t("Jour concerné")}</Label>
             <Input id="date" name="date" type="date" required max={new Date().toISOString().slice(0, 10)} className="max-w-48" />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="heureArriveeProposee">Heure d&apos;arrivée corrigée</Label>
+              <Label htmlFor="heureArriveeProposee">{t("Heure d'arrivée corrigée")}</Label>
               <Input id="heureArriveeProposee" name="heureArriveeProposee" type="time" />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="heureDepartProposee">Heure de départ corrigée</Label>
+              <Label htmlFor="heureDepartProposee">{t("Heure de départ corrigée")}</Label>
               <Input id="heureDepartProposee" name="heureDepartProposee" type="time" />
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="motif">Motif</Label>
+            <Label htmlFor="motif">{t("Motif")}</Label>
             <Textarea id="motif" name="motif" rows={2} required />
           </div>
 
@@ -56,10 +58,10 @@ export function FormulaireRegularisation() {
           <div className="flex gap-2">
             <Button type="submit" disabled={enCours}>
               {enCours ? <Spinner /> : null}
-              {enCours ? "Envoi…" : "Envoyer la demande"}
+              {enCours ? t("Envoi…") : t("Envoyer la demande")}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setOuvert(false)}>
-              Annuler
+              {t("Annuler")}
             </Button>
           </div>
         </form>

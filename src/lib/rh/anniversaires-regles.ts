@@ -1,3 +1,5 @@
+import { m } from "@/lib/i18n/catalogue";
+import { traducteur, type Traducteur } from "@/lib/i18n/catalogue";
 /**
  * Anniversaires des collaborateurs : règles pures (fiche collaborateur, 2026-11-04). Dates au format « AAAA-MM-JJ » (jour civil,
  * sans heure : un anniversaire ne dépend pas du fuseau). Le 29 février se fête le 28 février les années non bissextiles.
@@ -26,10 +28,10 @@ export function ageAu(naissance: string, jour: string): number | null {
 
 /** Date de naissance acceptable : réelle, pas dans le futur, âge entre 14 et 100 ans. Renvoie un message d'erreur, ou null si valide. */
 export function erreurDateNaissance(naissance: string, aujourdhui: string): string | null {
-  if (!lireJour(naissance)) return "La date de naissance n'est pas valide.";
-  if (naissance > aujourdhui) return "La date de naissance ne peut pas être dans le futur.";
+  if (!lireJour(naissance)) return m("La date de naissance n'est pas valide.");
+  if (naissance > aujourdhui) return m("La date de naissance ne peut pas être dans le futur.");
   const age = ageAu(naissance, aujourdhui);
-  if (age === null || age < AGE_MIN || age > AGE_MAX) return `L'âge doit être compris entre ${AGE_MIN} et ${AGE_MAX} ans.`;
+  if (age === null || age < AGE_MIN || age > AGE_MAX) return m("L'âge doit être compris entre 14 et 100 ans.");
   return null;
 }
 
@@ -72,8 +74,8 @@ export function anniversairesProches(personnes: PersonneAnniversaire[], aujourdh
   return liste.sort((a, b) => a.jours - b.jours || a.nom.localeCompare(b.nom, "fr"));
 }
 
-export function libelleDelai(jours: number): string {
-  if (jours === 0) return "Aujourd'hui";
-  if (jours === 1) return "Demain";
-  return `Dans ${jours} jours`;
+export function libelleDelai(jours: number, t: Traducteur = traducteur("fr")): string {
+  if (jours === 0) return t("Aujourd'hui");
+  if (jours === 1) return t("Demain");
+  return t("Dans {n} jours", { n: jours });
 }

@@ -2,15 +2,17 @@
 
 import { useActionState, useRef } from "react";
 import { Camera } from "lucide-react";
+import { useT } from "@/lib/i18n/contexte";
 import { Spinner } from "@/components/ui/spinner";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { changerPhotoStagiaire, type EtatPhoto } from "@/lib/actions/photo-rh";
 
 /** Photo d'un stagiaire académique (sans compte), dans l'en-tête de la fiche : posée par l'Administrateur ou son responsable. */
 export function PhotoStagiaire({ stagiaireId, nom, adresse, version, modifiable }: { stagiaireId: string; nom: string; adresse: string | null; version: string; modifiable: boolean }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(changerPhotoStagiaire.bind(null, stagiaireId), null as EtatPhoto);
   const formulaire = useRef<HTMLFormElement>(null);
-  const libelle = adresse ? "Changer la photo" : "Ajouter une photo";
+  const libelle = adresse ? t("Changer la photo") : t("Ajouter une photo");
   return (
     <div className="flex flex-col items-start gap-1.5">
       <div className="relative">

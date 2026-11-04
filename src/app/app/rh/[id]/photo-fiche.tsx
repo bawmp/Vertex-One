@@ -5,6 +5,7 @@ import { Camera, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { changerMaPhoto, changerPhotoCollaborateur, retirerMaPhoto, type EtatPhoto } from "@/lib/actions/photo-rh";
+import { useT } from "@/lib/i18n/contexte";
 
 /**
  * Photo de la fiche, dans l'en-tête. La personne concernée la choisit elle-même : un bouton appareil photo posé sur l'avatar (« Ajouter ma photo » /
@@ -12,11 +13,12 @@ import { changerMaPhoto, changerPhotoCollaborateur, retirerMaPhoto, type EtatPho
  * qu'il est choisi ; les contrôles (image réelle, 2 Mo) sont refaits côté serveur.
  */
 export function PhotoFiche({ nom, adresse, version, utilisateurId, proprietaire, peutChangerPourAutre }: { nom: string; adresse: string | null; version: string; utilisateurId: string; proprietaire: boolean; peutChangerPourAutre: boolean }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(proprietaire ? changerMaPhoto : changerPhotoCollaborateur.bind(null, utilisateurId), null as EtatPhoto);
   const [retrait, demarrerRetrait] = useTransition();
   const formulaire = useRef<HTMLFormElement>(null);
   const peutChanger = proprietaire || peutChangerPourAutre;
-  const libelle = proprietaire ? (adresse ? "Changer ma photo" : "Ajouter ma photo") : adresse ? "Changer la photo" : "Ajouter une photo";
+  const libelle = proprietaire ? (adresse ? t("Changer ma photo") : t("Ajouter ma photo")) : adresse ? t("Changer la photo") : t("Ajouter une photo");
 
   return (
     <div className="flex flex-col items-start gap-1.5">
@@ -53,7 +55,7 @@ export function PhotoFiche({ nom, adresse, version, utilisateurId, proprietaire,
           {proprietaire && adresse ? (
             <button type="button" disabled={enCours || retrait} onClick={() => demarrerRetrait(async () => void (await retirerMaPhoto()))} className="flex items-center gap-1 text-muted-foreground hover:text-destructive">
               <Trash2 className="size-3" aria-hidden />
-              Retirer
+              {t("Retirer")}
             </button>
           ) : null}
           {etat?.erreur ? <span role="alert" className="text-destructive">{etat.erreur}</span> : null}

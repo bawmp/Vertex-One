@@ -20,6 +20,7 @@ import { STOCK } from "./stock";
 import { AVOIRS } from "./avoirs";
 import { COMPTABILITE } from "./comptabilite";
 import { ANALYTIQUE } from "./analytique";
+import { RH } from "./rh";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -40,4 +41,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...AVOIRS,
   ...COMPTABILITE,
   ...ANALYTIQUE,
+  ...RH,
 };

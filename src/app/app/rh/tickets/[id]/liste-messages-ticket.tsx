@@ -1,10 +1,12 @@
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n/langue";
 
 type Message = { id: string; contenu: string; auteurNom: string; creeLe: Date };
 
-export function ListeMessagesTicket({ messages }: { messages: Message[] }) {
+export async function ListeMessagesTicket({ messages }: { messages: Message[] }) {
+  const t = await getT();
   if (messages.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucun message pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t("Aucun message pour le moment.")}</p>;
   }
 
   return (
@@ -18,7 +20,7 @@ export function ListeMessagesTicket({ messages }: { messages: Message[] }) {
           >
             <div className="flex items-center justify-between">
               <p className="font-medium">{m.auteurNom}</p>
-              <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(m.creeLe)}</span>
+              <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(m.creeLe)}</span>
             </div>
             <p className="whitespace-pre-line text-muted-foreground">{m.contenu}</p>
           </div>

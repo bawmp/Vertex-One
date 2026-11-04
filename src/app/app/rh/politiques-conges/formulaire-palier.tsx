@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { ajouterPalierAnciennete } from "@/lib/actions/politique-conge";
+import { useT } from "@/lib/i18n/contexte";
 
 export function FormulairePalier({ politiqueCongeId }: { politiqueCongeId: string }) {
+  const t = useT();
   const [etat, action, enCours] = useActionState(ajouterPalierAnciennete, null);
   const [ouvert, setOuvert] = useState(false);
 
@@ -16,7 +18,7 @@ export function FormulairePalier({ politiqueCongeId }: { politiqueCongeId: strin
     return (
       <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert(true)} className="self-start">
         <Plus data-icon="inline-start" aria-hidden />
-        Ajouter un palier
+        {t("Ajouter un palier")}
       </Button>
     );
   }
@@ -26,11 +28,11 @@ export function FormulairePalier({ politiqueCongeId }: { politiqueCongeId: strin
       <input type="hidden" name="politiqueCongeId" value={politiqueCongeId} />
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
-          <Label htmlFor={`anneesAncienneteMin-${politiqueCongeId}`}>À partir de (années)</Label>
+          <Label htmlFor={`anneesAncienneteMin-${politiqueCongeId}`}>{t("À partir de (années)")}</Label>
           <Input id={`anneesAncienneteMin-${politiqueCongeId}`} name="anneesAncienneteMin" type="number" min={0} required />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor={`joursSupplementaires-${politiqueCongeId}`}>Jours supplémentaires</Label>
+          <Label htmlFor={`joursSupplementaires-${politiqueCongeId}`}>{t("Jours supplémentaires")}</Label>
           <Input id={`joursSupplementaires-${politiqueCongeId}`} name="joursSupplementaires" type="number" min={1} required />
         </div>
       </div>
@@ -38,10 +40,10 @@ export function FormulairePalier({ politiqueCongeId }: { politiqueCongeId: strin
       <div className="flex gap-2">
         <Button type="submit" size="xs" disabled={enCours}>
           {enCours ? <Spinner className="size-3.5" /> : null}
-          {enCours ? "Ajout…" : "Ajouter"}
+          {enCours ? t("Ajout…") : t("Ajouter")}
         </Button>
         <Button type="button" variant="ghost" size="xs" onClick={() => setOuvert(false)}>
-          Annuler
+          {t("Annuler")}
         </Button>
       </div>
     </form>
