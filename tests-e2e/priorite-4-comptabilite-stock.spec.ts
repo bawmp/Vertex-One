@@ -5,6 +5,8 @@ import { supprimerEntrepriseDeTest } from "../tests/aide-nettoyage";
 import { avecEntreprise, db } from "../src/db/client";
 import { contact, entreprise, facture, produit, utilisateur } from "../src/db/schema";
 import { genererEcrituresFactureEmise } from "../src/lib/comptabilite/ecritures";
+import { decrementerStockVente } from "../src/lib/produits/stock";
+import { creerImmobilisation } from "../src/lib/comptabilite/immobilisations";
 
 // Parcours de contrôle des fonctions de la priorité 3 (numéros de série) et 4 (menu Stock, exports, comptabilité analytique, devises,
 // exercice décalé, déclarations fiscales), sur une entreprise « TEST … » créée par une vraie inscription, en local.
@@ -33,14 +35,14 @@ test("Priorités 3 et 4 : menu Stock, numéros de série, exports, analytique, d
   const [{ id: entrepriseId }] = await db.select({ id: entreprise.id }).from(entreprise).where(eq(entreprise.nom, nomEntreprise));
   const [{ id: adminId }] = await db.select({ id: utilisateur.id }).from(utilisateur).where(eq(utilisateur.email, email));
   await db.update(entreprise).set({ gereStock: true }).where(eq(entreprise.id, entrepriseId));
-  const { produitId, factureId } = await avecEntreprise(entrepriseId, async (tx) => {
+  const { produitId, factureId, contactId } = await avecEntreprise(entrepriseId, async (tx) => {
     const [p] = await tx.insert(produit).values({ entrepriseId, type: "BIEN", nom: "Telephone E2E", suiviStock: true, creeParId: adminId }).returning({ id: produit.id });
     const [c] = await tx.insert(contact).values({ entrepriseId, nom: "Jean Mbarga", telephone: "690111222", assigneAId: adminId }).returning({ id: contact.id });
     const numero = `FAC-${suffixe}`;
     const emission = new Date();
     const [f] = await tx.insert(facture).values({ entrepriseId, numero, contactId: c.id, assigneAId: adminId, montantHT: 100000, montantTVA: 0, montantTTC: 100000, dateEmission: emission, dateEcheance: new Date(Date.now() + 30 * 86_400_000) }).returning({ id: facture.id });
     await genererEcrituresFactureEmise(tx, { id: f.id, entrepriseId, numero, dateEmission: emission, montantHT: 100000, montantTVA: 0, montantTTC: 100000 });
-    return { produitId: p.id, factureId: f.id };
+    return { produitId: p.id, factureId: f.id, contactId: c.id };
   });
 
   // ===== 1. Menu : catégorie Stock et raccourcis =====
@@ -60,6 +62,19 @@ test("Priorités 3 et 4 : menu Stock, numéros de série, exports, analytique, d
   await page.goto("/app/produits/series?q=E2E-2");
   await expect(page.getByText("SN-E2E-2")).toBeVisible(ATTENTE);
   await expect(page.getByText("SN-E2E-1")).toHaveCount(0);
+
+  // ===== 2 bis. Numéros de série sur la facture : carte, échange, PDF =====
+  await avecEntreprise(entrepriseId, (tx) => decrementerStockVente(tx, entrepriseId, [{ produitId, quantite: 1 }], { documentType: "FACTURE", documentId: factureId, utilisateurId: adminId }));
+  await page.goto(`/app/facturation/factures/${factureId}`);
+  await expect(page.getByText("Numéros de série vendus")).toBeVisible(ATTENTE);
+  await expect(page.getByText("SN-E2E-1", { exact: true })).toBeVisible(ATTENTE);
+  await page.getByRole("combobox", { name: "Changer le numéro SN-E2E-1" }).selectOption({ label: "SN-E2E-2" });
+  await expect(page.getByText("Numéro de série échangé.")).toBeVisible(ATTENTE);
+  await page.reload();
+  await expect(page.getByText("SN-E2E-2", { exact: true })).toBeVisible(ATTENTE);
+  const pdfFacture = await page.request.get(`/app/facturation/factures/${factureId}/pdf`);
+  expect(pdfFacture.status(), `PDF facture : ${await pdfFacture.text()}`).toBe(200);
+  expect((await pdfFacture.body()).subarray(0, 4).toString()).toBe("%PDF");
 
   // ===== 3. Exports : Sage, Ciel, fichier des écritures, PDF =====
   const base = "/app/comptabilite/livres/export?du=2020-01-01&au=2099-12-31";
@@ -90,6 +105,14 @@ test("Priorités 3 et 4 : menu Stock, numéros de série, exports, analytique, d
   await page.reload();
   const ligne = page.locator("div").filter({ hasText: /^CHANTIER-1 — Chantier Bonanjo/ }).first();
   await expect(ligne).toContainText("100");
+
+  // ===== 4 bis. Section par défaut du client, section à la saisie d'une dépense =====
+  await page.goto(`/app/contacts/${contactId}`);
+  await page.getByRole("combobox", { name: "Section analytique", exact: true }).selectOption({ label: "CHANTIER-1 — Chantier Bonanjo" });
+  await expect(page.getByText("Section du client enregistrée.")).toBeVisible(ATTENTE);
+  await page.goto("/app/achats");
+  await page.getByRole("button", { name: "Nouvelle dépense" }).click();
+  await expect(page.getByLabel("Section analytique (optionnel)")).toBeVisible(ATTENTE);
 
   // ===== 5. Devises : un taux, puis l'équivalent sur la facture =====
   await page.goto("/app/parametres/devises");
@@ -122,4 +145,12 @@ test("Priorités 3 et 4 : menu Stock, numéros de série, exports, analytique, d
   await page.reload();
   await expect(page.getByText("Payée").first()).toBeVisible(ATTENTE);
   await expect(page.getByText(/Impôt estimé/)).toBeVisible(ATTENTE);
+
+  // ===== 8. Immobilisations et régularisations avec un exercice décalé =====
+  await avecEntreprise(entrepriseId, (tx) => creerImmobilisation(tx, entrepriseId, adminId, { libelle: "Camion E2E", compteActif: "245000", dateAcquisition: new Date(), valeurAcquisition: 1_200_000, valeurResiduelle: 0, dureeAnnees: 5, contrepartieAcquisition: null }));
+  await page.goto("/app/comptabilite/immobilisations");
+  await expect(page.getByText("Camion E2E")).toBeVisible(ATTENTE);
+  await expect(page.getByText("À faire une fois par exercice", { exact: false })).toBeVisible(ATTENTE);
+  await page.goto("/app/comptabilite/regularisations");
+  await expect(page.getByText("En général le dernier jour de l'exercice.")).toBeVisible(ATTENTE);
 });
