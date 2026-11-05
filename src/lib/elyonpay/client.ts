@@ -81,7 +81,7 @@ async function appelerBrut(methode: "GET" | "POST", chemin: string, corps?: Reco
 }
 
 export type InitierPaiementDirectParams = {
-  /** Référence externe (voir referenceExterne() dans @/lib/paiement/reference) — jamais un identifiant métier. */
+  /** Référence externe (voir referenceExterne() dans @/lib/paiement/reference) — jamais un identifiant métier. Non transmise à ElyonPay (voir initierPaiementDirect). */
   reference: string;
   montant: number; // FCFA, entier
   /** Conservé pour l'appelant ; l'API de paiement Mobile Money d'ElyonPay n'a pas de champ de description. */
@@ -104,9 +104,9 @@ export type ResultatInitiationDirecte =
 
 /**
  * Déclenche un paiement Mobile Money (`POST /mobile-money/payment/request`) : ElyonPay envoie une invite USSD directement au téléphone
- * du payeur, qui valide sur son appareil — jamais de page hébergée à ouvrir. Le champ `transaction` porte notre référence.
+ * du payeur, qui valide sur son appareil — jamais de page hébergée à ouvrir. Notre référence (`reference`) n'est pas transmise (voir le commentaire du corps).
  *
- * Le schéma de la RÉPONSE n'est pas documenté : on en extrait l'identifiant de la transaction (`uuid`) pour relire ensuite son état
+ * La réponse réelle (vérifiée le 2026-11-05) est `{ success, data: { PSPid, PSPnotifyId, PSPtxnId, url, uuid, … } }` : on en extrait l'identifiant de la transaction (`data.uuid`) pour relire ensuite son état
  * (`verifierTransaction`). Il est renvoyé dans `payToken` (nom historique de la colonne `pay_token`). Aucun webhook n'est documenté pour ce
  * mode : la confirmation repose sur la relecture active (sondage de l'écran, puis réconciliation serveur toutes les minutes).
  */
@@ -124,8 +124,10 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
       currency: "XAF",
       country_name: "Cameroon",
       payment_method: codeMethodePaiement(params.operateur),
-      msisdn: params.telephone.startsWith("+") ? params.telephone : `+${params.telephone}`,
-      transaction: params.reference,
+      // Constaté en réel le 2026-11-05 : le champ s'appelle `customer_msisdn` (le tableau de la documentation dit `msisdn` : refusé, « payload.customer.msisdn
+      // cannot be empty »). Et `transaction` n'est PAS une référence externe : ElyonPay y lit l'`uuid` d'une transaction existante (404 « Transaction with
+      // uuid [...] not found » sinon) — il ne faut donc jamais l'envoyer. Notre référence n'est pas transmise : la tentative est reliée par l'`uuid` renvoyé.
+      customer_msisdn: params.telephone.startsWith("+") ? params.telephone : `+${params.telephone}`,
     },
     { delaiMs: DELAI_INITIATION_MS, reessayerSiIncertain: false },
   );

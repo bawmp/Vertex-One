@@ -109,7 +109,8 @@ describe("paiement direct — requête envoyée à ElyonPay", () => {
     expect(url).toBe("https://api.elyonpay.org/api/mobile-money/payment/request");
     expect(init.method).toBe("POST");
     expect(init.headers.Authorization).toBe("Bearer cle-de-test");
-    expect(JSON.parse(init.body)).toMatchObject({ amount: 1000, currency: "XAF", country_name: "Cameroon", merchant_id: 207, payment_method: "ORANGE_MONEY", msisdn: "+237677000000", transaction: "ref_abc" });
+    expect(JSON.parse(init.body)).toMatchObject({ amount: 1000, currency: "XAF", country_name: "Cameroon", merchant_id: 207, payment_method: "ORANGE_MONEY", customer_msisdn: "+237677000000" });
+    expect(JSON.parse(init.body)).not.toHaveProperty("transaction"); // ElyonPay y lirait l'uuid d'une transaction existante
   });
 
   it("n'écrit jamais la clé dans les journaux, même quand le prestataire la répète dans son message d'erreur", async () => {
