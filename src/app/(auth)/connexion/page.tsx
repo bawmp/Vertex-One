@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, CircleAlert, Mail } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Champ } from "@/components/formulaire/champ";
@@ -63,8 +63,11 @@ export default function PageConnexion() {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex animate-in flex-col gap-1.5 duration-500 fade-in slide-in-from-bottom-2">
-        <p className="text-sm font-semibold tracking-wide text-marque-orange-600 uppercase">{t("Content de vous revoir")}</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{t("Connexion à Vertex One")}</h1>
+        <p className="inline-flex w-fit items-center gap-2 rounded-full bg-marque-orange-100 px-3 py-1 text-xs font-semibold tracking-wide text-marque-orange-700 uppercase">
+          <span aria-hidden className="size-1.5 rounded-full bg-marque-orange" />
+          {t("Content de vous revoir")}
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Connexion à Vertex One")}</h1>
         <p className="text-muted-foreground">{t("Accédez à votre espace entreprise.")}</p>
       </div>
 
@@ -78,7 +81,7 @@ export default function PageConnexion() {
           <Champ label={t("Email")} id="email" name="email" type="email" icone={Mail} autoComplete="email" inputMode="email" required />
         </div>
         <div className="flex animate-in flex-col gap-2 duration-500 fade-in slide-in-from-bottom-2 delay-200 fill-mode-both">
-          <Champ label={t("Mot de passe")} id="motDePasse" name="motDePasse" type="password" autoComplete="current-password" required />
+          <Champ label={t("Mot de passe")} id="motDePasse" name="motDePasse" type="password" icone={Lock} autoComplete="current-password" required />
           <div className="flex items-start justify-between gap-3">
             {majusculesActives ? (
               <p role="status" className="animate-in flex items-center gap-1.5 text-xs text-marque-orange-700 fade-in">
