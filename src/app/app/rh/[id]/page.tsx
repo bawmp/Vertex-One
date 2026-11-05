@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and, ne } from "drizzle-orm";
-import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
+import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, ClipboardList, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -37,6 +37,8 @@ import { FormulaireInfosPersonnelles } from "./formulaire-infos-personnelles";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { ageAu, libelleDelai, prochainAnniversaire } from "@/lib/rh/anniversaires-regles";
 import { estEnRetard, tachesDuCollaborateur } from "@/lib/rh/taches-collaborateur";
+import { lireTachesPoste, peutGererTachesPoste } from "@/lib/rh/taches-poste";
+import { ListeTachesPoste } from "./carte-taches-poste";
 import { getT } from "@/lib/i18n/langue";
 
 
@@ -93,6 +95,9 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     }
 
     const taches = await tachesDuCollaborateur(tx, utilisateurConnecte.entrepriseId, ligne.utilisateurId);
+    // Tâches du poste : lisibles par qui voit la fiche (déjà contrôlé ci-dessus) ; poser ou retirer = Administrateur ou manager dont la portée RH contient la personne.
+    const tachesPoste = await lireTachesPoste(tx, utilisateurConnecte.entrepriseId, ligne.utilisateurId);
+    const peutGererTaches = peutGererTachesPoste(utilisateurConnecte, ligne.utilisateurId, utilisateurConnecte.role === "ADMIN" ? "TOUT" : await idsVisibles(tx, utilisateurConnecte, "RH"));
 
     const demandes = await tx.select().from(demandeConge).where(eq(demandeConge.dossierRHId, id)).orderBy(desc(demandeConge.creeLe));
 
@@ -198,12 +203,14 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       collegues,
       services,
       nomDepartementActuel: departementActuel?.nom ?? null,
+      tachesPoste,
+      peutGererTaches,
       departementsAutorises: autorisationsExistantes.map((a) => a.serviceId),
     };
   });
 
   if (!donnees) notFound();
-  const { ligne, taches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
+  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -292,6 +299,10 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         {/* ----------------------------- Colonne principale : le travail ----------------------------- */}
         <div className="flex min-w-0 flex-col gap-6">
+          <CarteFiche icone={ClipboardList} titre={t("Tâches du poste")} aide={t("Ses responsabilités dans son poste, visibles de la personne et de son manager")}>
+            <ListeTachesPoste taches={tachesPoste.map((x) => ({ id: x.id, titre: x.titre, description: x.description, frequence: x.frequence }))} peutGerer={peutGererTaches} cibleId={ligne.utilisateurId} dossierRHId={ligne.id} />
+          </CarteFiche>
+
           <CarteFiche icone={ListChecks} titre={t("Tâches")} aide={t("Projets et activités CRM qui lui sont assignés")}>
             <div className="grid grid-cols-3 gap-3">
               <TuileChiffre valeur={taches.ouvertes.length} libelle={t("En cours")} ton="bleu" />

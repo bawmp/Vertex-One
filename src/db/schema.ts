@@ -5723,3 +5723,38 @@ export const rappelAnniversaire = pgTable(
     }),
   ]
 ).enableRLS();
+
+/**
+ * Tâches du poste (2026-11-05) : les responsabilités permanentes ou récurrentes d'une personne dans son poste (« relancer les factures en
+ * retard », « clôturer la caisse »), par opposition aux tâches de projet, ponctuelles. Posées par l'Administrateur ou par le manager de la
+ * personne, lues sur sa fiche par elle, son manager et l'Administrateur.
+ */
+export const tachePoste = pgTable(
+  "tache_poste",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    frequence: text("frequence").notNull().default("PERMANENTE"), // PERMANENTE | QUOTIDIENNE | HEBDOMADAIRE | MENSUELLE | TRIMESTRIELLE | ANNUELLE
+    ordre: integer("ordre").notNull().default(0),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("tache_poste_entreprise_idx").on(table.entrepriseId),
+    index("tache_poste_utilisateur_idx").on(table.utilisateurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
