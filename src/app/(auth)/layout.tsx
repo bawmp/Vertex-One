@@ -2,6 +2,7 @@ import { LogoEntreprise } from "@/components/logo-entreprise";
 import { getTVisiteur } from "@/lib/i18n/langue";
 import { SelecteurLangue } from "@/components/selecteur-langue";
 import { PanneauMarque } from "@/components/auth/panneau-marque";
+import { FondMarque } from "@/components/auth/fond-marque";
 import { CaptureOrigine } from "@/components/capture-origine";
 
 export default async function LayoutAuth({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
         {/* Mobile : bandeau de marque en haut, la carte du formulaire vient le recouvrir par le bas. */}
         <div className="relative h-44 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 md:hidden">
           <div aria-hidden className="auth-motif-points pointer-events-none absolute inset-0" />
+          <FondMarque className="pointer-events-none absolute inset-0 size-full" />
           <div aria-hidden className="animate-flotter-lentement pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-marque-bleu-400/35 blur-3xl" />
           <div aria-hidden className="animate-flotter-lentement-inverse pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-marque-bleu-300/20 blur-3xl" />
         </div>
