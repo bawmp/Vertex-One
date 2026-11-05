@@ -12,6 +12,7 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
       <CaptureOrigine />
       <div className="relative hidden md:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-10 text-white">
         <div aria-hidden className="auth-motif-points pointer-events-none absolute inset-0" />
+        <FondMarque variante="panneau" className="pointer-events-none absolute inset-0 size-full" />
         <div
           aria-hidden
           className="animate-flotter-lentement pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-marque-orange/25 blur-3xl"
@@ -22,7 +23,7 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
         />
 
         {/* Le logo officiel sur son panneau blanc : son texte bleu marine n'est pas lisible directement sur ce fond. */}
-        <LogoEntreprise taille="hero" className="relative self-start" />
+        <LogoEntreprise taille="hero" className="relative self-center" />
 
         <PanneauMarque />
 

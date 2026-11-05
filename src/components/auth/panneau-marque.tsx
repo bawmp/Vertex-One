@@ -11,7 +11,7 @@ const DUREE_DIAPO_S = 6;
 const DIAPOS = [
   {
     icone: Smartphone,
-    titre: m("La suite de gestion pensée pour les entreprises de services en Afrique."),
+    titre: m("Une seule suite pour piloter toute votre entreprise en Afrique."),
     texte: m("CRM, devis, facturation et paiement Mobile Money — sans les frais d'implémentation d'un grand logiciel international."),
   },
   {

@@ -58,6 +58,7 @@ export const APPLICATION: Record<string, string> = {
   Bienvenue: "Welcome",
   "Progression du formulaire": "Form progress",
   "Les données de votre entreprise restent isolées de celles des autres.": "Your company's data stays isolated from other companies'.",
+  "Une seule suite pour piloter toute votre entreprise en Afrique.": "One suite to run your entire business in Africa.",
   "La suite de gestion pensée pour les entreprises de services en Afrique.": "The management suite designed for service businesses in Africa.",
   "CRM, devis, facturation et paiement Mobile Money — sans les frais d'implémentation d'un grand logiciel international.":
     "CRM, quotes, invoicing and Mobile Money payments — without the implementation costs of big international software.",
