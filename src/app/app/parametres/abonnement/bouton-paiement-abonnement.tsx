@@ -23,13 +23,11 @@ const DELAI_SONDAGE_MS = 4_000;
 const DUREE_MAX_SONDAGE_MS = 2 * 60 * 1000; // 2 minutes — au-delà, le client valide peut-être encore, mais on arrête de solliciter le serveur en boucle.
 
 /**
- * Paiement direct sans redirection (2026-09-22) : le numéro de téléphone et l'opérateur (MTN/Orange — jamais deviné,
- * "ALL" n'a aucun effet pour ce parcours) sont saisis ici, une invite USSD part directement dessus. La confirmation
- * ne peut pas compter sur la seule notification (Aangaraa Pay ne la renvoie qu'une fois, immédiatement, transaction
- * encore PENDING) : cet écran SONDE activement le statut (verifierStatutTentativeAbonnement) toutes les 4 secondes
+ * Paiement direct sans redirection (2026-09-22) : le numéro de téléphone et l'opérateur (MTN/Orange — jamais deviné) sont saisis ici, une invite USSD part directement dessus. La confirmation
+ * ne peut pas compter sur une notification (ElyonPay n'en documente aucune pour ce mode) : cet écran SONDE activement le statut (verifierStatutTentativeAbonnement) toutes les 4 secondes
  * pendant 2 minutes, avec un retour visuel à chaque étape plutôt qu'un message figé.
  *
- * Deux renforts (2026-09-23, paiement réel confirmé côté Aangaraa Pay mais jamais reflété ici — voir conversation) :
+ * Deux renforts (2026-09-23, paiement réel confirmé côté prestataire (Aangaraa Pay à l'époque) mais jamais reflété ici — voir conversation) :
  * (1) un onglet mis en arrière-plan pendant que le client bascule sur son téléphone pour valider l'invite USSD peut
  * être déchargé par le système (constaté en réel sur mobile), perdant tout l'état de sondage en mémoire — au
  * montage, on relit donc s'il existe une tentative EN_ATTENTE récente pour reprendre le sondage plutôt que de

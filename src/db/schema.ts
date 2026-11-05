@@ -1848,7 +1848,7 @@ export const tentativePaiementFacture = pgTable(
 // tentativePaiementFacture, mais un flux d'argent différent (le tenant paie
 // Vertex One lui-même, pas un de ses propres clients) : table et webhook
 // séparés plutôt qu'un mécanisme générique à discriminant (voir
-// src/lib/actions/abonnement.ts / src/app/api/paiements/aangaraa/notify/route.ts).
+// src/lib/actions/abonnement.ts / src/lib/paiement/confirmation.ts).
 // Carve-out de lecture anonyme, même patron que `invitation` et
 // tentativePaiementFacture (voir son commentaire ci-dessus pour le détail :
 // migration cinetpay-js du 2026-09-18, limite de 30 caractères sur
@@ -1865,10 +1865,9 @@ export const tentativePaiementAbonnement = pgTable(
     // tentative, jamais lu depuis le navigateur : la confirmation en tire la nouvelle échéance (voir prochaineEcheanceApresPaiement).
     mois: integer("mois").notNull().default(1),
     statut: statutTentativePaiement("statut").notNull().default("EN_ATTENTE"),
-    // Paiement direct (2026-09-22) : Aangaraa Pay n'appelle notify_url qu'une fois, immédiatement (transaction encore
-    // PENDING) — jamais une seconde fois quand le client valide réellement sur son téléphone. Le payToken est donc
-    // conservé pour une relecture active (voir relireEtConfirmerAbonnement() dans src/lib/paiement/confirmation.ts),
-    // pas seulement une attente passive de la notification.
+    // Paiement direct : identifiant de transaction renvoyé à l'initiation (nom historique « payToken » : c'était celui d'Aangaraa Pay, c'est
+    // maintenant l'`uuid` ElyonPay), conservé pour la relecture active (voir relireEtConfirmerAbonnement() dans
+    // src/lib/paiement/confirmation.ts) : aucun webhook n'est documenté pour ce mode.
     payToken: text("pay_token"),
     // Pourquoi le paiement a échoué (2026-10-13), tel que le prestataire le dit : "SOLDE_OU_COMPTE" | "EXPIRE" | "ANNULE" | "AUTRE".
     raisonEchec: text("raison_echec"),
