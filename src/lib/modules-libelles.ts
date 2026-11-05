@@ -1,4 +1,4 @@
-import { MATRICE_PERMISSIONS, type Module, type RoleSysteme } from "@/lib/permissions";
+import { MATRICE_PERMISSIONS, MODULES_DE_BASE_EMPLOYE, type Module, type RoleSysteme } from "@/lib/permissions";
 
 /** Libellés affichés à l'Administrateur quand il choisit les modules d'un collaborateur. */
 export const LIBELLES_MODULES: Record<Module, string> = {
@@ -38,4 +38,18 @@ export function modulesRestreignables(role: RoleSysteme): Module[] {
 export function filtrerModulesAutorises(role: RoleSysteme, valeurs: string[]): Module[] {
   const permis = new Set<string>(modulesRestreignables(role));
   return valeurs.filter((v): v is Module => permis.has(v));
+}
+
+/** Modules toujours ouverts pour ce rôle (le socle de l'Employé : fiche, tâches, chat) ; aucun pour les autres rôles. */
+export function modulesDeBase(role: RoleSysteme): Module[] {
+  return role === "EMPLOYE" ? [...MODULES_DE_BASE_EMPLOYE] : [];
+}
+
+/**
+ * Liste à enregistrer pour un collaborateur. Un Employé a TOUJOURS une liste explicite, socle compris : une liste absente voudrait dire « tous
+ * les modules du rôle ». Pour un Manager, une sélection complète revient à « aucune restriction » (null), comme avant.
+ */
+export function listeAEnregistrer(role: RoleSysteme, retenus: Module[]): Module[] | null {
+  if (role === "EMPLOYE") return [...new Set<Module>([...MODULES_DE_BASE_EMPLOYE, ...retenus])];
+  return retenus.length < modulesRestreignables(role).length ? retenus : null;
 }

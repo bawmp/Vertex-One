@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelecteurPersonne, type PersonneSelectionnable } from "@/components/selecteur-personne";
 import { creerInvitation } from "@/lib/actions/invitation";
-import { modulesRestreignables } from "@/lib/modules-libelles";
+import { modulesDeBase, modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -20,8 +20,10 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
   // Arrivée depuis « Stagiaire professionnel » (page Stagiaires) : contrat Stage déjà choisi, date de fin demandée.
   const [contrat, setContrat] = useState(stagePro ? "STAGE" : "CDI");
   const [role, setRole] = useState<"MANAGER" | "EMPLOYE" | "CLIENT" | "COMPTABLE">("EMPLOYE");
-  // Par défaut : tous les modules du rôle ; l'Administrateur décoche ce qu'il veut retirer.
-  const [modules, setModules] = useState<string[]>(modulesRestreignables("EMPLOYE"));
+  // Un Employé (stagiaire et prestataire compris) commence avec le socle seul : sa fiche, ses tâches et le chat ; l'Administrateur coche les modules
+  // à lui ouvrir. Un Manager commence avec tous les modules de son rôle.
+  const modulesInitiaux = (r: "MANAGER" | "EMPLOYE") => (r === "EMPLOYE" ? modulesDeBase("EMPLOYE") : modulesRestreignables(r));
+  const [modules, setModules] = useState<string[]>(modulesInitiaux("EMPLOYE"));
 
   return (
     <Card>
@@ -45,7 +47,7 @@ export function FormulaireInvitation({ collegues, stagePro = false }: { collegue
               onChange={(e) => {
                 const suivant = e.target.value as "MANAGER" | "EMPLOYE" | "CLIENT" | "COMPTABLE";
                 setRole(suivant);
-                if (suivant === "MANAGER" || suivant === "EMPLOYE") setModules(modulesRestreignables(suivant));
+                if (suivant === "MANAGER" || suivant === "EMPLOYE") setModules(modulesInitiaux(suivant));
               }}
             >
               <option value="MANAGER">{t("Manager")}</option>

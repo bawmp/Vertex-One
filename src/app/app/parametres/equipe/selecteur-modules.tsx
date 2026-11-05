@@ -1,6 +1,6 @@
 "use client";
 
-import { LIBELLES_MODULES, modulesRestreignables } from "@/lib/modules-libelles";
+import { LIBELLES_MODULES, modulesDeBase, modulesRestreignables } from "@/lib/modules-libelles";
 import type { RoleSysteme } from "@/lib/permissions";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -12,15 +12,17 @@ import { useT } from "@/lib/i18n/contexte";
 export function SelecteurModules({ role, valeurs, onChange, name }: { role: RoleSysteme; valeurs: string[]; onChange: (valeurs: string[]) => void; name?: string }) {
   const t = useT();
   const modules = modulesRestreignables(role);
-  const tousCoches = modules.every((m) => valeurs.includes(m));
+  const socle = modulesDeBase(role);
+  const tousCoches = modules.every((m) => valeurs.includes(m) || socle.includes(m));
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
+          {socle.length > 0 ? t("Fiche, tâches et chat toujours accessibles. ") : ""}
           {valeurs.length > 1 ? t("{n} modules sur {total}", { n: valeurs.length, total: modules.length }) : t("{n} module sur {total}", { n: valeurs.length, total: modules.length })}
         </p>
-        <button type="button" className="text-xs text-primary hover:underline" onClick={() => onChange(tousCoches ? [] : [...modules])}>
+        <button type="button" className="text-xs text-primary hover:underline" onClick={() => onChange(tousCoches ? [...socle] : [...modules])}>
           {tousCoches ? t("Tout décocher") : t("Tout cocher")}
         </button>
       </div>
@@ -31,7 +33,8 @@ export function SelecteurModules({ role, valeurs, onChange, name }: { role: Role
               type="checkbox"
               name={name}
               value={m}
-              checked={valeurs.includes(m)}
+              checked={valeurs.includes(m) || socle.includes(m)}
+              disabled={socle.includes(m)}
               onChange={(e) => onChange(e.target.checked ? [...valeurs, m] : valeurs.filter((v) => v !== m))}
               className="size-4 accent-primary"
             />

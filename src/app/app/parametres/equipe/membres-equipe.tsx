@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { definirModulesUtilisateur } from "@/lib/actions/acces-modules";
 import { renvoyerAccesCollegue } from "@/lib/actions/invitation";
 import { definirActivationCompte, supprimerCompte } from "@/lib/actions/suppression-compte";
-import { modulesRestreignables } from "@/lib/modules-libelles";
+import { modulesDeBase, modulesRestreignables } from "@/lib/modules-libelles";
 import { SelecteurModules } from "./selecteur-modules";
 import { useT } from "@/lib/i18n/contexte";
 
@@ -114,7 +114,9 @@ export function ClientsPortail({ clients }: { clients: ClientPortail[] }) {
 function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number }) {
   const t = useT();
   const tous = modulesRestreignables(membre.role);
-  const initiales = membre.modulesAutorises ?? tous;
+  const socle = modulesDeBase(membre.role);
+  // Un Employé sans liste est un compte créé avant la règle « socle + modules accordés » : il a encore tous les modules de son rôle.
+  const initiales = [...new Set([...(membre.modulesAutorises ?? tous), ...socle])];
   const [ouvert, setOuvert] = useState(false);
   const [valeurs, setValeurs] = useState<string[]>(initiales);
   const [enCours, startTransition] = useTransition();
@@ -159,7 +161,7 @@ function LigneMembre({ membre, index }: { membre: MembreEquipe; index: number })
         <div className="flex items-center gap-2">
           {desactive ? <Badge variant="danger">{t("Désactivé")}</Badge> : null}
           <Badge variant="neutral">{LIBELLE_ROLE[membre.role]}</Badge>
-          {externe ? <Badge variant="neutral">{t("Comptabilité (lecture seule)")}</Badge> : <Badge variant={restreint ? "warning" : "success"}>{restreint ? `${initiales.length}/${tous.length} modules` : t("Tous les modules")}</Badge>}
+          {externe ? <Badge variant="neutral">{t("Comptabilité (lecture seule)")}</Badge> : <Badge variant={restreint ? "warning" : "success"}>{restreint ? (socle.length > 0 && initiales.length === socle.length ? t("Fiche, tâches et chat") : `${initiales.length}/${tous.length} modules`) : t("Tous les modules")}</Badge>}
           <Button type="button" variant="ghost" size="xs" disabled={enCoursAcces} onClick={renvoyerAcces}>
             {enCoursAcces ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
             {desactive ? t("Réactiver et renvoyer un accès") : t("Renvoyer un accès")}

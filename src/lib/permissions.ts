@@ -240,6 +240,13 @@ export type SujetPermission = RoleSysteme | { role: RoleSysteme; modulesAutorise
 export const MODULES_OUVERTS_AUX_MANAGERS: readonly Module[] = ["CRM", "FACTURATION", "DOSSIERS", "PROJETS", "DOCUMENTS", "SIGNATURE", "CONTRATS", "ACHATS", "RESERVATIONS", "SUPPORT"];
 
 /**
+ * Socle d'un Employé (ce qui inclut un stagiaire professionnel ou un prestataire, qui ont ce rôle) : sa fiche (RH, portée « propre »), ses tâches
+ * (Projets, portée « propre ») et le chat. Tout le reste est un module que l'Administrateur lui accorde. Un nouvel Employé reçoit ce socle seul
+ * (voir `accepterInvitation`) ; les comptes créés avant cette règle, sans liste, gardent leur accès tant que l'Administrateur ne la restreint pas.
+ */
+export const MODULES_DE_BASE_EMPLOYE: readonly Module[] = ["RH", "PROJETS", "MESSAGERIE"];
+
+/**
  * La liste par utilisateur ne fait que RESTREINDRE : un module absent de la liste
  * est fermé, un module présent garde exactement les droits du rôle — jamais plus.
  * L'Administrateur n'est jamais restreint.
@@ -247,6 +254,8 @@ export const MODULES_OUVERTS_AUX_MANAGERS: readonly Module[] = ["CRM", "FACTURAT
 function moduleFerme(sujet: SujetPermission, module: Module): boolean {
   if (typeof sujet === "string") return false;
   if (sujet.role === "ADMIN" || !sujet.modulesAutorises) return false;
+  // Le socle d'un Employé (sa fiche, ses tâches, le chat) ne se retire jamais ; tout le reste dépend de la liste de l'Administrateur.
+  if (sujet.role === "EMPLOYE" && MODULES_DE_BASE_EMPLOYE.includes(module)) return false;
   return !sujet.modulesAutorises.includes(module);
 }
 

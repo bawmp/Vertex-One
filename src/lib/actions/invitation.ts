@@ -11,8 +11,8 @@ import { db, avecEntreprise } from "@/db/client";
 import { invitation, utilisateur, compte, dossierRH, contact } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { peut } from "@/lib/permissions";
-import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-libelles";
+import { peut, type Module } from "@/lib/permissions";
+import { filtrerModulesAutorises, listeAEnregistrer } from "@/lib/modules-libelles";
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 import { getT } from "@/lib/i18n/langue";
@@ -93,8 +93,7 @@ export async function creerInvitation(_etat: EtatInvitation, formData: FormData)
   // Seuls MANAGER/EMPLOYE sont concernés ; une sélection complète revient à "aucune restriction".
   let modulesAEnregistrer: string[] | undefined;
   if (modulesPropose && roleProposee !== "CLIENT" && roleProposee !== "COMPTABLE") {
-    const retenus = filtrerModulesAutorises(roleProposee, modulesPropose);
-    if (retenus.length < modulesRestreignables(roleProposee).length) modulesAEnregistrer = retenus;
+    modulesAEnregistrer = listeAEnregistrer(roleProposee, filtrerModulesAutorises(roleProposee, modulesPropose)) ?? undefined;
   }
 
   const jeton = generateRandomString(32, "a-z", "A-Z", "0-9");
@@ -195,7 +194,8 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
         role: invitationValide.roleProposee,
         statut: "ACTIF",
         managerId: invitationValide.managerPropose,
-        modulesAutorises: invitationValide.modulesPropose,
+        // Un nouvel Employé n'a que le socle (fiche, tâches, chat) + les modules que l'Administrateur a cochés ; jamais « tout » par défaut.
+        modulesAutorises: invitationValide.roleProposee === "EMPLOYE" ? listeAEnregistrer("EMPLOYE", (invitationValide.modulesPropose ?? []) as Module[]) : invitationValide.modulesPropose,
       })
       .returning({ id: utilisateur.id });
 

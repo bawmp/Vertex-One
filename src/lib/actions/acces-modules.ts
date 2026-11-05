@@ -6,12 +6,12 @@ import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
 import { utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
-import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-libelles";
+import { filtrerModulesAutorises, listeAEnregistrer } from "@/lib/modules-libelles";
 import { getT } from "@/lib/i18n/langue";
 
 /**
  * Choisit les modules auxquels un Manager ou un Employé (ou prestataire) a accès.
- * Réservé à l'Administrateur. `modules = null` rétablit tous les modules de son rôle.
+ * Réservé à l'Administrateur. `modules = null` rétablit tous les modules d'un Manager ; pour un Employé, il ne reste que le socle (fiche, tâches, chat).
  * Ne fait que RESTREINDRE la matrice du rôle (peut() dans src/lib/permissions.ts) :
  * une valeur hors périmètre du rôle est ignorée, jamais accordée. Le rôle et
  * l'entreprise de la cible sont relus en base, jamais pris dans la requête.
@@ -31,12 +31,9 @@ export async function definirModulesUtilisateur(utilisateurId: string, modules: 
     if (!cible) return { erreur: t("Collaborateur introuvable.") };
     if (cible.role !== "MANAGER" && cible.role !== "EMPLOYE") return { erreur: t("Les modules ne se choisissent que pour un Manager ou un Employé.") };
 
-    let aEnregistrer: string[] | null = null;
-    if (modules) {
-      const retenus = filtrerModulesAutorises(cible.role, modules);
-      // Sélection complète = aucune restriction (et les futurs modules ouverts à ce rôle lui seront accessibles).
-      aEnregistrer = retenus.length < modulesRestreignables(cible.role).length ? retenus : null;
-    }
+    // Un Employé a toujours une liste explicite (socle + modules accordés) ; pour un Manager, `null` ou une sélection complète = aucune restriction.
+    const retenus = modules ? filtrerModulesAutorises(cible.role, modules) : cible.role === "EMPLOYE" ? [] : null;
+    const aEnregistrer = retenus ? listeAEnregistrer(cible.role, retenus) : null;
 
     await tx
       .update(utilisateur)

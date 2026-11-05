@@ -241,4 +241,6 @@ export const PARAMETRES: Record<string, string> = {
   "Documents PDF": "PDF documents",
   "Afficher le logo en filigrane sur les devis, factures et autres documents PDF": "Show the logo as a watermark on quotes, invoices and other PDF documents",
   "Aucun logo téléversé : ce réglage n'a pas d'effet pour le moment.": "No logo uploaded: this setting has no effect for now.",
+  "Fiche, tâches et chat toujours accessibles. ": "Profile, tasks and chat are always available. ",
+  "Fiche, tâches et chat": "Profile, tasks and chat",
 };
