@@ -32,16 +32,17 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
         <SelecteurLangue className="absolute right-4 top-4 z-10 bg-background shadow-sm" />
 
         {/* Mobile : bandeau de marque en haut, la carte du formulaire vient le recouvrir par le bas. */}
-        <div className="relative flex justify-center overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 px-6 pt-16 pb-14 md:hidden">
+        <div className="relative h-44 overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 md:hidden">
           <div aria-hidden className="auth-motif-points pointer-events-none absolute inset-0" />
           <div aria-hidden className="animate-flotter-lentement pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-marque-bleu-400/35 blur-3xl" />
           <div aria-hidden className="animate-flotter-lentement-inverse pointer-events-none absolute -left-16 bottom-0 size-48 rounded-full bg-marque-bleu-300/20 blur-3xl" />
-          {/* Fine barre orange : l'accent de la charte, sans mélange avec le bleu. */}
-          <div aria-hidden className="absolute inset-x-0 bottom-8 h-px bg-gradient-to-r from-transparent via-marque-orange/70 to-transparent" />
-          <LogoEntreprise taille="hero" className="relative h-24" />
         </div>
 
-        <div className="relative -mt-8 flex flex-1 flex-col rounded-t-[2rem] bg-background px-5 pt-8 pb-6 shadow-[0_-10px_30px_-12px_rgb(0_0_0/0.25)] md:mt-0 md:w-full md:max-w-sm md:flex-none md:rounded-none md:bg-transparent md:p-0 md:shadow-none">
+        <div className="relative -mt-8 flex flex-1 flex-col rounded-t-[2rem] bg-background px-5 pb-6 shadow-[0_-10px_30px_-12px_rgb(0_0_0/0.25)] md:mt-0 md:w-full md:max-w-sm md:flex-none md:rounded-none md:bg-transparent md:p-0 md:shadow-none">
+          {/* Le logo chevauche le bord de la carte : bandeau, logo et titre partagent le même axe central. */}
+          <div className="relative z-10 -mt-14 mb-7 flex justify-center md:hidden">
+            <LogoEntreprise taille="hero" className="h-28 shadow-lg shadow-marque-bleu-900/25 ring-4 ring-background" />
+          </div>
           <div className="mx-auto w-full max-w-sm animate-in fade-in slide-in-from-bottom-2 duration-500">{children}</div>
           <p className="mt-auto pt-10 text-center text-xs text-muted-foreground md:hidden">{t("Vertex Technology")}</p>
         </div>

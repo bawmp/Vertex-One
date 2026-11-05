@@ -62,7 +62,7 @@ export default function PageConnexion() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex animate-in flex-col gap-1.5 duration-500 fade-in slide-in-from-bottom-2">
+      <div className="flex animate-in flex-col items-center gap-1.5 text-center duration-500 fade-in slide-in-from-bottom-2">
         <p className="inline-flex w-fit items-center gap-2 rounded-full bg-marque-orange-100 px-3 py-1 text-xs font-semibold tracking-wide text-marque-orange-700 uppercase">
           <span aria-hidden className="size-1.5 rounded-full bg-marque-orange" />
           {t("Content de vous revoir")}
