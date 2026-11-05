@@ -1,4 +1,3 @@
-import { mentionDevise } from "@/lib/devises/facture";
 "use server";
 
 import { and, eq } from "drizzle-orm";
@@ -26,6 +25,7 @@ import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
 import { contrePasserEcritures, ecrituresDeLaFacture } from "@/lib/comptabilite/contre-passation";
 import { defaireMouvementsDocument } from "@/lib/produits/stock";
 import { getT } from "@/lib/i18n/langue";
+import { mentionDevise } from "@/lib/devises/facture";
 
 function urlBase(): string {
   return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
