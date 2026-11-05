@@ -16,6 +16,7 @@ import { filtrerModulesAutorises, modulesRestreignables } from "@/lib/modules-li
 import { creerUtilisateurChat } from "@/lib/chat/client";
 import { contientContrainteEmailUnique } from "@/lib/erreurs-db";
 import { getT } from "@/lib/i18n/langue";
+import { dejaEmployeDansLeGroupe, MESSAGE_DEJA_EMPLOYE_GROUPE } from "@/lib/rh/unicite-groupe";
 import { annulerInvitationsNonUtilisees } from "@/lib/invitations/annulation";
 import { m } from "@/lib/i18n/catalogue";
 import { envoyerEmailInvitation } from "@/lib/invitations/envoi";
@@ -173,6 +174,11 @@ export async function accepterInvitation(_etat: EtatAcceptation, formData: FormD
 
   if (!invitationValide) {
     return { erreur: t("Ce lien d'invitation est invalide ou a expiré.") };
+  }
+
+  // Une même personne ne travaille que dans une entreprise du groupe (reconnue par email, nom + date de naissance prévue sur l'invitation).
+  if ((invitationValide.roleProposee === "MANAGER" || invitationValide.roleProposee === "EMPLOYE") && (await dejaEmployeDansLeGroupe(invitationValide.entrepriseId, { nom: nomComplet, email: invitationValide.email, dateNaissance: invitationValide.dateNaissancePropose }))) {
+    return { erreur: t(MESSAGE_DEJA_EMPLOYE_GROUPE) };
   }
 
   const motDePasseHash = await hashPassword(motDePasse);

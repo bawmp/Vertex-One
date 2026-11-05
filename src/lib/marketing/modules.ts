@@ -162,6 +162,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Partage des fiches entre les entreprises d'un même groupe (nom, photo, poste, anniversaires) en lecture seule, activé des deux côtés, sans jamais partager le salaire"),
       m("Fiche de chaque collaborateur (employé, manager, stagiaire, prestataire ou freelance) avec photo posée par la personne elle-même, date de naissance, coordonnées et tâches"),
       m("Rappel des anniversaires : carte à venir pour l'administrateur et les managers, et un email chaque matin à l'administrateur et au responsable de la personne"),
+      m("Une même personne ne peut travailler que dans une seule entreprise d'un groupe : l'embauche est refusée si elle est déjà employée ailleurs dans le groupe (reconnue par email, téléphone, ou nom et date de naissance)"),
       m("Organigramme de l'équipe en arbre, et mot d'anniversaire envoyé à la personne si vous l'activez"),
       m("Un manager peut créer la fiche d'un employé, d'un stagiaire ou d'un prestataire sans jamais voir ni saisir le salaire, réservé à l'administrateur"),
       m("Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé"),

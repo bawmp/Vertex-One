@@ -18,6 +18,7 @@ import { apercuEmailStatut, changerStatutEtPreparerEmail, nettoyerContenuPersonn
 import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
 import { TYPES_CONTRAT } from "@/lib/recrutement/validation";
+import { dejaEmployeDansLeGroupe } from "@/lib/rh/unicite-groupe";
 
 const CHEMIN = "/app/recrutement";
 
@@ -428,6 +429,10 @@ export async function convertirCandidatureEnEmploye(_etat: EtatConversion, formD
     return { erreur: analyse.error.issues[0]?.message ?? "Formulaire invalide." };
   }
   const { candidatureId, roleProposee, typeContratPropose, dateEmbauchePropose } = analyse.data;
+
+  // Une même personne ne travaille que dans une entreprise du groupe : la candidate est comparée (email, téléphone, nom) aux collaborateurs des autres entreprises.
+  const [candidat] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select({ nom: candidature.nom, telephone: candidature.telephone, email: candidature.email }).from(candidature).where(and(eq(candidature.id, candidatureId), eq(candidature.entrepriseId, utilisateurConnecte.entrepriseId))));
+  if (candidat && (await dejaEmployeDansLeGroupe(utilisateurConnecte.entrepriseId, candidat))) return { erreur: "Cette personne est déjà employée dans une autre entreprise de votre groupe : elle ne peut l'être que dans une seule." };
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     convertirCandidatureEnInvitation(tx, utilisateurConnecte.entrepriseId, candidatureId, roleProposee, typeContratPropose, new Date(dateEmbauchePropose))

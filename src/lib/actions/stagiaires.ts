@@ -13,6 +13,7 @@ import { peut } from "@/lib/permissions";
 import { erreurDateNaissance } from "@/lib/rh/anniversaires-regles";
 import { disponible } from "@/lib/plans";
 import { cloturerStagiaireAcademique, convertirStagiaireEnInvitation, creerStagiaireAcademique, deciderStagePro, modifierStagiaireAcademique, supprimerStagiaireAcademique, type SaisieStagiaire } from "@/lib/rh/stage";
+import { dejaEmployeDansLeGroupe, MESSAGE_DEJA_EMPLOYE_GROUPE } from "@/lib/rh/unicite-groupe";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -84,6 +85,7 @@ export async function creerStagiaireAcademiqueAction(_etat: EtatStagiaire, formD
   if ("erreur" in g) return g;
   const lu = lireSaisie(formData, t);
   if (!lu.ok) return { erreur: t(lu.erreur) };
+  if (await dejaEmployeDansLeGroupe(g.utilisateurConnecte.entrepriseId, { nom: lu.saisie.nom, telephone: lu.saisie.telephone, dateNaissance: lu.saisie.dateNaissance, email: lu.saisie.email })) return { erreur: t(MESSAGE_DEJA_EMPLOYE_GROUPE) };
   const r = await avecEntreprise(g.utilisateurConnecte.entrepriseId, (tx) => creerStagiaireAcademique(tx, g.utilisateurConnecte, lu.saisie));
   if (r.erreur || !r.id) return { erreur: r.erreur ? t(r.erreur) : t("Création impossible.") };
   revalidatePath(CHEMIN);
@@ -96,6 +98,7 @@ export async function modifierStagiaireAcademiqueAction(id: string, _etat: EtatS
   if ("erreur" in g) return g;
   const lu = lireSaisie(formData, t);
   if (!lu.ok) return { erreur: t(lu.erreur) };
+  if (await dejaEmployeDansLeGroupe(g.utilisateurConnecte.entrepriseId, { nom: lu.saisie.nom, telephone: lu.saisie.telephone, dateNaissance: lu.saisie.dateNaissance, email: lu.saisie.email })) return { erreur: t(MESSAGE_DEJA_EMPLOYE_GROUPE) };
   const r = await avecEntreprise(g.utilisateurConnecte.entrepriseId, (tx) => modifierStagiaireAcademique(tx, g.utilisateurConnecte, String(id), lu.saisie));
   if (r.erreur) return { erreur: t(r.erreur) };
   revalidatePath(CHEMIN);

@@ -1,7 +1,8 @@
 import { m } from "@/lib/i18n/catalogue";
 import { and, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { dossierRH } from "@/db/schema";
+import { dossierRH, utilisateur } from "@/db/schema";
+import { dejaEmployeDansLeGroupe, MESSAGE_DEJA_EMPLOYE_GROUPE } from "./unicite-groupe";
 import { idsVisibles } from "@/lib/portee";
 import { peut } from "@/lib/permissions";
 import type { UtilisateurConnecte } from "@/lib/session";
@@ -48,6 +49,10 @@ export async function modifierInfosPersonnelles(tx: TransactionDrizzle, u: Utili
   if (!d) return { ok: false, erreur: m("Fiche introuvable.") };
   const ids = u.utilisateurId === d.utilisateurId || u.role === "ADMIN" ? "TOUT" : await idsVisibles(tx, u, "RH");
   if (!peutModifierInfos(u, d.utilisateurId, ids)) return { ok: false, erreur: m("Vous n'avez pas le droit de modifier ces informations.") };
+  // Une même personne ne travaille que dans une entreprise du groupe : le téléphone ou la date de naissance saisis ne doivent pas être ceux d'un
+  // collaborateur d'une autre entreprise du groupe (contrôle ne renvoyant qu'un oui/non).
+  const [qui] = await tx.select({ nom: utilisateur.nomComplet, email: utilisateur.email }).from(utilisateur).where(and(eq(utilisateur.id, d.utilisateurId), eq(utilisateur.entrepriseId, u.entrepriseId)));
+  if (qui && (await dejaEmployeDansLeGroupe(u.entrepriseId, { nom: qui.nom, email: qui.email, telephone: verdict.valeurs.telephone, dateNaissance: verdict.valeurs.dateNaissance }))) return { ok: false, erreur: MESSAGE_DEJA_EMPLOYE_GROUPE };
   await tx.update(dossierRH).set(verdict.valeurs).where(and(eq(dossierRH.id, dossierRHId), eq(dossierRH.entrepriseId, u.entrepriseId)));
   return { ok: true };
 }
