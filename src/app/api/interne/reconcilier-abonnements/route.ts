@@ -8,18 +8,18 @@ import { relireEtConfirmerAbonnement, relireEtConfirmerFacture } from "@/lib/pai
  * Réconciliation SERVEUR des paiements d'abonnement encore EN_ATTENTE (2026-09-23) — appelée toutes les minutes par
  * le worker (voir crontab, src/worker/tasks/reconcilier-abonnements.ts), jamais par le navigateur. Complète le
  * sondage client (bouton-paiement-abonnement.tsx) plutôt que de le remplacer : un paiement réellement confirmé chez
- * Aangaraa Pay pendant que l'onglet du client est déchargé (constaté en réel — comportement des navigateurs
+ * ElyonPay pendant que l'onglet du client est déchargé (constaté en réel — comportement des navigateurs
  * mobiles quand on bascule vers l'app Mobile Money pour valider) doit finir par se refléter ici, même si personne
  * ne regarde l'écran de paiement à ce moment précis.
  *
  * Réutilise EXACTEMENT relireEtConfirmerAbonnement() (@/lib/paiement/confirmation, même fonction que le sondage
  * client) — aucune règle métier dupliquée. Le worker n'importe jamais ce module directement : il transite par
- * "server-only" (protection contre une fuite de app_key dans un bundle client), incompatible avec une exécution
- * tsx/node hors Next.js — cette route existe pour cette seule raison, sur le modèle du webhook de notification.
+ * "server-only" (protection contre une fuite de clé d'API dans un bundle client), incompatible avec une exécution
+ * tsx/node hors Next.js — cette route existe pour cette seule raison, sur le modèle des autres routes internes.
  *
  * ⚠️ Bug réel corrigé le 2026-09-23 : une première version lisait `tentative_paiement_abonnement` directement via
  * `db.select()`, SANS passer par avecEntreprise() — la requête tournait donc avec `app.entreprise_id` jamais posé,
- * et ne remontait silencieusement AUCUNE ligne (RLS active), malgré de vrais paiements confirmés côté Aangaraa Pay
+ * et ne remontait silencieusement AUCUNE ligne (RLS active), malgré de vrais paiements confirmés côté prestataire
  * en attente. Corrigé en reprenant EXACTEMENT le patron déjà établi ailleurs dans ce projet (verifier-abonnements.ts
  * → traiter-abonnement-entreprise.ts) : la table `entreprise` elle-même n'a pas de RLS (lue librement pour lister
  * les tenants), puis chaque lecture de `tentative_paiement_abonnement` passe par avecEntreprise(), une entreprise à

@@ -11,7 +11,7 @@ import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, Ecr
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { MOIS_OFFERTS_ANNUEL } from "@/lib/abonnement/tarif";
 import { declencherPaiementAbonnement, lireRaisonEchecAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
-import { messageEchecPaiement } from "@/lib/aangaraa/messages-echec";
+import { messageEchecPaiement } from "@/lib/paiement/messages-echec";
 import { useT } from "@/lib/i18n/contexte";
 
 const DELAI_REDIRECTION_MS = 1_800; // laisse le temps de lire "Paiement confirmé" avant de repartir vers l'application

@@ -4,6 +4,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, facture, paiement, tentativePaiementFacture, tentativePaiementAbonnement } from "@/db/schema";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 import type { ResultatVerification } from "@/lib/paiement/types";
+import { relecteur } from "./aide-paiement";
 
 // « server-only » interdit l'import hors d'un composant serveur : sans effet pour un test Node.
 vi.mock("server-only", () => ({}));
@@ -11,19 +12,20 @@ vi.mock("server-only", () => ({}));
 // Aucun envoi réel (les paiements confirmés préviennent l'Administrateur par email) : l'envoi est simulé.
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: async () => ({ envoye: true }) }));
 
-// Seul l'appel réseau vers Aangaraa Pay est simulé : tout le reste (base, RLS, écritures comptables) est réel.
+// Seul l'appel réseau vers ElyonPay est simulé : tout le reste (base, RLS, écritures comptables) est réel.
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
-vi.mock("@/lib/aangaraa/client", async () => {
+vi.mock("@/lib/elyonpay/client", async () => {
   // La logique pure (opérateur → mode de paiement) reste la vraie ; seul l'appel réseau est remplacé.
-  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/elyonpay/utilitaires");
   return { verifierTransaction: (payToken: string) => verifierTransaction(payToken), moyenPaiementDepuisOperateur };
 });
 
-const { traiterNotificationPaiement } = await import("@/lib/paiement/confirmation");
+const { relireEtConfirmerFacture, relireEtConfirmerAbonnement } = await import("@/lib/paiement/confirmation");
+const traiterNotificationPaiement = relecteur((t) => verifierTransaction(t), relireEtConfirmerFacture, relireEtConfirmerAbonnement);
 
 const suffixe = Math.random().toString(36).slice(2, 8);
-const nomA = `TEST Aangaraa A ${suffixe}`;
-const nomB = `TEST Aangaraa B ${suffixe}`;
+const nomA = `TEST ElyonPay A ${suffixe}`;
+const nomB = `TEST ElyonPay B ${suffixe}`;
 const PAY_TOKEN = "MP260921.1234.A56789";
 
 let idA: string;
@@ -70,7 +72,7 @@ afterAll(async () => {
 
 beforeEach(() => verifierTransaction.mockReset());
 
-describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
+describe("ElyonPay — confirmation d'un paiement de facture", () => {
   test("un paiement accepté crée UN règlement, passe la facture à payée, confirme la tentative, et garde l'opérateur", async () => {
     const tentative = await nouvelleTentativeFacture(idA, factureA, 11925);
     verifierTransaction.mockResolvedValue(accepte(`fac_${tentative}`, 11925, "Orange_Cameroon"));
@@ -85,7 +87,7 @@ describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
     const [t] = await avecEntreprise(idA, (tx) => tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative)));
     expect(t.statut).toBe("CONFIRME");
 
-    // Aangaraa Pay rappelle la même notification : rien ne se duplique.
+    // Une relecture répétée : rien ne se duplique.
     expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
     expect((await lireFacture(idA, factureA)).p).toHaveLength(1);
   }, 180_000);
@@ -101,7 +103,7 @@ describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
     expect(t.statut).toBe("EN_ATTENTE");
   }, 180_000);
 
-  test("un échec chez Aangaraa Pay marque la tentative en échec, la facture reste due", async () => {
+  test("un échec chez ElyonPay marque la tentative en échec, la facture reste due", async () => {
     const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
     verifierTransaction.mockResolvedValue({ statut: "REFUSED", indisponible: false, referenceExterne: `fac_${tentative}`, montant: 11925 });
     expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
@@ -110,7 +112,7 @@ describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
     expect((await lireFacture(idB, factureB)).f.statut).toBe("EMISE");
   }, 180_000);
 
-  test("un paiement en attente ne change rien (Aangaraa Pay rappellera)", async () => {
+  test("un paiement en attente ne change rien (la relecture reviendra)", async () => {
     const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
     verifierTransaction.mockResolvedValue({ statut: "PENDING", indisponible: false, referenceExterne: `fac_${tentative}`, montant: 11925 });
     expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
@@ -125,22 +127,24 @@ describe("Aangaraa Pay — confirmation d'un paiement de facture", () => {
   }, 180_000);
 });
 
-describe("Aangaraa Pay — refus en amont", () => {
-  test("paytoken absent : 400, sans interroger le prestataire", async () => {
-    expect((await traiterNotificationPaiement({ payToken: null })).code).toBe(400);
+describe("ElyonPay — relecture d'une tentative", () => {
+  test("sans identifiant de transaction, rien n'est relu chez le prestataire et la tentative reste en attente", async () => {
+    const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
+    expect(await relireEtConfirmerFacture(tentative)).toBe("EN_ATTENTE");
     expect(verifierTransaction).not.toHaveBeenCalled();
-  });
+  }, 180_000);
 
-  test("prestataire injoignable ou clé refusée : 503, pour qu'il rappelle plus tard au lieu de perdre le paiement", async () => {
+  test("prestataire injoignable ou clé refusée : « indisponible », la tentative n'est pas touchée (la relecture suivante réessaie)", async () => {
+    const tentative = await nouvelleTentativeFacture(idB, factureB, 11925);
+    await avecEntreprise(idB, (tx) => tx.update(tentativePaiementFacture).set({ payToken: PAY_TOKEN }).where(eq(tentativePaiementFacture.id, tentative)));
     verifierTransaction.mockResolvedValue({ statut: "INCONNU", indisponible: true });
-    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(503);
-  });
+    expect(await relireEtConfirmerFacture(tentative)).toBe("INDISPONIBLE");
+    const [t] = await avecEntreprise(idB, (tx) => tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative)));
+    expect(t.statut).toBe("EN_ATTENTE");
+  }, 180_000);
 
-  test("transaction sans référence reconnue : 404 ; tentative inexistante : rien n'est modifié", async () => {
-    verifierTransaction.mockResolvedValue(accepte("sans-prefixe", 11925));
-    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(404);
-    verifierTransaction.mockResolvedValue(accepte("fac_identifiant-inexistant", 11925));
-    expect((await traiterNotificationPaiement({ payToken: PAY_TOKEN })).code).toBe(200);
+  test("tentative inexistante : « introuvable », rien n'est modifié", async () => {
+    expect(await relireEtConfirmerFacture("identifiant-inexistant")).toBe("INTROUVABLE");
     expect((await lireFacture(idB, factureB)).p).toHaveLength(0);
   }, 180_000);
 
@@ -154,7 +158,7 @@ describe("Aangaraa Pay — refus en amont", () => {
   }, 180_000);
 });
 
-describe("Aangaraa Pay — abonnement à Vertex One", () => {
+describe("ElyonPay — abonnement à Vertex One", () => {
   test("un paiement d'abonnement accepté réactive l'entreprise et repousse l'échéance ; un rappel ne la repousse pas deux fois", async () => {
     await db.update(entreprise).set({ statutAbonnement: "suspendu", abonnementEcheanceLe: new Date(Date.now() - 5 * 86_400_000) }).where(eq(entreprise.id, idB));
     const [t] = await avecEntreprise(idB, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idB, montant: 50000 }).returning({ id: tentativePaiementAbonnement.id }));
@@ -207,7 +211,7 @@ describe("Aangaraa Pay — abonnement à Vertex One", () => {
   }, 180_000);
 });
 
-describe("Aangaraa Pay — raison d'un échec d'abonnement", () => {
+describe("ElyonPay — raison d'un échec d'abonnement", () => {
   test("un paiement refusé enregistre la raison donnée par le prestataire, invisible pour une autre entreprise", async () => {
     const [t] = await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementAbonnement).values({ entrepriseId: idA, montant: 50000 }).returning({ id: tentativePaiementAbonnement.id }));
     verifierTransaction.mockResolvedValue({ statut: "REFUSED", indisponible: false, referenceExterne: `abo_${t.id}`, montant: 50000, raisonEchec: "SOLDE_OU_COMPTE" });
@@ -222,7 +226,7 @@ describe("Aangaraa Pay — raison d'un échec d'abonnement", () => {
   }, 180_000);
 });
 
-describe("Aangaraa Pay — isolation entre entreprises", () => {
+describe("ElyonPay — isolation entre entreprises", () => {
   test("la confirmation d'une tentative de A ne touche jamais les factures de B", async () => {
     const avant = (await lireFacture(idB, factureB)).f.statut;
     const tentative = await nouvelleTentativeFacture(idA, factureA, 11925);

@@ -81,7 +81,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Un acompte encaissé se déduit tout seul de la facture du client, avec le reste à payer clairement indiqué"),
       m("Relance automatique des factures impayées, sans intervention manuelle"),
       m("Promesse de paiement : notez la date annoncée par un client (ou laissez-le la choisir depuis sa facture), les relances sont suspendues jusque-là et reprennent si elle n'est pas tenue"),
-      m("Paiement Mobile Money (Orange Money, MTN MoMo) sans quitter la facture : le client saisit son numéro, valide sur son téléphone et la facture passe à « payée », via Aangaraa Pay"),
+      m("Paiement Mobile Money (Orange Money, MTN MoMo) sans quitter la facture : le client saisit son numéro, valide sur son téléphone et la facture passe à « payée », via ElyonPay"),
       m("Le client reçoit un lien : il consulte son devis, l'accepte ou le refuse en indiquant pourquoi — l'acceptation crée automatiquement la facture"),
       m("Sur sa facture, le client l'accepte ou la conteste (motif obligatoire), puis la règle tout de suite ou plus tard depuis le même lien"),
       m("Un site relié à Vertex One y fait émettre automatiquement la facture de chaque paiement reçu : le client la reçoit à votre nom, avec votre logo, et elle est classée dans votre comptabilité"),

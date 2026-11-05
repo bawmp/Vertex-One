@@ -1,5 +1,5 @@
 /**
- * Numéro au format international (+XXXXXXXXXXXX) — exigé par les prestataires Mobile Money (CinetPay hier ; Aangaraa Pay pour un
+ * Numéro au format international (+XXXXXXXXXXXX) — exigé par les prestataires Mobile Money (CinetPay hier ; ElyonPay pour un
  * paiement direct sans redirection), alors que les contacts sont saisis au format local (« 690 11 12 22 »).
  * Ajoute l'indicatif +237 à un numéro camerounais local (9 chiffres commençant par 6 ou 2), convertit « 00237… » et
  * « 237… » en « +237… », et laisse tout autre numéro déjà international inchangé. Renvoie une chaîne vide pour un numéro

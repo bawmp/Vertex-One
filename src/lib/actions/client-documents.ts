@@ -10,7 +10,6 @@ import {
   obtenirOuCreerLien,
   trouverLien,
   urlPubliqueFacture,
-  urlBase,
 } from "@/lib/client-documents/liens";
 import { accepterDevisEtCreerFacture } from "@/lib/facturation/acceptation-devis";
 import { declencherPaiementDirectFacture } from "@/lib/facturation/paiement-en-ligne";
@@ -383,7 +382,6 @@ export async function payerFacturePublic(
     return declencherPaiementDirectFacture(tx, {
       entrepriseId: lien.entrepriseId,
       factureId,
-      returnUrl: `${urlBase()}/facture/${jeton}`,
       telephone,
       operateur,
       montant,
@@ -392,7 +390,7 @@ export async function payerFacturePublic(
 }
 
 /**
- * Sondée par la page du client après le déclenchement : relit activement le statut chez Aangaraa Pay. L'entreprise et la facture
+ * Sondée par la page du client après le déclenchement : relit activement le statut chez ElyonPay. L'entreprise et la facture
  * viennent du lien (jeton) ; la tentative doit appartenir à CETTE facture, jamais un identifiant pris tel quel.
  */
 export async function verifierPaiementFacturePublic(

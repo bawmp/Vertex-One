@@ -3,7 +3,7 @@ import type { Task } from "graphile-worker";
 /**
  * Toutes les minutes (voir crontab) — appelle la route interne de réconciliation plutôt que de relire
  * directement les paiements ici : @/lib/paiement/confirmation importe "server-only" (protection contre une fuite
- * de app_key Aangaraa Pay dans un bundle client), qui échoue hors du contexte de build Next.js — donc hors d'une
+ * de clé ElyonPay dans un bundle client), qui échoue hors du contexte de build Next.js — donc hors d'une
  * exécution tsx/node comme ce worker. Voir src/app/api/interne/reconcilier-abonnements/route.ts pour la vraie
  * logique (réutilise relireEtConfirmerAbonnement(), aucune règle métier dupliquée ici).
  */

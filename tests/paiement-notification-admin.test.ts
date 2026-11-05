@@ -14,21 +14,16 @@ const envoyerEmail = vi.fn<(p: { to: string; subject: string; html: string }) =>
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: (p: { to: string; subject: string; html: string }) => envoyerEmail(p) }));
 
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
-vi.mock("@/lib/aangaraa/client", async () => {
-  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+vi.mock("@/lib/elyonpay/client", async () => {
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/elyonpay/utilitaires");
   return { verifierTransaction: (t: string) => verifierTransaction(t), moyenPaiementDepuisOperateur };
 });
 
-const { relireEtConfirmerFacture, traiterNotificationPaiement } = await import("@/lib/paiement/confirmation");
+const { relireEtConfirmerFacture } = await import("@/lib/paiement/confirmation");
 const confirmer = async (id: string) => {
   const statut = await relireEtConfirmerFacture(id);
   await Promise.all(taches.splice(0)); // les emails envoyés après la réponse sont partis
   return statut;
-};
-const notifier = async (entree: { payToken: string | null }) => {
-  const issue = await traiterNotificationPaiement(entree);
-  await Promise.all(taches.splice(0));
-  return issue;
 };
 
 const suffixe = Math.random().toString(36).slice(2, 8);
@@ -117,13 +112,13 @@ describe("Notification de paiement à l'Administrateur du compte", () => {
     expect(mail.html).toContain("Mobile Money (Orange)");
   }, 240_000);
 
-  test("un même paiement n'est notifié qu'une fois, même relu ou renotifié par le prestataire", async () => {
+  test("un même paiement n'est notifié qu'une fois, même relu plusieurs fois", async () => {
     const f = await nouvelleFacture(idA, adminA);
     const id = await nouvelleTentative(idA, f, 4000, "MP26.8103.N81033");
     verifierTransaction.mockResolvedValue(accepte(id, 4000));
     await confirmer(id);
     await confirmer(id);
-    expect((await notifier({ payToken: "MP26.8103.N81033" })).code).toBe(200);
+    await confirmer(id);
     expect(envoyerEmail).toHaveBeenCalledTimes(1);
     const reglements = await avecEntreprise(idA, (tx) => tx.select().from(paiement).where(eq(paiement.factureId, f)));
     expect(reglements).toHaveLength(1);

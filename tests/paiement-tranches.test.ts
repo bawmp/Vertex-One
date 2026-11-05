@@ -15,11 +15,11 @@ vi.mock("@/lib/i18n/langue", () => ({ getT: async () => Object.assign((texte: st
 let connecte: { utilisateurId: string; entrepriseId: string; role: string } | null = null;
 vi.mock("@/lib/session", () => ({ recupererUtilisateurConnecte: async () => connecte }));
 
-// Seuls les appels réseau vers Aangaraa Pay sont simulés : base, RLS, règlements et écritures comptables sont réels.
+// Seuls les appels réseau vers ElyonPay sont simulés : base, RLS, règlements et écritures comptables sont réels.
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
 const initierPaiementDirect = vi.fn<(p: { telephone: string; operateur: string; reference: string; montant: number; description: string }) => Promise<{ declenche: true; payToken: string | null } | { erreur: string }>>();
-vi.mock("@/lib/aangaraa/client", async () => {
-  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+vi.mock("@/lib/elyonpay/client", async () => {
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/elyonpay/utilitaires");
   return {
     verifierTransaction: (t: string) => verifierTransaction(t),
     initierPaiementDirect: (p: Parameters<typeof initierPaiementDirect>[0]) => initierPaiementDirect(p),
@@ -60,7 +60,7 @@ const somme = (p: { montant: number }[]) => p.reduce((s, x) => s + x.montant, 0)
 async function payer(entrepriseId: string, factureId: string, montant?: number) {
   jeton += 1;
   initierPaiementDirect.mockResolvedValueOnce({ declenche: true, payToken: `MP26.${String(jeton).padStart(4, "0")}.T${String(jeton).padStart(5, "0")}` });
-  const r = await avecEntreprise(entrepriseId, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId, factureId, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant }));
+  const r = await avecEntreprise(entrepriseId, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId, factureId, telephone: "690111222", operateur: "MTN_Cameroon", montant }));
   if (r.erreur || !r.tentativeId) return { ...r, statut: undefined as string | undefined };
   verifierTransaction.mockResolvedValueOnce({ statut: "ACCEPTED", indisponible: false, referenceExterne: `fac_${r.tentativeId}`, montant: r.montant, operateur: "MTN_Cameroon" });
   // Aucune seconde invite avant 90 s : on « vieillit » la tentative pour enchaîner les tranches comme le ferait un client patient.
@@ -129,7 +129,7 @@ describe("Paiement en plusieurs fois — tranches", () => {
   test("montants refusés côté serveur : trop élevé, trop petit, fractionnaire — aucune tentative créée, aucun appel au prestataire", async () => {
     const f = await nouvelleFacture(idA, adminA);
     for (const mauvais of [11926, 500, 1500.5, 0, -1000]) {
-      const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant: mauvais }));
+      const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, telephone: "690111222", operateur: "MTN_Cameroon", montant: mauvais }));
       expect(r.erreur, String(mauvais)).toBeTruthy();
     }
     expect(initierPaiementDirect).not.toHaveBeenCalled();
@@ -139,7 +139,7 @@ describe("Paiement en plusieurs fois — tranches", () => {
   test("un montant déjà réservé par une tentative en attente n'est plus disponible", async () => {
     const f = await nouvelleFacture(idA, adminA);
     await avecEntreprise(idA, (tx) => tx.insert(tentativePaiementFacture).values({ entrepriseId: idA, factureId: f, montant: 8000, creeLe: new Date(Date.now() - 3 * 60_000) }));
-    const essai = (montant?: number) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant }));
+    const essai = (montant?: number) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, telephone: "690111222", operateur: "MTN_Cameroon", montant }));
     expect((await essai(5000)).erreur).toMatch(/dépasse le solde/);
     initierPaiementDirect.mockResolvedValueOnce({ declenche: true, payToken: "MP26.7001.R70001" });
     expect((await essai(3925)).montant).toBe(3925);
@@ -148,7 +148,7 @@ describe("Paiement en plusieurs fois — tranches", () => {
   test("tranches désactivées par l'entreprise : seul le solde entier est accepté ; l'autre entreprise n'est pas touchée", async () => {
     await db.update(entreprise).set({ paiementEnTranches: false }).where(eq(entreprise.id, idB));
     const f = await nouvelleFacture(idB, adminB);
-    const essai = (montant?: number) => avecEntreprise(idB, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idB, factureId: f, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant }));
+    const essai = (montant?: number) => avecEntreprise(idB, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idB, factureId: f, telephone: "690111222", operateur: "MTN_Cameroon", montant }));
     expect((await essai(5000)).erreur).toMatch(/plusieurs fois/);
     expect(initierPaiementDirect).not.toHaveBeenCalled();
     initierPaiementDirect.mockResolvedValueOnce({ declenche: true, payToken: "MP26.7002.R70002" });
@@ -156,13 +156,13 @@ describe("Paiement en plusieurs fois — tranches", () => {
     // A (réglage par défaut) accepte toujours une tranche.
     const fA = await nouvelleFacture(idA, adminA);
     initierPaiementDirect.mockResolvedValueOnce({ declenche: true, payToken: "MP26.7003.R70003" });
-    expect((await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: fA, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant: 4000 }))).montant).toBe(4000);
+    expect((await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: fA, telephone: "690111222", operateur: "MTN_Cameroon", montant: 4000 }))).montant).toBe(4000);
   }, 240_000);
 
   test("une tentative confirmée avec un autre montant que celui de la tranche n'est jamais enregistrée", async () => {
     const f = await nouvelleFacture(idA, adminA);
     initierPaiementDirect.mockResolvedValueOnce({ declenche: true, payToken: "MP26.7004.R70004" });
-    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon", montant: 4000 }));
+    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: f, telephone: "690111222", operateur: "MTN_Cameroon", montant: 4000 }));
     vi.spyOn(console, "error").mockImplementation(() => {});
     verifierTransaction.mockResolvedValueOnce({ statut: "ACCEPTED", indisponible: false, referenceExterne: `fac_${r.tentativeId}`, montant: 11925, operateur: "MTN_Cameroon" });
     expect(await relireEtConfirmerFacture(r.tentativeId!)).toBe("EN_ATTENTE");

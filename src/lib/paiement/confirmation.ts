@@ -4,7 +4,7 @@ import { db, avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { compteClient, contact, entreprise, facture, paiement, tentativePaiementAbonnement, tentativePaiementFacture, utilisateur } from "@/db/schema";
 import { prochaineEcheanceApresPaiement } from "@/lib/abonnement/etat";
 import { genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/aangaraa/client";
+import { moyenPaiementDepuisOperateur, verifierTransaction } from "@/lib/elyonpay/client";
 import { gabaritPaiementAbonnement } from "@/lib/email/gabarits";
 import { adressesAAlerter } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
@@ -12,7 +12,6 @@ import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
 import { lireSolde, montantNetFacture, statutApresReglement } from "@/lib/facturation/solde";
 import { libelleMoyenPaiement, notifierPaiementFacture, type NotificationPaiementFacture } from "./recu-facture";
-import { lireReferenceExterne } from "./reference";
 import type { ResultatVerification } from "./types";
 
 function urlBase(): string {
@@ -65,48 +64,12 @@ async function notifierResultatPaiementAbonnement(
   }
 }
 
-export type IssueNotification = { code: number; message: string };
-
-/**
- * Traite une notification de paiement (route publique, sans session, appelée par les serveurs du prestataire).
- *
- * Rien de ce qui arrive dans la requête n'est cru — le prestataire ne signe pas ses notifications : seul le `payToken` sert à
- * savoir QUOI relire, puis la transaction est relue serveur-à-serveur (statut, montant, notre référence). Le statut, le montant
- * et la référence viennent de CETTE relecture, jamais de la notification. Le format du `payToken` est validé avant tout appel.
- *
- * Idempotent : le prestataire peut rappeler plusieurs fois pour une même transaction — une tentative n'est confirmée qu'une fois.
- */
-export async function traiterNotificationPaiement(entree: { payToken: string | null }): Promise<IssueNotification> {
-  console.log(`[notification] reçue du prestataire (jeton ${entree.payToken ? "présent" : "ABSENT"})`);
-  if (!entree.payToken) return { code: 400, message: "paytoken manquant ou invalide" };
-
-  const verification = await verifierTransaction(entree.payToken);
-  // Prestataire injoignable ou clé refusée : un code d'erreur le fait rappeler plus tard, au lieu de perdre le paiement.
-  if (verification.indisponible) return { code: 503, message: "vérification indisponible" };
-
-  const cible = lireReferenceExterne(verification.referenceExterne);
-  if (!cible) return { code: 404, message: "transaction inconnue" };
-
-  if (cible.nature === "FACTURE") await confirmerTentativeFacture(cible.id, verification, entree.payToken);
-  else await confirmerTentativeAbonnement(cible.id, verification, entree.payToken);
-  return { code: 200, message: "OK" };
-}
-
 /** Le montant payé chez le prestataire doit être celui de la tentative : un écart n'est jamais confirmé. */
 function montantConforme(verification: ResultatVerification, montantAttendu: number): boolean {
   return verification.montant === undefined || verification.montant === montantAttendu;
 }
 
-/**
- * Réponse d'initiation perdue (délai dépassé) : la tentative n'a pas de jeton et a pu être marquée « échec » alors que le prestataire l'avait
- * bien traitée. La notification apporte le vrai jeton : on le garde et on remet la tentative en attente pour que la relecture régulière la
- * confirme. Un échec VENU du prestataire (jeton déjà connu) n'est jamais rouvert.
- */
-function doitRattacherJeton(tentative: { payToken: string | null; statut: string }, payToken: string | null | undefined, verification: ResultatVerification): payToken is string {
-  return Boolean(payToken) && !tentative.payToken && (tentative.statut === "EN_ATTENTE" || (tentative.statut === "ECHEC" && (verification.statut === "PENDING" || verification.statut === "ACCEPTED")));
-}
-
-async function confirmerTentativeFacture(idTentative: string, verification: ResultatVerification, payToken?: string | null) {
+async function confirmerTentativeFacture(idTentative: string, verification: ResultatVerification) {
   let notification: NotificationPaiementFacture | null = null;
   // Lecture anonyme (aucune session) — n'aboutit que grâce à la policy RLS de lecture permissive dédiée à cette table quand
   // app.entreprise_id n'est pas positionné (même patron que `invitation`, voir src/db/schema.ts).
@@ -117,15 +80,12 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
   await avecEntreprise(entrepriseId, async (tx) => {
     const [tentative] = await tx.select().from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, idTentative));
     if (!tentative || tentative.statut === "CONFIRME") return;
-    if (doitRattacherJeton(tentative, payToken, verification)) {
-      await tx.update(tentativePaiementFacture).set({ payToken, statut: "EN_ATTENTE", raisonEchec: null }).where(eq(tentativePaiementFacture.id, idTentative));
-    }
 
     if (verification.statut === "REFUSED") {
       await tx.update(tentativePaiementFacture).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementFacture.id, idTentative));
       return;
     }
-    if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — le prestataire rappellera
+    if (verification.statut !== "ACCEPTED") return; // PENDING/INCONNU — la relecture régulière reviendra
     if (!montantConforme(verification, tentative.montant)) {
       console.error(`[paiement] montant inattendu pour la tentative ${idTentative} : ${verification.montant} au lieu de ${tentative.montant}`);
       return;
@@ -184,7 +144,7 @@ async function confirmerTentativeFacture(idTentative: string, verification: Resu
   if (notification) notifierPaiementFacture(notification);
 }
 
-async function confirmerTentativeAbonnement(idTentative: string, verification: ResultatVerification, payToken?: string | null) {
+async function confirmerTentativeAbonnement(idTentative: string, verification: ResultatVerification) {
   const [anonyme] = await db.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
   if (!anonyme) return;
   const entrepriseId = anonyme.entrepriseId;
@@ -192,9 +152,6 @@ async function confirmerTentativeAbonnement(idTentative: string, verification: R
   await avecEntreprise(entrepriseId, async (tx) => {
     const [tentative] = await tx.select().from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, idTentative));
     if (!tentative || tentative.statut === "CONFIRME") return;
-    if (doitRattacherJeton(tentative, payToken, verification)) {
-      await tx.update(tentativePaiementAbonnement).set({ payToken, statut: "EN_ATTENTE", raisonEchec: null }).where(eq(tentativePaiementAbonnement.id, idTentative));
-    }
 
     if (verification.statut === "REFUSED") {
       await tx.update(tentativePaiementAbonnement).set({ statut: "ECHEC", raisonEchec: verification.raisonEchec ?? null }).where(eq(tentativePaiementAbonnement.id, idTentative));
@@ -237,7 +194,7 @@ export type StatutRelectureAbonnement = "CONFIRME" | "ECHEC" | "EN_ATTENTE" | "I
 /**
  * Relecture ACTIVE du statut d'une tentative d'abonnement (paiement direct, 2026-09-22) : contrairement au webhook
  * (une seule fois, immédiatement, transaction encore PENDING — jamais rappelé quand le client valide réellement sur
- * son téléphone), cette fonction relit VRAIMENT le statut chez Aangaraa Pay via le payToken conservé sur la tentative
+ * son téléphone), cette fonction relit VRAIMENT le statut chez ElyonPay via l'identifiant de transaction conservé (colonne pay_token) sur la tentative
  * à sa création. Réutilise EXACTEMENT la même logique de confirmation que le webhook (confirmerTentativeAbonnement)
  * — idempotente, un appel répété une fois déjà confirmé ne fait rien. Appelée en sondage depuis l'interface
  * (voir src/lib/actions/abonnement.ts) : aucune session ici, l'appelant vérifie déjà que la tentative lui appartient.

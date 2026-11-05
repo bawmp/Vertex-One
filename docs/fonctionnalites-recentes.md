@@ -241,12 +241,12 @@ où se trouve le code.
 ## Paiement Mobile Money — état au 2026-10-13
 
 - Le paiement direct (sans redirection) est branché pour l'abonnement et pour Global Mobility. La confirmation vient de
-  la relecture du statut chez Aangaraa Pay, jamais de la seule notification.
+  la relecture du statut chez le prestataire de paiement (ElyonPay depuis le 2026-11-05), jamais de la seule notification.
 - **Vérifié en réel le 2026-10-13** (Orange et MTN) : le paiement direct fonctionne. L'erreur 400 du 2026-10-08 n'a pas pu
   être reproduite (incident passager du prestataire), et « MTN n'envoie pas d'invite » venait d'un solde MoMo insuffisant :
   MTN refuse aussitôt (`LOW_BALANCE_OR_PAYEE_LIMIT_REACHED_OR_NOT_ALLOWED`) quand le solde est inférieur au montant.
 - **Message d'échec précis** : le client voit « solde Mobile Money insuffisant », « demande expirée » ou « annulé sur votre
-  téléphone » au lieu d'un échec générique (colonne `raison_echec`, `src/lib/aangaraa/messages-echec.ts`).
+  téléphone » au lieu d'un échec générique (colonne `raison_echec`, `src/lib/paiement/messages-echec.ts`).
 
 ## Factures et devis : le client paie sans quitter la page (2026-10-25)
 
@@ -845,3 +845,10 @@ Au-delà des tâches de projet (ponctuelles, posées dans One Projects) et des a
 - **Qui les voit** : la personne (en lecture seule, sans bouton d'ajout ni de retrait), son manager, l'Administrateur — comme le reste de la fiche. Un employé les voit grâce à son socle (fiche, tâches, chat).
 - Droits et portée revérifiés côté serveur à chaque ajout et retrait ; la personne visée est relue en base avec l'entreprise de la session. Table `tache_poste` (`entrepriseId`, RLS + FORCE), migration `0171` à appliquer AVANT le code. Pas encore : modèles de tâches par intitulé de poste, marquage « fait » récurrent, rappels.
 - Repères : `src/lib/rh/taches-poste.ts` et `taches-poste-regles.ts`, `src/lib/actions/taches-poste.ts`, `src/app/app/rh/[id]/carte-taches-poste.tsx`. Tests : `tests/taches-poste.test.ts` (portée manager, personne elle-même, **fuite entre entreprises**), `tests-e2e/taches-poste.spec.ts`.
+
+## Paiement Mobile Money : ElyonPay remplace Aangaraa Pay (2026-11-05)
+
+- **Quoi** : le prestataire de paiement Mobile Money (Orange, MTN) passe d'Aangaraa Pay à **ElyonPay**, pour l'abonnement à Vertex One et pour les factures payées par les clients. Le parcours ne change pas : le client saisit son numéro et son opérateur, valide l'invite sur son téléphone, et la facture passe à « payée ».
+- **Ce qui change dans les coulisses** : plus de notification du prestataire (la route d'Aangaraa est supprimée) — la confirmation vient uniquement de la relecture régulière (écran du client, puis le worker toutes les minutes) ; le paiement par tranches, la promesse de paiement, le reçu envoyé au client et l'alerte à l'Administrateur sont inchangés.
+- **À faire avant la mise en ligne** : créer le compte marchand, poser `ELYONPAY_API_KEY` et `ELYONPAY_MERCHANT_ID` (Vercel et Railway), vérifier dans le bac à sable les points listés dans `docs/mise-en-production-checklist.md` (section 3), retirer les variables `AANGARAA_PAY_*`. Tant que la clé n'est pas posée, le paiement en ligne répond « non configuré » et l'encaissement manuel reste disponible.
+- Repères : `src/lib/elyonpay/{client,utilitaires}.ts`, `src/lib/paiement/confirmation.ts`, `tests/elyonpay-*.test.ts`. Le texte public dit « ElyonPay » ; aucun délai de reversement n'est annoncé.

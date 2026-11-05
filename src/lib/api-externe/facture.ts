@@ -4,7 +4,7 @@ import type { TransactionDrizzle } from "@/db/client";
 import { contact, entreprise, facture, ligneFacture, paiement, utilisateur } from "@/db/schema";
 import { genererNumeroFacture } from "@/lib/facturation/numerotation";
 import { genererEcrituresFactureEmise, genererEcrituresPaiement } from "@/lib/comptabilite/ecritures";
-import { moyenPaiementDepuisOperateur } from "@/lib/aangaraa/utilitaires";
+import { moyenPaiementDepuisOperateur } from "@/lib/elyonpay/utilitaires";
 import { obtenirOuCreerLien } from "@/lib/client-documents/liens";
 import { adressesAAlerter } from "@/lib/notifications/equipe";
 import { verifierDateNonVerrouillee } from "@/lib/comptabilite/verrouillage";

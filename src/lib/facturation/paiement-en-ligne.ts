@@ -3,48 +3,39 @@ import type { TransactionDrizzle } from "@/db/client";
 import { entreprise, facture, tentativePaiementFacture } from "@/db/schema";
 import { disponible } from "@/lib/plans";
 import { DELAI_RESERVATION_TENTATIVE_MS, determinerMontantTranche, lireSolde } from "@/lib/facturation/solde";
-import { initierPaiementDirect } from "@/lib/aangaraa/client";
+import { initierPaiementDirect } from "@/lib/elyonpay/client";
+import { operateurValide, type OperateurMobileMoney } from "@/lib/elyonpay/utilitaires";
 import { referenceExterne } from "@/lib/paiement/reference";
 import { telephoneInternational } from "@/lib/paiement/telephone";
 
 /**
- * Déclenche le paiement direct (sans redirection, `/no_redirect/payment`) d'une facture : une invite USSD part sur le téléphone du
- * payeur, qui valide sur son appareil (forfait Pro et au-dessus, clé Aangaraa Pay configurée). Partagée entre le bouton interne
+ * Déclenche le paiement direct (sans redirection, ElyonPay `/mobile-money/payment/request`) d'une facture : une invite USSD part sur le téléphone du
+ * payeur, qui valide sur son appareil (forfait Pro et au-dessus, clé ElyonPay configurée). Partagée entre le bouton interne
  * « Encaisser par Mobile Money » (src/lib/actions/facture.ts) et le paiement par le client depuis son lien public
  * (src/lib/actions/client-documents.ts). Même principe que l'abonnement (src/lib/actions/abonnement.ts).
  *
- * Une ligne tentativePaiementFacture est créée AVANT l'appel à Aangaraa Pay — son id (préfixé, voir referenceExterne()) sert de
- * référence externe (jamais l'id de la Facture, transmis à un service externe partagé entre entreprises clientes) et d'ancrage au
- * webhook. Le payToken renvoyé à l'initiation est conservé sur la tentative : la confirmation ne peut pas compter sur la seule
- * notification (rappelée une seule fois, transaction encore PENDING) — voir relireEtConfirmerFacture() dans @/lib/paiement/confirmation.
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à ElyonPay — son id (préfixé, voir referenceExterne()) sert de
+ * référence externe (jamais l'id de la Facture, transmis à un service externe partagé entre entreprises clientes) et de lien avec
+ * la transaction. L'identifiant de transaction renvoyé à l'initiation (`payToken`, colonne pay_token) est conservé sur la tentative : la confirmation
+ * repose sur la relecture active chez ElyonPay (aucun webhook pour ce mode) — voir relireEtConfirmerFacture() dans @/lib/paiement/confirmation.
  *
  * Rappel CLAUDE.md : le paiement Mobile Money n'est jamais présenté comme « instantané » ou « direct » côté promesse de reversement.
  */
-function urlBase(): string {
-  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-}
-
 /** Garde-fou contre l'envoi répété d'invites sur le téléphone de quelqu'un (le lien public d'une facture est connu de son destinataire). */
 const DELAI_ENTRE_TENTATIVES_MS = 90_000;
 const TENTATIVES_MAX_PAR_HEURE = 5;
 
-export type OperateurMobileMoney = "MTN_Cameroon" | "Orange_Cameroon";
-
-export function operateurValide(valeur: unknown): valeur is OperateurMobileMoney {
-  return valeur === "MTN_Cameroon" || valeur === "Orange_Cameroon";
-}
-
 export async function declencherPaiementDirectFacture(
   tx: TransactionDrizzle,
   /** `montant` : la tranche choisie par le payeur (FCFA, entier) ; absent = tout le solde restant. Jamais pris tel quel : voir determinerMontantTranche(). */
-  params: { entrepriseId: string; factureId: string; returnUrl: string; telephone: string; operateur: unknown; montant?: unknown },
+  params: { entrepriseId: string; factureId: string; telephone: string; operateur: unknown; montant?: unknown },
 ): Promise<{ tentativeId?: string; montant?: number; erreur?: string }> {
-  const { entrepriseId, factureId, returnUrl } = params;
+  const { entrepriseId, factureId } = params;
 
   const telephone = telephoneInternational(params.telephone);
   if (!telephone) return { erreur: "Numéro de téléphone invalide." };
   if (!operateurValide(params.operateur)) return { erreur: "Choisissez votre opérateur Mobile Money." };
-  const operateur = params.operateur;
+  const operateur: OperateurMobileMoney = params.operateur;
 
   const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId));
   if (!disponible(monEntreprise, "PAIEMENTS_EN_LIGNE")) {
@@ -90,20 +81,13 @@ export async function declencherPaiementDirectFacture(
     reference: referenceExterne("FACTURE", tentative.id),
     montant,
     description: montant < laFacture.montantTTC ? `Facture ${laFacture.numero} (tranche)` : `Facture ${laFacture.numero}`,
-    notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
-    returnUrl,
   });
 
   if (resultat.erreur) {
-    // Résultat incertain : pendant l'attente, la notification du prestataire a peut-être déjà apporté le jeton — alors le paiement est bien
-    // lancé et on continue comme après un succès. Sinon la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité) et la
-    // notification, si elle arrive plus tard, la rattrapera (voir confirmation.ts).
-    const [apres] = resultat.incertain ? await tx.select({ payToken: tentativePaiementFacture.payToken }).from(tentativePaiementFacture).where(eq(tentativePaiementFacture.id, tentative.id)) : [];
-    if (!apres?.payToken) {
-      if (!resultat.incertain) await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, tentative.id));
-      return { erreur: resultat.erreur };
-    }
-    return { tentativeId: tentative.id, montant };
+    // Résultat incertain : la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité). Sans identifiant de transaction,
+    // rien ne peut être relu automatiquement : l'équipe vérifie dans le tableau de bord ElyonPay et pointe le règlement à la main si besoin.
+    if (!resultat.incertain) await tx.update(tentativePaiementFacture).set({ statut: "ECHEC" }).where(eq(tentativePaiementFacture.id, tentative.id));
+    return { erreur: resultat.erreur };
   }
   if (resultat.payToken) await tx.update(tentativePaiementFacture).set({ payToken: resultat.payToken }).where(eq(tentativePaiementFacture.id, tentative.id));
   return { tentativeId: tentative.id, montant };

@@ -6,7 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, tentativePaiementAbonnement } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { initierPaiementDirect } from "@/lib/aangaraa/client";
+import { initierPaiementDirect } from "@/lib/elyonpay/client";
 import { referenceExterne } from "@/lib/paiement/reference";
 import { telephoneInternational } from "@/lib/paiement/telephone";
 import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
@@ -15,12 +15,8 @@ import { montantEtMois, tarifPour, type TarifAbonnement } from "@/lib/abonnement
 import { compterUtilisateursActifs } from "@/lib/abonnement/utilisateurs";
 
 // Prix : voir src/lib/abonnement/tarif.ts (prix mensuel, prix de lancement garanti 12 mois, formule annuelle). Historique : temporairement
-// ramené à 10 XAF le 2026-09-22/23 pour vérifier l'intégration Aangaraa Pay avec de l'argent réel, restauré à 50 000 le 2026-09-23, puis
+// ramené à 10 XAF le 2026-09-22/23 pour vérifier l'intégration Aangaraa Pay (remplacée par ElyonPay le 2026-11-05) avec de l'argent réel, restauré à 50 000 le 2026-09-23, puis
 // passé à 25 000 FCFA/mois le 2026-10-30 (décision de l'utilisateur).
-
-function urlBase(): string {
-  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-}
 
 /**
  * Abonnement plat unique 25 000 FCFA/mois (2026-09-14) — même squelette que
@@ -32,9 +28,9 @@ function urlBase(): string {
  *
  * Paiement direct sans redirection (2026-09-22, correction — la première intégration utilisait le flux avec
  * redirection partout) : le numéro de téléphone est saisi ici même, une invite USSD part directement dessus,
- * jamais de page hébergée externe à ouvrir. Le payToken renvoyé par Aangaraa Pay (s'il y en a un — réponse non
+ * jamais de page hébergée externe à ouvrir. Le payToken renvoyé par ElyonPay (s'il y en a un — réponse non
  * documentée) est conservé sur la tentative : la confirmation ne peut PAS compter sur la seule notification
- * asynchrone (constaté en réel : Aangaraa Pay ne l'appelle qu'une fois, immédiatement, transaction encore PENDING —
+ * asynchrone (constaté en réel : ElyonPay ne l'appelle qu'une fois, immédiatement, transaction encore PENDING —
  * jamais une seconde fois à la validation réelle par le client) — voir verifierStatutTentativeAbonnement() plus bas,
  * sondée depuis l'interface.
  */
@@ -73,17 +69,11 @@ export async function declencherPaiementAbonnement(
       reference: referenceExterne("ABONNEMENT", tentative.id),
       montant: choix.montant,
       description: t("Abonnement Vertex One"),
-      notifyUrl: `${urlBase()}/api/paiements/aangaraa/notify`,
-      returnUrl: `${urlBase()}/app/parametres/abonnement`,
     });
 
     if (resultat.erreur) {
-    // Résultat incertain : pendant l'attente, la notification du prestataire a peut-être déjà apporté le jeton — alors le paiement est bien
-    // lancé et on continue comme après un succès. Sinon la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité) et la
-    // notification, si elle arrive plus tard, la rattrapera (voir confirmation.ts).
-      const [apres] = resultat.incertain ? await tx.select({ payToken: tentativePaiementAbonnement.payToken }).from(tentativePaiementAbonnement).where(eq(tentativePaiementAbonnement.id, tentative.id)) : [];
-      if (!apres?.payToken) return { erreur: resultat.erreur };
-      return { declenche: true, tentativeId: tentative.id };
+      // Résultat incertain : la tentative reste EN ATTENTE (jamais « échec » : le client est peut-être débité) ; l'équipe vérifie chez ElyonPay.
+      return { erreur: resultat.erreur };
     }
     if (resultat.payToken) await tx.update(tentativePaiementAbonnement).set({ payToken: resultat.payToken }).where(eq(tentativePaiementAbonnement.id, tentative.id));
     return { declenche: true, tentativeId: tentative.id };
@@ -92,7 +82,7 @@ export async function declencherPaiementAbonnement(
 
 /**
  * Sondée depuis l'interface après déclenchement du paiement (voir bouton-paiement-abonnement.tsx) : relit
- * activement le statut chez Aangaraa Pay au lieu d'attendre passivement une notification qui ne revient pas une
+ * activement le statut chez ElyonPay au lieu d'attendre passivement une notification qui ne revient pas une
  * seconde fois pour ce parcours. Vérifie que la tentative appartient bien à l'entreprise de l'appelant avant de
  * relire quoi que ce soit — jamais un identifiant de tentative d'une autre entreprise pris tel quel.
  */
@@ -126,7 +116,7 @@ export async function lireRaisonEchecAbonnement(tentativeId: string): Promise<st
  * (bouton-paiement-abonnement.tsx) — si l'onglet est déchargé pendant que le client bascule sur son téléphone
  * pour valider l'invite USSD (comportement réel constaté sur mobile : l'onglet en arrière-plan est parfois
  * déchargé par le système, pas seulement mis en pause), tout l'état de sondage est perdu au retour, y compris
- * pour un paiement pourtant déjà réussi côté Aangaraa Pay. Appelée au chargement de l'écran d'abonnement : si une
+ * pour un paiement pourtant déjà réussi côté ElyonPay. Appelée au chargement de l'écran d'abonnement : si une
  * tentative récente (moins de 10 minutes, avec payToken) est encore EN_ATTENTE, l'interface reprend le sondage
  * automatiquement au lieu de réafficher un formulaire vierge qui masque un paiement en cours ou déjà confirmé.
  */

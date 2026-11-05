@@ -81,7 +81,7 @@ const TEXTES_EVENEMENT_ABONNEMENT: Record<EvenementAbonnement, { objet: string; 
 /**
  * Notification de RÉSULTAT d'un paiement d'abonnement (2026-09-23) — distincte de gabaritAbonnement ci-dessous
  * (qui couvre les rappels d'échéance/essai, pilotés par calculerEtatAbonnement()) : ici, le déclencheur est une
- * confirmation ou un échec RÉEL constaté auprès d'Aangaraa Pay (voir confirmerTentativeAbonnement(),
+ * confirmation ou un échec RÉEL constaté auprès d'ElyonPay (voir confirmerTentativeAbonnement(),
  * src/lib/paiement/confirmation.ts), envoyée quel que soit le chemin qui a confirmé le paiement (sondage client ou
  * réconciliation serveur) — un client qui a quitté l'écran de paiement doit être informé sans devoir y revenir.
  */

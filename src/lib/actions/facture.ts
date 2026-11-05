@@ -27,10 +27,6 @@ import { defaireMouvementsDocument } from "@/lib/produits/stock";
 import { getT } from "@/lib/i18n/langue";
 import { mentionDevise } from "@/lib/devises/facture";
 
-function urlBase(): string {
-  return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-}
-
 /**
  * Forfait Starter (docs/palier-1-*, section 6, étape 5) : le client paie
  * hors plateforme, l'utilisateur pointe lui-même le règlement — traçabilité
@@ -130,13 +126,13 @@ export async function annulerFacture(factureId: string, motif: string) {
 /**
  * Forfait Pro et au-dessus (disponible("PAIEMENTS_EN_LIGNE")) : encaisse la facture par Mobile Money SANS redirection (2026-10-25,
  * comme l'abonnement et la page publique du client) — l'équipe saisit le numéro du payeur et son opérateur, une invite USSD part sur
- * son téléphone, puis l'écran sonde le statut (verifierPaiementFactureInterne). Non branché tant que AANGARAA_PAY_APP_KEY n'est
+ * son téléphone, puis l'écran sonde le statut (verifierPaiementFactureInterne). Non branché tant que ELYONPAY_API_KEY n'est
  * pas configurée. Rappel CLAUDE.md : le paiement Mobile Money est custodial avec délai de reversement — jamais présenté comme
  * « instantané » ou « direct ».
  *
- * Une ligne tentativePaiementFacture est créée AVANT l'appel à Aangaraa Pay — son id sert de transaction_id (jamais l'id de la
- * Facture, transmis à un service externe partagé entre entreprises clientes) et d'ancrage au webhook de notification (route
- * publique, sans session, voir src/app/api/paiements/aangaraa/notify/route.ts).
+ * Une ligne tentativePaiementFacture est créée AVANT l'appel à ElyonPay — son id sert de référence (champ `transaction`) (jamais l'id de la
+ * Facture, transmis à un service externe partagé entre entreprises clientes) et de lien avec la transaction relue ensuite par
+ * sondage (aucun webhook pour ce mode).
  */
 export async function declencherPaiementFactureInterne(
   factureId: string,
@@ -153,7 +149,6 @@ export async function declencherPaiementFactureInterne(
     return declencherPaiementDirectFacture(tx, {
       entrepriseId: utilisateurConnecte.entrepriseId,
       factureId,
-      returnUrl: `${urlBase()}/app/facturation/factures/${factureId}`,
       telephone,
       operateur,
       montant,

@@ -11,11 +11,11 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: async () => ({ envoye: true }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-// Seuls les appels réseau vers Aangaraa Pay sont simulés : base, RLS, règlements et écritures comptables sont réels.
+// Seuls les appels réseau vers ElyonPay sont simulés : base, RLS, règlements et écritures comptables sont réels.
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
 const initierPaiementDirect = vi.fn<(p: { telephone: string; operateur: string; reference: string; montant: number }) => Promise<{ declenche: true; payToken: string | null } | { erreur: string }>>();
-vi.mock("@/lib/aangaraa/client", async () => {
-  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+vi.mock("@/lib/elyonpay/client", async () => {
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/elyonpay/utilitaires");
   return {
     verifierTransaction: (t: string) => verifierTransaction(t),
     initierPaiementDirect: (p: Parameters<typeof initierPaiementDirect>[0]) => initierPaiementDirect(p),
@@ -80,7 +80,7 @@ describe("Paiement direct d'une facture — déclenchement", () => {
   test("le montant vient de la base, le payToken est conservé, la référence est celle de la tentative", async () => {
     const factureId = await nouvelleFacture(idA, adminA);
     initierPaiementDirect.mockResolvedValue({ declenche: true, payToken: "MP26.1111.A11111" });
-    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, returnUrl: "https://exemple.test/f", telephone: "690 11 12 22", operateur: "MTN_Cameroon" }));
+    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, telephone: "690 11 12 22", operateur: "MTN_Cameroon" }));
     expect(r.erreur).toBeUndefined();
     const appel = initierPaiementDirect.mock.calls[0][0];
     expect(appel.montant).toBe(11925);
@@ -92,7 +92,7 @@ describe("Paiement direct d'une facture — déclenchement", () => {
 
   test("téléphone ou opérateur invalide : refusé sans créer de tentative ni appeler le prestataire", async () => {
     const factureId = await nouvelleFacture(idA, adminA);
-    const essai = (telephone: string, operateur: unknown) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, returnUrl: "x", telephone, operateur }));
+    const essai = (telephone: string, operateur: unknown) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, telephone, operateur }));
     expect((await essai("12", "MTN_Cameroon")).erreur).toBeTruthy();
     expect((await essai("690111222", "ALL")).erreur).toBeTruthy();
     expect((await essai("690111222", undefined)).erreur).toBeTruthy();
@@ -104,7 +104,7 @@ describe("Paiement direct d'une facture — déclenchement", () => {
     const payee = await nouvelleFacture(idA, adminA);
     await avecEntreprise(idA, (tx) => tx.update(facture).set({ statut: "PAYEE" }).where(eq(facture.id, payee)));
     const deB = await nouvelleFacture(idB, adminB);
-    const essai = (factureId: string) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon" }));
+    const essai = (factureId: string) => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, telephone: "690111222", operateur: "MTN_Cameroon" }));
     expect((await essai(payee)).erreur).toBeTruthy();
     expect((await essai(deB)).erreur).toBeTruthy(); // RLS : la facture de B est invisible depuis A
     expect(initierPaiementDirect).not.toHaveBeenCalled();
@@ -114,21 +114,21 @@ describe("Paiement direct d'une facture — déclenchement", () => {
   test("garde-fou : pas de seconde invite pendant qu'une est en attente, et au plus 5 tentatives par heure", async () => {
     const factureId = await nouvelleFacture(idA, adminA);
     initierPaiementDirect.mockResolvedValue({ declenche: true, payToken: "MP26.2222.B22222" });
-    const essai = () => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon" }));
+    const essai = () => avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, telephone: "690111222", operateur: "MTN_Cameroon" }));
     expect((await essai()).tentativeId).toBeTruthy();
     expect((await essai()).erreur).toMatch(/déjà en cours/); // double clic
     expect(initierPaiementDirect).toHaveBeenCalledTimes(1);
 
     const autre = await nouvelleFacture(idA, adminA);
     for (let i = 0; i < 5; i++) await nouvelleTentative(idA, autre, { statut: "ECHEC", creeLe: new Date(Date.now() - 600_000) });
-    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: autre, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon" }));
+    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId: autre, telephone: "690111222", operateur: "MTN_Cameroon" }));
     expect(r.erreur).toMatch(/Trop de tentatives/);
   }, 180_000);
 
   test("le prestataire refuse l'initiation : la tentative est marquée en échec", async () => {
     const factureId = await nouvelleFacture(idA, adminA);
     initierPaiementDirect.mockResolvedValue({ erreur: "Impossible de déclencher le paiement pour le moment." });
-    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, returnUrl: "x", telephone: "690111222", operateur: "MTN_Cameroon" }));
+    const r = await avecEntreprise(idA, (tx) => declencherPaiementDirectFacture(tx, { entrepriseId: idA, factureId, telephone: "690111222", operateur: "MTN_Cameroon" }));
     expect(r.erreur).toBeTruthy();
     const [t] = await tentativesDe(idA, factureId);
     expect(t.statut).toBe("ECHEC");

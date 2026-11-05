@@ -9,7 +9,7 @@ import { ChoixCartes } from "@/components/formulaire/choix-cartes";
 import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, EcranPaiementReussi, RecapMontant } from "@/components/formulaire/ecrans-paiement";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { trancheMinimale } from "@/lib/facturation/tranche";
-import { messageEchecPaiement } from "@/lib/aangaraa/messages-echec";
+import { messageEchecPaiement } from "@/lib/paiement/messages-echec";
 import { useT } from "@/lib/i18n/contexte";
 
 type Operateur = "MTN_Cameroon" | "Orange_Cameroon";

@@ -23,7 +23,7 @@ Faits réels sur Vertex One (ne jamais en inventer d'autres, ne jamais contredir
 ${OFFRE_LANCEMENT_OUVERTE ? `- Prix de lancement : toute entreprise inscrite jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Douala" }).format(OFFRE_LANCEMENT_JUSQU_AU)} garde ce prix pendant ${GARANTIE_LANCEMENT_MOIS} mois à partir de son inscription, même si le prix évolue ensuite (ne promets rien au-delà).
 ` : ""}- Essai gratuit de ${DUREE_ESSAI_JOURS} jours, sans carte bancaire.
 - Délai de grâce de ${DELAI_GRACE_HEURES} heures après l'échéance avant toute suspension d'accès.
-- Paiement par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay — les fonds sont reversés à l'entreprise avec un délai (ne cite aucun nombre de jours : il dépend du prestataire). Jamais instantané ni direct.
+- Paiement par Mobile Money (Orange Money, MTN MoMo) via ElyonPay — les fonds sont reversés à l'entreprise avec un délai (ne cite aucun nombre de jours : il dépend du prestataire). Jamais instantané ni direct.
 - Employés et collaborateurs illimités, rôles attribués librement une fois l'abonnement souscrit. Palier équipe : à partir de ${SEUIL_EQUIPE} utilisateurs actifs, ${PRIX_EQUIPE_FCFA.toLocaleString("fr-FR")} FCFA/mois pour toute l'entreprise (prix fixe, jamais par utilisateur).
 
 Modules disponibles :

@@ -18,8 +18,8 @@ const envoyerEmail = vi.fn<(p: Courrier) => Promise<{ envoye: boolean; erreur?: 
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: (p: Courrier) => envoyerEmail(p) }));
 
 const verifierTransaction = vi.fn<(payToken: string) => Promise<ResultatVerification>>();
-vi.mock("@/lib/aangaraa/client", async () => {
-  const { moyenPaiementDepuisOperateur } = await import("@/lib/aangaraa/utilitaires");
+vi.mock("@/lib/elyonpay/client", async () => {
+  const { moyenPaiementDepuisOperateur } = await import("@/lib/elyonpay/utilitaires");
   return { verifierTransaction: (t: string) => verifierTransaction(t), moyenPaiementDepuisOperateur };
 });
 

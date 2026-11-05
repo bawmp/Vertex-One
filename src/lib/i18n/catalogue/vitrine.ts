@@ -155,8 +155,8 @@ export const VITRINE: Record<string, string> = {
   "Oui — chaque nouvelle entreprise bénéficie de {jours} jours d'essai gratuit, avec un accès complet à tous les modules, sans carte bancaire requise pour commencer.":
     "Yes — every new company gets a {jours}-day free trial with full access to all modules, no credit card required to start.",
   "Le paiement Mobile Money est-il instantané ?": "Is Mobile Money payment instant?",
-  "Non — Aangaraa Pay, notre partenaire de paiement, reverse les fonds à l'entreprise avec un délai. Vertex One ne présente jamais ce paiement comme instantané ou direct.":
-    "No — Aangaraa Pay, our payment partner, pays the funds out to the company with a delay. Vertex One never presents this payment as instant or direct.",
+  "Non — ElyonPay, notre partenaire de paiement, reverse les fonds à l'entreprise avec un délai. Vertex One ne présente jamais ce paiement comme instantané ou direct.":
+    "No — ElyonPay, our payment partner, pays the funds out to the company with a delay. Vertex One never presents this payment as instant or direct.",
   "Puis-je inviter mon équipe ?": "Can I invite my team?",
   "Oui, sans limite de nombre. Vous attribuez un rôle à chaque employé ou collaborateur invité, et vous choisissez les modules auxquels chacun a accès — par exemple un prestataire qui ne voit que les projets et les documents. Le prix reste le même jusqu'à {seuilMoins} utilisateurs actifs ; à partir de {seuil}, il passe à {prixEquipe} FCFA/mois pour toute l'équipe.": "Yes, with no limit. You assign a role to each invited employee or collaborator, and you choose which modules each one can access — for example a contractor who only sees projects and documents. The price stays the same up to {seuilMoins} active users; from {seuil}, it becomes {prixEquipe} FCFA/month for the whole team.",
   "Mes clients peuvent-ils accepter un devis, payer et signer en ligne ?": "Can my clients accept a quote, pay and sign online?",
@@ -181,8 +181,8 @@ export const VITRINE: Record<string, string> = {
   "Oui : {prixAnnuel} FCFA pour 12 mois, soit {moisOfferts} mois offerts. Un seul paiement Mobile Money au lieu de douze, et votre accès est couvert toute l'année.": "Yes: {prixAnnuel} FCFA for 12 months, i.e. {moisOfferts} months free. One Mobile Money payment instead of twelve, and your access is covered all year.",
   "Pas avant {seuil} utilisateurs actifs : vous invitez autant d'employés et de collaborateurs que nécessaire, sans coût supplémentaire par utilisateur. À partir de {seuil} utilisateurs actifs, le prix est de {prixEquipe} FCFA/mois pour toute l'entreprise — un prix fixe pour l'équipe, jamais un prix par utilisateur.": "Not before {seuil} active users: invite as many employees and collaborators as you need, with no extra cost per user. From {seuil} active users, the price is {prixEquipe} FCFA/month for the whole company — a fixed team price, never a per-user price.",
   "Comment se passe le paiement ?": "How does payment work?",
-  "Par Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay, un partenaire de paiement local. Les fonds sont reversés avec un délai — jamais présenté comme instantané.":
-    "By Mobile Money (Orange Money, MTN MoMo) via Aangaraa Pay, a local payment partner. Funds are paid out with a delay — never presented as instant.",
+  "Par Mobile Money (Orange Money, MTN MoMo) via ElyonPay, un partenaire de paiement local. Les fonds sont reversés avec un délai — jamais présenté comme instantané.":
+    "By Mobile Money (Orange Money, MTN MoMo) via ElyonPay, a local payment partner. Funds are paid out with a delay — never presented as instant.",
   "Que se passe-t-il à la fin de l'essai gratuit ?": "What happens at the end of the free trial?",
   "Vous êtes notifié avant l'échéance de votre essai de {jours} jours. Sans renouvellement, un délai de grâce de {heures} heures s'applique avant la suspension de l'accès — vos données restent intactes.":
     "You are notified before your {jours}-day trial ends. Without renewal, a grace period of {heures} hours applies before access is suspended — your data stays intact.",
