@@ -34,12 +34,15 @@ export default function PageInscription() {
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex animate-in flex-col gap-1.5 duration-500 fade-in slide-in-from-bottom-2">
-        <p className="text-sm font-semibold tracking-wide text-marque-orange-600 uppercase">{t("Bienvenue")}</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{t("Créer votre entreprise sur Vertex One")}</h1>
+      <div className="flex animate-in flex-col items-center gap-1.5 text-center duration-500 fade-in slide-in-from-bottom-2">
+        <p className="inline-flex w-fit items-center gap-2 rounded-full bg-marque-orange-100 px-3 py-1 text-xs font-semibold tracking-wide text-marque-orange-700 uppercase">
+          <span aria-hidden className="size-1.5 rounded-full bg-marque-orange" />
+          {t("Bienvenue")}
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Créer votre entreprise sur Vertex One")}</h1>
         <p className="text-muted-foreground">{t("Le premier compte créé devient Administrateur.")}</p>
-        <div className="mt-2 flex items-center gap-3" aria-live="polite">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={renseignes} aria-label={t("Progression du formulaire")}>
+        <div className="mt-3 flex w-full items-center gap-3" aria-live="polite">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-marque-bleu-100" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={renseignes} aria-label={t("Progression du formulaire")}>
             <div className="h-full rounded-full bg-gradient-to-r from-marque-bleu to-marque-orange transition-all duration-500 ease-out" style={{ width: `${(renseignes / 4) * 100}%` }} />
           </div>
           <span className="text-xs text-muted-foreground tabular-nums">{renseignes} / 4</span>
@@ -60,6 +63,8 @@ export default function PageInscription() {
               etiquette={t("Secteur")}
               valeur={secteur}
               onChange={setSecteur}
+              colonnes={3}
+              disposition="tuile"
               options={[
                 { valeur: "agence", libelle: t("Agence"), icone: Briefcase },
                 { valeur: "artisan", libelle: t("Artisan"), icone: Hammer },
@@ -97,8 +102,8 @@ export default function PageInscription() {
           {!enCours ? <ArrowRight data-icon="inline-end" aria-hidden className="transition-transform duration-200 group-hover:translate-x-1" /> : null}
         </Button>
 
-        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-emerald-600" aria-hidden />
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5 shrink-0 text-emerald-600" aria-hidden />
           {t("Les données de votre entreprise restent isolées de celles des autres.")}
         </p>
       </form>

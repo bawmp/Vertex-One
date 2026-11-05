@@ -10,7 +10,7 @@ export default async function LayoutAuth({ children }: { children: React.ReactNo
   return (
     <div className="min-h-dvh grid md:grid-cols-2">
       <CaptureOrigine />
-      <div className="relative hidden md:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-10 text-white">
+      <div className="relative hidden md:sticky md:top-0 md:flex md:h-dvh md:self-start flex-col justify-between overflow-hidden bg-gradient-to-br from-marque-bleu-800 via-marque-bleu to-marque-bleu-900 p-10 text-white">
         <div aria-hidden className="auth-motif-points pointer-events-none absolute inset-0" />
         <FondMarque variante="panneau" className="pointer-events-none absolute inset-0 size-full" />
         <div

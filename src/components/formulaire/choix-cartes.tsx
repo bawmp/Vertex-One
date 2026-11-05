@@ -26,6 +26,7 @@ export function ChoixCartes({
   options,
   colonnes = 2,
   desactive,
+  disposition = "ligne",
 }: {
   nom?: string;
   /** Libellé lu par les lecteurs d'écran pour le groupe. */
@@ -35,7 +36,10 @@ export function ChoixCartes({
   options: OptionCarte[];
   colonnes?: 1 | 2 | 3;
   desactive?: boolean;
+  /** `tuile` : icône au-dessus du libellé, deux colonnes dès le téléphone (choix nombreux, libellés longs). */
+  disposition?: "ligne" | "tuile";
 }) {
+  const tuile = disposition === "tuile";
   function auClavier(evenement: React.KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(evenement.key)) return;
     evenement.preventDefault();
@@ -46,7 +50,7 @@ export function ChoixCartes({
   }
 
   return (
-    <div role="radiogroup" aria-label={etiquette} onKeyDown={auClavier} className={cn("grid grid-cols-1 gap-3", colonnes === 2 && "sm:grid-cols-2", colonnes === 3 && "sm:grid-cols-3")}>
+    <div role="radiogroup" aria-label={etiquette} onKeyDown={auClavier} className={cn("grid gap-3", tuile ? "grid-cols-2" : "grid-cols-1", colonnes === 2 && !tuile && "sm:grid-cols-2", colonnes === 3 && "sm:grid-cols-3")}>
       {nom ? <input type="hidden" name={nom} value={valeur} /> : null}
       {options.map((o) => {
         const choisi = o.valeur === valeur;
@@ -61,7 +65,8 @@ export function ChoixCartes({
             disabled={desactive}
             onClick={() => onChange(o.valeur)}
             className={cn(
-              "group relative flex items-center gap-3 rounded-2xl border bg-background p-4 text-left shadow-xs transition-all duration-200 outline-none",
+              "group relative flex rounded-2xl border bg-background shadow-xs transition-all duration-200 outline-none",
+              tuile ? "flex-col items-center justify-center gap-2 px-2.5 py-4 text-center" : "items-center gap-3 p-4 text-left",
               "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-4 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60",
               choisi ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border"
             )}
@@ -74,10 +79,10 @@ export function ChoixCartes({
               </span>
             ) : null}
             <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-semibold text-foreground">{o.libelle}</span>
+              <span className={cn("font-semibold text-foreground", tuile ? "text-[13px] leading-tight" : "text-sm")}>{o.libelle}</span>
               {o.detail ? <span className="text-xs text-muted-foreground">{o.detail}</span> : null}
             </span>
-            <span aria-hidden className={cn("ml-auto flex size-6 shrink-0 items-center justify-center rounded-full border transition-all duration-200", choisi ? "scale-100 border-primary bg-primary text-primary-foreground" : "scale-90 border-border bg-background text-transparent")}>
+            <span aria-hidden className={cn("flex shrink-0 items-center justify-center rounded-full border transition-all duration-200", tuile ? "absolute top-2 right-2 size-5" : "ml-auto size-6", choisi ?"scale-100 border-primary bg-primary text-primary-foreground" : "scale-90 border-border bg-background text-transparent")}>
               <Check className="size-3.5" />
             </span>
           </button>
