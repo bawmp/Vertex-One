@@ -29,6 +29,7 @@ export default function PageConnexion() {
     const { data, error } = await authClient.signIn.email({
       email: String(formData.get("email")),
       password: String(formData.get("motDePasse")),
+      rememberMe: formData.get("resterConnecte") === "on",
     });
 
     if (error) {
@@ -82,19 +83,21 @@ export default function PageConnexion() {
         </div>
         <div className="flex animate-in flex-col gap-2 duration-500 fade-in slide-in-from-bottom-2 delay-200 fill-mode-both">
           <Champ label={t("Mot de passe")} id="motDePasse" name="motDePasse" type="password" icone={Lock} autoComplete="current-password" required />
-          <div className="flex items-start justify-between gap-3">
-            {majusculesActives ? (
-              <p role="status" className="animate-in flex items-center gap-1.5 text-xs text-marque-orange-700 fade-in">
-                <CircleAlert className="size-3.5" aria-hidden />
-                {t("Verrouillage majuscules activé")}
-              </p>
-            ) : (
-              <span />
-            )}
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+              <input type="checkbox" name="resterConnecte" defaultChecked className="size-4 cursor-pointer rounded border-input accent-marque-bleu" />
+              {t("Rester connecté")}
+            </label>
             <Link href="/mot-de-passe-oublie" className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline">
               {t("Mot de passe oublié ?")}
             </Link>
           </div>
+          {majusculesActives ? (
+            <p role="status" className="animate-in flex items-center gap-1.5 text-xs text-marque-orange-700 fade-in">
+              <CircleAlert className="size-3.5" aria-hidden />
+              {t("Verrouillage majuscules activé")}
+            </p>
+          ) : null}
         </div>
 
         {erreur ? (
