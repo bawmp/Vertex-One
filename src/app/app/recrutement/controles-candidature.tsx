@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { Ban, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,26 +46,51 @@ function FenetreMessageCandidat({
   const [corps, setCorps] = useState(message.corps);
   const libelle = STATUTS.find((x) => x.valeur === message.statut)?.libelle ?? message.statut;
   const invalide = objet.trim().length === 0 || corps.trim().length === 0 || objet.length > 200 || corps.length > 5000;
+  // Rendu dans <body> : une fenêtre « fixed » posée dans la carte de la candidature était rognée par ses parents (overflow, transformations).
+  const monte = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="titre-message-candidat">
-      <div className="flex max-h-[90vh] w-full max-w-xl flex-col gap-3 overflow-y-auto rounded-xl bg-background p-5 shadow-xl">
-        <h2 id="titre-message-candidat" className="text-base font-semibold">
-          Message au candidat — statut « {libelle} »
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Ce message sera envoyé à <strong>{message.destinataire}</strong>. Relisez-le et modifiez-le si besoin avant de valider le changement de statut.
-        </p>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="objet-message-candidat">Objet</Label>
-          <Input id="objet-message-candidat" value={objet} maxLength={200} onChange={(e) => setObjet(e.target.value)} />
+  useEffect(() => {
+    const avant = document.body.style.overflow;
+    document.body.style.overflow = "hidden"; // la page derrière ne défile pas pendant la relecture
+    const surTouche = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !enCours) onAnnuler();
+    };
+    document.addEventListener("keydown", surTouche);
+    return () => {
+      document.body.style.overflow = avant;
+      document.removeEventListener("keydown", surTouche);
+    };
+  }, [enCours, onAnnuler]);
+
+  if (!monte) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="titre-message-candidat" onMouseDown={(e) => e.target === e.currentTarget && !enCours && onAnnuler()}>
+      <div className="flex max-h-[100dvh] w-full max-w-2xl animate-in flex-col overflow-hidden rounded-t-2xl bg-background shadow-2xl duration-200 fade-in slide-in-from-bottom-4 sm:max-h-[90dvh] sm:rounded-2xl">
+        <div className="flex flex-col gap-1 border-b border-border px-5 py-4 sm:px-6">
+          <h2 id="titre-message-candidat" className="text-lg font-semibold tracking-tight">
+            Message au candidat
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Nouveau statut : <strong className="text-foreground">{libelle}</strong> · envoyé à <strong className="break-all text-foreground">{message.destinataire}</strong>
+          </p>
         </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="corps-message-candidat">Message</Label>
-          <Textarea id="corps-message-candidat" rows={10} value={corps} maxLength={5000} onChange={(e) => setCorps(e.target.value)} />
-          <p className="text-xs text-muted-foreground">{corps.length} / 5000 caractères</p>
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 sm:px-6">
+          <p className="text-sm text-muted-foreground">Relisez ce message et modifiez-le si besoin : il part au moment où vous validez le changement de statut.</p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="objet-message-candidat">Objet</Label>
+            <Input id="objet-message-candidat" value={objet} maxLength={200} onChange={(e) => setObjet(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="corps-message-candidat">Message</Label>
+            <Textarea id="corps-message-candidat" rows={12} value={corps} maxLength={5000} onChange={(e) => setCorps(e.target.value)} className="min-h-56 resize-y leading-relaxed" />
+            <p className="text-right text-xs text-muted-foreground">{corps.length} / 5000 caractères</p>
+          </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 border-t border-border bg-muted/30 px-5 py-3 sm:flex-row sm:flex-wrap sm:justify-end sm:px-6">
           <Button type="button" variant="ghost" disabled={enCours} onClick={onAnnuler}>
             Annuler
           </Button>
@@ -72,12 +98,13 @@ function FenetreMessageCandidat({
             Changer sans prévenir
           </Button>
           <Button type="button" disabled={enCours || invalide} onClick={() => onEnvoyer(objet, corps)}>
-            {enCours ? <Spinner /> : null}
+            {enCours ? <Spinner data-icon="inline-start" /> : null}
             Envoyer et changer le statut
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -111,6 +138,11 @@ export function ControlesCandidature({
     return resultat;
   }, null);
 
+  const annulerMessage = useCallback(() => {
+    setMessagePrevu(null);
+    setCleSelect((c) => c + 1);
+  }, []);
+
   return (
     <div className="flex flex-col gap-3">
       {messagePrevu ? (
@@ -129,10 +161,7 @@ export function ControlesCandidature({
               setMessagePrevu(null);
             })
           }
-          onAnnuler={() => {
-            setMessagePrevu(null);
-            setCleSelect((c) => c + 1);
-          }}
+          onAnnuler={annulerMessage}
         />
       ) : null}
       <div className="flex flex-wrap items-end gap-3">
