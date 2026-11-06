@@ -33,13 +33,13 @@ export default function PageInscription() {
   }
 
   return (
-    <div className="flex flex-col gap-7">
+    <div data-carte-large className="flex flex-col gap-7 xl:gap-4">
       <div className="flex animate-in flex-col items-center gap-1.5 text-center duration-500 fade-in slide-in-from-bottom-2">
         <p className="inline-flex w-fit items-center gap-2 rounded-full bg-marque-orange-100 px-3 py-1 text-xs font-semibold tracking-wide text-marque-orange-700 uppercase">
           <span aria-hidden className="size-1.5 rounded-full bg-marque-orange" />
           {t("Bienvenue")}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("Créer votre entreprise sur Vertex One")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl xl:text-2xl">{t("Créer votre entreprise sur Vertex One")}</h1>
         <p className="text-muted-foreground">{t("Le premier compte créé devient Administrateur.")}</p>
         <div className="mt-3 flex w-full items-center gap-3" aria-live="polite">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-marque-bleu-100" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={renseignes} aria-label={t("Progression du formulaire")}>
@@ -49,7 +49,7 @@ export default function PageInscription() {
         </div>
       </div>
 
-      <form action={action} onChange={(e) => compterRenseignes(e.currentTarget)} className="flex flex-col gap-6">
+      <form action={action} onChange={(e) => compterRenseignes(e.currentTarget)} className="flex flex-col gap-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-8 xl:gap-y-3">
         <fieldset className="flex animate-in flex-col gap-4 duration-500 fade-in slide-in-from-bottom-2">
           <legend className="mb-1 flex items-center gap-2 text-sm font-semibold">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
@@ -65,6 +65,7 @@ export default function PageInscription() {
               onChange={setSecteur}
               colonnes={3}
               disposition="tuile"
+              className="xl:grid-cols-2 xl:gap-2"
               options={[
                 { valeur: "agence", libelle: t("Agence"), icone: Briefcase },
                 { valeur: "artisan", libelle: t("Artisan"), icone: Hammer },
@@ -91,18 +92,18 @@ export default function PageInscription() {
         </fieldset>
 
         {etat?.erreur ? (
-          <p role="alert" className="animate-in rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive fade-in slide-in-from-top-1">
+          <p role="alert" className="animate-in rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive fade-in slide-in-from-top-1 xl:col-span-2">
             {etat.erreur}
           </p>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={enCours} className="group h-12 w-full text-base">
+        <Button type="submit" size="lg" disabled={enCours} className="group h-12 w-full text-base xl:col-span-2">
           {enCours ? <Spinner data-icon="inline-start" /> : null}
           {enCours ? t("Création en cours…") : t("Créer mon entreprise")}
           {!enCours ? <ArrowRight data-icon="inline-end" aria-hidden className="transition-transform duration-200 group-hover:translate-x-1" /> : null}
         </Button>
 
-        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground xl:col-span-2">
           <ShieldCheck className="size-3.5 shrink-0 text-emerald-600" aria-hidden />
           {t("Les données de votre entreprise restent isolées de celles des autres.")}
         </p>

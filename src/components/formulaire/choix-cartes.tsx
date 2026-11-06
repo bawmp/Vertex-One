@@ -27,6 +27,7 @@ export function ChoixCartes({
   colonnes = 2,
   desactive,
   disposition = "ligne",
+  className,
 }: {
   nom?: string;
   /** Libellé lu par les lecteurs d'écran pour le groupe. */
@@ -38,6 +39,7 @@ export function ChoixCartes({
   desactive?: boolean;
   /** `tuile` : icône au-dessus du libellé, deux colonnes dès le téléphone (choix nombreux, libellés longs). */
   disposition?: "ligne" | "tuile";
+  className?: string;
 }) {
   const tuile = disposition === "tuile";
   function auClavier(evenement: React.KeyboardEvent<HTMLDivElement>) {
@@ -50,7 +52,7 @@ export function ChoixCartes({
   }
 
   return (
-    <div role="radiogroup" aria-label={etiquette} onKeyDown={auClavier} className={cn("grid gap-3", tuile ? "grid-cols-2" : "grid-cols-1", colonnes === 2 && !tuile && "sm:grid-cols-2", colonnes === 3 && "sm:grid-cols-3")}>
+    <div role="radiogroup" aria-label={etiquette} onKeyDown={auClavier} className={cn("grid gap-3", tuile ? "grid-cols-2" : "grid-cols-1", colonnes === 2 && !tuile && "sm:grid-cols-2", colonnes === 3 && "sm:grid-cols-3", className)}>
       {nom ? <input type="hidden" name={nom} value={valeur} /> : null}
       {options.map((o) => {
         const choisi = o.valeur === valeur;
@@ -66,7 +68,7 @@ export function ChoixCartes({
             onClick={() => onChange(o.valeur)}
             className={cn(
               "group relative flex rounded-2xl border bg-background shadow-xs transition-all duration-200 outline-none",
-              tuile ? "flex-col items-center justify-center gap-2 px-2.5 py-4 text-center" : "items-center gap-3 p-4 text-left",
+              tuile ? "flex-col items-center justify-center gap-1.5 px-2.5 py-3 text-center" : "items-center gap-3 p-4 text-left",
               "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-4 focus-visible:ring-primary/20 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60",
               choisi ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border"
             )}
