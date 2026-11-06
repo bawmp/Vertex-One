@@ -14,6 +14,7 @@ import {
   index,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+import type { RegleAssignation } from "@/lib/api-externe/assignation-regle";
 import { sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -463,6 +464,8 @@ export const cleApiEntreprise = pgTable(
     revoqueeLe: timestamp("revoquee_le"),
     // Peut créer des factures payées (POST /api/externe/factures) : refusé par défaut, accordé explicitement par l'Administrateur.
     autoriseFacturation: boolean("autorise_facturation").notNull().default(false),
+    // À qui vont les prospects reçus avec cette clé (2026-11-06). null = le premier administrateur actif. Voir src/lib/api-externe/assignation.ts.
+    assignation: json("assignation").$type<RegleAssignation>(),
   },
   (table) => [
     index("cle_api_entreprise_entreprise_idx").on(table.entrepriseId),
@@ -506,6 +509,8 @@ export const connexionFacebook = pgTable(
       .references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     dernierLeadLe: timestamp("dernier_lead_le"),
+    // À qui vont les prospects de cette page (2026-11-06). null = le premier administrateur actif.
+    assignation: json("assignation").$type<RegleAssignation>(),
   },
   (table) => [
     uniqueIndex("connexion_facebook_page_unique").on(table.pageId),

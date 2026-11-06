@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { connexionFacebook, entreprise, routageFacebookPage } from "@/db/schema";
 import { creerLeadExterne } from "@/lib/api-externe/lead";
+import { lireRegleEnregistree } from "@/lib/api-externe/assignation-regle";
 import { CONTEXTE_JETON_PAGE, dechiffrer } from "@/lib/facebook/jetons";
 import { lireProspect } from "@/lib/facebook/graph";
 import { leadDepuisProspectFacebook } from "@/lib/facebook/prospect";
@@ -41,7 +42,8 @@ export async function traiterProspectFacebook(evenement: EvenementLeadgen): Prom
 
   const donnees = leadDepuisProspectFacebook(prospect.donnees, evenement.leadgenId);
   const resultat = await avecEntreprise(entrepriseId, async (tx) => {
-    const lead = await creerLeadExterne(tx, entrepriseId, donnees);
+    const [page] = await tx.select({ assignation: connexionFacebook.assignation }).from(connexionFacebook).where(eq(connexionFacebook.pageId, evenement.pageId));
+    const lead = await creerLeadExterne(tx, entrepriseId, donnees, lireRegleEnregistree(page?.assignation));
     if (!("erreur" in lead) && !lead.doublon) {
       await tx.update(connexionFacebook).set({ dernierLeadLe: new Date() }).where(eq(connexionFacebook.pageId, evenement.pageId));
     }

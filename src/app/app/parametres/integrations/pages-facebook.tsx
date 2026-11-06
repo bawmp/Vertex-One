@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, Link2Off, Megaphone, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { connecterPageFacebook, deconnecterPageFacebook, demarrerConnexionFacebook } from "@/lib/actions/facebook";
+import { connecterPageFacebook, deconnecterPageFacebook, definirAssignationPageFacebook, demarrerConnexionFacebook } from "@/lib/actions/facebook";
+import type { RegleAssignation } from "@/lib/api-externe/assignation-regle";
+import { ChoixAssignationProspects, type MembreAssignable } from "./choix-assignation";
 import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
 
-export type PageReliee = { id: string; nom: string; creeLe: string; dernierLeadLe: string | null };
+export type PageReliee = { id: string; nom: string; creeLe: string; dernierLeadLe: string | null; assignation: RegleAssignation | null };
 
 const MESSAGES_RETOUR: Record<string, string> = {
   annule: m("Connexion annulée : aucune autorisation n'a été donnée à Vertex One."),
@@ -18,7 +20,7 @@ const MESSAGES_RETOUR: Record<string, string> = {
   refuse: m("Seul l'administrateur peut relier une page Facebook."),
 };
 
-export function PagesFacebook({ configure, pages, pagesAChoisir, retour }: { configure: boolean; pages: PageReliee[]; pagesAChoisir: { id: string; nom: string }[]; retour: string | null }) {
+export function PagesFacebook({ configure, pages, membres, pagesAChoisir, retour }: { configure: boolean; pages: PageReliee[]; membres: MembreAssignable[]; pagesAChoisir: { id: string; nom: string }[]; retour: string | null }) {
   const t = useT();
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function PagesFacebook({ configure, pages, pagesAChoisir, retour }: { con
         <div>
           <h2 className="text-sm font-medium">{t("Publicités Facebook")}</h2>
           <p className="text-sm text-muted-foreground">
-            {t("Reliez votre page Facebook : chaque prospect qui remplit le formulaire de l'une de vos publicités devient automatiquement un lead, assigné au premier administrateur.")}
+            {t("Reliez votre page Facebook : chaque prospect qui remplit le formulaire de l'une de vos publicités devient automatiquement un lead. Vous choisissez, page par page, qui le reçoit.")}
           </p>
         </div>
       </div>
@@ -76,7 +78,7 @@ export function PagesFacebook({ configure, pages, pagesAChoisir, retour }: { con
       {pages.length > 0 ? (
         <ul className="flex flex-col divide-y rounded-lg border">
           {pages.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{p.nom}</p>
                 <p className="text-xs text-muted-foreground">
@@ -95,6 +97,9 @@ export function PagesFacebook({ configure, pages, pagesAChoisir, retour }: { con
                 <Link2Off data-icon="inline-start" aria-hidden />
                 {t("Déconnecter")}
               </Button>
+              <div className="w-full">
+                <ChoixAssignationProspects membres={membres} valeur={p.assignation} enregistrer={(choix) => definirAssignationPageFacebook(p.id, choix)} />
+              </div>
             </li>
           ))}
         </ul>

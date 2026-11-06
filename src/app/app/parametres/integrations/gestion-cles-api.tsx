@@ -8,12 +8,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { creerCleApi, definirAutorisationFacturationCle, revoquerCleApi, supprimerCleApi } from "@/lib/actions/cle-api";
+import { creerCleApi, definirAssignationCle, definirAutorisationFacturationCle, revoquerCleApi, supprimerCleApi } from "@/lib/actions/cle-api";
+import type { RegleAssignation } from "@/lib/api-externe/assignation-regle";
+import { ChoixAssignationProspects, type MembreAssignable } from "./choix-assignation";
 import { useT } from "@/lib/i18n/contexte";
 
-type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean };
+type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean; assignation: RegleAssignation | null };
 
-export function GestionClesApi({ cles }: { cles: Cle[] }) {
+export function GestionClesApi({ cles, membres }: { cles: Cle[]; membres: MembreAssignable[] }) {
   const t = useT();
   const [etat, action, enCours] = useActionState(creerCleApi, null);
   const [copie, setCopie] = useState(false);
@@ -120,6 +122,11 @@ export function GestionClesApi({ cles }: { cles: Cle[] }) {
                       {t("Supprimer")}
                     </Button>
                   )}
+                  {!c.revoqueeLe ? (
+                    <div className="w-full">
+                      <ChoixAssignationProspects membres={membres} valeur={c.assignation} enregistrer={(choix) => definirAssignationCle(c.id, choix)} />
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

@@ -1205,6 +1205,13 @@
       "when": 1794978120000,
       "tag": "0171_taches_poste",
       "breakpoints": true
+    },
+    {
+      "idx": 172,
+      "version": "7",
+      "when": 1794981720000,
+      "tag": "0172_assignation_prospects",
+      "breakpoints": true
     }
   ]
 }

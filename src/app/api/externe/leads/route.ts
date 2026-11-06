@@ -6,6 +6,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { cleApiEntreprise, entreprise } from "@/db/schema";
 import { empreinteCle, formeCleValide, lireCleDepuisEnTete } from "@/lib/api-externe/cle";
 import { creerLeadExterne, schemaLeadExterne } from "@/lib/api-externe/lead";
+import { lireRegleEnregistree } from "@/lib/api-externe/assignation-regle";
 import { autoriserAppel } from "@/lib/api-externe/limite";
 import { envoyerEmail } from "@/lib/email/client";
 import { gabaritNouveauLeadExterne } from "@/lib/email/gabarits";
@@ -59,7 +60,7 @@ export async function POST(requete: Request) {
 
   const resultat = await avecEntreprise(ligneCle.entrepriseId, async (tx) => {
     await tx.update(cleApiEntreprise).set({ dernierUsageLe: new Date() }).where(eq(cleApiEntreprise.id, ligneCle.id));
-    return creerLeadExterne(tx, ligneCle.entrepriseId, analyse.data);
+    return creerLeadExterne(tx, ligneCle.entrepriseId, analyse.data, lireRegleEnregistree(ligneCle.assignation));
   });
 
   if ("erreur" in resultat) return reponse({ erreur: "Aucun administrateur actif n'est disponible pour recevoir cette demande." }, 409);

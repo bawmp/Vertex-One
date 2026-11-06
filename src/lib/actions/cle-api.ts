@@ -9,6 +9,8 @@ import { cleApiEntreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { genererCle } from "@/lib/api-externe/cle";
+import { validerChoixAssignation } from "@/lib/api-externe/assignation";
+import { MESSAGE_ASSIGNATION } from "@/lib/api-externe/assignation-messages";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -123,6 +125,35 @@ export async function revoquerCleApi(cleId: string): Promise<{ erreur?: string }
       .where(and(eq(cleApiEntreprise.id, cleId), eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId), isNull(cleApiEntreprise.revoqueeLe)))
   );
 
+  revalidatePath(CHEMIN);
+  return {};
+}
+
+/**
+ * Choisit à qui vont les prospects reçus avec cette clé : une personne (typiquement un Manager), un tour de rôle entre plusieurs, ou le premier
+ * administrateur (par défaut). Administrateur seulement ; la clé doit appartenir à son entreprise et ne pas être révoquée, et chaque personne citée est
+ * revérifiée en base (membre actif de CETTE entreprise, avec accès au CRM) — jamais un identifiant pris tel quel du navigateur.
+ */
+export async function definirAssignationCle(cleId: string, choix: unknown): Promise<{ erreur?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (utilisateurConnecte.role !== "ADMIN" || !peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Seul l'administrateur peut gérer les clés d'API.") };
+  }
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const validation = await validerChoixAssignation(tx, utilisateurConnecte.entrepriseId, choix);
+    if ("erreur" in validation) return validation;
+    const modifiees = await tx
+      .update(cleApiEntreprise)
+      .set({ assignation: validation.regle })
+      .where(and(eq(cleApiEntreprise.id, cleId), eq(cleApiEntreprise.entrepriseId, utilisateurConnecte.entrepriseId), isNull(cleApiEntreprise.revoqueeLe)))
+      .returning({ id: cleApiEntreprise.id });
+    return modifiees.length === 0 ? { erreur: "INTROUVABLE" as const } : { ok: true as const };
+  });
+
+  if ("erreur" in resultat && resultat.erreur) return { erreur: t(MESSAGE_ASSIGNATION[resultat.erreur]) };
   revalidatePath(CHEMIN);
   return {};
 }

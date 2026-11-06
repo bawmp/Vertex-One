@@ -20,8 +20,7 @@ export const PARAMETRES: Record<string, string> = {
     "We haven't received confirmation yet. If you approved the payment on your phone, contact us — otherwise try again.",
   "Le paiement n'a pas abouti.": "The payment did not go through.",
   "Publicités Facebook": "Facebook ads",
-  "Reliez votre page Facebook : chaque prospect qui remplit le formulaire de l'une de vos publicités devient automatiquement un lead, assigné au premier administrateur.":
-    "Connect your Facebook page: every prospect who fills in the form of one of your ads automatically becomes a lead, assigned to the first administrator.",
+  "Reliez votre page Facebook : chaque prospect qui remplit le formulaire de l'une de vos publicités devient automatiquement un lead. Vous choisissez, page par page, qui le reçoit.": "Connect your Facebook page: every prospect who fills in the form of one of your ads automatically becomes a lead. You choose, page by page, who receives it.",
   "La connexion Facebook n'est pas encore activée sur cette plateforme.": "The Facebook connection is not yet enabled on this platform.",
   "Connexion annulée : aucune autorisation n'a été donnée à Vertex One.": "Connection cancelled: no permission was given to Vertex One.",
   "La connexion a expiré ou provient d'un autre navigateur. Relancez-la.": "The connection expired or came from another browser. Start it again.",

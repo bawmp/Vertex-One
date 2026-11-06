@@ -3,6 +3,8 @@ import { and, asc, eq } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { lead, utilisateur } from "@/db/schema";
 import { adresseEspaceClientSure } from "@/lib/client-documents/espace-client";
+import { choisirAssigne } from "./assignation";
+import type { RegleAssignation } from "./assignation-regle";
 
 /**
  * Corps accepté par `POST /api/externe/leads`. Tout est borné : cette entrée est publique (derrière une clé), jamais
@@ -42,11 +44,11 @@ export type ResultatLeadExterne =
 
 /**
  * Crée le lead dans l'entreprise de la clé (la transaction `tx` est déjà ouverte sous la RLS de CETTE entreprise).
- * Assigné au premier Administrateur actif, à réassigner ensuite depuis le CRM (même règle que les pages
- * d'atterrissage). Idempotent par (source, référence) : si l'émetteur renvoie sa requête, le lead existant est
+ * Assigné selon la règle de la clé ou de la page Facebook (`regle`, choisie par l'Administrateur : une personne, ou un tour de rôle) ; sans règle,
+ * ou si la personne choisie ne peut plus le recevoir, au premier Administrateur actif — un prospect n'est jamais perdu. Réassignable ensuite depuis le CRM. Idempotent par (source, référence) : si l'émetteur renvoie sa requête, le lead existant est
  * renvoyé tel quel, jamais un second.
  */
-export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: string, donnees: LeadExterne): Promise<ResultatLeadExterne> {
+export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: string, donnees: LeadExterne, regle: RegleAssignation | null = null): Promise<ResultatLeadExterne> {
   const [admin] = await tx
     .select({ id: utilisateur.id, email: utilisateur.email })
     .from(utilisateur)
@@ -80,6 +82,9 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
     }
   }
 
+  // Doublon écarté plus haut : la règle (et son verrou de tour de rôle) ne sert qu'à un vrai nouveau prospect.
+  const assigne = (await choisirAssigne(tx, entrepriseId, regle)) ?? admin;
+
   const notes = [`Reçu de « ${donnees.source} ».`, donnees.message ? `Message : ${donnees.message}` : null].filter(Boolean).join("\n");
   const [cree] = await tx
     .insert(lead)
@@ -91,12 +96,12 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
       email: donnees.email || undefined,
       statut: "NOUVEAU",
       notes,
-      assigneAId: admin.id,
+      assigneAId: assigne.id,
       sourceExterne: donnees.source,
       referenceExterne: donnees.reference,
       espaceClientUrl: adresseEspaceClientSure(donnees.espaceClientUrl),
     })
     .returning({ id: lead.id });
 
-  return { id: cree.id, doublon: false, assigneEmail: admin.email, nom: donnees.nom, source: donnees.source };
+  return { id: cree.id, doublon: false, assigneEmail: assigne.email, nom: donnees.nom, source: donnees.source };
 }

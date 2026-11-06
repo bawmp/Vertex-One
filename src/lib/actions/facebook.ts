@@ -12,6 +12,8 @@ import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 import { COOKIE_NONCE, COOKIE_PAGES } from "@/lib/facebook/evenements";
 import { CONTEXTE_COOKIE_PAGES, CONTEXTE_JETON_PAGE, chiffrer, creerEtat, dechiffrer, nouveauNonce } from "@/lib/facebook/jetons";
+import { validerChoixAssignation } from "@/lib/api-externe/assignation";
+import { MESSAGE_ASSIGNATION } from "@/lib/api-externe/assignation-messages";
 import { abonnerPage, adresseConnexionFacebook, desabonnerPage, facebookConfigure, type PageFacebook } from "@/lib/facebook/graph";
 
 /** Seul l'Administrateur relie une page : elle déverse des prospects dans le CRM et donne accès à un compte Facebook. Revérifié à chaque appel. */
@@ -112,4 +114,28 @@ export async function deconnecterPageFacebook(connexionId: string): Promise<Etat
 
   revalidatePath("/app/parametres/integrations");
   return { ok: true };
+}
+
+/**
+ * Choisit à qui vont les prospects de cette page (une personne, un tour de rôle, ou le premier administrateur par défaut). Administrateur seulement ;
+ * la page doit appartenir à son entreprise et chaque personne citée est revérifiée en base (membre actif de CETTE entreprise, avec accès au CRM).
+ */
+export async function definirAssignationPageFacebook(connexionId: string, choix: unknown): Promise<{ erreur?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await administrateur();
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const validation = await validerChoixAssignation(tx, utilisateurConnecte.entrepriseId, choix);
+    if ("erreur" in validation) return validation;
+    const modifiees = await tx
+      .update(connexionFacebook)
+      .set({ assignation: validation.regle })
+      .where(and(eq(connexionFacebook.id, connexionId), eq(connexionFacebook.entrepriseId, utilisateurConnecte.entrepriseId)))
+      .returning({ id: connexionFacebook.id });
+    return modifiees.length === 0 ? { erreur: "INTROUVABLE" as const } : { ok: true as const };
+  });
+
+  if ("erreur" in resultat && resultat.erreur) return { erreur: t(MESSAGE_ASSIGNATION[resultat.erreur]) };
+  revalidatePath("/app/parametres/integrations");
+  return {};
 }

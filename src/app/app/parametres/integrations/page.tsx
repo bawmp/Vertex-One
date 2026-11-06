@@ -6,6 +6,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { getT } from "@/lib/i18n/langue";
 import { GestionClesApi } from "./gestion-cles-api";
+import { receveursPossibles } from "@/lib/api-externe/assignation";
+import { lireRegleEnregistree } from "@/lib/api-externe/assignation-regle";
 import { PagesFacebook } from "./pages-facebook";
 import { CarteKyria } from "./carte-kyria";
 import { facebookConfigure } from "@/lib/facebook/graph";
@@ -26,11 +28,13 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
   );
   const pagesFacebook = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
-      .select({ id: connexionFacebook.id, nom: connexionFacebook.pageNom, creeLe: connexionFacebook.creeLe, dernierLeadLe: connexionFacebook.dernierLeadLe })
+      .select({ id: connexionFacebook.id, nom: connexionFacebook.pageNom, creeLe: connexionFacebook.creeLe, dernierLeadLe: connexionFacebook.dernierLeadLe, assignation: connexionFacebook.assignation })
       .from(connexionFacebook)
       .where(eq(connexionFacebook.entrepriseId, utilisateurConnecte.entrepriseId))
       .orderBy(desc(connexionFacebook.creeLe))
   );
+  // Les personnes à qui l'on peut confier des prospects (membres actifs avec accès au CRM) : le serveur les revérifie à l'enregistrement.
+  const membres = (await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => receveursPossibles(tx, utilisateurConnecte.entrepriseId))).map((u) => ({ id: u.id, nom: u.nomComplet, role: u.role }));
   const pagesAChoisir = facebook === "choisir" ? await listerPagesAChoisir() : [];
   const base = process.env.BETTER_AUTH_URL ?? "https://vertexone.cm";
 
@@ -39,13 +43,14 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("Intégrations")}</h1>
         <p className="text-muted-foreground">
-          {t("Reliez un site web à votre CRM : chaque demande reçue devient automatiquement un lead, assigné au premier administrateur.")}
+          {t("Reliez un site web à votre CRM : chaque demande reçue devient automatiquement un lead. Pour chaque clé, vous choisissez qui le reçoit : le premier administrateur, une personne (un Manager) ou un tour de rôle.")}
         </p>
       </div>
 
       <PagesFacebook
         configure={facebookConfigure()}
-        pages={pagesFacebook.map((p) => ({ id: p.id, nom: p.nom, creeLe: p.creeLe.toISOString(), dernierLeadLe: p.dernierLeadLe?.toISOString() ?? null }))}
+        pages={pagesFacebook.map((p) => ({ id: p.id, nom: p.nom, creeLe: p.creeLe.toISOString(), dernierLeadLe: p.dernierLeadLe?.toISOString() ?? null, assignation: lireRegleEnregistree(p.assignation) }))}
+        membres={membres}
         pagesAChoisir={pagesAChoisir}
         retour={facebook && facebook !== "choisir" ? facebook : null}
       />
@@ -53,6 +58,7 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
       <CarteKyria cles={cles.map((c) => ({ nom: c.nom, revoqueeLe: c.revoqueeLe?.toISOString() ?? null, dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null }))} />
 
       <GestionClesApi
+        membres={membres}
         cles={cles.map((c) => ({
           id: c.id,
           nom: c.nom,
@@ -61,6 +67,7 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
           dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null,
           revoqueeLe: c.revoqueeLe?.toISOString() ?? null,
           autoriseFacturation: c.autoriseFacturation,
+          assignation: lireRegleEnregistree(c.assignation),
         }))}
       />
 
