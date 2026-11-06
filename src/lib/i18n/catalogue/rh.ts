@@ -126,6 +126,8 @@ export const RH: Record<string, string> = {
   "Rechercher un employé": "Search for an employee",
   "{n} employé(s) marqué(s) présent(s).": "{n} employee(s) marked present.",
   "Tous présents ({n})": "All present ({n})",
+  "Imprimer la semaine": "Print the week",
+  "Imprimer le jour": "Print the day",
   "Fiche validée.": "Sheet validated.",
   "Valider la fiche": "Validate the sheet",
   "Fiche rouverte.": "Sheet reopened.",

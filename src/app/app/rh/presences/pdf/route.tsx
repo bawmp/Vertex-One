@@ -5,7 +5,9 @@ import { db } from "@/db/client";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { disponible } from "@/lib/plans";
-import { chargerFiche, isoDuJour } from "@/lib/rh/presences";
+import { chargerFiche, isoDuJour, jourDepuisIso } from "@/lib/rh/presences";
+import { chargerSemaine } from "@/lib/rh/presences-semaine";
+import { FichePresenceSemainePDF } from "@/lib/pdf/fiche-presence-semaine";
 import { logoPourPDF } from "@/lib/pdf/logo";
 import { FichePresencePDF } from "@/lib/pdf/fiche-presence";
 
@@ -18,7 +20,27 @@ export async function GET(requete: Request) {
   const [e] = await db.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
   if (!e || !disponible(e, "RH")) return new NextResponse("Introuvable", { status: 404 });
 
-  const date = new URL(requete.url).searchParams.get("date") ?? isoDuJour(new Date());
+  const parametres = new URL(requete.url).searchParams;
+  // Fiche de la semaine (lundi → dimanche) : `?semaine=aaaa-mm-jj` (n'importe quel jour de la semaine), mode par défaut du bouton d'impression.
+  const semaine = parametres.get("semaine");
+  if (semaine) {
+    if (!jourDepuisIso(semaine)) return new NextResponse("Date invalide", { status: 400 });
+    const ficheSemaine = await chargerSemaine(utilisateurConnecte, semaine);
+    if (!ficheSemaine) return new NextResponse("Introuvable", { status: 404 });
+    const logo = await logoPourPDF(e.logoCleStockage, e.logoTypeMime);
+    const donnees = { fiche: ficheSemaine, entreprise: { nom: e.nom, logoUrl: logo, couleurMarque: e.couleurMarque } };
+    let pdf: Buffer;
+    try {
+      pdf = await renderToBuffer(<FichePresenceSemainePDF {...donnees} />);
+    } catch (erreur) {
+      console.error("[pdf] fiche de présence (semaine) : rendu en échec, nouvel essai sans logo :", erreur instanceof Error ? erreur.message : erreur);
+      if (!logo) throw erreur;
+      pdf = await renderToBuffer(<FichePresenceSemainePDF {...donnees} entreprise={{ ...donnees.entreprise, logoUrl: null }} />);
+    }
+    return new NextResponse(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="fiche-presence-semaine-${ficheSemaine.jours[0]}.pdf"`, "Cache-Control": "private, no-store" } });
+  }
+
+  const date = parametres.get("date") ?? isoDuJour(new Date());
   const fiche = await chargerFiche(utilisateurConnecte, date);
   if (!fiche) return new NextResponse("Introuvable", { status: 404 });
 

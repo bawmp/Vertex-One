@@ -71,3 +71,30 @@ export function totauxDe(sections: SectionPresence[]): TotauxPresence {
   return t;
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Fiche hebdomadaire (2026-11-06) : une feuille imprimée par semaine (lundi → dimanche), numérotée dans le mois.
+// ---------------------------------------------------------------------------------------------------------------------
+function jourLocal(iso: string): Date {
+  return new Date(`${iso}T00:00:00`);
+}
+
+/** Les 7 jours (aaaa-mm-jj) de la semaine, du lundi au dimanche, qui contient `iso`. */
+export function joursDeSemaine(iso: string): string[] {
+  const d = jourLocal(iso);
+  const decalage = (d.getDay() + 6) % 7; // lundi = 0
+  return Array.from({ length: 7 }, (_, i) => {
+    const j = new Date(d);
+    j.setDate(d.getDate() - decalage + i);
+    return isoDuJour(j);
+  });
+}
+
+/**
+ * Une semaine appartient au mois de son jeudi (règle ISO : une semaine à cheval sur deux mois compte pour celui qui en possède la majorité) ;
+ * son numéro est son rang dans ce mois (1 = celle qui contient le premier jeudi).
+ */
+export function semaineDuMois(iso: string): { mois: number; annee: number; numero: number } {
+  const jeudi = jourLocal(joursDeSemaine(iso)[3]);
+  return { mois: jeudi.getMonth(), annee: jeudi.getFullYear(), numero: Math.floor((jeudi.getDate() - 1) / 7) + 1 };
+}

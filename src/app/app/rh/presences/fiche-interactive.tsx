@@ -195,9 +195,13 @@ export function FicheInteractive({ fiche }: { fiche: FicheClient }) {
             {t("Tous présents ({n})", { n: totaux.nonRenseignes })}
           </Button>
         ) : null}
+        <a href={`/app/rh/presences/pdf?semaine=${fiche.date}`} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-sm font-medium hover:bg-muted">
+          <Printer className="size-4" aria-hidden />
+          {t("Imprimer la semaine")}
+        </a>
         <a href={`/app/rh/presences/pdf?date=${fiche.date}`} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-background px-3 text-sm font-medium hover:bg-muted">
           <Printer className="size-4" aria-hidden />
-          PDF
+          {t("Imprimer le jour")}
         </a>
         {!fiche.valideePar && editable ? (
           <Button type="button" disabled={attente} onClick={() => action(() => validerFicheAction(fiche.date), () => t("Fiche validée."))}>
