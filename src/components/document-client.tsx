@@ -29,18 +29,18 @@ export async function LignesDocumentClient({ lignes, montantHT, montantTVA, mont
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
               <th className="px-3 py-2 font-medium">{t("Désignation")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("Qté")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("Prix unit.")}</th>
-              <th className="px-3 py-2 text-right font-medium">TVA</th>
+              <th className="px-3 py-2 text-right font-medium whitespace-nowrap">{t("Qté")}</th>
+              <th className="px-3 py-2 text-right font-medium whitespace-nowrap">{t("Prix unit.")}</th>
+              <th className="px-3 py-2 text-right font-medium whitespace-nowrap">TVA</th>
             </tr>
           </thead>
           <tbody>
             {lignes.map((l) => (
               <tr key={l.id} className="border-b last:border-0">
                 <td className="px-3 py-2">{l.designation}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{l.quantite}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formaterFCFA(l.prixUnitaire)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{l.tauxTVA}%</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.quantite}</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(l.prixUnitaire)}</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.tauxTVA}%</td>
               </tr>
             ))}
           </tbody>

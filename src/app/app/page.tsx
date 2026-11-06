@@ -181,7 +181,7 @@ export default async function PageTableauDeBord() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link href="/app/facturation" className="contents">
           <Card interactive className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
             <CardHeader>
@@ -259,7 +259,7 @@ export default async function PageTableauDeBord() {
       </div>
 
       {projetsDisponibles ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
             <CardHeader>
               <div className="flex items-center gap-3">

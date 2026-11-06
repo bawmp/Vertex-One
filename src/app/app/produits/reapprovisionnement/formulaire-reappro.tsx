@@ -46,7 +46,7 @@ export function FormulaireReappro({ lignes, fournisseurs, peutCommander }: { lig
             const c = choix[l.produitId];
             const couvert = l.quantiteSuggeree === 0;
             return (
-              <div key={l.produitId} className="grid gap-3 px-4 py-3 text-sm sm:grid-cols-[auto_1fr_7rem_14rem] sm:items-center">
+              <div key={l.produitId} className="grid grid-cols-1 gap-3 px-4 py-3 text-sm sm:grid-cols-[auto_1fr_7rem_14rem] sm:items-center">
                 <input type="checkbox" className="size-4 accent-primary" checked={c.coche} disabled={!peutCommander} onChange={(e) => maj(l.produitId, { coche: e.target.checked })} aria-label={t("Commander {nom}", { nom: l.nom })} />
                 <div className="min-w-0">
                   <p className="truncate font-medium">{l.nom}</p>

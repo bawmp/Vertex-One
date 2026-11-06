@@ -76,7 +76,7 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye,
             onConfirme={() => router.refresh()}
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <BoutonDecision principal icone={CreditCard} titre="Payer maintenant" detail={tranchesAutorisees && solde > 1000 ? "Tout le solde ou une tranche de votre choix, par Mobile Money" : "Mobile Money : une demande de validation arrive sur votre téléphone"} onClick={() => setPaiementOuvert(true)} />
             <BoutonDecision icone={Clock} titre="Payer plus tard" detail="Ce lien reste valable jusqu'à l'échéance" onClick={() => setPlusTard(true)} />
           </div>
@@ -124,7 +124,7 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye,
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <BoutonDecision principal icone={Check} titre="Accepter la facture" detail="Puis payer maintenant ou plus tard" chargement={enCours && action === "accepter"} disabled={enCours} onClick={() => repondre("ACCEPTER")} />
           <BoutonDecision icone={X} titre="Contester" detail="Vous pourrez expliquer le problème" disabled={enCours} onClick={() => setContestation(true)} />
         </div>

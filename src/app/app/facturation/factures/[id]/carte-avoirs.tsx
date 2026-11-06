@@ -105,7 +105,7 @@ export function CarteAvoirs({ factureId, lignes, avoirs, netRestant, peutCreer, 
                 <thead>
                   <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="px-3 py-2 font-medium">{t("Désignation")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("Restant")}</th>
+                    <th className="px-3 py-2 text-right font-medium whitespace-nowrap">{t("Restant")}</th>
                     <th className="px-3 py-2 font-medium">{t("À créditer")}</th>
                     {gereStock ? <th className="px-3 py-2 font-medium">{t("Remettre en stock")}</th> : null}
                   </tr>
@@ -119,7 +119,7 @@ export function CarteAvoirs({ factureId, lignes, avoirs, netRestant, peutCreer, 
                           {t("Facturé {a}, déjà crédité {b}", { a: l.facturee, b: l.creditee })} · {formaterFCFA(l.prixUnitaire)}
                         </p>
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{l.restant}</td>
+                      <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.restant}</td>
                       <td className="px-3 py-2">
                         <Input
                           name={`quantite_${l.ligneFactureId}`}

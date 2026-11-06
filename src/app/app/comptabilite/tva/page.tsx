@@ -164,7 +164,7 @@ export default async function PageTva({ searchParams }: { searchParams: Promise<
           </Card>
           <p className="text-xs text-muted-foreground">{t("Tableau de travail à faire valider par votre comptable avant la déclaration officielle auprès de la DGI : Vertex One ne dépose aucune déclaration à votre place.")}</p>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <DetailTva titre={t("TVA collectée")} lignes={d.collectee} />
             <DetailTva titre={t("TVA déductible")} lignes={d.deductible} />
           </div>

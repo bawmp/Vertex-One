@@ -54,7 +54,7 @@ export function FormulaireNouveauFormulaire() {
           Annuler
         </Button>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {MODELES_FORMULAIRES.map((modele) => (
           <form key={modele.id} action={actionModele} className="flex flex-col justify-between gap-2 rounded-lg border border-border p-3">
             <input type="hidden" name="modeleId" value={modele.id} />

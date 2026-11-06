@@ -349,7 +349,7 @@ export function EditeurDocument({
         </div>
       ) : null}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[1fr_20rem]">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_20rem]">
         {/* La « feuille » : en-tête et pied de page simulés autour du contenu ; l'aperçu PDF donne la mise en page exacte. */}
         <div className="mx-auto w-full max-w-[794px] overflow-hidden rounded-md border border-border bg-white text-black shadow-md">
           {avecEntete ? (

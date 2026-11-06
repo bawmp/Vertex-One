@@ -181,7 +181,7 @@ export default async function PageAchats() {
                       {bc.numero} — {bc.fournisseurNom}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                     <span className="tabular-nums font-medium">{formaterFCFA(bc.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? bc.statut}</Badge>
                     {bc.statut === "BROUILLON" && peut(utilisateurConnecte, "ACHATS", "CREER") ? (
@@ -227,7 +227,7 @@ export default async function PageAchats() {
                       Échéance {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(f.dateEcheance)}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                     <span className="tabular-nums font-medium">{formaterFCFA(f.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{info?.libelle ?? f.statut}</Badge>
                     {f.statut === "EN_ATTENTE" && peut(utilisateurConnecte, "ACHATS", "MODIFIER") ? (
@@ -298,7 +298,7 @@ export default async function PageAchats() {
                   </p>
                   <p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(p.datePaiement)}</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <span className="tabular-nums font-medium">{formaterFCFA(p.montant)}</span>
                   <Badge variant="success">{p.moyenPaiement}</Badge>
                 </div>

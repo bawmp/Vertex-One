@@ -42,7 +42,7 @@ export function FormulaireSection() {
         });
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <ChampSelect label={t("Axe")} name="axe" defaultValue="PROJET">
           {AXES.map((a) => (
             <option key={a} value={a}>

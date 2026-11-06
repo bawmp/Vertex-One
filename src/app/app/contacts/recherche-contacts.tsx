@@ -32,21 +32,21 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
               key={c.id}
               href={`/app/contacts/${c.id}`}
               style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-              className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+              className="group/ligne relative flex animate-in fade-in flex-col gap-0.5 overflow-hidden px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3 fill-mode-both duration-300 hover:bg-muted/50"
             >
               <span
                 aria-hidden
                 className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
               />
               <span className="min-w-0 truncate font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{c.nom}</span>
-              <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground sm:shrink-0">
                 {c.compteNom ? (
                   <span className="flex items-center gap-1">
                     <Building2 className="size-3" aria-hidden />
                     {c.compteNom}
                   </span>
                 ) : null}
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 whitespace-nowrap">
                   <Phone className="size-3" aria-hidden />
                   {c.telephone}
                 </span>

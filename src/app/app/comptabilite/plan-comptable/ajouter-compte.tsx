@@ -73,7 +73,7 @@ export function AjouterCompte() {
             <h2 className="text-sm font-medium">{t("Ajouter un compte à votre plan comptable")}</h2>
             <p className="text-sm text-muted-foreground">{t("Le premier chiffre du numéro donne la classe : 6 pour une charge, 7 pour un produit, 5 pour la trésorerie… Ce compte n'est visible que de votre entreprise.")}</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[12rem_1fr]">
             <Champ label={t("Numéro (6 chiffres)")} name="numero" inputMode="numeric" maxLength={6} pattern="[1-8][0-9]{5}" required value={numero} onChange={(e) => setNumero(e.target.value.replace(/\D/g, ""))} aide={classe ? t("Classe {classe} — {nom}", { classe, nom: t(NOM_CLASSE[classe]) }) : t("Exemple : 605100")} />
             <Champ label={t("Intitulé")} name="libelle" minLength={2} maxLength={80} required />
           </div>

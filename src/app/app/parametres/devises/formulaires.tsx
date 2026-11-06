@@ -42,7 +42,7 @@ export function FormulaireTaux({ aujourdhui }: { aujourdhui: string }) {
         });
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Champ label={t("Devise (EUR, USD…)")} name="devise" required maxLength={3} />
         <Champ label={t("FCFA pour une unité")} name="taux" required inputMode="decimal" placeholder="655,957" />
         <Champ label={t("En vigueur depuis le")} name="dateEffet" type="date" defaultValue={aujourdhui} required />
@@ -96,7 +96,7 @@ export function Convertisseur({ taux }: { taux: { devise: string; tauxMilliemes:
   }
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-4">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
           {t("Devise")}
           <select value={devise} onChange={(e) => setDevise(e.target.value)} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">

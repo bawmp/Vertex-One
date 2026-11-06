@@ -32,7 +32,7 @@ export function FormulaireParametres({ params }: { params: Params }) {
             <Label htmlFor="texte">Texte d&apos;accueil (optionnel)</Label>
             <Input id="texte" name="texte" defaultValue={params?.texte ?? ""} />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="delaiMinimumHeures">Préavis minimum (heures)</Label>
               <Input id="delaiMinimumHeures" name="delaiMinimumHeures" type="number" min={0} defaultValue={params?.delaiMinimumHeures ?? 24} required />

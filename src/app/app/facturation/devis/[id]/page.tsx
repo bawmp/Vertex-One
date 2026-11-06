@@ -60,10 +60,10 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight">{leDevis.numero}</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h1 className="whitespace-nowrap text-2xl font-semibold tracking-tight">{leDevis.numero}</h1>
             <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? leDevis.statut)}</Badge>
           </div>
           <p className="text-muted-foreground">
@@ -109,18 +109,18 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           <thead>
             <tr className="border-b bg-muted/40 text-left text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">{t("Désignation")}</th>
-              <th className="px-4 py-2.5 text-right font-medium">{t("Qté")}</th>
-              <th className="px-4 py-2.5 text-right font-medium">{t("Prix unit.")}</th>
-              <th className="px-4 py-2.5 text-right font-medium">TVA</th>
+              <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">{t("Qté")}</th>
+              <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">{t("Prix unit.")}</th>
+              <th className="px-4 py-2.5 text-right font-medium whitespace-nowrap">TVA</th>
             </tr>
           </thead>
           <tbody>
             {lignes.map((l) => (
               <tr key={l.id} className="border-b last:border-0">
                 <td className="px-4 py-2.5">{l.designation}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{l.quantite}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{formaterFCFA(l.prixUnitaire)}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums">{l.tauxTVA}%</td>
+                <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{l.quantite}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{formaterFCFA(l.prixUnitaire)}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{l.tauxTVA}%</td>
               </tr>
             ))}
           </tbody>

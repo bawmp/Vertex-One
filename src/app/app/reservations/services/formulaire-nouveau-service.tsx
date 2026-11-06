@@ -38,7 +38,7 @@ export function FormulaireNouveauService() {
             <Input id="description" name="description" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
               <Label htmlFor="dureeMinutes">Durée (min)</Label>
               <Input id="dureeMinutes" name="dureeMinutes" type="number" min={5} step={5} defaultValue={30} required />

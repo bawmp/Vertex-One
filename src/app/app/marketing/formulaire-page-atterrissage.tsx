@@ -30,7 +30,7 @@ export function FormulairePageAtterrissage() {
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="titre">Titre</Label>
               <Input id="titre" name="titre" required minLength={2} autoFocus />
@@ -46,7 +46,7 @@ export function FormulairePageAtterrissage() {
             <Textarea id="texte" name="texte" rows={4} required />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="imageUrl">URL d&apos;image (optionnelle)</Label>
               <Input id="imageUrl" name="imageUrl" type="url" />

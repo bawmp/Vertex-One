@@ -121,7 +121,7 @@ export function AjusterStock({ produitId, suiviStock, stockActuel, depots = [], 
               ))}
             </ChampSelect>
           ) : null}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex gap-2">
               <Champ label={libelleQuantite} name="quantite" type="number" min={mode === "INVENTAIRE" ? 0 : 1} step={1} required inputMode="numeric" value={quantite} onChange={(e) => setQuantite(e.target.value)} className="flex-1" />
               {conditionnements.length > 0 ? (

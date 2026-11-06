@@ -38,7 +38,7 @@ export function FormulaireNouveauDeal({ contacts, contactIdPreselectionne }: { c
         </SectionFormulaire>
 
         <SectionFormulaire titre={t("Valeur et échéance")}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Champ label={t("Montant (FCFA)")} id="montant" name="montant" type="number" min={0} inputMode="numeric" icone={Banknote} value={montant} onChange={(e) => setMontant(e.target.value)} aide={montantLisible} />
             <Champ label={t("Clôture estimée")} id="dateClotureEstimee" name="dateClotureEstimee" type="date" icone={CalendarClock} />
           </div>

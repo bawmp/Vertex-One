@@ -157,7 +157,7 @@ export default async function PageDocuments() {
                     )}
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <Badge variant={estCategorieSensible(d.categorie) ? "warning" : "neutral"}>{LIBELLE_CATEGORIE[d.categorie]}</Badge>
                   <a
                     href={`/app/documents/${d.id}`}

@@ -26,9 +26,9 @@ function TableauGroupe({ titre, entete, description, lignes, vide }: { titre: st
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">{entete}</th>
-                  <th className="px-3 py-2 text-right font-medium">Inscrits</th>
-                  <th className="px-3 py-2 text-right font-medium">Ont facturé</th>
-                  <th className="px-3 py-2 text-right font-medium">Payants</th>
+                  <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Inscrits</th>
+                  <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Ont facturé</th>
+                  <th className="px-3 py-2 text-right font-medium whitespace-nowrap">Payants</th>
                   <th className="py-2 pl-3 text-right font-medium">Taux payant</th>
                 </tr>
               </thead>
@@ -36,9 +36,9 @@ function TableauGroupe({ titre, entete, description, lignes, vide }: { titre: st
                 {lignes.map((l) => (
                   <tr key={l.cle} className="border-b last:border-0">
                     <td className="py-2 pr-3 font-medium">{l.cle}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{l.inscrits}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{l.avecFacture}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{l.payants}</td>
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.inscrits}</td>
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.avecFacture}</td>
+                    <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{l.payants}</td>
                     <td className="py-2 pl-3 text-right tabular-nums">{pct(l.tauxPayant)}</td>
                   </tr>
                 ))}
@@ -90,7 +90,7 @@ export default async function PageAcquisition() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex items-center justify-between gap-2 pb-2">
             <CardDescription>Inscrits (7 j / 30 j)</CardDescription>
@@ -179,7 +179,7 @@ export default async function PageAcquisition() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TableauGroupe
           titre="Par origine"
           entete="Origine"

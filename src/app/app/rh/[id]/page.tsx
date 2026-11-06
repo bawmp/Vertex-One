@@ -296,7 +296,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         {/* ----------------------------- Colonne principale : le travail ----------------------------- */}
         <div className="flex min-w-0 flex-col gap-6">
           <CarteFiche icone={ClipboardList} titre={t("Tâches du poste")} aide={t("Ses responsabilités dans son poste, visibles de la personne et de son manager")}>

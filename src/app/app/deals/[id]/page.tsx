@@ -182,7 +182,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
 
       {peut(utilisateurConnecte, "CRM", "SUPPRIMER") ? <BoutonSupprimerCrm type="deal" id={fiche.id} nom={fiche.titre} /> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">{t("Bons de commande")}</h2>
           {bonsCommandeListe.length > 0 ? (
@@ -220,7 +220,7 @@ export default async function PageFicheDeal({ params }: { params: Promise<{ id: 
                         <span className="font-medium">{fr.libelle}</span>
                         <span className="text-muted-foreground"> — {t(infoFrequence?.libelle ?? fr.frequence)}</span>
                       </span>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                         <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(fr.montantTTC)} FCFA</span>
                         <Badge variant={infoStatut?.variante ?? "neutral"}>{t(infoStatut?.libelle ?? fr.statut)}</Badge>
                         {peutCreerDevis && fr.statut !== "TERMINE" ? (

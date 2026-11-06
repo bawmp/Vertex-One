@@ -36,7 +36,7 @@ export function FormulaireNouveauShift() {
             <Input id="nom" name="nom" placeholder={t("Matin")} required className="max-w-48" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
               <Label htmlFor="heureDebut">{t("Début")}</Label>
               <Input id="heureDebut" name="heureDebut" type="time" required />

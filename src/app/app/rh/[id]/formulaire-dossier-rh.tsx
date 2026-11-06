@@ -69,7 +69,7 @@ export function FormulaireDossierRH({
             <Input id="poste" name="poste" defaultValue={poste} required />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="typeContrat">{t("Type de contrat")}</Label>
               <Select id="typeContrat" name="typeContrat" defaultValue={typeContrat}>
@@ -85,7 +85,7 @@ export function FormulaireDossierRH({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="dateEmbauche">{t("Date d'embauche")}</Label>
               <Input id="dateEmbauche" name="dateEmbauche" type="date" defaultValue={versDateInput(dateEmbauche)} required />
@@ -96,7 +96,7 @@ export function FormulaireDossierRH({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="managerId">{t("Manager")}</Label>
               <SelecteurPersonne id="managerId" name="managerId" personnes={collegues} defaultValue={managerId} placeholder={t("Rechercher un manager…")} />

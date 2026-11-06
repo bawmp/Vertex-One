@@ -89,7 +89,7 @@ export default async function PageStagiaires() {
           ) : null}
         </div>
       </div>
-      <div className="grid gap-3 text-sm sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-xl border bg-card p-4">
           <p className="font-semibold">{t("Stagiaire professionnel")}</p>
           <p className="mt-1 text-muted-foreground">{t("Une personne qui travaille déjà pour vous, en période probatoire : elle a un compte et un poste, est rémunérée, et ses présences se suivent comme celles d'un employé. À la fin, vous décidez : l'embaucher (CDI ou CDD) ou ne pas la retenir.")}</p>

@@ -80,7 +80,7 @@ export default async function PageMonEspace() {
             <BarChart3 className="size-4" aria-hidden /> Tableau de bord sensible
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="text-xs text-muted-foreground">Produits (exercice en cours)</p>
             <p className="text-lg font-semibold">{formaterFCFA(tableauFaco.financier?.totalProduits ?? 0)}</p>
@@ -96,7 +96,7 @@ export default async function PageMonEspace() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">

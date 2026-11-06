@@ -114,7 +114,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
           <CardContent className="flex flex-col gap-4">
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1 text-sm font-medium">{t("1. Que voulez-vous importer ?")}</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {types.map((x) => (
                   <button
                     key={x.type}
@@ -180,7 +180,7 @@ export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clie
                 const entete = correspondance[champ.cle];
                 const valeur = entete ? apercu.exemple[0]?.[entete] : "";
                 return (
-                  <div key={champ.cle} className="grid items-center gap-2 sm:grid-cols-[14rem_minmax(0,1fr)_10rem]">
+                  <div key={champ.cle} className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[14rem_minmax(0,1fr)_10rem]">
                     <label htmlFor={`champ-${champ.cle}`} className="text-sm">
                       {t(champ.libelle)}
                       {champ.obligatoire ? <span className="text-destructive"> *</span> : null}
@@ -294,7 +294,7 @@ function ResumeRapport({ rapport, conditionnel = false }: { rapport: Rapport; co
   const t = useT();
   return (
     <div className="flex flex-col gap-3 text-sm">
-      <ul className="grid gap-2 sm:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <li className="rounded-lg border border-border p-3">
           <p className="text-2xl font-semibold">{rapport.crees}</p>
           <p className="text-muted-foreground">{conditionnel ? t("seront créés") : t("créés")}</p>

@@ -15,7 +15,7 @@ export function FormulaireDemandeSignature({ documentId }: { documentId: string 
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="documentId" value={documentId} />
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor={`nom-${documentId}`}>{t("Nom du signataire")}</Label>
           <Input id={`nom-${documentId}`} name="nom" required minLength={2} />

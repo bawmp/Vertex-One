@@ -387,7 +387,7 @@ export default async function PageRH() {
             {t("Anniversaires à venir")}
           </h2>
           {anniversairesTous.length === 0 ? <p className="rounded-xl border border-dashed py-5 text-center text-sm text-muted-foreground">{t("Aucun anniversaire dans les 30 prochains jours.")}</p> : null}
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {anniversairesTous.slice(0, 6).map((a) => {
               const dossierId = a.type === "UTILISATEUR" ? (dossierParUtilisateur[a.id] ?? null) : null;
               const d = new Date(`${a.date}T00:00:00Z`);
@@ -443,7 +443,7 @@ export default async function PageRH() {
         ) : dossiers.length === 0 ? (
           <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">{t("Aucun dossier RH pour le moment.")}</p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {dossiers.map((d, index) => {
               const anniv = anniversairesParUtilisateur[d.utilisateurId];
               return (

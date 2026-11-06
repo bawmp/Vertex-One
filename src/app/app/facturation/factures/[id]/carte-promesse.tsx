@@ -126,7 +126,7 @@ export function CartePromesse({
 
           {peutNoter && formulaire ? (
             <form onSubmit={enregistrer} aria-label={t("Noter une promesse de paiement")} className="flex animate-in flex-col gap-4 rounded-xl border border-dashed p-3.5 duration-300 fade-in slide-in-from-top-1">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="date-promesse-equipe">{t("Le client paiera le")}</Label>
                   <Input id="date-promesse-equipe" name="datePromise" type="date" min={aujourdhui} max={jourMax} required defaultValue={promesse?.datePromise ?? ""} />

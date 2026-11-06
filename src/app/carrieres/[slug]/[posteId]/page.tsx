@@ -38,7 +38,7 @@ export default async function PagePosteOuvertPublic({ params }: { params: Promis
           </Link>
         </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[1fr_26rem]">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_26rem]">
           <div className="flex flex-col gap-8">
             <header className="carrieres-monter flex flex-col gap-4" style={delai(100)}>
               {poste.lieu || poste.typeContrat ? (

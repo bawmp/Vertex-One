@@ -228,9 +228,9 @@ async function VueGrandLivre({ comptes }: { comptes: CompteGrandLivre[] }) {
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2 font-medium">{t("Date")}</th>
                   <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Solde")}</th>
+                  <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Débit")}</th>
+                  <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Crédit")}</th>
+                  <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Solde")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -363,8 +363,8 @@ async function VueJournaux({ journaux }: { journaux: JournalPeriode[] }) {
                     <th className="px-4 py-2 font-medium">{t("Date")}</th>
                     <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
                     <th className="px-4 py-2 font-medium">{t("Compte")}</th>
-                    <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
-                    <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
+                    <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Débit")}</th>
+                    <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Crédit")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

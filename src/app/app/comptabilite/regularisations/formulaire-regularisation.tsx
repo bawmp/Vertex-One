@@ -74,7 +74,7 @@ export function FormulaireRegularisation({ comptes, dateParDefaut, moisDebut = 1
             options={REGULARISATIONS.map((d) => ({ valeur: d.type, libelle: t(d.titre), detail: t(d.explication) }))}
           />
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {def.classeCompte ? (
               <ChampSelect label={def.classeCompte === 6 ? t("Compte de charge concerné") : t("Compte de produit concerné")} name="compte" required value={compte} onChange={(e) => setCompte(e.target.value)} className="sm:col-span-2">
                 <option value="" />

@@ -172,7 +172,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
         <h1 className="text-2xl font-semibold tracking-tight">{t("One Chat")}</h1>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[16rem_minmax(0,1fr)]">
         <aside className="flex flex-col gap-4">
           <RechercheMessages nomsCanaux={nomsCanaux} />
 

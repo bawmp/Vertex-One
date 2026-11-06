@@ -51,7 +51,7 @@ export function FormulaireFactureFournisseur({
     <Card>
       <CardContent>
         <form action={action} className="flex flex-col gap-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="fournisseurId">Fournisseur</Label>
               <Select id="fournisseurId" name="fournisseurId" required defaultValue="">

@@ -42,14 +42,14 @@ export function FormulaireFamille({ familleId, nomFamille }: { familleId?: strin
 
           <div className="flex flex-col gap-3">
             {options.map((o, i) => (
-              <div key={i} className="grid gap-3 sm:grid-cols-[12rem_1fr]">
+              <div key={i} className="grid grid-cols-1 gap-3 sm:grid-cols-[12rem_1fr]">
                 <Champ label={t("Option {n}", { n: i + 1 })} name={`option${i + 1}`} value={o.nom} onChange={(e) => maj(i, "nom", e.target.value)} maxLength={30} />
                 <Champ label={t("Valeurs")} name={`valeurs${i + 1}`} value={o.valeurs} onChange={(e) => maj(i, "valeurs", e.target.value)} placeholder={i === 0 ? "S, M, L" : i === 1 ? t("Rouge, Bleu") : ""} />
               </div>
             ))}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Champ label={t("Prix de vente (FCFA)")} name="prixVente" type="number" min={0} step={1} inputMode="numeric" defaultValue={0} />
             <Champ label={t("Prix d'achat (FCFA)")} name="prixAchat" type="number" min={0} step={1} inputMode="numeric" defaultValue={0} />
             <Champ label={t("Stock de départ de chaque variante")} name="stockInitial" type="number" min={0} step={1} inputMode="numeric" defaultValue={0} />

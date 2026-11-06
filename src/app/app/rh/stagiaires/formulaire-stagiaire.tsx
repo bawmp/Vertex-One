@@ -48,7 +48,7 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
     <form action={envoyer} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
         <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("Le stagiaire")}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {champ("nom", t("Nom complet"), { required: true, maxLength: 120 })}
           {champ("dateNaissance", t("Date de naissance (rappel d'anniversaire)"), { type: "date" })}
           {champ("telephone", t("Téléphone"), { maxLength: 40 })}
@@ -58,7 +58,7 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
 
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
         <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("École et convention")}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {champ("etablissement", t("Établissement"), { required: true, maxLength: 160 })}
           {champ("filiere", t("Filière"), { maxLength: 120 })}
           {champ("niveau", t("Niveau (ex. Licence 3, Master 2)"), { maxLength: 80 })}
@@ -70,7 +70,7 @@ export function FormulaireStagiaire({ action, valeurs = {}, personnes, services,
 
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4" disabled={verrouille}>
         <legend className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t("Le stage")}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {champ("dateDebut", t("Début du stage"), { type: "date", required: true })}
           {champ("dateFin", t("Fin prévue du stage"), { type: "date", required: true })}
           <div className="flex flex-col gap-1.5">

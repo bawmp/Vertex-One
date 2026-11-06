@@ -53,7 +53,7 @@ export default async function PageJournalOneVault() {
                 <p className="truncate font-medium">{l.secretTitre ?? "(secret supprimé définitivement)"}</p>
                 <p className="text-xs text-muted-foreground">{l.utilisateurNom ?? "Utilisateur inconnu"}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <Badge variant="neutral">{LIBELLE_ACTION[l.action] ?? l.action}</Badge>
                 <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(l.creeLe)}</span>
               </div>

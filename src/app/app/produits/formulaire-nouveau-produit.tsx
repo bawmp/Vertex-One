@@ -37,7 +37,7 @@ export function FormulaireNouveauProduit({ gereStock = false }: { gereStock?: bo
             {t("Nouveau produit")}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="nom">{t("Nom")}</Label>
               <Input id="nom" name="nom" required minLength={2} />

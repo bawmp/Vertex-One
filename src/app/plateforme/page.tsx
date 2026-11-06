@@ -31,7 +31,7 @@ export default async function PagePlateformeAccueil() {
         <p className="mt-1 text-muted-foreground">Vue d&apos;ensemble de toutes les entreprises clientes.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex items-center justify-between gap-2 pb-2">
             <CardDescription>Entreprises</CardDescription>
@@ -123,7 +123,7 @@ export default async function PagePlateformeAccueil() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">À surveiller</CardTitle>

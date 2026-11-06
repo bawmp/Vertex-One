@@ -41,7 +41,7 @@ export function ListePagesAtterrissage({ pages, peutModifier }: { pages: Page[];
                 <span className="text-xs text-muted-foreground">/p/{p.slug}</span>
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
               <Badge variant={p.publiee ? "success" : "neutral"}>{p.publiee ? "Publiée" : "Brouillon"}</Badge>
               {peutModifier ? (
                 <Button

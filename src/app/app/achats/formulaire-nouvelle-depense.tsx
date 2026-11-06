@@ -63,7 +63,7 @@ export function FormulaireNouvelleDepense({
             <Input id="libelle" name="libelle" required minLength={2} placeholder="ex : Carburant véhicule de service" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="compteComptableId">Catégorie de charge</Label>
               <Select id="compteComptableId" name="compteComptableId" required defaultValue="">

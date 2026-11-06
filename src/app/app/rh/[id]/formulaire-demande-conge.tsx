@@ -44,7 +44,7 @@ export function FormulaireDemandeConge() {
             </Select>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
               <Label htmlFor="dateDebut">{t("Du")}</Label>
               <Input id="dateDebut" name="dateDebut" type="date" required />

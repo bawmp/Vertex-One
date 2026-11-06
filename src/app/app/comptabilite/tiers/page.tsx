@@ -215,9 +215,9 @@ async function VueLivre({ tiers, nature }: { tiers: TiersGrandLivre[]; nature: N
               <tr className="border-b text-left text-xs text-muted-foreground">
                 <th className="px-4 py-2 font-medium">{t("Date")}</th>
                 <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
-                <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
-                <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
-                <th className="px-4 py-2 text-right font-medium">{t("Solde")}</th>
+                <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Débit")}</th>
+                <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Crédit")}</th>
+                <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Solde")}</th>
                 <th className="px-4 py-2 font-medium">{t("Lettrage")}</th>
               </tr>
             </thead>
@@ -263,11 +263,11 @@ async function VueAgee({ balance, nature }: { balance: BalanceAgee; nature: Natu
           <tr className="border-b text-left text-xs text-muted-foreground">
             <th className="px-4 py-2 font-medium">{nature === "CLIENT" ? t("Client") : t("Fournisseur")}</th>
             {TRANCHES_AGE.map((tr) => (
-              <th key={tr} className="px-3 py-2 text-right font-medium">
+              <th key={tr} className="px-3 py-2 text-right font-medium whitespace-nowrap">
                 {t(LIBELLE_TRANCHE[tr])}
               </th>
             ))}
-            <th className="px-4 py-2 text-right font-medium">{t("Total dû")}</th>
+            <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Total dû")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">

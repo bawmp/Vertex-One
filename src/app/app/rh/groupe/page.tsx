@@ -71,7 +71,7 @@ export default async function PageEquipesDuGroupe() {
       </div>
       <p className="text-sm text-muted-foreground">{t("Les collaborateurs des autres entreprises de votre groupe, en lecture seule. Le partage n'a lieu que si les deux entreprises l'ont activé.")}</p>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CarteFiche icone={ShieldCheck} titre={t("Ce qui est partagé")} aide={t("Liste fermée, en lecture seule")} ton="vert">
           <ul className="grid gap-1.5 text-sm">
             {PARTAGE.map((t) => (
@@ -130,7 +130,7 @@ export default async function PageEquipesDuGroupe() {
               {e.nom}
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{e.gens.length}</span>
             </h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {e.gens.map((g) => {
                 const anniv = g.dateNaissance ? prochainAnniversaire(g.dateNaissance, aujourdhui) : null;
                 return (

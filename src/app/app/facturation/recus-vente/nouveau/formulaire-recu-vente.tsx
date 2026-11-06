@@ -67,7 +67,7 @@ export function FormulaireRecuVente({
           {dealId ? <input type="hidden" name="dealId" value={dealId} /> : null}
           {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="moyenPaiement">{t("Moyen de paiement")}</Label>
               <Select id="moyenPaiement" name="moyenPaiement" required defaultValue="manuel">

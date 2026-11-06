@@ -27,7 +27,7 @@ export function FormulaireNouveauTicketPortail({ categories }: { categories: { i
 
   return (
     <form action={action} className="flex flex-col gap-3 rounded-lg border p-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="categorieId">Catégorie</Label>
           <Select id="categorieId" name="categorieId" required>

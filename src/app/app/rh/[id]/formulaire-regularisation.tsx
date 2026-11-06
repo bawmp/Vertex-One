@@ -37,7 +37,7 @@ export function FormulaireRegularisation() {
             <Input id="date" name="date" type="date" required max={new Date().toISOString().slice(0, 10)} className="max-w-48" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="heureArriveeProposee">{t("Heure d'arrivée corrigée")}</Label>
               <Input id="heureArriveeProposee" name="heureArriveeProposee" type="time" />

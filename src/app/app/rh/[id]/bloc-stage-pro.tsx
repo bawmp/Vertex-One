@@ -48,7 +48,7 @@ export function BlocStagePro({ dossierRHId, finStage, joursRestants, decision, d
 
       {!decision && peutDecider ? (
         <form action={decider} className="flex flex-col gap-3">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="decision">{t("Décision")}</Label>
               <Select id="decision" name="decision" value={choix} onChange={(e) => setChoix(e.target.value as "EMBAUCHE" | "NON_RETENU")}>

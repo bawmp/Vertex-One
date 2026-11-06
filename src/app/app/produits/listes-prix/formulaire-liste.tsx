@@ -15,7 +15,7 @@ export function FormulaireListe({ listeId, nom, remisePourcent }: { listeId?: st
   const [etat, formAction, enCours] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-3" aria-label={listeId ? t("Modifier la liste") : t("Créer une liste de prix")}>
-      <div className="grid gap-3 sm:grid-cols-[1fr_12rem_auto] sm:items-start">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_12rem_auto] sm:items-start">
         <Champ label={t("Nom de la liste")} name="nom" required minLength={2} maxLength={60} defaultValue={nom} placeholder={t("Ex. Revendeurs")} />
         <Champ label={t("Remise sur le catalogue (%)")} name="remisePourcent" type="number" min={0} max={100} step={1} inputMode="numeric" defaultValue={remisePourcent ?? 0} />
         <Button type="submit" disabled={enCours} className="sm:mt-1">

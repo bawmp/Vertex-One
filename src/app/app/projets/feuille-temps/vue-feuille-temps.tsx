@@ -164,7 +164,7 @@ function GrilleSemaine({ entrees }: { entrees: EntreeSemaine[] }) {
                       </td>
                     );
                   })}
-                  <td className="px-3 py-2 text-right font-medium tabular-nums">{totalLigne(ligne)}h</td>
+                  <td className="px-3 py-2 text-right font-medium tabular-nums whitespace-nowrap">{totalLigne(ligne)}h</td>
                 </tr>
               ))
             )}

@@ -51,7 +51,7 @@ export default async function PagePlateformeEntrepriseDetail({ params }: { param
           <CardTitle className="text-base">Abonnement</CardTitle>
           <CardDescription>Secteur : {entreprise.secteurProfil} — inscrite le {formatDate(entreprise.creeLe)}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="text-xs text-muted-foreground">Fin d&apos;essai</p>
             <p className="font-medium">{formatDate(entreprise.essaiFinLe)}</p>

@@ -44,7 +44,7 @@ export function TransfertStock({ produitId, depots }: { produitId: string; depot
               <p className="text-sm text-muted-foreground">{t("Déplacez du stock d'un dépôt à un autre : le total de ce produit ne change pas.")}</p>
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <ChampSelect label={t("Depuis")} name="depuis" value={depuis} onChange={(e) => setDepuis(e.target.value)}>
               {depots.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -60,7 +60,7 @@ export function TransfertStock({ produitId, depots }: { produitId: string; depot
               ))}
             </ChampSelect>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Champ label={t("Quantité à transférer")} name="quantite" type="number" min={1} max={Math.max(dispo, 1)} step={1} required inputMode="numeric" aide={t("Disponible : {n}", { n: dispo })} />
             <Champ label={t("Remarque (facultatif)")} name="note" maxLength={300} />
           </div>

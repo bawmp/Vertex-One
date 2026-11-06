@@ -46,7 +46,7 @@ export function FormulaireKit({ produits }: { produits: Composable[] }) {
             <p className="text-sm text-muted-foreground">{t("Un kit se vend comme un produit, mais n'a pas de stock à lui : sa vente sort le stock de chacun de ses composants.")}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_14rem]">
             <Champ label={t("Nom du kit")} name="nom" required minLength={2} maxLength={80} placeholder={t("Ex. Coffret cadeau")} />
             <Champ label={t("Prix de vente (FCFA)")} name="prixVente" type="number" min={0} step={1} inputMode="numeric" value={prix} onChange={(e) => setPrix(e.target.value)} required />
           </div>

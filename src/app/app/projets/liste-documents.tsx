@@ -89,7 +89,7 @@ export function ListeDocuments({
                 {sensible(d.categorie) ? <ShieldAlert className="size-3.5 shrink-0 text-amber-600" aria-hidden /> : null}
                 <span className="truncate">{d.nom}</span>
               </p>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <Badge variant={sensible(d.categorie) ? "warning" : "neutral"}>{LIBELLE_CATEGORIE[d.categorie]}</Badge>
                 <a href={`/app/documents/${d.id}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground" aria-label={`Télécharger ${d.nom}`}>
                   <Download className="size-4" aria-hidden />

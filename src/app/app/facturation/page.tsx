@@ -161,14 +161,14 @@ export default async function PageFacturation() {
                 <Link
                   href={`/app/facturation/devis/${d.id}`}
                   style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex min-w-0 flex-1 animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300"
+                  className="group/ligne relative flex min-w-0 flex-1 animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300"
                 >
                   <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                  <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
+                  <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
                     <span className="font-medium">{d.numero}</span>
                     <span className="text-muted-foreground"> — {nomParClientId[d.id]}</span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-3">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </span>
@@ -200,14 +200,14 @@ export default async function PageFacturation() {
                   key={f.id}
                   href={`/app/facturation/factures/${f.id}`}
                   style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
+                  className="group/ligne relative flex animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
                 >
                   <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                  <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
+                  <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
                     <span className="font-medium">{f.numero}</span>
                     <span className="text-muted-foreground"> — {nomParClientId[f.id]}</span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-3">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0">
                     <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
                     {promessesParFacture[f.id] ? (
                       <Badge variant="info" className="gap-1">
@@ -249,8 +249,8 @@ export default async function PageFacturation() {
                     </span>
                     <DealLink dealId={bc.dealId} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formaterFCFA(bc.montantTTC)}</span>
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{formaterFCFA(bc.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? bc.statut)}</Badge>
                     <Button
                       variant="ghost"
@@ -298,8 +298,8 @@ export default async function PageFacturation() {
                     </span>
                     <DealLink dealId={fr.dealId} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formaterFCFA(fr.montantTTC)}</span>
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{formaterFCFA(fr.montantTTC)}</span>
                     <Badge variant={infoStatut?.variante ?? "neutral"}>{t(infoStatut?.libelle ?? fr.statut)}</Badge>
                     {peutCreer && fr.statut !== "TERMINE" ? <BoutonsFactureRecurrente factureRecurrenteId={fr.id} statut={fr.statut} /> : null}
                   </div>
@@ -335,8 +335,8 @@ export default async function PageFacturation() {
                     </span>
                     <DealLink dealId={rv.dealId} />
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formaterFCFA(rv.montantTTC)}</span>
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{formaterFCFA(rv.montantTTC)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? rv.statut)}</Badge>
                     <Button
                       variant="ghost"
@@ -382,7 +382,7 @@ export default async function PageFacturation() {
                       </span>
                       <DealLink dealId={fa.dealId} />
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                       <span className="text-xs text-muted-foreground">
                         {formaterFCFA(fa.statut === "EMISE" ? fa.montant : fa.montantRestant)}
                         {fa.statut !== "EMISE" ? " restant" : ""}
@@ -431,14 +431,14 @@ export default async function PageFacturation() {
                 key={p.id}
                 href={`/app/facturation/factures/${p.factureId}`}
                 style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
+                className="group/ligne relative flex animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
               >
                 <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
+                <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
                   <span className="font-medium">{p.numeroFacture}</span>
                   <span className="text-muted-foreground"> — {nomParClientId[p.factureId]}</span>
                 </span>
-                <span className="flex shrink-0 items-center gap-3">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0">
                   <span className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "medium" }).format(p.datePaiement)}</span>
                   <span className="tabular-nums text-muted-foreground">{formaterFCFA(p.montant)}</span>
                   <Badge variant="success">{p.moyenPaiement}</Badge>
@@ -462,10 +462,10 @@ export default async function PageFacturation() {
                 key={a.id}
                 href={`/app/facturation/factures/${a.factureId}`}
                 style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
+                className="group/ligne relative flex animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
               >
                 <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                <span className="min-w-0 truncate transition-transform duration-150 group-hover/ligne:translate-x-1">
+                <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
                   <span className="font-medium">{a.numeroFacture}</span>
                   <span className="text-muted-foreground"> — {nomParClientId[a.factureId]} · {a.motif}</span>
                 </span>

@@ -160,7 +160,7 @@ export default async function PageAnalytique({ searchParams }: { searchParams: P
       {peutModifier && actives.length > 0 ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t("Rattacher des documents")}</h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Card className="p-0">
               <p className="border-b px-4 py-2 text-sm font-medium">{t("Dernières factures")}</p>
               <div className="flex flex-col divide-y divide-border">

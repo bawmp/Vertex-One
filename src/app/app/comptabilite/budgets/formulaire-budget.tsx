@@ -27,7 +27,7 @@ export function FormulaireBudget({ comptes }: { comptes: { id: string; numero: s
     <Card>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1">
               <Label htmlFor="nom">{t("Nom")}</Label>
               <Input id="nom" name="nom" required placeholder={t("Ex. Budget 2026")} />

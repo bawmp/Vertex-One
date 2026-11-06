@@ -23,7 +23,7 @@ export function ActionsFinStage({ ficheId, enCours, estAdmin, aEmail, peutSuppri
       {enCours ? (
         <form action={cloturer} className="flex flex-col gap-3 rounded-lg border p-4">
           <p className="text-sm font-semibold">{t("Clore le stage")}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="statut">{t("Issue")}</Label>
               <Select id="statut" name="statut" defaultValue="TERMINE">
@@ -53,7 +53,7 @@ export function ActionsFinStage({ ficheId, enCours, estAdmin, aEmail, peutSuppri
         <form action={embaucher} className="flex flex-col gap-3 rounded-lg border border-dashed p-4">
           <p className="text-sm font-semibold">{t("Le prendre dans l'entreprise")}</p>
           <p className="text-xs text-muted-foreground">{t("Une invitation (valable 72 h) est créée à l'adresse de la fiche ; en l'acceptant, la personne crée son compte et reçoit son dossier RH.")}{aEmail ? "" : t(" Cette fiche n'a pas d'email : ajoutez-en un d'abord.")}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="role">{t("Rôle")}</Label>
               <Select id="role" name="role" defaultValue="EMPLOYE">

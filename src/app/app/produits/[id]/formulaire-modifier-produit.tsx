@@ -51,7 +51,7 @@ export function FormulaireModifierProduit({ produit, ouvertParDefaut = false }: 
             <Pencil className="size-4" aria-hidden />
             {t("Modifier le produit")}
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor="nom-produit">{t("Nom")}</Label>
               <Input id="nom-produit" name="nom" required minLength={2} defaultValue={produit.nom} />

@@ -85,7 +85,7 @@ export default async function PageRapportsRH() {
       {personnel ? (
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">{t("Mes données")}</h2>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">{t("Solde de congés")}</p>
@@ -154,7 +154,7 @@ export default async function PageRapportsRH() {
       {entrepriseRapport ? (
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">{t("Entreprise")}</h2>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
               <CardContent className="flex flex-col gap-1">
                 <p className="text-xs text-muted-foreground">{t("Dossiers actifs")}</p>

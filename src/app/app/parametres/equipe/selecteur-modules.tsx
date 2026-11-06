@@ -17,16 +17,16 @@ export function SelecteurModules({ role, valeurs, onChange, name }: { role: Role
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           {socle.length > 0 ? t("Fiche, tâches et chat toujours accessibles. ") : ""}
           {valeurs.length > 1 ? t("{n} modules sur {total}", { n: valeurs.length, total: modules.length }) : t("{n} module sur {total}", { n: valeurs.length, total: modules.length })}
         </p>
-        <button type="button" className="text-xs text-primary hover:underline" onClick={() => onChange(tousCoches ? [...socle] : [...modules])}>
+        <button type="button" className="shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10" onClick={() => onChange(tousCoches ? [...socle] : [...modules])}>
           {tousCoches ? t("Tout décocher") : t("Tout cocher")}
         </button>
       </div>
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {modules.map((m) => (
           <label key={m} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50 has-checked:border-primary/40 has-checked:bg-primary/5">
             <input

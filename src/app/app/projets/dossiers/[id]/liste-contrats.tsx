@@ -58,7 +58,7 @@ function FormulaireEnvoiContrat({ contratId, documents, client }: { contratId: s
           ))}
         </Select>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor={`nom-${contratId}`}>{t("Nom du signataire")}</Label>
           <Input id={`nom-${contratId}`} name="nom" defaultValue={client?.nom ?? ""} required minLength={2} />

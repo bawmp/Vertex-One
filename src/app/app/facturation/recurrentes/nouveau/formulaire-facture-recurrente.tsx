@@ -58,7 +58,7 @@ export function FormulaireFactureRecurrente({
           {dealId ? <input type="hidden" name="dealId" value={dealId} /> : null}
           {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="libelle">{t("Nom du modèle")}</Label>
               <Input id="libelle" name="libelle" required placeholder={t("Ex. Abonnement mensuel Support")} />

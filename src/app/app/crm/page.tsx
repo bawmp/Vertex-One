@@ -145,7 +145,7 @@ export default async function PageAccueilCrm() {
         <p className="mt-1 text-muted-foreground">{dico.pages.crm.sousTitre}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -303,7 +303,7 @@ export default async function PageAccueilCrm() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
           <h2 className="mb-2 text-sm font-medium text-muted-foreground">{t("Prospects d'aujourd'hui")}</h2>
           <Card className="p-0">

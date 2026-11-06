@@ -13,12 +13,12 @@ export function DeclencheurRelances() {
 
   return (
     <div className="rounded-lg border border-dashed p-4">
-      <form action={formAction} className="flex items-center gap-3">
+      <form action={formAction} className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
         <Button type="submit" variant="outline" size="sm" disabled={enCours}>
           {enCours ? <Spinner /> : <BellRing data-icon="inline-start" aria-hidden />}
           {enCours ? t("Vérification…") : t("Vérifier les factures en retard maintenant")}
         </Button>
-        <p className="text-xs text-muted-foreground">
+        <p className="min-w-0 text-xs text-muted-foreground">
           {t("Déclenchement manuel — la vérification quotidienne automatique n'est pas encore branchée.")}
         </p>
       </form>

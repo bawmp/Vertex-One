@@ -85,7 +85,7 @@ export function FormulaireDevis({
           return (
             <div key={ligne.cle} className="animate-in rounded-2xl border border-border bg-card p-4 shadow-xs duration-300 fade-in slide-in-from-top-2 focus-within:border-primary/40 focus-within:shadow-md">
               <input type="hidden" name="produitId" value={ligne.produitId} />
-              <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[14rem_1fr]">
                 <ChampSelect label={t("Produit")} value={ligne.produitId} onChange={(e) => choisirProduit(index, e.target.value)}>
                   <option value="">{t("Texte libre")}</option>
                   {produits.map((p) => (

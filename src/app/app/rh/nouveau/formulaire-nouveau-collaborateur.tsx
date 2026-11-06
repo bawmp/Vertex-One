@@ -23,7 +23,7 @@ export function FormulaireNouveauCollaborateur({ personnes, choixResponsable }: 
   const avecFin = contrat !== "CDI";
   return (
     <form action={envoyer} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="typeContrat">{t("Type de collaborateur")}</Label>
           <Select id="typeContrat" name="typeContrat" value={contrat} onChange={(e) => setContrat(e.target.value)}>
@@ -43,7 +43,7 @@ export function FormulaireNouveauCollaborateur({ personnes, choixResponsable }: 
         <Label htmlFor="poste">{t("Poste")}</Label>
         <Input id="poste" name="poste" placeholder={t("Ex : Assistant commercial")} required maxLength={120} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="dateEmbauche">{t("Date d'arrivée")}</Label>
           <Input id="dateEmbauche" name="dateEmbauche" type="date" required />

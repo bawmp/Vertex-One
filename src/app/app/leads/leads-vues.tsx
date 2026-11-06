@@ -41,7 +41,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
               <div
                 key={l.id}
                 style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                className="group/ligne relative flex animate-in fade-in items-center justify-between gap-3 overflow-hidden px-4 py-2.5 text-sm fill-mode-both duration-300 hover:bg-muted/50"
+                className="group/ligne relative flex animate-in fade-in flex-col gap-2 overflow-hidden px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3 fill-mode-both duration-300 hover:bg-muted/50"
               >
                 <span
                   aria-hidden
@@ -52,20 +52,20 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
                   className="flex min-w-0 flex-1 flex-col gap-0.5 transition-transform duration-150 group-hover/ligne:translate-x-1"
                 >
                   <span className="truncate font-medium">{l.nom}</span>
-                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     {l.societeCliente ? (
                       <span className="flex items-center gap-1">
                         <Building2 className="size-3" aria-hidden />
                         {l.societeCliente}
                       </span>
                     ) : null}
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 whitespace-nowrap">
                       <Phone className="size-3" aria-hidden />
                       {l.telephone}
                     </span>
                   </span>
                 </Link>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <Badge variant={info?.variante ?? "neutral"}>{l.convertiLe ? t("Converti") : t(info?.libelle ?? l.statut)}</Badge>
                   {peutModifier && !l.convertiLe ? (
                     <Button

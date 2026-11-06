@@ -87,9 +87,9 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2 font-medium">{t("Compte")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("Budgété")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("Réalisé")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("Écart")}</th>
+              <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Budgété")}</th>
+              <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Réalisé")}</th>
+              <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Écart")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -100,8 +100,8 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
                   <td className="px-4 py-2">
                     <span className="text-xs text-muted-foreground">{l.numero}</span> {l.libelle}
                   </td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(l.montant)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(l.realise)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(l.montant)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(l.realise)}</td>
                   <td className={cn("px-4 py-2 text-right tabular-nums", depassement ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
                     {formaterFCFA(l.ecart)}
                   </td>
@@ -112,9 +112,9 @@ export default async function PageDetailBudget({ params }: { params: Promise<{ i
           <tfoot>
             <tr className="border-t bg-muted/30 font-medium">
               <td className="px-4 py-2">{t("Total")}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalBudgete)}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalRealise)}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{formaterFCFA(totalBudgete - totalRealise)}</td>
+              <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(totalBudgete)}</td>
+              <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(totalRealise)}</td>
+              <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{formaterFCFA(totalBudgete - totalRealise)}</td>
             </tr>
           </tfoot>
         </table>

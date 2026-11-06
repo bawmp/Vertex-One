@@ -42,10 +42,10 @@ export function FormulaireMessageClient({
 
   return (
     <details id="ecrire-au-client" className="group rounded-lg border">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-medium">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-0.5 px-4 py-2.5 text-sm font-medium">
         <Mail className="size-4" aria-hidden />
         {t("Écrire à {nom}", { nom: nomContact })}
-        <span className="ml-auto text-xs font-normal text-muted-foreground">{emailContact}</span>
+        <span className="min-w-0 break-all text-xs font-normal text-muted-foreground sm:ml-auto sm:text-right">{emailContact}</span>
       </summary>
       <form ref={formulaire} action={action} className="flex flex-col gap-3 border-t p-4">
         <input type="hidden" name="contactId" value={contactId} />

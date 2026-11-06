@@ -39,7 +39,7 @@ export function TableauDeBord({
         <p className="mt-1 text-muted-foreground">{donnees.nomEntreprise}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -102,7 +102,7 @@ export function TableauDeBord({
       </div>
 
       {donnees.financier ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
             <CardHeader>
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -159,7 +159,7 @@ export function TableauDeBord({
       ) : null}
 
       {donnees.depensesPrincipales.length > 0 || donnees.projetsWatchlist.length > 0 || donnees.peutVoirBanque ? (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {donnees.facturesFournisseur !== null ? (
             <div>
               <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">

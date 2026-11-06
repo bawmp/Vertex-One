@@ -148,7 +148,7 @@ export function DealsVues({ deals, peutModifier }: { deals: Deal[]; peutModifier
                       {d.compteNom ?? d.contactNom}
                     </span>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                     <span className="text-xs text-muted-foreground">{formaterMontant(d.montant, t.locale)}</span>
                     <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                   </div>

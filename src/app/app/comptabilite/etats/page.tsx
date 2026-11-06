@@ -139,9 +139,9 @@ async function Section({ titre, sections, avecAmort, total, totalLibelle }: { ti
             <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="px-4 py-2 font-medium">{t("Réf.")}</th>
               <th className="px-2 py-2 font-medium">{t("Libellé")}</th>
-              {avecAmort ? <th className="px-4 py-2 text-right font-medium">{t("Brut")}</th> : null}
-              {avecAmort ? <th className="px-4 py-2 text-right font-medium">{t("Amortissements")}</th> : null}
-              <th className="px-4 py-2 text-right font-medium">{avecAmort ? t("Net") : t("Montant")}</th>
+              {avecAmort ? <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Brut")}</th> : null}
+              {avecAmort ? <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Amortissements")}</th> : null}
+              <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{avecAmort ? t("Net") : t("Montant")}</th>
             </tr>
           </thead>
           <tbody>

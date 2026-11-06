@@ -32,7 +32,7 @@ export function FormulaireCampagne() {
       </CardHeader>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="nom">Nom de la campagne</Label>
               <Input id="nom" name="nom" required minLength={2} autoFocus />
@@ -51,7 +51,7 @@ export function FormulaireCampagne() {
             <Textarea id="contenu" name="contenu" rows={4} required />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="segmentType">Segment</Label>
               <Select id="segmentType" name="segmentType" value={segmentType} onChange={(e) => setSegmentType(e.target.value)}>

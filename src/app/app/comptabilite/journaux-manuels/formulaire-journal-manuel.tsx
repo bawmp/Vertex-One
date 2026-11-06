@@ -32,7 +32,7 @@ export function FormulaireJournalManuel({ comptes }: { comptes: { id: string; nu
     <Card>
       <CardContent>
         <form action={action} className="flex flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <Label htmlFor="date">{t("Date")}</Label>
               <Input id="date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />

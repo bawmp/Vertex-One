@@ -54,7 +54,7 @@ export function LigneTache({
         </div>
       </div>
       {peutModifier ? (
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           {enCours ? <Spinner className="size-3.5" /> : null}
           <Select
             aria-label={`Statut de la tâche ${titre}`}

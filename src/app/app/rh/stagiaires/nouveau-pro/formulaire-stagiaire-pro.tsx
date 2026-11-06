@@ -24,7 +24,7 @@ export function FormulaireStagiairePro({ personnes, choixResponsable }: { person
         <Label htmlFor="poste">{t("Poste occupé")}</Label>
         <Input id="poste" name="poste" placeholder={t("Ex : Assistant commercial")} required maxLength={120} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="dateDebut">{t("Début du stage")}</Label>
           <Input id="dateDebut" name="dateDebut" type="date" required />

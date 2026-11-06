@@ -16,7 +16,7 @@ export function FormulaireInfosPersonnelles({ dossierRHId, valeurs }: { dossierR
   const [etat, action, enCours] = useActionState(enregistrerInfosPersonnelles.bind(null, dossierRHId), null as EtatFiche);
   return (
     <form action={action} className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="dateNaissance">{t("Date de naissance")}</Label>
           <Input id="dateNaissance" name="dateNaissance" type="date" defaultValue={valeurs.dateNaissance} />

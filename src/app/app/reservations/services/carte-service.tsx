@@ -58,7 +58,7 @@ export function CarteService({ service: s, index }: { service: ServiceAffiche; i
               <Label htmlFor={`description-${s.id}`}>Description (optionnel)</Label>
               <Input id={`description-${s.id}`} name="description" defaultValue={s.description ?? ""} />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`dureeMinutes-${s.id}`}>Durée (min)</Label>
                 <Input id={`dureeMinutes-${s.id}`} name="dureeMinutes" type="number" min={5} step={5} defaultValue={s.dureeMinutes} required />

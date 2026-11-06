@@ -100,7 +100,7 @@ export default async function PageComptabilite() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
           <CardHeader>
             <CardTitle>{t("Compte de résultat")}</CardTitle>
@@ -156,8 +156,8 @@ export default async function PageComptabilite() {
                   <th className="px-4 py-2 font-medium">{t("Date")}</th>
                   <th className="px-4 py-2 font-medium">{t("Libellé")}</th>
                   <th className="px-4 py-2 font-medium">{t("Compte")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Débit")}</th>
-                  <th className="px-4 py-2 text-right font-medium">{t("Crédit")}</th>
+                  <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Débit")}</th>
+                  <th className="px-4 py-2 text-right font-medium whitespace-nowrap">{t("Crédit")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

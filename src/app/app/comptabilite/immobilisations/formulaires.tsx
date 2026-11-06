@@ -53,7 +53,7 @@ export function FormulaireImmobilisation({ aujourdhui, moisDebut = 1 }: { aujour
             });
           }}
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Champ label={t("Désignation du bien")} name="libelle" required maxLength={120} placeholder={t("Ex. Ordinateur portable du bureau")} className="sm:col-span-2" />
             <ChampSelect
               label={t("Catégorie")}

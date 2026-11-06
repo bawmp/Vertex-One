@@ -269,7 +269,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-6">
           <Card>
             <CardContent>
@@ -373,7 +373,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                           className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
                         />
                         <span className="truncate font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{d.titre}</span>
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           <span className="text-xs text-muted-foreground">{new Intl.NumberFormat(t.locale).format(d.montant)} FCFA</span>
                           <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
                         </div>
@@ -397,7 +397,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                       {devisListe.map((d) => {
                         const infoDevis = statutDevisAffiche(d);
                         return (
-                          <Link key={d.id} href={`/app/facturation/devis/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                          <Link key={d.id} href={`/app/facturation/devis/${d.id}`} className="flex flex-col gap-1 px-4 py-2.5 text-sm hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             <span className="font-medium">{d.numero}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
@@ -421,7 +421,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                       {facturesListe.map((f) => {
                         const infoFacture = STATUT_FACTURE[f.statut];
                         return (
-                          <Link key={f.id} href={`/app/facturation/factures/${f.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                          <Link key={f.id} href={`/app/facturation/factures/${f.id}`} className="flex flex-col gap-1 px-4 py-2.5 text-sm hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             <span className="font-medium">{f.numero}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
@@ -445,11 +445,11 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                       {autresVentes.map((v) => {
                         const contenu = (
                           <>
-                            <span className="flex min-w-0 items-center gap-2">
+                            <span className="flex min-w-0 flex-wrap items-center gap-2">
                               <Badge variant="neutral">{t(v.type)}</Badge>
-                              <span className="truncate font-medium">{v.titre}</span>
+                              <span className="font-medium sm:truncate">{v.titre}</span>
                             </span>
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                               <span className="text-xs text-muted-foreground">{formaterFCFA(v.montant)}</span>
                               <Badge variant={v.statut?.variante ?? "neutral"}>{t(v.statut?.libelle ?? v.statutBrut)}</Badge>
                             </div>
@@ -457,11 +457,11 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
                         );
                         return v.lien ? (
                           // Ces documents n'ont pas de page de détail, seulement leur PDF : lien ordinaire, nouvel onglet.
-                          <a key={v.cle} href={v.lien} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/50">
+                          <a key={v.cle} href={v.lien} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-1 px-4 py-2.5 text-sm hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             {contenu}
                           </a>
                         ) : (
-                          <div key={v.cle} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                          <div key={v.cle} className="flex flex-col gap-1 px-4 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             {contenu}
                           </div>
                         );
