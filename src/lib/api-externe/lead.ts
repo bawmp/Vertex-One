@@ -39,7 +39,7 @@ const NOM_PROVISOIRE = "Prospect ";
 const MARQUEUR_MISE_A_JOUR = "— Mise à jour —";
 
 export type ResultatLeadExterne =
-  | { id: string; doublon: boolean; assigneEmail: string | null; nom: string; source: string }
+  | { id: string; doublon: boolean; assigneEmail: string | null; copieEmail: string | null; nom: string; source: string }
   | { erreur: "AUCUN_ADMIN" };
 
 /**
@@ -78,7 +78,7 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
         }
         if (Object.keys(changements).length > 0) await tx.update(lead).set(changements).where(and(eq(lead.id, existant.id), eq(lead.entrepriseId, entrepriseId)));
       }
-      return { id: existant.id, doublon: true, assigneEmail: null, nom: donnees.nom, source: donnees.source };
+      return { id: existant.id, doublon: true, assigneEmail: null, copieEmail: null, nom: donnees.nom, source: donnees.source };
     }
   }
 
@@ -103,5 +103,6 @@ export async function creerLeadExterne(tx: TransactionDrizzle, entrepriseId: str
     })
     .returning({ id: lead.id });
 
-  return { id: cree.id, doublon: false, assigneEmail: assigne.email, nom: donnees.nom, source: donnees.source };
+  // Partagé avec l'Administrateur : quand le prospect va à quelqu'un d'autre, le premier administrateur en est quand même prévenu (copie de l'alerte).
+  return { id: cree.id, doublon: false, assigneEmail: assigne.email, copieEmail: assigne.id !== admin.id ? admin.email : null, nom: donnees.nom, source: donnees.source };
 }

@@ -74,12 +74,14 @@ export async function POST(requete: Request) {
   if (resultat.assigneEmail) {
     const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
     const { subject, html } = gabaritNouveauLeadExterne({ nom: resultat.nom, source: resultat.source, message: analyse.data.message ?? null, lien: `${base}/app/leads/${resultat.id}` });
-    const destinataire = resultat.assigneEmail;
+    const destinataires = [resultat.assigneEmail, resultat.copieEmail].filter((e): e is string => !!e);
     after(async () => {
-      try {
-        await envoyerEmail({ to: destinataire, subject, html });
-      } catch (erreur) {
-        console.error("[api-externe] alerte nouveau lead impossible :", erreur instanceof Error ? erreur.message : erreur);
+      for (const destinataire of destinataires) {
+        try {
+          await envoyerEmail({ to: destinataire, subject, html });
+        } catch (erreur) {
+          console.error("[api-externe] alerte nouveau lead impossible :", erreur instanceof Error ? erreur.message : erreur);
+        }
       }
     });
   }

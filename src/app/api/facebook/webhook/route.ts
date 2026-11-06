@@ -55,7 +55,15 @@ export async function POST(requete: Request) {
           if (issue.assigneEmail) {
             const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
             const { subject, html } = gabaritNouveauLeadExterne({ nom: issue.nom, source: SOURCE_FACEBOOK, message: issue.message, lien: `${base}/app/leads/${issue.leadId}` });
-            await envoyerEmail({ to: issue.assigneEmail, subject, html });
+            // La personne assignée, et l'administrateur en copie quand le prospect va à quelqu'un d'autre : un échec sur l'un n'empêche pas l'autre.
+            for (const destinataire of [issue.assigneEmail, issue.copieEmail]) {
+              if (!destinataire) continue;
+              try {
+                await envoyerEmail({ to: destinataire, subject, html });
+              } catch (erreur) {
+                console.error("[facebook] alerte nouveau prospect impossible :", erreur instanceof Error ? erreur.message : erreur);
+              }
+            }
           }
         } catch (erreur) {
           console.error("[facebook] traitement d'un prospect impossible :", erreur instanceof Error ? erreur.message : erreur);

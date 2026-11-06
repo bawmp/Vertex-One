@@ -10,7 +10,7 @@ import { leadDepuisProspectFacebook } from "@/lib/facebook/prospect";
 import type { EvenementLeadgen } from "@/lib/facebook/evenements";
 
 export type IssueTraitement =
-  | { statut: "cree"; leadId: string; nom: string; message: string | null; assigneEmail: string | null }
+  | { statut: "cree"; leadId: string; nom: string; message: string | null; assigneEmail: string | null; copieEmail: string | null }
   | { statut: "doublon" }
   | { statut: "ignore"; raison: "PAGE_INCONNUE" | "ABONNEMENT_SUSPENDU" | "JETON_ILLISIBLE" | "PROSPECT_ILLISIBLE" | "AUCUN_ADMIN" };
 
@@ -52,5 +52,5 @@ export async function traiterProspectFacebook(evenement: EvenementLeadgen): Prom
 
   if ("erreur" in resultat) return { statut: "ignore", raison: "AUCUN_ADMIN" };
   if (resultat.doublon) return { statut: "doublon" };
-  return { statut: "cree", leadId: resultat.id, nom: resultat.nom, message: donnees.message ?? null, assigneEmail: resultat.assigneEmail };
+  return { statut: "cree", leadId: resultat.id, nom: resultat.nom, message: donnees.message ?? null, assigneEmail: resultat.assigneEmail, copieEmail: resultat.copieEmail };
 }

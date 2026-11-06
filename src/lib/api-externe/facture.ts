@@ -1,3 +1,5 @@
+import { choisirAssigne } from "./assignation";
+import type { RegleAssignation } from "./assignation-regle";
 import { z } from "zod";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
@@ -123,7 +125,7 @@ async function trouverOuCreerContact(tx: TransactionDrizzle, entrepriseId: strin
  * Idempotent par (source, référence) : un verrou consultatif de la transaction sérialise deux appels simultanés pour la même référence,
  * puis le second retrouve la facture du premier — jamais deux factures pour un même paiement (une facture n'est jamais supprimable).
  */
-export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: string, donnees: FactureExterne): Promise<ResultatFactureExterne> {
+export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: string, donnees: FactureExterne, regle: RegleAssignation | null = null): Promise<ResultatFactureExterne> {
   const cleReglement = referenceReglementExterne(donnees.source, donnees.reference);
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${entrepriseId}:${cleReglement}`}))`);
 
@@ -156,6 +158,9 @@ export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: 
     .orderBy(asc(utilisateur.creeLe))
     .limit(1);
   if (!admin) return { erreur: "AUCUN_ADMIN" };
+  // Même règle que les prospects de la clé (une personne, un tour de rôle) : le contact et la facture vont à la personne choisie, jamais perdus
+  // (repli sur le premier administrateur) ; l'Administrateur voit tout quoi qu'il arrive (portée « tout » sur le CRM et la facturation).
+  const assigne = (await choisirAssigne(tx, entrepriseId, regle)) ?? admin;
 
   const [monEntreprise] = await tx
     .select({ assujettiTVA: entreprise.assujettiTVA, dateVerrouillageComptable: entreprise.dateVerrouillageComptable })
@@ -169,7 +174,7 @@ export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: 
   // facture) ; la facture et ses écritures prennent la date du jour, comme toute régularisation tardive.
   if (verifierDateNonVerrouillee(monEntreprise?.dateVerrouillageComptable ?? null, payeLe)) payeLe = maintenant;
 
-  const contactId = await trouverOuCreerContact(tx, entrepriseId, donnees.client, admin.id);
+  const contactId = await trouverOuCreerContact(tx, entrepriseId, donnees.client, assigne.id);
   const [leContact] = await tx.select({ nom: contact.nom, email: contact.email }).from(contact).where(eq(contact.id, contactId));
 
   const numero = await genererNumeroFacture(tx, entrepriseId);
@@ -179,7 +184,7 @@ export async function creerFactureExterne(tx: TransactionDrizzle, entrepriseId: 
       entrepriseId,
       numero,
       contactId,
-      assigneAId: admin.id,
+      assigneAId: assigne.id,
       statut: "PAYEE",
       montantHT,
       montantTVA,

@@ -5,6 +5,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { cleApiEntreprise, entreprise } from "@/db/schema";
 import { empreinteCle, formeCleValide, lireCleDepuisEnTete } from "@/lib/api-externe/cle";
 import { creerFactureExterne, schemaFactureExterne } from "@/lib/api-externe/facture";
+import { lireRegleEnregistree } from "@/lib/api-externe/assignation-regle";
 import { autoriserAppel } from "@/lib/api-externe/limite";
 import { libelleMoyenPaiement, notifierPaiementFacture } from "@/lib/paiement/recu-facture";
 
@@ -58,7 +59,7 @@ export async function POST(requete: Request) {
   try {
     resultat = await avecEntreprise(ligneCle.entrepriseId, async (tx) => {
       await tx.update(cleApiEntreprise).set({ dernierUsageLe: new Date() }).where(eq(cleApiEntreprise.id, ligneCle.id));
-      return creerFactureExterne(tx, ligneCle.entrepriseId, analyse.data);
+      return creerFactureExterne(tx, ligneCle.entrepriseId, analyse.data, lireRegleEnregistree(ligneCle.assignation));
     });
   } catch (erreur) {
     // Toute la transaction est annulée (jamais une facture à moitié créée, ni un numéro perdu) : le site réessaiera.

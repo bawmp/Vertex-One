@@ -28,13 +28,13 @@ const nomB = `TEST FactureExterne B ${suffixe}`;
 const emailAdminA = `admin-a-${suffixe}@vertexone.test`;
 const emailAdminB = `admin-b-${suffixe}@vertexone.test`;
 let idA = "", idB = "", adminA = "", adminB = "";
-let cleA = "", cleASansDroit = "", cleRevoquee = "", cleB = "";
+let cleA = "", cleASansDroit = "", cleRevoquee = "", cleB = "", cleAPourManager = "", managerA = "";
 let n = 0;
 
-async function creerCle(entrepriseId: string, creeParId: string, options: { facturation: boolean; revoquee?: boolean }) {
+async function creerCle(entrepriseId: string, creeParId: string, options: { facturation: boolean; revoquee?: boolean; assignation?: { mode: "PERSONNE"; utilisateurId: string } }) {
   const { cle, prefixe, empreinte } = genererCle();
   await avecEntreprise(entrepriseId, (tx) =>
-    tx.insert(cleApiEntreprise).values({ entrepriseId, nom: "Site test", prefixe, empreinte, creeParId, autoriseFacturation: options.facturation, revoqueeLe: options.revoquee ? new Date() : null })
+    tx.insert(cleApiEntreprise).values({ entrepriseId, nom: "Site test", prefixe, empreinte, creeParId, autoriseFacturation: options.facturation, revoqueeLe: options.revoquee ? new Date() : null, assignation: options.assignation })
   );
   return cle;
 }
@@ -74,7 +74,9 @@ beforeAll(async () => {
   idB = b.id;
   [{ id: adminA }] = await db.insert(utilisateur).values({ entrepriseId: idA, email: emailAdminA, nomComplet: "Admin A", role: "ADMIN", statut: "ACTIF" }).returning({ id: utilisateur.id });
   [{ id: adminB }] = await db.insert(utilisateur).values({ entrepriseId: idB, email: emailAdminB, nomComplet: "Admin B", role: "ADMIN", statut: "ACTIF" }).returning({ id: utilisateur.id });
+  [{ id: managerA }] = await db.insert(utilisateur).values({ entrepriseId: idA, email: `manager-a-${suffixe}@vertexone.test`, nomComplet: "Manager A", role: "MANAGER", statut: "ACTIF", managerId: adminA }).returning({ id: utilisateur.id });
   cleA = await creerCle(idA, adminA, { facturation: true });
+  cleAPourManager = await creerCle(idA, adminA, { facturation: true, assignation: { mode: "PERSONNE", utilisateurId: managerA } });
   cleASansDroit = await creerCle(idA, adminA, { facturation: false });
   cleRevoquee = await creerCle(idA, adminA, { facturation: true, revoquee: true });
   cleB = await creerCle(idB, adminB, { facturation: true });
@@ -341,4 +343,26 @@ describe("POST /api/externe/factures — cas limites de l'entreprise", () => {
     await db.update(utilisateur).set({ statut: "ACTIF" }).where(eq(utilisateur.id, adminB));
     expect((await facturesDe(idB)).length).toBe(avant);
   }, 240_000);
+});
+
+describe("POST /api/externe/factures — assignation choisie pour la clé", () => {
+  test("avec une règle « une personne » : le contact et la facture vont au Manager choisi ; sans règle, au premier administrateur", async () => {
+    const r = await creer(cleAPourManager, { client: { nom: "Client du Manager", email: `manager-client-${suffixe}@exemple.test`, telephone: "+237 690 33 44 55" } });
+    expect(r.statut).toBe(201);
+    const f = (await facturesDe(idA)).find((x) => x.numero === r.corps.numero)!;
+    expect(f.assigneAId).toBe(managerA);
+    const c = (await contactsDe(idA)).find((x) => x.id === f.contactId)!;
+    expect(c.assigneAId).toBe(managerA);
+
+    const sansRegle = await creer(cleA, { client: { nom: "Client de l'admin", email: `admin-client-${suffixe}@exemple.test`, telephone: "+237 690 66 77 88" } });
+    const f2 = (await facturesDe(idA)).find((x) => x.numero === sansRegle.corps.numero)!;
+    expect(f2.assigneAId).toBe(adminA);
+  }, 240_000);
+
+  test("l'Administrateur voit TOUT, même ce qui est assigné au Manager (portée « tout » sur le CRM et la facturation)", async () => {
+    const { idsVisibles } = await import("@/lib/portee");
+    const admin = { utilisateurId: adminA, entrepriseId: idA, role: "ADMIN" } as import("@/lib/session").UtilisateurConnecte;
+    expect(await avecEntreprise(idA, (tx) => idsVisibles(tx, admin, "CRM"))).toBe("TOUT");
+    expect(await avecEntreprise(idA, (tx) => idsVisibles(tx, admin, "FACTURATION"))).toBe("TOUT");
+  });
 });

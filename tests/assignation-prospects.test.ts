@@ -20,6 +20,9 @@ vi.mock("next/server", async () => {
   return { ...reel, after: (fn: () => unknown) => void fn() };
 });
 
+// Neon peut prendre plusieurs secondes par transaction (voir CLAUDE.md) : chaque test enchaîne plusieurs requêtes réelles.
+vi.setConfig({ testTimeout: 150_000, hookTimeout: 150_000 });
+
 const { POST } = await import("@/app/api/externe/leads/route");
 
 describe("Assignation des prospects — règles pures", () => {
@@ -141,6 +144,8 @@ describe("Assignation des prospects — base réelle", () => {
     const { cle } = await creerCle(null);
     const l = await envoyer(cle, "defaut");
     expect(l.assigneAId).toBe(adminA);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(envoyerEmail).toHaveBeenCalledTimes(1); // l'administrateur est déjà l'assigné : pas de copie en double
   });
 
   test("règle « une personne » : le prospect va au Manager choisi, qui le VOIT dans sa portée et en est alerté", async () => {
@@ -153,9 +158,14 @@ describe("Assignation des prospects — base réelle", () => {
     const visibles = await avecEntreprise(entrepriseA, (tx) => idsVisibles(tx, sujet, "CRM"));
     expect(visibles === "TOUT" || visibles.includes(l.assigneAId)).toBe(true);
 
+    // Partagé : le Manager est alerté, ET l'Administrateur en copie.
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(envoyerEmail).toHaveBeenCalledTimes(1);
-    expect(envoyerEmail.mock.calls[0]).toEqual([expect.objectContaining({ to: `manager1-${suffixe}@vertexone.test` })]);
+    const destinataires = envoyerEmail.mock.calls.map((c) => c[0].to).sort();
+    expect(destinataires).toEqual([`admin-${suffixe}@vertexone.test`, `manager1-${suffixe}@vertexone.test`]);
+
+    // L'Administrateur voit tout, quel que soit l'assigné.
+    const admin: UtilisateurConnecte = { utilisateurId: adminA, entrepriseId: entrepriseA, role: "ADMIN" } as UtilisateurConnecte;
+    expect(await avecEntreprise(entrepriseA, (tx) => idsVisibles(tx, admin, "CRM"))).toBe("TOUT");
   });
 
   test("règle « tour de rôle » : les prospects sont répartis à parts égales entre les personnes choisies", async () => {
