@@ -11,7 +11,7 @@ import { referenceExterne } from "@/lib/paiement/reference";
 import { telephoneInternational } from "@/lib/paiement/telephone";
 import { relireEtConfirmerAbonnement, type StatutRelectureAbonnement } from "@/lib/paiement/confirmation";
 import { getT } from "@/lib/i18n/langue";
-import { montantEtMois, tarifPour, type TarifAbonnement } from "@/lib/abonnement/tarif";
+import { montantAvecFraisPaiement, montantEtMois, tarifPour, type TarifAbonnement } from "@/lib/abonnement/tarif";
 import { compterUtilisateursActifs } from "@/lib/abonnement/utilisateurs";
 
 // Prix : voir src/lib/abonnement/tarif.ts (prix mensuel, prix de lancement garanti 12 mois, formule annuelle). Historique : temporairement
@@ -60,14 +60,16 @@ export async function declencherPaiementAbonnement(
 
     const [tentative] = await tx
       .insert(tentativePaiementAbonnement)
-      .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: choix.montant, mois: choix.mois })
+      // Le client règle le prix de l'abonnement PLUS les frais de paiement (voir montantAvecFraisPaiement) : c'est ce total, calculé ici côté serveur, que la
+      // relecture compare au montant payé.
+      .values({ entrepriseId: utilisateurConnecte.entrepriseId, montant: montantAvecFraisPaiement(choix.montant), mois: choix.mois })
       .returning({ id: tentativePaiementAbonnement.id });
 
     const resultat = await initierPaiementDirect({
       telephone,
       operateur,
       reference: referenceExterne("ABONNEMENT", tentative.id),
-      montant: choix.montant,
+      montant: montantAvecFraisPaiement(choix.montant),
       description: t("Abonnement Vertex One"),
     });
 

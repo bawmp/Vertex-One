@@ -110,3 +110,26 @@ describe("Palier équipe — à partir de 50 utilisateurs actifs, 45 000 FCFA/mo
     expect(tarifPour(creee, maintenant)).toMatchObject({ prixMensuel: 25_000, palierEquipe: false, utilisateursActifs: 0 });
   });
 });
+
+describe("frais de paiement Mobile Money à la charge du client", () => {
+  it("le total réglé laisse au moins le prix net après les frais d'ElyonPay (2 % + 1 FCFA, déduits de deux paiements réels)", async () => {
+    const { montantAvecFraisPaiement, fraisPaiement } = await import("@/lib/abonnement/tarif");
+    const recu = (total: number) => total - (Math.round(total * 0.02) + 1); // barème observé : 100 → 97, 25 000 → 24 499
+    expect(recu(100)).toBe(97);
+    expect(recu(25_000)).toBe(24_499);
+    for (const net of [25_000, 45_000, 250_000, 450_000]) {
+      const total = montantAvecFraisPaiement(net);
+      expect(total).toBeGreaterThan(net);
+      expect(recu(total)).toBeGreaterThanOrEqual(net);
+      expect(recu(total - 1)).toBeLessThan(net + 1); // pas de marge inutile : au plus un FCFA de trop
+      expect(fraisPaiement(net)).toBe(total - net);
+    }
+    expect(montantAvecFraisPaiement(25_000)).toBe(25_512);
+  });
+  it("un montant invalide ne donne aucun frais", async () => {
+    const { montantAvecFraisPaiement } = await import("@/lib/abonnement/tarif");
+    expect(montantAvecFraisPaiement(0)).toBe(0);
+    expect(montantAvecFraisPaiement(-5)).toBe(0);
+    expect(montantAvecFraisPaiement(Number.NaN)).toBe(0);
+  });
+});

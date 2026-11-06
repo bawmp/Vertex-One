@@ -91,3 +91,25 @@ export function montantEtMois(tarif: TarifAbonnement, formule: unknown): { monta
     ? { montant: tarif.montantAnnuel, mois: 12, formule: "annuel" }
     : { montant: tarif.montantMensuel, mois: 1, formule: "mensuel" };
 }
+
+/**
+ * Frais de paiement Mobile Money à la charge du CLIENT (décision de l'utilisateur, 2026-11-06) : le prix de l'abonnement reste celui affiché
+ * (25 000 FCFA…), le client règle en plus les frais d'ElyonPay pour que Vertex One reçoive exactement ce prix.
+ *
+ * Barème d'ElyonPay déduit de deux paiements réels du 2026-11-05 (100 FCFA → 97 reçus, 25 000 FCFA → 24 499 reçus) : 2 % + 1 FCFA. **Ce n'est pas un
+ * tarif publié** : à confirmer avec ElyonPay, puis ajuster ces deux constantes. Le total est arrondi à l'entier supérieur : Vertex One reçoit au moins
+ * le prix net, jamais moins.
+ */
+export const FRAIS_PAIEMENT_POURCENT = 2;
+export const FRAIS_PAIEMENT_FIXE = 1;
+
+/** Montant à faire payer pour que, frais d'ElyonPay déduits, il reste au moins `montantNet`. */
+export function montantAvecFraisPaiement(montantNet: number): number {
+  if (!Number.isFinite(montantNet) || montantNet <= 0) return 0;
+  return Math.ceil((montantNet + FRAIS_PAIEMENT_FIXE) / (1 - FRAIS_PAIEMENT_POURCENT / 100));
+}
+
+/** Part des frais de paiement dans le total que règle le client. */
+export function fraisPaiement(montantNet: number): number {
+  return montantAvecFraisPaiement(montantNet) - montantNet;
+}

@@ -9,7 +9,7 @@ import { Champ } from "@/components/formulaire/champ";
 import { ChoixCartes } from "@/components/formulaire/choix-cartes";
 import { BandeauPaiementSecurise, EcranAttentePaiement, EcranPaiementEchoue, EcranPaiementReussi, RecapMontant } from "@/components/formulaire/ecrans-paiement";
 import { formaterFCFA } from "@/lib/facturation/calcul";
-import { MOIS_OFFERTS_ANNUEL } from "@/lib/abonnement/tarif";
+import { MOIS_OFFERTS_ANNUEL, fraisPaiement, montantAvecFraisPaiement } from "@/lib/abonnement/tarif";
 import { declencherPaiementAbonnement, lireRaisonEchecAbonnement, recupererTentativeAbonnementEnAttente, verifierStatutTentativeAbonnement } from "@/lib/actions/abonnement";
 import { messageEchecPaiement } from "@/lib/paiement/messages-echec";
 import { useT } from "@/lib/i18n/contexte";
@@ -184,8 +184,9 @@ export function BoutonPaiementAbonnement({ montantMensuel, montantAnnuel }: { mo
       <RecapMontant
         etiquette={t("Abonnement Vertex One")}
         designation={formule === "annuel" ? t("Douze mois, toutes les fonctionnalités") : t("Un mois, toutes les fonctionnalités")}
-        montant={formaterFCFA(montant)}
+        montant={formaterFCFA(montantAvecFraisPaiement(montant))}
       />
+      <p className="-mt-3 text-xs text-muted-foreground">{t("{abonnement} d'abonnement + {frais} de frais de paiement Mobile Money", { abonnement: formaterFCFA(montant), frais: formaterFCFA(fraisPaiement(montant)) })}</p>
 
       <ChoixCartes
         etiquette={t("Durée de l'abonnement")}

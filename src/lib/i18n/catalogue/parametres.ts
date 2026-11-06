@@ -243,4 +243,5 @@ export const PARAMETRES: Record<string, string> = {
   "Aucun logo téléversé : ce réglage n'a pas d'effet pour le moment.": "No logo uploaded: this setting has no effect for now.",
   "Fiche, tâches et chat toujours accessibles. ": "Profile, tasks and chat are always available. ",
   "Fiche, tâches et chat": "Profile, tasks and chat",
+  "{abonnement} d'abonnement + {frais} de frais de paiement Mobile Money": "{abonnement} subscription + {frais} Mobile Money payment fees",
 };
