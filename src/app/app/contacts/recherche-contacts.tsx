@@ -38,7 +38,7 @@ export function RechercheContacts({ contacts }: { contacts: Contact[] }) {
                 aria-hidden
                 className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100"
               />
-              <span className="min-w-0 truncate font-medium transition-transform duration-150 group-hover/ligne:translate-x-1">{c.nom}</span>
+              <span className="min-w-0 font-medium transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">{c.nom}</span>
               <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground sm:shrink-0">
                 {c.compteNom ? (
                   <span className="flex items-center gap-1">

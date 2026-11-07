@@ -51,7 +51,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
                   href={`/app/leads/${l.id}`}
                   className="flex min-w-0 flex-1 flex-col gap-0.5 transition-transform duration-150 group-hover/ligne:translate-x-1"
                 >
-                  <span className="truncate font-medium">{l.nom}</span>
+                  <span className="font-medium sm:truncate">{l.nom}</span>
                   <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     {l.societeCliente ? (
                       <span className="flex items-center gap-1">
