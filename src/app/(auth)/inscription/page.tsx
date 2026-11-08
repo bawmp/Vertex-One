@@ -21,16 +21,15 @@ export default function PageInscription() {
     const demande = new URLSearchParams(window.location.search).get("secteur");
     if (demande && ["agence", "artisan", "cabinet", "immigration", "commerce", "generique"].includes(demande)) setSecteur(demande);
   }, []);
+  // Champs contrôlés : après une erreur (ex. email déjà utilisé), React 19 vide les champs non contrôlés d'un formulaire à action —
+  // la personne perdrait tout ce qu'elle a saisi. Gardés en état, ils restent à l'écran, et la barre de progression les suit.
+  const [nomEntreprise, setNomEntreprise] = useState("");
+  const [nomComplet, setNomComplet] = useState("");
+  const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
-  const [renseignes, setRenseignes] = useState(0);
 
   /** Nombre de champs obligatoires déjà remplis (la barre de progression se remplit pendant la saisie). */
-  function compterRenseignes(formulaire: HTMLFormElement) {
-    const donnees = new FormData(formulaire);
-    const valeur = (nom: string) => String(donnees.get(nom) ?? "").trim();
-    const remplis = [valeur("nomEntreprise").length >= 2, valeur("nomComplet").length >= 2, /.+@.+\..+/.test(valeur("email")), String(donnees.get("motDePasse") ?? "").length >= 8];
-    setRenseignes(remplis.filter(Boolean).length);
-  }
+  const renseignes = [nomEntreprise.trim().length >= 2, nomComplet.trim().length >= 2, /.+@.+\..+/.test(email.trim()), motDePasse.length >= 8].filter(Boolean).length;
 
   return (
     <div data-carte-large className="flex flex-col gap-7 xl:gap-4">
@@ -49,13 +48,13 @@ export default function PageInscription() {
         </div>
       </div>
 
-      <form action={action} onChange={(e) => compterRenseignes(e.currentTarget)} className="flex flex-col gap-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-8 xl:gap-y-3">
+      <form action={action} className="flex flex-col gap-6 xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-8 xl:gap-y-3">
         <fieldset className="flex animate-in flex-col gap-4 duration-500 fade-in slide-in-from-bottom-2">
           <legend className="mb-1 flex items-center gap-2 text-sm font-semibold">
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
             {t("Votre entreprise")}
           </legend>
-          <Champ label={t("Nom de l'entreprise")} id="nomEntreprise" name="nomEntreprise" icone={Building2} required minLength={2} autoComplete="organization" />
+          <Champ label={t("Nom de l'entreprise")} id="nomEntreprise" name="nomEntreprise" icone={Building2} required minLength={2} autoComplete="organization" value={nomEntreprise} onChange={(e) => setNomEntreprise(e.target.value)} />
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">{t("Secteur")}</span>
             <ChoixCartes
@@ -83,8 +82,8 @@ export default function PageInscription() {
             <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">2</span>
             {t("Votre compte administrateur")}
           </legend>
-          <Champ label={t("Votre nom complet")} id="nomComplet" name="nomComplet" icone={UserRound} required minLength={2} autoComplete="name" />
-          <Champ label={t("Email")} id="email" name="email" type="email" icone={Mail} required autoComplete="email" inputMode="email" />
+          <Champ label={t("Votre nom complet")} id="nomComplet" name="nomComplet" icone={UserRound} required minLength={2} autoComplete="name" value={nomComplet} onChange={(e) => setNomComplet(e.target.value)} />
+          <Champ label={t("Email")} id="email" name="email" type="email" icone={Mail} required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <div className="flex flex-col gap-2.5">
             <Champ label={t("Mot de passe")} id="motDePasse" name="motDePasse" type="password" required minLength={8} autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} />
             <ForceMotDePasse valeur={motDePasse} />
