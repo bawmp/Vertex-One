@@ -72,7 +72,7 @@ export default async function PageDocumentsFinanciers() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">{t("La comptabilité complète est disponible à partir du forfait Business.")}</p>
+        <p className="text-muted-foreground">{t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.")}</p>
       </div>
     );
   }

@@ -31,7 +31,7 @@ export async function cloturerExerciceAction(_etat: EtatCloture, formData: FormD
   const annee = Number(formData.get("annee"));
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return cloturerExercice(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, annee);
   });
   const moisDebut = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => moisDebutExercice(tx, utilisateurConnecte.entrepriseId));
@@ -65,7 +65,7 @@ export async function rouvrirExerciceAction(_etat: EtatCloture, formData: FormDa
   const motif = String(formData.get("motif") ?? "");
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return rouvrirExercice(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, annee, motif);
   });
   if (!resultat.ok) return { erreur: t(resultat.erreur) };
@@ -82,7 +82,7 @@ export async function changerDebutExercice(mois: number): Promise<EtatCloture> {
   if (!peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER")) return { erreur: t("Seul l'Administrateur peut changer le début de l'exercice.") };
   const r = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(e, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(e, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return definirMoisDebutExercice(tx, utilisateurConnecte.entrepriseId, Number(mois));
   });
   if (!r.ok) return { erreur: t(r.erreur) };

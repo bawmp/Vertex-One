@@ -31,7 +31,7 @@ async function noter(type: "TVA" | "ACOMPTE_IS", periode: string, statut: string
   if (!peut(u, "COMPTABILITE", "MODIFIER")) return { erreur: t("La comptabilité est réservée à l'Administrateur.") };
   const r = await avecEntreprise(u.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
-    if (!disponible(e, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(e, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return noterDeclarationTva(tx, u.entrepriseId, u.utilisateurId, { periode: String(periode), statut: String(statut), montant: montant === null ? null : Number(montant), reference: String(reference ?? "") }, type);
   });
   if (!r.ok) return { erreur: t(r.erreur) };

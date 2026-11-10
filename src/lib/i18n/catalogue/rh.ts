@@ -57,7 +57,6 @@ export const RH: Record<string, string> = {
   "Fin de contrat": "End of contract",
   "Stage": "Internship",
   "Vous n'avez pas accès aux Ressources Humaines.": "You do not have access to Human Resources.",
-  "Les Ressources Humaines sont disponibles à partir du forfait Business.": "Human Resources are available from the Business plan.",
   "Présences": "Attendance",
   "Stagiaires": "Interns",
   "Groupe": "Group",
@@ -81,7 +80,6 @@ export const RH: Record<string, string> = {
   "(stagiaire)": "(intern)",
   "Un email de rappel part chaque matin à l'Administrateur et au responsable de la personne.": "A reminder email goes out every morning to the Administrator and the person's manager.",
   "Dossiers RH": "HR records",
-  "Dossiers RH, congés, pointage et salaires sont disponibles à partir du forfait Business.": "HR records, leave, time tracking and salaries are available from the Business plan.",
   "Aucun dossier RH pour le moment.": "No HR records yet.",
   "Désactiver cette politique ? Elle ne sera plus assignable, mais les employés qui l'ont déjà gardent leur historique.": "Deactivate this policy? It can no longer be assigned, but employees who already have it keep their history.",
   "Supprimer ce palier": "Delete this tier",
@@ -601,4 +599,6 @@ export const RH: Record<string, string> = {
   "Aucun rapport reçu pour le moment.": "No report received yet.",
   "Ce rapport n'existe pas ou vous n'y avez pas accès.": "This report does not exist or you do not have access to it.",
   "Retour aux rapports": "Back to reports",
+  "Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.": "Your subscription is suspended: renew it to access this feature.",
+  "Paiement en ligne indisponible : votre abonnement est suspendu — en attendant, pointez le règlement manuellement.": "Online payment is unavailable: your subscription is suspended — in the meantime, record the payment manually.",
 };

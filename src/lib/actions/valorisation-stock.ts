@@ -34,7 +34,7 @@ export async function enregistrerVariationStock(_etat: EtatValorisation, formDat
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     if (!(await gestionStockActive(tx, utilisateurConnecte.entrepriseId))) return { ok: false, erreur: MESSAGE_STOCK_DESACTIVE } as const;
     return constaterVariationStock(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, date);
   });

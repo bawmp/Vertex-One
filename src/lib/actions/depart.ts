@@ -50,7 +50,7 @@ export async function creerDemandeDepart(_etat: EtatDepart, formData: FormData):
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     const [monDossier] = await tx.select({ id: dossierRH.id }).from(dossierRH).where(eq(dossierRH.utilisateurId, utilisateurConnecte.utilisateurId));
     if (!monDossier) return { erreur: t("Aucun dossier RH associé à votre compte.") };

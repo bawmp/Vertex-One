@@ -22,7 +22,7 @@ export async function definirPartageFichesAction(actif: boolean): Promise<{ erre
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
     return Boolean(e) && disponible(e, "RH");
   });
-  if (!ok) return { erreur: "Les Ressources Humaines sont disponibles à partir du forfait Business." };
+  if (!ok) return { erreur: "Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité." };
   await definirPartageFiches(u.entrepriseId, actif === true);
   revalidatePath("/app/rh/groupe");
   revalidatePath("/app/rh");

@@ -70,7 +70,7 @@ export async function creerDemandeSignature(_etat: EtatDemandeSignature, formDat
   const resultat: Resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "SIGNATURE_ELECTRONIQUE")) {
-      return { erreur: t("La signature électronique est disponible à partir du forfait Business.") };
+      return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
     }
 
     const [leDocument] = await tx.select().from(document).where(eq(document.id, documentId));

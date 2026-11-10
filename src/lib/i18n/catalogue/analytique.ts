@@ -22,7 +22,6 @@ export const ANALYTIQUE: Record<string, string> = {
   "Du": "From",
   "Désactiver": "Disable",
   "Désactivée": "Disabled",
-  "La comptabilité complète est disponible à partir du forfait Business.": "Full accounting is available from the Business plan.",
   "La comptabilité est réservée à l'Administrateur.": "Accounting is reserved for the Administrator.",
   "La date de début doit être avant la date de fin.": "The start date must be before the end date.",
   "Le code se compose de 2 à 20 lettres, chiffres, tirets ou soulignés.": "The code is 2 to 20 letters, digits, hyphens or underscores.",

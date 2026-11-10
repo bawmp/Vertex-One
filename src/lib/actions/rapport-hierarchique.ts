@@ -46,7 +46,7 @@ export async function envoyerRapportHierarchique(_etat: EtatRapport, formData: F
       .select({ nom: entreprise.nom, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement })
       .from(entreprise)
       .where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     const autorises = await destinatairesPossibles(tx, utilisateurConnecte);
     const destinataire = autorises.find((p) => p.id === destinataireId);

@@ -111,7 +111,6 @@ export const COLLABORATION: Record<string, string> = {
   "Tâche (optionnel)": "Task (optional)",
   "Aucune tâche": "No task",
   "Démarrer le minuteur": "Start the timer",
-  "Les Projets sont disponibles à partir du forfait Pro.": "Projects are available from the Pro plan.",
   Facturée: "Invoiced",
   "À facturer": "To invoice",
   "Non facturable": "Non-billable",

@@ -43,7 +43,7 @@ export async function creerCategorieTicketRH(_etat: EtatTicketRH, formData: Form
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     await tx.insert(categorieTicketRH).values({ entrepriseId: utilisateurConnecte.entrepriseId, nom, agentId });
     return null;
@@ -86,7 +86,7 @@ export async function creerTicketRH(_etat: EtatTicketRH, formData: FormData): Pr
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     const [laCategorie] = await tx.select({ agentId: categorieTicketRH.agentId }).from(categorieTicketRH).where(eq(categorieTicketRH.id, categorieId));
     if (!laCategorie) return { erreur: t("Catégorie introuvable.") };

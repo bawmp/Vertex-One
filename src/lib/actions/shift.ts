@@ -49,7 +49,7 @@ export async function creerShift(_etat: EtatShift, formData: FormData): Promise<
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     await tx.insert(shift).values({ entrepriseId: utilisateurConnecte.entrepriseId, nom, heureDebut, heureFin, toleranceMinutes, creeParId: utilisateurConnecte.utilisateurId });
     return null;

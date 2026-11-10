@@ -65,7 +65,7 @@ export async function GET(requete: Request) {
     if (vue === "balance") return csvBalance(await lireBalancePeriode(tx, utilisateurConnecte.entrepriseId, periode));
     return csvJournaux(await lireJournaux(tx, utilisateurConnecte.entrepriseId, periode));
   });
-  if (!tableau) return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (!tableau) return new NextResponse(t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité."), { status: 403 });
 
   if (url.searchParams.get("format") === "pdf") {
     const societe = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => (await tx.select({ nom: entreprise.nom, niu: entreprise.niu }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)))[0]);
@@ -100,7 +100,7 @@ async function exporterEcritures(utilisateurConnecte: NonNullable<Awaited<Return
     if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return null;
     return lireLignes(tx, utilisateurConnecte.entrepriseId, [and(gte(ecritureComptable.dateEcriture, du), lte(ecritureComptable.dateEcriture, au))!]);
   });
-  if (!lignes) return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (!lignes) return new NextResponse(t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité."), { status: 403 });
   const { corps, type, extension } = contenuExport(lignes, format);
   const nom = `ecritures-${format}-${url.searchParams.get("du") ?? defaut.du}-${url.searchParams.get("au") ?? defaut.au}`.replace(/[^a-z0-9-]/gi, "");
   return new NextResponse(new Uint8Array(corps), { headers: { "Content-Type": type, "Content-Disposition": `attachment; filename="vertexone-${nom}.${extension}"`, "Cache-Control": "no-store" } });

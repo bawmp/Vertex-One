@@ -32,7 +32,7 @@ async function forfaitOk(entrepriseId: string, tx: Parameters<Parameters<typeof 
   const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, entrepriseId));
   return disponible(monEntreprise, "COMPTABILITE_COMPLETE");
 }
-const REFUS_FORFAIT = m("La comptabilité complète est disponible à partir du forfait Business.");
+const REFUS_FORFAIT = m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.");
 
 export async function ajouterImmobilisationAction(_etat: EtatImmobilisation, formData: FormData): Promise<EtatImmobilisation> {
   const t = await getT();

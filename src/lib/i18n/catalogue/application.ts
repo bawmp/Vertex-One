@@ -152,12 +152,10 @@ export const APPLICATION: Record<string, string> = {
   Épingler: "Pin",
   Supprimer: "Delete",
   "Pièces jointes": "Attachments",
-  "Les Annonces sont disponibles à partir du forfait Pro.": "Announcements are available from the Pro plan.",
   "One Announcements": "One Announcements",
   "Aucune annonce pour le moment.": "No announcements yet.",
 
   // Documents
-  "Les Documents sont disponibles à partir du forfait Pro.": "Documents are available from the Pro plan.",
   "One Docs": "One Docs",
   "Les fichiers rattachés à un dossier ou un projet se déposent depuis leur propre fiche. Un fichier qui ne concerne aucun des deux (un contrat vierge, un modèle...) se dépose directement ici — jamais catégorisable en pièce sensible, faute de dossier auquel rattacher cette restriction.":
     "Files attached to a file or a project are uploaded from their own page. A file that concerns neither (a blank contract, a template…) is uploaded directly here — it can never be classified as a sensitive document, since there is no file to attach that restriction to.",

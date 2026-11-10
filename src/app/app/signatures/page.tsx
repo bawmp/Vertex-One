@@ -58,7 +58,7 @@ export default async function PageSignatures() {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">La signature électronique est disponible à partir du forfait Business.</p>
+        <p className="text-muted-foreground">Votre abonnement est suspendu : renouvelez-le pour accéder à la signature électronique.</p>
       </div>
     );
   }

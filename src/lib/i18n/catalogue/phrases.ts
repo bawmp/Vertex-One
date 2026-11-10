@@ -58,7 +58,6 @@ export const PHRASES: Record<string, string> = {
   " · {n} entrées à facturer": " · {n} entries to invoice",
   " · {n} entrée à facturer": " · {n} entry to invoice",
   "Semaine du {debut} au {fin}": "Week of {debut} to {fin}",
-  "{objet} et Projets sont disponibles à partir du forfait Pro.": "{objet} and Projects are available from the Pro plan.",
   "Aucun {objet} pour le moment — un devis accepté en ouvre un automatiquement.": "No {objet} yet — an accepted quote opens one automatically.",
   "Aucune tâche pour le moment dans ce {objet}.": "No tasks yet in this {objet}.",
   "Un minuteur est en cours sur": "A timer is running on",

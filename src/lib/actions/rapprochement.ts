@@ -39,7 +39,7 @@ export async function importerReleveBancaire(_etat: EtatImportReleve, formData: 
     return suggererCorrespondances(tx, utilisateurConnecte.entrepriseId, lignes);
   });
 
-  if (!suggestions) return { erreur: t("La comptabilité complète est disponible à partir du forfait Business.") };
+  if (!suggestions) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
   return { suggestions };
 }
 

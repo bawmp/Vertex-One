@@ -10,7 +10,6 @@ export const COMPTABILITE: Record<string, string> = {
   "Compte ajouté au plan comptable.": "Account added to the chart of accounts.",
   "Intitulé modifié.": "Name updated.",
   "Compte supprimé.": "Account deleted.",
-  "La comptabilité complète est disponible à partir du forfait Business.": "Full accounting is available from the Business plan.",
   "Seul l'Administrateur peut clôturer un exercice.": "Only the Administrator can close a financial year.",
   "Cochez la case de confirmation avant de clôturer.": "Tick the confirmation box before closing.",
   "bénéfice": "profit",

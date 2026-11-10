@@ -22,7 +22,7 @@ export async function definirSouhaitAnniversaireAction(actif: boolean): Promise<
     await tx.update(entreprise).set({ souhaitAnniversaireEmail: actif === true }).where(eq(entreprise.id, u.entrepriseId));
     return true;
   });
-  if (!ok) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+  if (!ok) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
   revalidatePath("/app/rh");
   return {};
 }

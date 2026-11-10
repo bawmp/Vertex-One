@@ -43,7 +43,7 @@ export default async function PageMesTaches() {
   if (!donnees) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-muted-foreground">{t("Les Projets sont disponibles à partir du forfait Pro.")}</p>
+        <p className="text-muted-foreground">{t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.")}</p>
       </div>
     );
   }

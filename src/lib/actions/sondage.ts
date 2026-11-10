@@ -53,7 +53,7 @@ export async function creerSondage(_etat: EtatSondage, formData: FormData): Prom
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     const [leSondage] = await tx.insert(sondage).values({ entrepriseId: utilisateurConnecte.entrepriseId, titre, creeParId: utilisateurConnecte.utilisateurId }).returning({ id: sondage.id });
 
@@ -130,7 +130,7 @@ export async function repondreSondage(sondageId: string, _etat: EtatSondage, for
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!disponible(monEntreprise, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
 
     const [leSondage] = await tx.select({ statut: sondage.statut }).from(sondage).where(eq(sondage.id, sondageId));
     if (!leSondage || leSondage.statut !== "OUVERT") return { erreur: t("Ce sondage n'est plus ouvert aux réponses.") };

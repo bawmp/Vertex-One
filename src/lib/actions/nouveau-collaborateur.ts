@@ -41,7 +41,7 @@ export async function inviterCollaborateur(_etat: EtatNouveauCollaborateur, form
 
   const r = await avecEntreprise(u.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
-    if (!e || !disponible(e, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+    if (!e || !disponible(e, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
     if (u.role === "ADMIN" && demande) {
       // `utilisateur` est en RLS permissive : le filtre sur l'entreprise est explicite.
       const [resp] = await tx.select({ id: utilisateur.id }).from(utilisateur).where(and(eq(utilisateur.id, demande), eq(utilisateur.entrepriseId, u.entrepriseId)));

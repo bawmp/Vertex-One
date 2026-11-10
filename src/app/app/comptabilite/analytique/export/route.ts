@@ -29,7 +29,7 @@ export async function GET(requete: Request) {
     if (!disponible(e, "COMPTABILITE_COMPLETE")) return null;
     return lireResultatAnalytique(tx, u.entrepriseId, { du, au });
   });
-  if (!resultat) return new NextResponse("La comptabilité complète est disponible à partir du forfait Business.", { status: 403 });
+  if (!resultat) return new NextResponse("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.", { status: 403 });
   const lignes = resultat.lignes.map((l) => [l.code ?? "", l.libelle ?? "Non affecté", String(l.produits), String(l.charges), String(l.resultat)]);
   lignes.push(["", "TOTAL", String(resultat.totalProduits), String(resultat.totalCharges), String(resultat.totalProduits - resultat.totalCharges)]);
   const nom = `analytique-${duTexte}-${auTexte}`.replace(/[^a-z0-9-]/gi, "");

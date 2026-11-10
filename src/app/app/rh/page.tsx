@@ -66,7 +66,7 @@ export default async function PageRH() {
       return (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Lock className="size-8 text-muted-foreground" aria-hidden />
-          <p className="text-muted-foreground">{t("Les Ressources Humaines sont disponibles à partir du forfait Business.")}</p>
+          <p className="text-muted-foreground">{t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.")}</p>
         </div>
       );
     }
@@ -437,7 +437,7 @@ export default async function PageRH() {
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
             <Lock className="size-6 text-muted-foreground" aria-hidden />
             <p className="text-sm text-muted-foreground">
-              {t("Dossiers RH, congés, pointage et salaires sont disponibles à partir du forfait Business.")}
+              {t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.")}
             </p>
           </div>
         ) : dossiers.length === 0 ? (

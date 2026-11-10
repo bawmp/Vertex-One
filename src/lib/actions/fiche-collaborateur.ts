@@ -26,7 +26,7 @@ export async function enregistrerInfosPersonnelles(dossierRHId: string, _etat: E
   const champ = (k: string) => String(formData.get(k) ?? "");
   const r = await avecEntreprise(u.entrepriseId, async (tx) => {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
-    if (!e || !disponible(e, "RH")) return { ok: false, erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") } as const;
+    if (!e || !disponible(e, "RH")) return { ok: false, erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return modifierInfosPersonnelles(tx, u, String(dossierRHId), { dateNaissance: champ("dateNaissance"), telephone: champ("telephone"), adresse: champ("adresse"), urgenceNom: champ("urgenceNom"), urgenceTelephone: champ("urgenceTelephone") }, aujourdhuiDouala());
   });
   if (!r.ok) return { erreur: t(r.erreur) };

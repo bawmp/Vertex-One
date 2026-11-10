@@ -29,7 +29,7 @@ export async function GET(requete: Request) {
     if (zip) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "DOSSIER_EXPERT_COMPTABLE", nombreLignes: 9 });
     return zip;
   });
-  if (archive === "forfait") return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (archive === "forfait") return new NextResponse(t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité."), { status: 403 });
   if (!archive) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   return new NextResponse(new Uint8Array(archive), {

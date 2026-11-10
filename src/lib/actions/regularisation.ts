@@ -36,7 +36,7 @@ export async function enregistrerRegularisationAction(_etat: EtatRegularisation,
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as const;
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as const;
     return enregistrerRegularisation(tx, utilisateurConnecte.entrepriseId, utilisateurConnecte.utilisateurId, {
       type: def.type,
       montant: Number(String(formData.get("montant") ?? "").replace(/\s/g, "")),

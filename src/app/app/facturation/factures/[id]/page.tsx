@@ -225,7 +225,7 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4">
           {!paiementEnLigneDisponible ? (
             <p className="text-sm text-muted-foreground">
-              {t("Paiement en ligne disponible à partir du forfait Pro — en attendant, pointez le règlement manuellement.")}
+              {t("Paiement en ligne indisponible : votre abonnement est suspendu — en attendant, pointez le règlement manuellement.")}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">

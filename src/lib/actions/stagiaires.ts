@@ -29,7 +29,7 @@ async function garde(action: "CREER" | "MODIFIER"): Promise<{ utilisateurConnect
   if (utilisateurConnecte.role !== "ADMIN" && utilisateurConnecte.role !== "MANAGER") return { erreur: t("Seul l'Administrateur et les Managers gèrent les stagiaires.") };
   if (!peut(utilisateurConnecte, "RH", action)) return { erreur: t("Vous n'avez pas le droit de gérer les stagiaires.") };
   const [e] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)));
-  if (!e || !disponible(e, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+  if (!e || !disponible(e, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
   return { utilisateurConnecte };
 }
 

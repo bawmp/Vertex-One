@@ -30,7 +30,7 @@ export default async function PagePresences({ searchParams }: { searchParams: Pr
   if (!utilisateurConnecte) redirect("/connexion");
 
   const [e] = await db.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-  if (!e || !disponible(e, "RH")) return <Message icone texte={t("Les Ressources Humaines sont disponibles à partir du forfait Business.")} />;
+  if (!e || !disponible(e, "RH")) return <Message icone texte={t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.")} />;
 
   const droit = await droitSurFiche(utilisateurConnecte);
   if (!droit) {

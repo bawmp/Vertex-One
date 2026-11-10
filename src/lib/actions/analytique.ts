@@ -28,7 +28,7 @@ async function garde(action: "CREER" | "MODIFIER") {
     const [e] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, u.entrepriseId));
     return disponible(e, "COMPTABILITE_COMPLETE");
   });
-  if (!ok) return { t, u, refus: t("La comptabilité complète est disponible à partir du forfait Business.") };
+  if (!ok) return { t, u, refus: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
   return { t, u, refus: null };
 }
 

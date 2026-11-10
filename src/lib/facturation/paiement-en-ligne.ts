@@ -39,7 +39,7 @@ export async function declencherPaiementDirectFacture(
 
   const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, entrepriseId));
   if (!disponible(monEntreprise, "PAIEMENTS_EN_LIGNE")) {
-    return { erreur: "Le paiement en ligne est disponible à partir du forfait Pro." };
+    return { erreur: "Le paiement en ligne est indisponible : votre abonnement est suspendu." };
   }
 
   // Toujours relue en base (RLS de l'entreprise) : le montant ne vient jamais du navigateur.

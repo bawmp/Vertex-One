@@ -91,7 +91,6 @@ export const MESSAGES: Record<string, string> = {
   // Projets, documents, contrats, signature
   "La date de début est requise.": "The start date is required.",
   "Vous n'avez pas le droit de créer de contrat.": "You are not allowed to create a contract.",
-  "Le suivi des contrats est disponible à partir du forfait Business.": "Contract tracking is available from the Business plan.",
   "Vous n'avez pas le droit d'ajouter un document.": "You are not allowed to add a document.",
   "Vous n'avez pas le droit de commenter ce dossier.": "You are not allowed to comment on this file.",
   "Le commentaire ne peut pas être vide.": "The comment cannot be empty.",
@@ -108,7 +107,6 @@ export const MESSAGES: Record<string, string> = {
   "Le nom du signataire est requis.": "The signer's name is required.",
   "Le numéro de téléphone est requis.": "The phone number is required.",
   "Vous n'avez pas le droit de demander une signature.": "You are not allowed to request a signature.",
-  "La signature électronique est disponible à partir du forfait Business.": "Electronic signature is available from the Business plan.",
   "Contrat introuvable.": "Contract not found.",
   "Ce contrat est déjà en attente de signature.": "This contract is already awaiting signature.",
   "Ce contrat est déjà signé.": "This contract is already signed.",

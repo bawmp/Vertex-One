@@ -27,7 +27,7 @@ async function garde(): Promise<{ utilisateurConnecte: UtilisateurConnecte } | {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
   const [e] = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)));
-  if (!e || !disponible(e, "RH")) return { erreur: t("Les Ressources Humaines sont disponibles à partir du forfait Business.") };
+  if (!e || !disponible(e, "RH")) return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
   return { utilisateurConnecte };
 }
 

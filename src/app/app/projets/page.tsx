@@ -50,7 +50,7 @@ export default async function PageProjets() {
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
         <p className="text-muted-foreground">
-          {t("{objet} et Projets sont disponibles à partir du forfait Pro.", { objet: t(vocab.pluriel) })}
+          {t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.", { objet: t(vocab.pluriel) })}
         </p>
       </div>
     );

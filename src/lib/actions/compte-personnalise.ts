@@ -29,7 +29,7 @@ async function executer(action: "CREER" | "MODIFIER" | "SUPPRIMER", travail: (tx
   const { t, utilisateurConnecte } = a;
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select({ planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("La comptabilité complète est disponible à partir du forfait Business.") } as ResultatCompte;
+    if (!disponible(monEntreprise, "COMPTABILITE_COMPLETE")) return { ok: false, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") } as ResultatCompte;
     return travail(tx, utilisateurConnecte.entrepriseId);
   });
   if (!resultat.ok) return { erreur: t(resultat.erreur) };

@@ -31,7 +31,7 @@ export async function GET(requete: Request) {
     if (lus) await tx.insert(journalExportDonnees).values({ entrepriseId: utilisateurConnecte.entrepriseId, utilisateurId: utilisateurConnecte.utilisateurId, type: "ETATS_FINANCIERS_PDF", nombreLignes: lus.resultat.lignes.length });
     return lus;
   });
-  if (etats === "forfait") return new NextResponse(t("La comptabilité complète est disponible à partir du forfait Business."), { status: 403 });
+  if (etats === "forfait") return new NextResponse(t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité."), { status: 403 });
   if (!etats) return new NextResponse(t("Exercice invalide"), { status: 400 });
 
   const pdf = await renderToBuffer(<EtatsFinanciersPDF etats={etats} genereLe={new Date()} />);

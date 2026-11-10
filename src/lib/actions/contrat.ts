@@ -47,7 +47,7 @@ export async function creerContrat(_etat: EtatContrat, formData: FormData): Prom
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx.select().from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     if (!disponible(monEntreprise, "CONTRATS")) {
-      return { erreur: t("Le suivi des contrats est disponible à partir du forfait Business.") };
+      return { erreur: t("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
     }
 
     await tx.insert(contrat).values({
