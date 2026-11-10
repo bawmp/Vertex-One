@@ -98,6 +98,8 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
   const [brouillonRepris, setBrouillonRepris] = useState(false);
   const [enregistreA, setEnregistreA] = useState<number | null>(null);
   const [tentative, setTentative] = useState(0);
+  // L'erreur du serveur disparaît dès que la personne corrige sa saisie, et revient si un nouvel envoi échoue.
+  const [erreurMasquee, setErreurMasquee] = useState(false);
   const pret = useRef(false);
 
   // Reprise d'un brouillon laissé sur cet appareil pour ce modèle (lecture du stockage du navigateur au montage).
@@ -133,7 +135,12 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
 
   useEffect(() => {
     if (etat?.envoye) ecrireBrouillon(modele.id, null);
-    if (etat?.erreur) setTentative((n) => n + 1); // relance la secousse du message d'erreur
+    if (etat?.erreur) {
+      /* eslint-disable react-hooks/set-state-in-effect -- réaction à la réponse du serveur */
+      setTentative((n) => n + 1); // relance la secousse du message d'erreur
+      setErreurMasquee(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
   }, [etat, modele.id]);
 
   const requises = useMemo(() => modele.rubriques.filter((r) => r.requis), [modele]);
@@ -194,14 +201,20 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
             nom="destinataireId"
             etiquette={t("Destinataire")}
             valeur={destinataireId}
-            onChange={setDestinataireId}
+            onChange={(id) => {
+              setDestinataireId(id);
+              setErreurMasquee(true);
+            }}
             colonnes={2}
             options={destinataires.map((d) => ({ valeur: d.id, libelle: d.nom, detail: d.role === "ADMIN" ? t("Administrateur") : t("Manager") }))}
           />
         </SectionFormulaire>
 
         <SectionFormulaire titre={t("Votre rapport")}>
-          <Champ label={t("Objet")} id="objet" name="objet" required maxLength={LONGUEUR_MAX_OBJET} value={objet} onChange={(e) => setObjet(e.target.value)} valide={objet.trim().length > 0} />
+          <Champ label={t("Objet")} id="objet" name="objet" required maxLength={LONGUEUR_MAX_OBJET} value={objet} onChange={(e) => {
+              setObjet(e.target.value);
+              setErreurMasquee(true);
+            }} valide={objet.trim().length > 0} />
           {modele.rubriques.map((r) =>
             r.type === "ligne" ? (
               <Champ
@@ -212,7 +225,10 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
                 aide={r.aide ? t(r.aide) : undefined}
                 maxLength={LONGUEUR_MAX_RUBRIQUE_LIGNE}
                 value={valeurs[r.cle] ?? ""}
-                onChange={(e) => setValeurs((v) => ({ ...v, [r.cle]: e.target.value }))}
+                onChange={(e) => {
+                  setValeurs((v) => ({ ...v, [r.cle]: e.target.value }));
+                  setErreurMasquee(true);
+                }}
               />
             ) : (
               <ChampZone
@@ -224,7 +240,10 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
                 maxLength={LONGUEUR_MAX_RUBRIQUE_TEXTE}
                 rows={r.requis ? 5 : 3}
                 value={valeurs[r.cle] ?? ""}
-                onChange={(e) => setValeurs((v) => ({ ...v, [r.cle]: e.target.value }))}
+                onChange={(e) => {
+                  setValeurs((v) => ({ ...v, [r.cle]: e.target.value }));
+                  setErreurMasquee(true);
+                }}
               />
             ),
           )}
@@ -235,7 +254,7 @@ function FormulaireRapportModele({ modele, destinataires, parDefaut, onChanger }
           {t("Seuls vous et le destinataire pouvez lire ce rapport.")}
         </p>
 
-        {etat?.erreur ? (
+        {etat?.erreur && !erreurMasquee ? (
           <p key={tentative} role="alert" className="animate-secousse rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">
             {etat.erreur}
           </p>
