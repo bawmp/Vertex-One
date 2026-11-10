@@ -80,7 +80,7 @@ export default async function PageRapportsEcrits({ searchParams }: { searchParam
   }
 
   const { rapports, autorises, parDefaut } = donnees;
-  const peutEcrire = utilisateurConnecte.role === "EMPLOYE" || utilisateurConnecte.role === "MANAGER";
+  const peutEcrire = utilisateurConnecte.role === "EMPLOYE" || utilisateurConnecte.role === "MANAGER" || utilisateurConnecte.role === "ADMIN";
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

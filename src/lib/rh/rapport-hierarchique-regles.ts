@@ -5,7 +5,8 @@
  * - Un Employé écrit à l'un des Managers actifs de l'entreprise.
  * - Un Manager écrit à son supérieur : son responsable direct et ceux au-dessus de lui (la chaîne `managerId`), et à tout Administrateur actif.
  *   (« Celui qui lui a donné le rôle » n'est pas conservé en base : c'est le responsable indiqué à l'invitation, ou l'Administrateur.)
- * - Un Administrateur n'a personne au-dessus de lui ; les autres rôles (client, comptable) n'écrivent pas de rapport.
+ * - Un Administrateur écrit aux autres Administrateurs actifs (il n'a personne au-dessus de lui) ; les autres rôles (client, comptable)
+ *   n'écrivent pas de rapport.
  */
 
 export type PersonneRapport = {
@@ -36,6 +37,8 @@ export function destinatairesAutorises(auteur: { id: string; role: string }, per
     for (const p of actives) if (p.role === "ADMIN") retenus.set(p.id, p);
     return [...retenus.values()];
   }
+
+  if (auteur.role === "ADMIN") return actives.filter((p) => p.role === "ADMIN");
 
   return [];
 }

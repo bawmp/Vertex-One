@@ -26,8 +26,13 @@ describe("Rapports écrits — qui peut écrire à qui (règles pures)", () => {
     expect(destinatairesAutorises({ id: "autre", role: "MANAGER" }, gens).map((x) => x.id)).toEqual(["admin"]);
   });
 
-  test("l'Administrateur, un client ou un comptable n'écrivent pas de rapport", () => {
-    expect(destinatairesAutorises({ id: "admin", role: "ADMIN" }, gens)).toEqual([]);
+  test("un Administrateur écrit aux autres Administrateurs actifs, pas à lui-même ni aux managers", () => {
+    expect(destinatairesAutorises({ id: "admin", role: "ADMIN" }, gens)).toEqual([]); // seul administrateur
+    const deux = [...gens, p("admin2", "ADMIN"), p("admin3", "ADMIN", null, "DESACTIVE")];
+    expect(destinatairesAutorises({ id: "admin", role: "ADMIN" }, deux).map((x) => x.id)).toEqual(["admin2"]);
+  });
+
+  test("un client ou un comptable n'écrivent pas de rapport", () => {
     expect(destinatairesAutorises({ id: "client", role: "CLIENT" }, gens)).toEqual([]);
     expect(destinatairesAutorises({ id: "x", role: "COMPTABLE" }, gens)).toEqual([]);
   });
