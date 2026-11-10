@@ -5762,3 +5762,39 @@ export const tachePoste = pgTable(
     }),
   ]
 ).enableRLS();
+
+/**
+ * Rapport écrit adressé à un supérieur (2026-11-10). Un Employé écrit à l'un des Managers de l'entreprise ; un Manager écrit à son supérieur
+ * (son responsable direct et ceux au-dessus de lui) ou à un Administrateur. Confidentiel : seuls l'auteur et le destinataire le lisent,
+ * l'Administrateur compris quand il n'est ni l'un ni l'autre. Jamais supprimé ni modifié après l'envoi (c'est une trace écrite).
+ */
+export const rapportHierarchique = pgTable(
+  "rapport_hierarchique",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    auteurId: text("auteur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    destinataireId: text("destinataire_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    objet: text("objet").notNull(),
+    contenu: text("contenu").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    // Rempli quand le destinataire ouvre le rapport (horloge de la base).
+    luLe: timestamp("lu_le"),
+  },
+  (table) => [
+    index("rapport_hierarchique_entreprise_idx").on(table.entrepriseId),
+    index("rapport_hierarchique_auteur_idx").on(table.auteurId),
+    index("rapport_hierarchique_destinataire_idx").on(table.destinataireId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();

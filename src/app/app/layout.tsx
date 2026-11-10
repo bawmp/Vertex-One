@@ -263,7 +263,10 @@ const MODULES_MENU: ItemMenu[] = [
       },
       {
         categorie: "Rapports",
-        liens: [{ libelle: m("Rapports RH"), href: "/app/rh/rapports", Icone: BarChart3 }],
+        liens: [
+          { libelle: m("Rapports RH"), href: "/app/rh/rapports", Icone: BarChart3 },
+          { libelle: m("Rapports écrits"), href: "/app/rh/rapports-ecrits", Icone: FileText },
+        ],
       },
     ],
   },
