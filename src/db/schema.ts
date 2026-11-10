@@ -5783,6 +5783,10 @@ export const rapportHierarchique = pgTable(
       .references(() => utilisateur.id),
     objet: text("objet").notNull(),
     contenu: text("contenu").notNull(),
+    // Modèle choisi (MISSION, TRAVAUX, ACTIVITE, INCIDENT, DEMANDE, LIBRE) et rubriques remplies ; null pour un rapport d'avant les modèles.
+    // `contenu` garde toujours le texte complet (aperçu, anciens écrans).
+    modele: text("modele"),
+    sections: json("sections").$type<{ cle: string; texte: string }[]>(),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     // Rempli quand le destinataire ouvre le rapport (horloge de la base).
     luLe: timestamp("lu_le"),

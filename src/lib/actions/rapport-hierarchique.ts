@@ -11,7 +11,8 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
 import { destinatairesPossibles } from "@/lib/rh/rapport-hierarchique";
-import { LONGUEUR_MAX_CONTENU, LONGUEUR_MAX_OBJET } from "@/lib/rh/rapport-hierarchique-regles";
+import { LONGUEUR_MAX_OBJET } from "@/lib/rh/rapport-hierarchique-regles";
+import { MODELE_PAR_DEFAUT, trouverModele, validerRapport } from "@/lib/rh/rapport-modeles";
 import { alerterParEmail, echapper } from "@/lib/notifications/equipe";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
@@ -23,7 +24,6 @@ export type EtatRapport = { erreur?: string; envoye?: boolean } | null;
 const schemaRapport = z.object({
   destinataireId: z.string().min(1, m("Choisissez le destinataire.")),
   objet: z.string().trim().min(1, m("L'objet est requis.")).max(LONGUEUR_MAX_OBJET, m("L'objet est trop long.")),
-  contenu: z.string().trim().min(1, m("Le rapport ne peut pas être vide.")).max(LONGUEUR_MAX_CONTENU, m("Le rapport est trop long.")),
 });
 
 /**
@@ -37,9 +37,22 @@ export async function envoyerRapportHierarchique(_etat: EtatRapport, formData: F
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "RH", "CREER")) return { erreur: t("Vous n'avez pas le droit d'envoyer un rapport.") };
 
-  const analyse = schemaRapport.safeParse({ destinataireId: formData.get("destinataireId"), objet: formData.get("objet"), contenu: formData.get("contenu") });
+  const analyse = schemaRapport.safeParse({ destinataireId: formData.get("destinataireId"), objet: formData.get("objet") });
   if (!analyse.success) return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
-  const { destinataireId, objet, contenu } = analyse.data;
+  const { destinataireId, objet } = analyse.data;
+
+  // Le modèle et ses rubriques sont revalidés ici : seules les rubriques du modèle choisi sont retenues, jamais une rubrique envoyée en plus.
+  const modele = trouverModele(String(formData.get("modele") ?? MODELE_PAR_DEFAUT));
+  if (!modele) return { erreur: t("Modèle de rapport inconnu.") };
+  const saisie: Record<string, string> = {};
+  for (const r of modele.rubriques) saisie[r.cle] = String(formData.get(`rubrique_${r.cle}`) ?? "");
+  const validation = validerRapport(modele.id, saisie);
+  if (!validation.ok) {
+    const rubrique = modele.rubriques.find((r) => r.cle === validation.rubrique);
+    if (validation.erreur === "REQUIS" && rubrique) return { erreur: t("La rubrique « {rubrique} » est requise.", { rubrique: t(rubrique.libelle) }) };
+    return { erreur: t("Le rapport est trop long.") };
+  }
+  const { contenu, sections } = validation;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [monEntreprise] = await tx
@@ -63,7 +76,7 @@ export async function envoyerRapportHierarchique(_etat: EtatRapport, formData: F
 
     const [cree] = await tx
       .insert(rapportHierarchique)
-      .values({ entrepriseId: utilisateurConnecte.entrepriseId, auteurId: utilisateurConnecte.utilisateurId, destinataireId: destinataire.id, objet, contenu })
+      .values({ entrepriseId: utilisateurConnecte.entrepriseId, auteurId: utilisateurConnecte.utilisateurId, destinataireId: destinataire.id, objet, contenu, modele: modele.id, sections })
       .returning({ id: rapportHierarchique.id });
 
     return { id: cree.id, auteurNom: moi?.nomComplet ?? "", emailDestinataire: cible?.email ?? null, entrepriseNom: monEntreprise?.nom ?? "" };

@@ -4,6 +4,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, rapportHierarchique } from "@/db/schema";
 import { destinatairesAutorises, destinataireParDefaut, peutLireRapport, type PersonneRapport } from "@/lib/rh/rapport-hierarchique-regles";
 import { destinatairesPossibles } from "@/lib/rh/rapport-hierarchique";
+import { MODELES_RAPPORT, trouverModele, validerRapport } from "@/lib/rh/rapport-modeles";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
 const p = (id: string, role: string, managerId: string | null = null, statut = "ACTIF"): PersonneRapport => ({ id, nomComplet: `Nom ${id}`, role, statut, managerId });
@@ -136,3 +137,46 @@ describe("Rapports écrits — base réelle et isolation entre entreprises", () 
     expect(intact?.objet).toBe("Bilan de la semaine");
   }, 60_000);
 });
+
+describe("Rapports écrits — modèles et validation", () => {
+  test("six modèles, chacun avec au moins une rubrique obligatoire et des clés uniques", () => {
+    expect(MODELES_RAPPORT.map((x) => x.id)).toEqual(["MISSION", "TRAVAUX", "ACTIVITE", "INCIDENT", "DEMANDE", "LIBRE"]);
+    for (const modele of MODELES_RAPPORT) {
+      expect(modele.rubriques.some((r) => r.requis)).toBe(true);
+      const cles = modele.rubriques.map((r) => r.cle);
+      expect(new Set(cles).size).toBe(cles.length);
+    }
+  });
+
+  test("un modèle inconnu est refusé", () => {
+    expect(trouverModele("INVENTE")).toBeUndefined();
+    expect(validerRapport("INVENTE", { contenu: "x" })).toEqual({ ok: false, erreur: "MODELE" });
+  });
+
+  test("une rubrique obligatoire vide est refusée, en nommant la rubrique", () => {
+    const r = validerRapport("MISSION", { objectif: "Visiter le client", deroulement: "   ", resultats: "OK" });
+    expect(r).toEqual({ ok: false, erreur: "REQUIS", rubrique: "deroulement" });
+  });
+
+  test("seules les rubriques du modèle sont retenues : une clé inventée est ignorée", () => {
+    const r = validerRapport("DEMANDE", { besoin: "Un second écran", pirate: "<script>", role: "ADMIN" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sections).toEqual([{ cle: "besoin", texte: "Un second écran" }]);
+      expect(r.contenu).not.toContain("script");
+    }
+  });
+
+  test("le texte complet reprend les libellés, sauf pour le rapport libre", () => {
+    const mission = validerRapport("MISSION", { lieu: "Douala", objectif: "Audit", deroulement: "Visite", resultats: "Conforme" });
+    expect(mission.ok && mission.contenu).toContain("Lieu :\nDouala");
+    const libre = validerRapport("LIBRE", { contenu: "Bonjour" });
+    expect(libre.ok && libre.contenu).toBe("Bonjour");
+  });
+
+  test("une rubrique trop longue est refusée", () => {
+    expect(validerRapport("LIBRE", { contenu: "a".repeat(5001) })).toEqual({ ok: false, erreur: "TROP_LONG", rubrique: "contenu" });
+    expect(validerRapport("INCIDENT", { description: "ok", lieu: "x".repeat(201) })).toEqual({ ok: false, erreur: "TROP_LONG", rubrique: "lieu" });
+  });
+});
+
