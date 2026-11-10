@@ -71,5 +71,17 @@ test("assistant de rapport : choisir un modèle, remplir, envoyer, retrouver", a
   await carte.click();
   await expect(page.getByRole("heading", { name: "Mission — Audit Douala" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("Conformité confirmée.")).toBeVisible();
+  // Papier à en-tête : nom de l'entreprise, bloc De / À / Date, signature, mention de confidentialité.
+  await expect(page.getByText(nomEntreprise).first()).toBeVisible();
+  await expect(page.getByText("Document confidentiel")).toBeVisible();
+  await page.waitForTimeout(1500); // laisse finir les animations avant la capture
   if (CAPTURES) await page.screenshot({ path: `${CAPTURES}/6-detail.png`, fullPage: true });
+
+  // PDF sur papier à en-tête : même session, même contrôle d'accès que la page.
+  const reponse = await page.request.get(`${page.url()}/pdf`);
+  expect(reponse.status()).toBe(200);
+  expect(reponse.headers()["content-type"]).toContain("application/pdf");
+  const octets = await reponse.body();
+  expect(octets.subarray(0, 4).toString()).toBe("%PDF");
+  if (CAPTURES) (await import("node:fs")).writeFileSync(`${CAPTURES}/rapport.pdf`, octets);
 });

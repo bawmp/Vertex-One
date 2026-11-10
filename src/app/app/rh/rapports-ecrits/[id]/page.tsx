@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { alias } from "drizzle-orm/pg-core";
-import { and, eq, isNull, sql } from "drizzle-orm";
-import { ArrowLeft, ArrowRight, CheckCheck, Lock } from "lucide-react";
+import { ArrowLeft, CheckCheck, Download, Lock } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { rapportHierarchique, utilisateur } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { peutLireRapport } from "@/lib/rh/rapport-hierarchique-regles";
-import { trouverModele } from "@/lib/rh/rapport-modeles";
-import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
+import { lireRapportPourPersonne } from "@/lib/rh/rapport-hierarchique";
+import { MODELE_PAR_DEFAUT, rubriquesDuRapport, trouverModele } from "@/lib/rh/rapport-modeles";
+import { LogoEntreprise } from "@/components/logo-entreprise";
+import { Button } from "@/components/ui/button";
 import { PastilleModele } from "../icones-modeles";
 import { getT } from "@/lib/i18n/langue";
 
@@ -19,41 +17,7 @@ export default async function PageRapportEcrit({ params }: { params: Promise<{ i
   if (!utilisateurConnecte) redirect("/connexion");
   const { id } = await params;
 
-  const auteur = alias(utilisateur, "auteur");
-  const destinataire = alias(utilisateur, "destinataire");
-
-  const rapport = peut(utilisateurConnecte, "RH", "VOIR")
-    ? await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-        const [r] = await tx
-          .select({
-            objet: rapportHierarchique.objet,
-            contenu: rapportHierarchique.contenu,
-            modele: rapportHierarchique.modele,
-            sections: rapportHierarchique.sections,
-            creeLe: rapportHierarchique.creeLe,
-            luLe: rapportHierarchique.luLe,
-            auteurId: rapportHierarchique.auteurId,
-            destinataireId: rapportHierarchique.destinataireId,
-            auteurNom: auteur.nomComplet,
-            destinataireNom: destinataire.nomComplet,
-          })
-          .from(rapportHierarchique)
-          .innerJoin(auteur, eq(rapportHierarchique.auteurId, auteur.id))
-          .innerJoin(destinataire, eq(rapportHierarchique.destinataireId, destinataire.id))
-          .where(and(eq(rapportHierarchique.id, id), eq(rapportHierarchique.entrepriseId, utilisateurConnecte.entrepriseId)));
-        // Ni l'auteur ni le destinataire : même réponse que pour un rapport qui n'existe pas (on ne révèle rien), l'Administrateur compris.
-        if (!r || !peutLireRapport(utilisateurConnecte.utilisateurId, r)) return null;
-
-        // Le destinataire qui ouvre le rapport le marque comme lu (horloge de la base).
-        if (r.destinataireId === utilisateurConnecte.utilisateurId && !r.luLe) {
-          await tx
-            .update(rapportHierarchique)
-            .set({ luLe: sql`now()` })
-            .where(and(eq(rapportHierarchique.id, id), isNull(rapportHierarchique.luLe)));
-        }
-        return r;
-      })
-    : null;
+  const rapport = peut(utilisateurConnecte, "RH", "VOIR") ? await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => lireRapportPourPersonne(tx, utilisateurConnecte, id, { marquerLu: true })) : null;
 
   if (!rapport) {
     return (
@@ -67,68 +31,93 @@ export default async function PageRapportEcrit({ params }: { params: Promise<{ i
     );
   }
 
-  const modele = trouverModele(rapport.modele) ?? trouverModele("LIBRE")!;
-  // Un rapport d'avant les modèles (ou libre) n'a pas de rubriques : on montre son texte tel quel.
-  const rubriques = (rapport.sections ?? []).flatMap((s) => {
-    const r = modele.rubriques.find((x) => x.cle === s.cle);
-    return r ? [{ cle: s.cle, libelle: modele.id === "LIBRE" ? null : t(r.libelle), texte: s.texte, ligne: r.type === "ligne" }] : [];
-  });
+  const e = rapport.entreprise;
+  const modele = trouverModele(rapport.modele) ?? trouverModele(MODELE_PAR_DEFAUT)!;
+  // Un rapport d'avant les modèles n'a pas de rubriques : on montre son texte tel quel.
+  const rubriques = rubriquesDuRapport(rapport.modele, rapport.sections).map((r) => ({ ...r, libelle: r.libelle ? t(r.libelle) : null }));
   const lu = Boolean(rapport.luLe) || rapport.destinataireId === utilisateurConnecte.utilisateurId;
+  const coordonnees = [e.adresse, e.ville].filter(Boolean).join(", ");
+  const mentions = [e.niu ? `NIU ${e.niu}` : null, e.rccm ? `RCCM ${e.rccm}` : null].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <Link href="/app/rh/rapports-ecrits" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-3.5" aria-hidden />
-        {t("Rapports écrits")}
-      </Link>
-
-      <header className="relative flex animate-in flex-col gap-5 overflow-hidden rounded-3xl bg-linear-to-br from-primary to-marque-bleu-800 p-6 text-primary-foreground shadow-lg shadow-primary/20 duration-500 fade-in slide-in-from-bottom-2 sm:p-8">
-        <span aria-hidden className="animate-flotter-lentement pointer-events-none absolute -top-10 -right-8 size-44 rounded-full bg-marque-orange/25 blur-2xl" />
-        <div className="relative flex items-start gap-3.5">
-          <PastilleModele modele={modele} taille="grand" className="ring-1 ring-white/30" />
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wider text-primary-foreground/75 uppercase">{t(modele.libelle)}</p>
-            <h1 className="text-2xl leading-tight font-semibold tracking-tight">{rapport.objet}</h1>
-          </div>
-        </div>
-        <div className="relative flex flex-wrap items-center gap-x-4 gap-y-2.5 text-sm">
-          <span className="flex min-w-0 items-center gap-2">
-            <AvatarCollaborateur nom={rapport.auteurNom} adresse={null} taille="petit" />
-            <span className="truncate font-medium">{rapport.auteurNom}</span>
-          </span>
-          <ArrowRight className="size-4 shrink-0 text-primary-foreground/60" aria-hidden />
-          <span className="flex min-w-0 items-center gap-2">
-            <AvatarCollaborateur nom={rapport.destinataireNom} adresse={null} taille="petit" />
-            <span className="truncate font-medium">{rapport.destinataireNom}</span>
-          </span>
-          <span className="text-primary-foreground/75">{new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(rapport.creeLe)}</span>
+    <div className="flex max-w-3xl flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/app/rh/rapports-ecrits" className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <ArrowLeft className="size-3.5" aria-hidden />
+          {t("Rapports écrits")}
+        </Link>
+        <div className="flex items-center gap-2">
           {lu ? (
-            <span className="ml-auto flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium">
+            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
               <CheckCheck className="size-3.5" aria-hidden />
               {t("Lu")}
             </span>
           ) : null}
+          <Button variant="outline" size="sm" render={<a href={`/app/rh/rapports-ecrits/${id}/pdf`} target="_blank" rel="noopener" />} nativeButton={false}>
+            <Download data-icon="inline-start" aria-hidden />
+            {t("Télécharger le PDF")}
+          </Button>
         </div>
-      </header>
-
-      <div className="flex flex-col gap-3.5">
-        {rubriques.length > 0 ? (
-          rubriques.map((s, index) => (
-            <section
-              key={s.cle}
-              style={{ animationDelay: `${120 + index * 70}ms` }}
-              className="animate-in rounded-2xl border border-border bg-card p-5 shadow-xs duration-500 fade-in slide-in-from-bottom-3 fill-mode-both"
-            >
-              {s.libelle ? <h2 className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{s.libelle}</h2> : null}
-              <p className={s.ligne ? "text-base font-medium" : "text-sm leading-relaxed whitespace-pre-wrap"}>{s.texte}</p>
-            </section>
-          ))
-        ) : (
-          <section className="animate-in rounded-2xl border border-border bg-card p-5 shadow-xs duration-500 fade-in slide-in-from-bottom-3 fill-mode-both">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{rapport.contenu}</p>
-          </section>
-        )}
       </div>
+
+      {/* La feuille : papier à en-tête de l'entreprise (logo, coordonnées, filet aux couleurs de la marque), comme le PDF. */}
+      <article className="animate-in overflow-hidden rounded-2xl border border-border bg-card shadow-lg shadow-black/5 duration-500 fade-in slide-in-from-bottom-3">
+        <header className="flex flex-col gap-4 px-6 pt-6 pb-5 sm:flex-row sm:items-start sm:px-10 sm:pt-8">
+          <LogoEntreprise entrepriseId={e.id} logoCleStockage={e.logoCleStockage} nomEntreprise={e.nom} taille="bandeau" className="shrink-0 shadow-none ring-0" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="text-lg font-semibold tracking-tight text-primary">{e.nom}</p>
+            {coordonnees ? <p className="text-xs text-muted-foreground">{coordonnees}</p> : null}
+            {mentions ? <p className="text-xs text-muted-foreground">{mentions}</p> : null}
+          </div>
+        </header>
+        <div aria-hidden className="h-1 bg-linear-to-r from-primary via-primary to-marque-orange" />
+
+        <div className="flex flex-col gap-6 px-6 py-7 sm:px-10 sm:py-9">
+          <div className="flex items-start gap-3.5">
+            <PastilleModele modele={modele} taille="grand" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold tracking-widest text-primary uppercase">{t(modele.libelle)}</p>
+              <h1 className="mt-0.5 text-2xl leading-tight font-semibold tracking-tight">{rapport.objet}</h1>
+            </div>
+          </div>
+
+          <dl className="grid grid-cols-1 gap-4 border-y border-border py-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t("De")}</dt>
+              <dd className="mt-1 font-semibold">{rapport.auteurNom}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t("À")}</dt>
+              <dd className="mt-1 font-semibold">{rapport.destinataireNom}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t("Date")}</dt>
+              <dd className="mt-1 font-semibold">{new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(rapport.creeLe)}</dd>
+            </div>
+          </dl>
+
+          <div className="flex flex-col gap-5">
+            {rubriques.length > 0 ? (
+              rubriques.map((s, index) => (
+                <section key={index} style={{ animationDelay: `${150 + index * 70}ms` }} className="animate-in duration-500 fade-in slide-in-from-bottom-2 fill-mode-both">
+                  {s.libelle ? <h2 className="mb-1.5 text-xs font-semibold tracking-wider text-primary uppercase">{s.libelle}</h2> : null}
+                  <p className={s.ligne ? "font-medium" : "text-sm leading-relaxed whitespace-pre-wrap"}>{s.texte}</p>
+                </section>
+              ))
+            ) : (
+              <p className="animate-in text-sm leading-relaxed whitespace-pre-wrap duration-500 fade-in">{rapport.contenu}</p>
+            )}
+          </div>
+
+          <div className="mt-2 flex justify-end">
+            <p className="w-52 border-t border-muted-foreground/40 pt-1.5 text-center text-xs text-muted-foreground">{rapport.auteurNom}</p>
+          </div>
+        </div>
+
+        <footer className="border-t border-border bg-muted/40 px-6 py-3 text-center text-[11px] text-muted-foreground sm:px-10">
+          {[e.nom, coordonnees, mentions].filter(Boolean).join(" — ")} · {t("Document confidentiel")}
+        </footer>
+      </article>
     </div>
   );
 }

@@ -663,4 +663,7 @@ export const RH: Record<string, string> = {
   "Délai souhaité": "Desired deadline",
   "Autre rapport": "Other report",
   "Une page blanche pour tout ce qui ne rentre pas dans les autres modèles.": "A blank page for anything that does not fit the other templates.",
+  "Télécharger le PDF": "Download the PDF",
+  "Date": "Date",
+  "Document confidentiel": "Confidential document",
 };

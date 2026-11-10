@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, rapportHierarchique } from "@/db/schema";
 import { destinatairesAutorises, destinataireParDefaut, peutLireRapport, type PersonneRapport } from "@/lib/rh/rapport-hierarchique-regles";
-import { destinatairesPossibles } from "@/lib/rh/rapport-hierarchique";
+import { destinatairesPossibles, lireRapportPourPersonne } from "@/lib/rh/rapport-hierarchique";
 import { MODELES_RAPPORT, trouverModele, validerRapport } from "@/lib/rh/rapport-modeles";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 
@@ -123,6 +123,29 @@ describe("Rapports écrits — base réelle et isolation entre entreprises", () 
 
     const toutDeB = await avecEntreprise(entB, (tx) => tx.select({ id: rapportHierarchique.id }).from(rapportHierarchique));
     expect(toutDeB).toEqual([]);
+  }, 60_000);
+
+  test("lecture : seuls l'auteur et le destinataire lisent, l'Administrateur compris ; le destinataire marque lu, pas le PDF", async () => {
+    const lire = (qui: string, ent: string, marquerLu: boolean) => avecEntreprise(ent, (tx) => lireRapportPourPersonne(tx, { utilisateurId: qui, entrepriseId: ent }, rapportAId, { marquerLu }));
+
+    // un tiers, même Administrateur de la même entreprise, ne lit rien
+    expect(await lire(adminA, entA, true)).toBeNull();
+    // l'auteur lit, sans que ça marque le rapport comme lu
+    const parAuteur = await lire(employeA, entA, true);
+    expect(parAuteur?.objet).toBe("Bilan de la semaine");
+    expect(parAuteur?.entreprise.nom).toBe(nomA);
+    const [apresAuteur] = await avecEntreprise(entA, (tx) => tx.select({ luLe: rapportHierarchique.luLe }).from(rapportHierarchique).where(eq(rapportHierarchique.id, rapportAId)));
+    expect(apresAuteur.luLe).toBeNull();
+    // le destinataire qui télécharge le PDF (marquerLu: false) ne le marque pas lu
+    expect((await lire(managerA, entA, false))?.objet).toBe("Bilan de la semaine");
+    const [apresPdf] = await avecEntreprise(entA, (tx) => tx.select({ luLe: rapportHierarchique.luLe }).from(rapportHierarchique).where(eq(rapportHierarchique.id, rapportAId)));
+    expect(apresPdf.luLe).toBeNull();
+    // le destinataire qui ouvre la page le marque lu
+    await lire(managerA, entA, true);
+    const [apresPage] = await avecEntreprise(entA, (tx) => tx.select({ luLe: rapportHierarchique.luLe }).from(rapportHierarchique).where(eq(rapportHierarchique.id, rapportAId)));
+    expect(apresPage.luLe).not.toBeNull();
+    // une autre entreprise ne lit rien, même avec l'identifiant exact
+    expect(await lire(adminB, entB, true)).toBeNull();
   }, 60_000);
 
   test("on ne peut pas écrire un rapport dans une autre entreprise, ni le modifier ou le supprimer", async () => {

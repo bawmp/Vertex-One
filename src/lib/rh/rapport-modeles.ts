@@ -163,3 +163,12 @@ export function validerRapport(modeleId: string, saisie: Record<string, string |
     .join("\n\n");
   return { ok: true, sections, contenu };
 }
+
+/** Rubriques remplies d'un rapport, dans l'ordre du modèle (libellé français, à traduire à l'affichage ; null pour un rapport libre). */
+export function rubriquesDuRapport(modeleId: string | null | undefined, sections: SectionSaisie[] | null | undefined): { libelle: string | null; texte: string; ligne: boolean }[] {
+  const modele = trouverModele(modeleId) ?? trouverModele(MODELE_PAR_DEFAUT)!;
+  return (sections ?? []).flatMap((s) => {
+    const r = modele.rubriques.find((x) => x.cle === s.cle);
+    return r ? [{ libelle: modele.id === "LIBRE" ? null : r.libelle, texte: s.texte, ligne: r.type === "ligne" }] : [];
+  });
+}
