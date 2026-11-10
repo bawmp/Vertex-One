@@ -32,7 +32,9 @@ type IconeComposant = React.ComponentType<{ className?: string; "aria-hidden"?: 
 // l'Administrateur via peut()) — reproduit ici le même filtre pour ne pas
 // afficher un lien qui mènerait systématiquement à un écran d'accès refusé
 // pour un Manager/Employé.
-type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module; reserveAdmin?: boolean };
+// ouvertEmploye : dans un module où l'Employé n'a qu'une part réduite (One People : sa fiche et ses rapports écrits), seuls les liens ainsi
+// marqués lui sont montrés ; les autres liens du même module restent pour les Managers et l'Administrateur.
+type LienMenu = { libelle: string; href: string; Icone: IconeComposant; module?: Module; reserveAdmin?: boolean; ouvertEmploye?: boolean };
 type GroupeMenu = { categorie?: string; liens: LienMenu[] };
 type ItemMenu =
   // module absent (ex. "Mon compte") : visible à tout utilisateur connecté,
@@ -265,7 +267,7 @@ const MODULES_MENU: ItemMenu[] = [
         categorie: "Rapports",
         liens: [
           { libelle: m("Rapports RH"), href: "/app/rh/rapports", Icone: BarChart3 },
-          { libelle: m("Rapports écrits"), href: "/app/rh/rapports-ecrits", Icone: FileText },
+          { libelle: m("Rapports écrits"), href: "/app/rh/rapports-ecrits", Icone: FileText, ouvertEmploye: true },
         ],
       },
     ],
@@ -414,7 +416,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           .map((groupe) => ({
             categorie: groupe.categorie ? traduireCategorie(groupe.categorie, t) : groupe.categorie,
             liens: groupe.liens
-              .filter((lien) => (!lien.module || peut(utilisateurConnecte, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN"))
+              .filter((lien) => (!lien.module || peut(utilisateurConnecte, lien.module, "VOIR")) && (!lien.reserveAdmin || utilisateurConnecte.role === "ADMIN") && (item.module !== "RH" || utilisateurConnecte.role !== "EMPLOYE" || lien.ouvertEmploye))
               .map((lien) => ({
                 href: lien.href,
                 libelle: tp(lien.libelle),

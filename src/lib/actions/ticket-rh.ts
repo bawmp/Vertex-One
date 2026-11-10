@@ -8,6 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, categorieTicketRH, ticketRH, messageTicketRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { employeLimiteAuRH } from "@/lib/rh/acces-employe";
 import { disponible } from "@/lib/plans";
 import { peutVoirTicket } from "@/lib/rh/ticket";
 import { getT } from "@/lib/i18n/langue";
@@ -69,7 +70,7 @@ export async function creerTicketRH(_etat: EtatTicketRH, formData: FormData): Pr
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER") || employeLimiteAuRH(utilisateurConnecte)) {
     return { erreur: t("Vous n'avez pas le droit d'ouvrir un ticket.") };
   }
 

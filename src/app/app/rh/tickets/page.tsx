@@ -6,6 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, categorieTicketRH, ticketRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { employeLimiteAuRH } from "@/lib/rh/acces-employe";
 import { disponible } from "@/lib/plans";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +26,11 @@ export default async function PageTicketsRH() {
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "RH", "VOIR")) {
+  if (!peut(utilisateurConnecte, "RH", "VOIR") || employeLimiteAuRH(utilisateurConnecte)) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
-        <p className="text-muted-foreground">{t("Vous n'avez pas accès aux Ressources Humaines.")}</p>
+        <p className="text-muted-foreground">{t("Vous n'avez pas accès à cette page.")}</p>
       </div>
     );
   }

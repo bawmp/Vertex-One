@@ -6,6 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { utilisateur, categorieTicketRH, ticketRH, messageTicketRH } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { employeLimiteAuRH } from "@/lib/rh/acces-employe";
 import { peutVoirTicket } from "@/lib/rh/ticket";
 import { Badge } from "@/components/ui/badge";
 import { ControlesTicket } from "./controles-ticket";
@@ -26,7 +27,7 @@ export default async function PageTicketRH({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "RH", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "RH", "VOIR") || employeLimiteAuRH(utilisateurConnecte)) notFound();
 
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [leTicket] = await tx

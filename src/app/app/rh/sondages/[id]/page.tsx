@@ -6,6 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { sondage, sondageQuestion, sondageReponse, sondageParticipation } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { employeLimiteAuRH } from "@/lib/rh/acces-employe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ouvrirSondage, fermerSondage, supprimerSondage } from "@/lib/actions/sondage";
@@ -25,7 +26,7 @@ export default async function PageSondage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "RH", "VOIR")) notFound();
+  if (!peut(utilisateurConnecte, "RH", "VOIR") || employeLimiteAuRH(utilisateurConnecte)) notFound();
 
   const estAdmin = utilisateurConnecte.role === "ADMIN";
 

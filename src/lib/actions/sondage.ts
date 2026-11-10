@@ -8,6 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { entreprise, sondage, sondageQuestion, sondageReponse, sondageParticipation } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
+import { employeLimiteAuRH } from "@/lib/rh/acces-employe";
 import { disponible } from "@/lib/plans";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
@@ -123,7 +124,7 @@ export async function repondreSondage(sondageId: string, _etat: EtatSondage, for
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "RH", "CREER")) {
+  if (!peut(utilisateurConnecte, "RH", "CREER") || employeLimiteAuRH(utilisateurConnecte)) {
     return { erreur: t("Vous n'avez pas le droit de répondre à un sondage.") };
   }
 
