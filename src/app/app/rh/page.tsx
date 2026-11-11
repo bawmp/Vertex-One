@@ -23,6 +23,7 @@ import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
 import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { anniversairesAVenir } from "@/lib/rh/anniversaires";
 import { ReglageSouhait } from "./reglage-souhait";
+import { proprietairesOuvertsAMoi } from "@/lib/rh/fiches-ouvertes";
 import { anniversairesDesPartenaires, etatPartageFiches, partenairesFiches } from "@/lib/rh/groupe-fiches";
 import { libelleDelai } from "@/lib/rh/anniversaires-regles";
 import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
@@ -165,7 +166,7 @@ export default async function PageRH() {
     // Groupe : anniversaires des entreprises partenaires (partage activé des deux côtés) et lien vers « Équipes du groupe ».
     const jourDouala = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Douala" }).format(new Date());
     const anniversairesGroupe = await anniversairesDesPartenaires(utilisateurConnecte, jourDouala, 30);
-    const lienGroupe = utilisateurConnecte.role === "ADMIN" ? (await etatPartageFiches(utilisateurConnecte.entrepriseId)).groupe : (await partenairesFiches(utilisateurConnecte.entrepriseId)).length > 0;
+    const lienGroupe = utilisateurConnecte.role === "ADMIN" ? (await etatPartageFiches(utilisateurConnecte.entrepriseId)).groupe : (await partenairesFiches(utilisateurConnecte.entrepriseId)).length > 0 || (await proprietairesOuvertsAMoi(utilisateurConnecte.entrepriseId)).length > 0;
 
     return { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe, souhaitAnniversaire: monEntreprise.souhaitAnniversaire };
   });
