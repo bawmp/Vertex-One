@@ -1233,6 +1233,20 @@
       "when": 1795240920000,
       "tag": "0175_modele_message_bassin",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1795327320000,
+      "tag": "0176_primes_et_bulletins",
+      "breakpoints": true
+    },
+    {
+      "idx": 177,
+      "version": "7",
+      "when": 1795413720000,
+      "tag": "0177_bulletin_envoye",
+      "breakpoints": true
     }
   ]
 }

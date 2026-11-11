@@ -27,6 +27,8 @@ import { FormulairePolitiqueConge } from "./formulaire-politique-conge";
 import { BoutonCrediterConge } from "./bouton-crediter-conge";
 import { FormulaireRevisionSalaire } from "./formulaire-revision-salaire";
 import { ListeRevisionsSalaire } from "./liste-revisions-salaire";
+import { BlocPaie } from "./bloc-paie";
+import { paiementsDuDossier, primesDuDossier } from "@/lib/rh/paie";
 import { FormulaireDocumentRH } from "./formulaire-document-rh";
 import { ListeDocumentsRH } from "./liste-documents-rh";
 import { FormulaireRegularisation } from "./formulaire-regularisation";
@@ -152,6 +154,11 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       .where(eq(revisionSalaire.dossierRHId, id))
       .orderBy(desc(revisionSalaire.creeLe));
 
+    // Primes et bulletins de paie (2026-11-11) : lus SEULEMENT pour l'Administrateur et la personne (même règle que le salaire).
+    const voitLaPaie = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
+    const primes = voitLaPaie ? await primesDuDossier(tx, id) : [];
+    const paiements = voitLaPaie ? await paiementsDuDossier(tx, id, { seulementEnvoyes: utilisateurConnecte.role !== "ADMIN" }) : [];
+
     // Fichiers RH (échange du 2026-09-08) — récupéré sans condition, même
     // patron que salaireBase/revisionsSalaire ci-dessus ; la restriction de
     // visibilité s'applique côté rendu.
@@ -197,6 +204,8 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       politiquesActives,
       politiqueAssignee,
       revisionsSalaire,
+      primes,
+      paiements,
       documentsRH,
       regularisations,
       shiftsActifs,
@@ -210,7 +219,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
   });
 
   if (!donnees) notFound();
-  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
+  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, primes, paiements, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -464,6 +473,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
                 {peutModifierDossier ? <FormulaireRevisionSalaire dossierRHId={ligne.id} salaireActuel={ligne.salaireBase} /> : null}
               </div>
               <ListeRevisionsSalaire revisions={revisionsSalaire} />
+              <BlocPaie dossierRHId={ligne.id} primes={primes} paiements={paiements} estAdmin={utilisateurConnecte.role === "ADMIN"} salaireRenseigne={Boolean(ligne.salaireBase && ligne.salaireBase > 0)} />
             </CarteFiche>
           ) : null}
 

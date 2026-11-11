@@ -51,6 +51,7 @@ export const fr = {
       conges: "Congés",
       assistance: "Assistance",
       sondages: "Sondages",
+      paie: "Paie",
     },
   },
   pages: {
@@ -133,6 +134,7 @@ export const en: Profond<Dictionnaire> = {
       conges: "Leave",
       assistance: "Support",
       sondages: "Surveys",
+      paie: "Payroll",
     },
   },
   pages: {

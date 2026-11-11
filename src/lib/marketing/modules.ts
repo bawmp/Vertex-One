@@ -149,11 +149,12 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
   {
     slug: "rh",
     nom: m("One People"),
-    resume: m("Dossiers employés, congés, pointage et suivi d'activité — hors paie."),
+    resume: m("Dossiers employés, congés, pointage, primes et bulletins de paie simples — sans calcul de cotisations."),
     categorie: m("Gestion d'équipe"),
     icone: Users,
     classeFond: "bg-purple-500",
     capacites: [
+      m("Primes accordées par l'Administrateur et bulletin de paie PDF généré à chaque paiement de salaire, sur papier à en-tête (retenues saisies à la main, aucun calcul de CNPS ni d'impôt)"),
       m("Invitation envoyée par email à chaque collaborateur : il choisit son mot de passe, puis se connecte avec son adresse email"),
       m("Réglage « Les managers voient toute l'entreprise » : vos managers voient les données métier de toute l'entreprise, ou seulement celles de leur équipe"),
       m("Recrutement partagé entre les entreprises d'un même groupe : postes et candidatures visibles et gérables par les managers de chacune, sur activation des deux côtés"),

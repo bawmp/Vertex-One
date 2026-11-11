@@ -128,7 +128,7 @@ export const VITRINE_MODULES: Record<string, string> = {
   "La comptabilité reste réservée à l'Administrateur — jamais visible d'un simple employé": "Accounting remains reserved for the Administrator — never visible to an ordinary employee",
 
   // One People
-  "Dossiers employés, congés, pointage et suivi d'activité — hors paie.": "Employee records, leave, attendance and activity tracking — payroll excluded.",
+  "Dossiers employés, congés, pointage, primes et bulletins de paie simples — sans calcul de cotisations.": "Employee records, leave, attendance, bonuses and simple payslips — no contribution calculations.",
   "Dossier RH créé automatiquement à l'activation d'un compte employé (poste, contrat, date d'embauche)": "HR record created automatically when an employee account is activated (position, contract, hire date)",
   "Salaire jamais rempli automatiquement, visible uniquement par l'Administrateur et l'intéressé": "Salary never filled in automatically, visible only to the Administrator and the person concerned",
   "Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé": "Leave requests with configurable policies, attendance, activity tracking per employee",
@@ -241,4 +241,5 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Tâches du poste : les responsabilités permanentes ou récurrentes de chaque collaborateur (relances, clôtures, rapports), posées par l'administrateur ou son manager et visibles sur sa fiche": "Role tasks: each team member's ongoing or recurring responsibilities (follow-ups, closings, reports), set by the administrator or their manager and shown on their profile",
   "Modèles de messages à envoyer à un client depuis sa fiche (ex. « votre profil est dans le bassin Entrée express »), modifiables, avec blocage de l'envoi tant qu'un élément à compléter reste entre crochets": "Message templates to send to a client from their record (e.g. \"your profile is in the Express Entry pool\"), editable, with sending blocked while an item to fill in remains in square brackets",
   "Pièces jointes dans les emails écrits à un client depuis sa fiche (image, PDF, Word ou Excel, cinq fichiers au plus), contrôlées sur leur contenu réel": "Attachments in emails written to a client from their record (image, PDF, Word or Excel, up to five files), checked against their real content",
+  "Primes accordées par l'Administrateur et bulletin de paie PDF généré à chaque paiement de salaire, sur papier à en-tête (retenues saisies à la main, aucun calcul de CNPS ni d'impôt)": "Bonuses granted by the Administrator and a payslip PDF generated with every salary payment, on company letterhead (deductions entered by hand, no CNPS or tax calculation)",
 };

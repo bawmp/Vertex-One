@@ -5804,3 +5804,82 @@ export const rapportHierarchique = pgTable(
     }),
   ]
 ).enableRLS();
+
+/**
+ * Prime accordée à un collaborateur (2026-11-11). Saisie par l'Administrateur seul, visible de lui et de l'intéressé (comme le salaire).
+ * `moisConcerne` = « AAAA-MM ». Tant que `paiementSalaireId` est vide, la prime n'a pas été payée : le prochain paiement de salaire
+ * (de ce mois ou d'un mois suivant) l'inclut et la rattache. Une prime déjà payée ne se supprime plus.
+ */
+export const prime = pgTable(
+  "prime",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    // RENDEMENT, TRANSPORT, ANCIENNETE, LOGEMENT, EXCEPTIONNELLE, AUTRE (liste fermée validée côté serveur).
+    type: text("type").notNull(),
+    montant: integer("montant").notNull(),
+    moisConcerne: text("mois_concerne").notNull(),
+    motif: text("motif"),
+    saisieParId: text("saisie_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    paiementSalaireId: text("paiement_salaire_id"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("prime_entreprise_idx").on(table.entrepriseId),
+    index("prime_dossier_rh_idx").on(table.dossierRHId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Paiement d'un salaire = bulletin de paie (2026-11-11). Enregistrer le paiement FIGE le bulletin : salaire de base du moment, primes
+ * incluses, retenues saisies à la main, net payé. Aucun calcul de cotisation sociale (CNPS) ni d'IRPP : les retenues sont écrites par
+ * l'Administrateur (règle non négociable, voir CLAUDE.md). Un seul paiement par collaborateur et par mois.
+ */
+export const paiementSalaire = pgTable(
+  "paiement_salaire",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    dossierRHId: text("dossier_rh_id")
+      .notNull()
+      .references(() => dossierRH.id),
+    mois: text("mois").notNull(),
+    salaireBase: integer("salaire_base").notNull(),
+    primes: json("primes").$type<{ type: string; montant: number; motif: string | null }[]>().notNull(),
+    totalPrimes: integer("total_primes").notNull(),
+    retenues: json("retenues").$type<{ libelle: string; montant: number }[]>().notNull(),
+    totalRetenues: integer("total_retenues").notNull(),
+    net: integer("net").notNull(),
+    datePaiement: text("date_paiement").notNull(),
+    modePaiement: text("mode_paiement").notNull(),
+    payeParId: text("paye_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    // Vide tant que le bulletin est un brouillon (modifiable, invisible de la personne) ; rempli à l'envoi (horloge de la base), il est alors figé.
+    envoyeLe: timestamp("envoye_le"),
+  },
+  (table) => [
+    index("paiement_salaire_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("paiement_salaire_dossier_mois_unique").on(table.dossierRHId, table.mois),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();

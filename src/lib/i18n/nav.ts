@@ -46,6 +46,7 @@ const CLES_CATEGORIE_PAR_LIBELLE: Record<string, keyof Dictionnaire["nav"]["cate
   Congés: "conges",
   Assistance: "assistance",
   Sondages: "sondages",
+  Paie: "paie",
 };
 
 export function traduireNav(libelle: string, t: Dictionnaire): string {
