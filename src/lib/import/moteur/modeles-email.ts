@@ -15,6 +15,7 @@ export const LIBELLE_MODELE_EMAIL: Record<TypeModele, string> = {
   CANDIDATURE_OFFRE: "Candidature offre",
   CANDIDATURE_EMBAUCHE: "Candidature embauche",
   CANDIDATURE_REJETEE: "Candidature rejetée",
+  MESSAGE_BASSIN: "Message : profil dans le bassin",
 };
 
 const TYPE_DEPUIS_TEXTE = new Map<string, TypeModele>(

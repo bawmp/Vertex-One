@@ -43,4 +43,10 @@ export const FORMULAIRES: Record<string, string> = {
   "Texte envoyé au client lorsqu'un devis ou une facture lui est transmis. Le PDF du document est toujours joint automatiquement.": "Text sent to the client when a quote or an invoice is sent to them. The document's PDF is always attached automatically.",
   "Candidatures (One Recruit)": "Applications (One Recruit)",
   "Texte envoyé au candidat quand le statut de sa candidature change. « Reçue » n'envoie rien. Les envois se coupent dans Recrutement → Paramètres.": "Text sent to the candidate when the status of their application changes. “Received” sends nothing. Sending can be switched off in Recruitment → Settings.",
+  "Modèle (facultatif)": "Template (optional)",
+  "Aucun modèle : je rédige moi-même": "No template: I write it myself",
+  "Remplacez d'abord les éléments entre crochets avant d'envoyer : {elements}": "First replace the items in square brackets before sending: {elements}",
+  "Messages écrits à un client": "Messages written to a client",
+  "Ces textes ne partent jamais tout seuls : ils préremplissent le formulaire « Écrire à… » de la fiche du client. Complétez les éléments entre crochets avant d'envoyer.": "These texts are never sent automatically: they pre-fill the \"Write to…\" form on the client's record. Fill in the items in square brackets before sending.",
+  "Profil dans le bassin (conjointe de fait)": "Profile in the pool (common-law partner)",
 };

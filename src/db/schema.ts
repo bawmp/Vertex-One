@@ -62,6 +62,8 @@ export const typeModeleEmail = pgEnum("type_modele_email", [
   "CANDIDATURE_OFFRE",
   "CANDIDATURE_EMBAUCHE",
   "CANDIDATURE_REJETEE",
+  // Messages écrits à la main à un client depuis sa fiche (2026-11-11) : le texte préremplit le formulaire « Écrire à… ».
+  "MESSAGE_BASSIN",
 ]);
 export const statutTentativePaiement = pgEnum("statut_tentative_paiement", ["EN_ATTENTE", "CONFIRME", "ECHEC"]);
 

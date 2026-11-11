@@ -6,7 +6,7 @@ import { avecEntreprise } from "@/db/client";
 import { modeleEmail } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { recupererModele, variablesDuType, variablesExemple, type TypeModeleEmail } from "@/lib/email/modeles";
+import { LIBELLES_MESSAGE_CLIENT, TYPES_MODELE_MESSAGE_CLIENT, recupererModele, variablesDuType, variablesExemple, type TypeModeleEmail } from "@/lib/email/modeles";
 import { FormulaireModeleEmail } from "./formulaire-modele-email";
 import { cheminRetourSur, libelleRetour } from "@/lib/navigation-retour";
 import { BoutonRetour } from "@/components/bouton-retour";
@@ -21,6 +21,7 @@ const TITRES: Record<TypeModeleEmail, string> = {
   CANDIDATURE_OFFRE: m("Candidature : offre"),
   CANDIDATURE_EMBAUCHE: m("Candidature : embauche"),
   CANDIDATURE_REJETEE: m("Candidature : rejet"),
+  MESSAGE_BASSIN: LIBELLES_MESSAGE_CLIENT.MESSAGE_BASSIN,
 };
 
 const TYPES_VENTES: TypeModeleEmail[] = ["ENVOI_DEVIS", "ENVOI_FACTURE"];
@@ -38,7 +39,7 @@ export default async function PageModelesEmail({ searchParams }: { searchParams:
     return <p className="text-muted-foreground">{t("Seul un Administrateur peut modifier ces modèles.")}</p>;
   }
 
-  const tous = [...TYPES_VENTES, ...TYPES_CANDIDATS];
+  const tous = [...TYPES_VENTES, ...TYPES_CANDIDATS, ...TYPES_MODELE_MESSAGE_CLIENT];
   const { modeles, personnalises } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const lignes = await tx.select({ type: modeleEmail.type }).from(modeleEmail).where(eq(modeleEmail.entrepriseId, utilisateurConnecte.entrepriseId));
     const valeurs = await Promise.all(tous.map((type) => recupererModele(tx, utilisateurConnecte.entrepriseId, type)));
@@ -88,6 +89,14 @@ export default async function PageModelesEmail({ searchParams }: { searchParams:
           <p className="text-sm text-muted-foreground">{t("Texte envoyé au candidat quand le statut de sa candidature change. « Reçue » n'envoie rien. Les envois se coupent dans Recrutement → Paramètres.")}</p>
         </div>
         {TYPES_CANDIDATS.map((type, i) => formulaire(type, i))}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">{t("Messages écrits à un client")}</h2>
+          <p className="text-sm text-muted-foreground">{t("Ces textes ne partent jamais tout seuls : ils préremplissent le formulaire « Écrire à… » de la fiche du client. Complétez les éléments entre crochets avant d'envoyer.")}</p>
+        </div>
+        {TYPES_MODELE_MESSAGE_CLIENT.map((type, i) => formulaire(type, i))}
       </section>
     </div>
   );

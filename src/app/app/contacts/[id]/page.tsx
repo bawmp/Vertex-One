@@ -22,6 +22,7 @@ import { SectionContact } from "./section-contact";
 import { listerSections } from "@/lib/comptabilite/analytique";
 import { listerListes } from "@/lib/produits/listes-prix";
 import { FormulaireMessageClient } from "./formulaire-message-client";
+import { LIBELLES_MESSAGE_CLIENT, TYPES_MODELE_MESSAGE_CLIENT, interpoler, recupererModele } from "@/lib/email/modeles";
 import { BoutonEcrireAuClient } from "./bouton-ecrire-au-client";
 import { BoutonSupprimerCrm } from "../../bouton-supprimer-crm";
 import { BoutonInviterPortail } from "./bouton-inviter-portail";
@@ -67,7 +68,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
         // Un contact « secondaire » d'un deal (voir dealContact, ex. un couple sur un même dossier d'immigration)
         // doit aussi retrouver ce deal sur sa propre fiche, pas seulement le contact principal.
         tx.select({ deal }).from(dealContact).innerJoin(deal, eq(dealContact.dealId, deal.id)).where(eq(dealContact.contactId, id)),
-        tx.select({ secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
+        tx.select({ nom: entreprise.nom, secteurProfil: entreprise.secteurProfil, planAbonnement: entreprise.planAbonnement, statutAbonnement: entreprise.statutAbonnement }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)),
         listerChampsPersonnalisesContact(utilisateurConnecte.entrepriseId, tx),
         tx.select().from(contactChampValeur).where(eq(contactChampValeur.contactId, id)),
         tx.select().from(document).where(eq(document.contactId, id)).orderBy(desc(document.creeLe)),
@@ -109,6 +110,14 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     ];
 
     const emailsEnvoyes = await listerSoucheContact(tx, utilisateurConnecte, id);
+    // Modèles de message proposés dans « Écrire à… » : le nom du client et de l'entreprise sont déjà remplis, le reste se complète à la main.
+    const modelesMessage = await Promise.all(
+      TYPES_MODELE_MESSAGE_CLIENT.map(async (type) => {
+        const texte = await recupererModele(tx, utilisateurConnecte.entrepriseId, type);
+        const variables = { client: ligne.nom, entreprise: monEntreprise?.nom ?? "" };
+        return { cle: type, libelle: LIBELLES_MESSAGE_CLIENT[type], objet: interpoler(texte.objet, variables), message: interpoler(texte.corps, variables) };
+      }),
+    );
     const listesPrix = await listerListes(tx, utilisateurConnecte.entrepriseId);
     const sectionsAnalytiques = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? (await listerSections(tx, utilisateurConnecte.entrepriseId)).filter((x) => x.actif || x.id === ligne.sectionAnalytiqueId) : [];
 
@@ -119,6 +128,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
       compte: Array.isArray(compte) ? compte[0] : compte,
       interactions,
       emailsEnvoyes,
+      modelesMessage,
       dossierExistant: dossierExistant[0] ?? null,
       deals,
       dossiersDisponibles: disponible(monEntreprise, "DOSSIERS"),
@@ -142,6 +152,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
     compte,
     interactions,
     emailsEnvoyes,
+    modelesMessage,
     dossierExistant,
     deals,
     dossiersDisponibles,
@@ -495,7 +506,7 @@ export default async function PageFicheContact({ params }: { params: Promise<{ i
             </div>
           ) : null}
 
-          {peutModifier ? <FormulaireMessageClient contactId={fiche.id} nomContact={fiche.nom} emailContact={fiche.email} /> : null}
+          {peutModifier ? <FormulaireMessageClient contactId={fiche.id} nomContact={fiche.nom} emailContact={fiche.email} modeles={modelesMessage.map((x) => ({ ...x, libelle: t(x.libelle) }))} /> : null}
           {peutModifier ? <FormulaireInteraction contactId={fiche.id} /> : null}
         </div>
 
