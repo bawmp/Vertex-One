@@ -17,6 +17,8 @@ import { adressePhoto } from "@/lib/rh/photo-affichage";
 import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
 import { libelleDelai, prochainAnniversaire } from "@/lib/rh/anniversaires-regles";
 import { ReglagePartage } from "./reglage-partage";
+import { ReglageOuverture } from "./reglage-ouverture";
+import { etatOuvertureFiches, listerFichesOuvertes, peutVoirFichesOuvertes } from "@/lib/rh/fiches-ouvertes";
 import { getT } from "@/lib/i18n/langue";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,7 @@ export default async function PageEquipesDuGroupe() {
   const u = await recupererUtilisateurConnecte();
   if (!u) redirect("/connexion");
   const admin = u.role === "ADMIN" && peut(u, "RH", "MODIFIER");
-  if (!admin && !peutVoirFichesPartagees(u)) {
+  if (!admin && !peutVoirFichesPartagees(u) && !peutVoirFichesOuvertes(u)) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <Lock className="size-8 text-muted-foreground" aria-hidden />
@@ -49,6 +51,8 @@ export default async function PageEquipesDuGroupe() {
 
   const etat = await etatPartageFiches(u.entrepriseId);
   const gens = await collaborateursDesPartenaires(u);
+  const ouverture = await etatOuvertureFiches(u.entrepriseId);
+  const fichesOuvertes = await listerFichesOuvertes(u);
   const parEntreprise = new Map<string, { nom: string; gens: typeof gens }>();
   for (const g of gens) {
     const e = parEntreprise.get(g.entrepriseId) ?? { nom: g.entrepriseNom, gens: [] };
@@ -119,6 +123,43 @@ export default async function PageEquipesDuGroupe() {
           )}
         </CarteFiche>
       </div>
+
+      {ouverture.groupe && ouverture.partenaires.length > 0 ? (
+        <CarteFiche icone={ShieldCheck} titre={t("Ouvrir mes fiches à une entreprise du groupe")} aide={t("Consultation et modification, entreprise par entreprise")} ton="vert">
+          <p className="text-sm text-muted-foreground">{t("L'entreprise autorisée voit et peut modifier les informations de vos fiches (collaborateurs et stagiaires) : poste, contrat, téléphone, adresse… Jamais le salaire, les primes, les bulletins ni les fichiers RH. Chaque modification est tracée dans la fiche.")}</p>
+          <ul className="flex flex-col divide-y divide-border/60">
+            {ouverture.partenaires.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
+                {admin ? <ReglageOuverture partenaireId={p.id} nom={p.nom} actif={p.ouvertAuPartenaire} /> : <span>{p.ouvertAuPartenaire ? t("Fiches ouvertes à {nom}", { nom: p.nom }) : t("Fiches fermées à {nom}", { nom: p.nom })}</span>}
+                {p.ouvertAMoi ? <Badge variant="success">{t("Vous a ouvert ses fiches")}</Badge> : <Badge variant="neutral">{t("Ne vous a pas ouvert ses fiches")}</Badge>}
+              </li>
+            ))}
+          </ul>
+        </CarteFiche>
+      ) : null}
+
+      {fichesOuvertes.map(({ entreprise: e, personnes }) => (
+        <section key={e.id} className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Building2 className="size-4 text-muted-foreground" aria-hidden />
+            {t("Fiches ouvertes par {nom}", { nom: e.nom })}
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{personnes.length}</span>
+          </h2>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {personnes.map((p) => (
+              <li key={`${p.type}-${p.id}`}>
+                <Link href={`/app/rh/groupe/fiche/${e.id}/${p.type === "STAGIAIRE" ? "stagiaire" : "utilisateur"}/${p.id}`} className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 transition-colors hover:bg-muted/50">
+                  <AvatarCollaborateur nom={p.nom} adresse={p.photoCle ? adressePhoto("utilisateur", p.id, p.photoCle) : null} taille="carte" version={p.photoCle ?? ""} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{p.nom}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{p.type === "STAGIAIRE" ? `${t("Stagiaire")} · ` : ""}{p.detail}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
       {parEntreprise.size === 0 ? (
         <EtatVide icone={Users} titre={t("Aucune fiche partagée pour le moment.")} description={etat.groupe ? (etat.partageActif ? t("Les fiches d'une autre entreprise apparaissent ici dès qu'elle active aussi le partage.") : t("Activez le partage ci-dessus ; les fiches apparaissent dès que l'autre entreprise l'active aussi.")) : t("Rattachez votre entreprise à un groupe pour partager vos fiches.")} />

@@ -3,6 +3,7 @@ import { db, avecEntreprise } from "@/db/client";
 import { dossierRH, entreprise, service, utilisateur } from "@/db/schema";
 import { peut } from "@/lib/permissions";
 import type { UtilisateurConnecte } from "@/lib/session";
+import { peutVoirPhotoOuverte } from "@/lib/rh/fiches-ouvertes";
 import { anniversairesProches, type AnniversaireProche } from "./anniversaires-regles";
 
 /**
@@ -106,6 +107,7 @@ export async function anniversairesDesPartenaires(u: UtilisateurConnecte, aujour
 
 /** Peut-on afficher la photo de cette personne, qui travaille dans une autre entreprise ? Oui seulement si elle est dans une entreprise partenaire (partage actif des deux côtés). */
 export async function peutVoirPhotoPartenaire(u: UtilisateurConnecte, personneId: string): Promise<boolean> {
+  if (await peutVoirPhotoOuverte(u, personneId)) return true; // fiche ouverte par son entreprise (2026-11-11)
   if (!peutVoirFichesPartagees(u)) return false;
   const [p] = await db.select({ entrepriseId: utilisateur.entrepriseId, statut: utilisateur.statut }).from(utilisateur).where(eq(utilisateur.id, personneId));
   if (!p || p.entrepriseId === u.entrepriseId || p.statut !== "ACTIF") return false;

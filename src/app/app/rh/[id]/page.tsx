@@ -28,6 +28,7 @@ import { BoutonCrediterConge } from "./bouton-crediter-conge";
 import { FormulaireRevisionSalaire } from "./formulaire-revision-salaire";
 import { ListeRevisionsSalaire } from "./liste-revisions-salaire";
 import { BlocPaie } from "./bloc-paie";
+import { modificationsRecues } from "@/lib/rh/fiches-ouvertes";
 import { paiementsDuDossier, primesDuDossier } from "@/lib/rh/paie";
 import { FormulaireDocumentRH } from "./formulaire-document-rh";
 import { ListeDocumentsRH } from "./liste-documents-rh";
@@ -159,6 +160,9 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     const primes = voitLaPaie ? await primesDuDossier(tx, id) : [];
     const paiements = voitLaPaie ? await paiementsDuDossier(tx, id, { seulementEnvoyes: utilisateurConnecte.role !== "ADMIN" }) : [];
 
+    // Modifications faites sur cette fiche par une AUTRE entreprise du groupe (fiches ouvertes, 2026-11-11).
+    const modifsAutresEntreprises = await modificationsRecues(tx, [ligne.utilisateurId]);
+
     // Fichiers RH (échange du 2026-09-08) — récupéré sans condition, même
     // patron que salaireBase/revisionsSalaire ci-dessus ; la restriction de
     // visibilité s'applique côté rendu.
@@ -206,6 +210,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       revisionsSalaire,
       primes,
       paiements,
+      modifsAutresEntreprises,
       documentsRH,
       regularisations,
       shiftsActifs,
@@ -219,7 +224,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
   });
 
   if (!donnees) notFound();
-  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, primes, paiements, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
+  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, primes, paiements, modifsAutresEntreprises, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -458,6 +463,19 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               />
             ) : null}
           </CarteFiche>
+
+          {modifsAutresEntreprises.length > 0 ? (
+            <CarteFiche icone={IdCard} titre={t("Modifiée par une autre entreprise")} aide={t("Entreprises du groupe à qui vous avez ouvert cette fiche")} ton="neutre">
+              <ul className="flex flex-col gap-2 text-sm">
+                {modifsAutresEntreprises.map((mo) => (
+                  <li key={mo.id}>
+                    <span className="font-medium">{mo.auteurNom}</span> ({mo.auteurEntrepriseNom}) — {mo.champs}
+                    <span className="block text-xs text-muted-foreground">{new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(mo.creeLe)}</span>
+                  </li>
+                ))}
+              </ul>
+            </CarteFiche>
+          ) : null}
 
           {peutVoirSalaireIci ? (
             <CarteFiche icone={Wallet} titre={t("Rémunération")} aide={t("Confidentiel : visible de la personne et de l'Administrateur seulement")} confidentiel>

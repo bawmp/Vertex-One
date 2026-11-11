@@ -236,6 +236,10 @@ export const entreprise = pgTable("entreprise", {
   // Partage des fiches collaborateur dans un groupe (2026-11-04) : même principe (les DEUX entreprises doivent l'activer). Ne partage qu'une liste blanche de
   // champs en lecture seule (nom, photo, poste, rôle, contrat, arrivée, département, téléphone, naissance) — JAMAIS le salaire ni le reste de la fiche.
   fichesPartageesGroupe: boolean("fiches_partagees_groupe").notNull().default(false),
+  // Fiches OUVERTES à des entreprises du groupe (2026-11-11) : identifiants des entreprises partenaires que l'Administrateur a autorisées à consulter ET
+  // modifier les infos de ses fiches (collaborateurs et stagiaires), jamais le salaire ni le reste de la rémunération. Un sens à la fois : A ouvre à B
+  // n'ouvre pas B à A. N'a d'effet que si les deux entreprises sont (encore) dans le même groupe. Voir src/lib/rh/fiches-ouvertes.ts.
+  fichesOuvertesA: json("fiches_ouvertes_a").$type<string[]>().notNull().default([]),
   // Souhait d'anniversaire (2026-11-04) : si vrai, la tâche quotidienne envoie aussi un email « Joyeux anniversaire » à la personne concernée (désactivé par défaut).
   souhaitAnniversaireEmail: boolean("souhait_anniversaire_email").notNull().default(false),
   // Les tables des paliers suivants (Projets, Documents, RH...) portent
@@ -5876,6 +5880,39 @@ export const paiementSalaire = pgTable(
   (table) => [
     index("paiement_salaire_entreprise_idx").on(table.entrepriseId),
     uniqueIndex("paiement_salaire_dossier_mois_unique").on(table.dossierRHId, table.mois),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
+ * Trace des modifications faites sur une fiche par une AUTRE entreprise du groupe (2026-11-11). Portée par l'entreprise propriétaire de la fiche
+ * (RLS standard) : seule elle la lit. Garde qui (personne et entreprise) a changé quoi, jamais la valeur sensible elle-même.
+ */
+export const modificationFichePartagee = pgTable(
+  "modification_fiche_partagee",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    cibleType: text("cible_type").notNull(), // "UTILISATEUR" | "STAGIAIRE"
+    cibleId: text("cible_id").notNull(),
+    auteurId: text("auteur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    auteurNom: text("auteur_nom").notNull(),
+    auteurEntrepriseId: text("auteur_entreprise_id").notNull(),
+    auteurEntrepriseNom: text("auteur_entreprise_nom").notNull(),
+    champs: text("champs").notNull(), // libellés des champs modifiés, séparés par des virgules
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("modification_fiche_partagee_entreprise_idx").on(table.entrepriseId),
+    index("modification_fiche_partagee_cible_idx").on(table.cibleId),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

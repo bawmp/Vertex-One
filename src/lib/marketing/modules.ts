@@ -154,6 +154,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     icone: Users,
     classeFond: "bg-purple-500",
     capacites: [
+      m("Fiches des collaborateurs et des stagiaires ouvertes, entreprise par entreprise, aux autres sociétés du groupe : consultation et modification des informations, jamais le salaire, avec trace des changements"),
       m("Primes accordées par l'Administrateur et bulletin de paie PDF généré à chaque paiement de salaire, sur papier à en-tête (retenues saisies à la main, aucun calcul de CNPS ni d'impôt)"),
       m("Invitation envoyée par email à chaque collaborateur : il choisit son mot de passe, puis se connecte avec son adresse email"),
       m("Réglage « Les managers voient toute l'entreprise » : vos managers voient les données métier de toute l'entreprise, ou seulement celles de leur équipe"),
