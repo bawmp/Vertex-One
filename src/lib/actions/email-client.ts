@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { contact, contrat, dossier, document, interaction } from "@/db/schema";
+import { contact, contrat, dossier, document, emailEnvoye, interaction } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles, dossiersVisibles } from "@/lib/portee";
@@ -14,6 +14,7 @@ import { envoyerEmail } from "@/lib/email/client";
 import { enteteLogoEmail } from "@/lib/email/logo";
 import { expediteurDe } from "@/lib/email/expediteur";
 import { corpsVersHtml } from "@/lib/email/modeles";
+import { validerPiecesEmail } from "@/lib/email/pieces-jointes";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { journaliserEmailEnvoye, resumePiecesJointes } from "@/lib/crm/journaliser-email";
 import {
@@ -163,6 +164,10 @@ const schemaMessage = z.object({
  * devis ou la facture (soumis à la portée Facturation) qui désigne le contact ; depuis la fiche, la portée CRM
  * s'applique. L'email part au nom de l'entreprise (logo, nom affiché), les réponses arrivent à l'expéditeur, et le
  * message est journalisé dans l'historique du contact.
+ *
+ * Pièces jointes (champ `fichiers`) : au plus cinq, 4 Mo au total, image / PDF / Word / Excel reconnus sur leurs OCTETS ; tout est validé
+ * AVANT l'envoi (un seul fichier refusé et rien ne part). L'historique du contact et « Emails envoyés » gardent leurs noms et tailles
+ * (pas les fichiers eux-mêmes).
  */
 export async function envoyerMessageClient(_etat: EtatEmailClient, formData: FormData): Promise<EtatEmailClient> {
   const t = await getT();
@@ -183,6 +188,10 @@ export async function envoyerMessageClient(_etat: EtatEmailClient, formData: For
   if (depuisBooks ? !peut(utilisateurConnecte, "FACTURATION", "MODIFIER") : !peut(utilisateurConnecte, "CRM", "MODIFIER")) {
     return { erreur: t("Vous n'avez pas le droit d'écrire à ce client.") };
   }
+
+  const pieces = await validerPiecesEmail(formData.getAll("fichiers"));
+  if (!pieces.ok) return { erreur: t(pieces.erreur.cle, pieces.erreur.valeurs) };
+  const piecesJointes = pieces.pieces;
 
   const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx): Promise<EtatEmailClient> => {
     // Le contact est désigné par le document de vente (One Books) ou vérifié dans la portée CRM (fiche contact).
@@ -207,21 +216,35 @@ export async function envoyerMessageClient(_etat: EtatEmailClient, formData: For
     if (!leContact.email) return { erreur: t("Ce client n'a pas d'adresse email renseignée (voir sa fiche CRM).") };
 
     const expediteur = await expediteurDe(tx, utilisateurConnecte);
+    const html = (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(d.message);
     const { envoye, erreur } = await envoyerEmail({
       to: leContact.email,
       subject: d.objet,
-      html: (await enteteLogoEmail(utilisateurConnecte.entrepriseId)) + corpsVersHtml(d.message),
+      html,
+      ...(piecesJointes.length > 0 ? { attachments: piecesJointes } : {}),
       ...expediteur,
     });
     if (!envoye) return { erreur: erreur ?? t("Échec de l'envoi de l'email.") };
 
-    // Le message lui-même (pas seulement l'objet) reste dans l'historique du contact.
+    // Le message lui-même (pas seulement l'objet) reste dans l'historique du contact, avec le nom des pièces jointes.
+    const noms = piecesJointes.length > 0 ? `\n\nPièces jointes : ${piecesJointes.map((p) => p.filename).join(", ")}` : "";
     await tx.insert(interaction).values({
       entrepriseId: utilisateurConnecte.entrepriseId,
       contactId: leContact.id,
       type: "email",
-      contenu: `${d.objet}\n\n${d.message}`.slice(0, 5000),
+      contenu: `${d.objet}\n\n${d.message}`.slice(0, 4800) + noms,
       auteurId: utilisateurConnecte.utilisateurId,
+    });
+    // Copie de ce qui est parti (Paramètres → Emails envoyés) : destinataire, corps, noms et tailles des pièces jointes.
+    await tx.insert(emailEnvoye).values({
+      entrepriseId: utilisateurConnecte.entrepriseId,
+      contactId: leContact.id,
+      auteurId: utilisateurConnecte.utilisateurId,
+      destinataire: leContact.email,
+      sujet: d.objet,
+      corpsHtml: html,
+      piecesJointes: resumePiecesJointes(piecesJointes),
+      type: "MESSAGE",
     });
     return { envoye: true };
   });

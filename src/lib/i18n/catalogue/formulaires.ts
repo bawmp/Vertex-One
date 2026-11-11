@@ -49,4 +49,9 @@ export const FORMULAIRES: Record<string, string> = {
   "Messages écrits à un client": "Messages written to a client",
   "Ces textes ne partent jamais tout seuls : ils préremplissent le formulaire « Écrire à… » de la fiche du client. Complétez les éléments entre crochets avant d'envoyer.": "These texts are never sent automatically: they pre-fill the \"Write to…\" form on the client's record. Fill in the items in square brackets before sending.",
   "Profil dans le bassin (conjointe de fait)": "Profile in the pool (common-law partner)",
+  "Un email accepte {n} pièces jointes au maximum.": "An email accepts at most {n} attachments.",
+  "Les pièces jointes dépassent {taille} au total ({envoyes} envoyés).": "The attachments exceed {taille} in total ({envoyes} sent).",
+  "« {nom} » : {raison}": "\"{nom}\": {raison}",
+  "Pièces jointes de l'email": "Email attachments",
+  "Retirer {nom}": "Remove {nom}",
 };

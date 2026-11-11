@@ -53,6 +53,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
     icone: Handshake,
     classeFond: "bg-blue-500",
     capacites: [
+      m("Pièces jointes dans les emails écrits à un client depuis sa fiche (image, PDF, Word ou Excel, cinq fichiers au plus), contrôlées sur leur contenu réel"),
       m("Modèles de messages à envoyer à un client depuis sa fiche (ex. « votre profil est dans le bassin Entrée express »), modifiables, avec blocage de l'envoi tant qu'un élément à compléter reste entre crochets"),
       m("Suivi des prospects du statut Nouveau à Gagné/Perdu, avec qualification et proposition comme étapes intermédiaires"),
       m("Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)"),

@@ -63,4 +63,25 @@ test("Écrire à un client avec le modèle « profil dans le bassin »", async (
   await expect(alerte).toHaveCount(0);
   await expect(envoyer).toBeEnabled();
   if (CAPTURES) await page.screenshot({ path: `${CAPTURES}/2-pret-a-envoyer.png`, fullPage: true });
+
+  // ===== Pièces jointes (aucun envoi) =====
+  const entree = page.locator('input[name="fichiers"]');
+  const liste = page.getByRole("list", { name: "Pièces jointes de l'email" });
+  const pdf = (nom: string) => ({ name: nom, mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF") });
+  await entree.setInputFiles([pdf("devis.pdf"), pdf("plan.pdf")]);
+  await expect(liste).toContainText("devis.pdf");
+  await expect(liste).toContainText("plan.pdf");
+  await expect(envoyer).toBeEnabled();
+  if (CAPTURES) await page.screenshot({ path: `${CAPTURES}/3-pieces-jointes.png`, fullPage: true });
+
+  // Retirer un fichier le fait disparaître de la liste.
+  await liste.getByRole("button", { name: "Retirer plan.pdf" }).click();
+  await expect(liste).not.toContainText("plan.pdf");
+  await expect(liste).toContainText("devis.pdf");
+
+  // Au-delà de cinq fichiers : message d'erreur et envoi bloqué.
+  await entree.setInputFiles(["a", "b", "c", "d", "e"].map((x) => pdf(`piece-${x}.pdf`)));
+  await expect(page.getByRole("alert").filter({ hasText: "5 pièces jointes" })).toBeVisible();
+  await expect(envoyer).toBeDisabled();
+  if (CAPTURES) await page.screenshot({ path: `${CAPTURES}/4-trop-de-fichiers.png`, fullPage: true });
 });
