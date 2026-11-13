@@ -120,6 +120,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Kits et nomenclatures : un coffret composé de plusieurs produits se vend en un clic et sort automatiquement le stock de chaque composant"),
       m("Valorisation du stock au choix : coût moyen pondéré ou premier entré, premier sorti, avec la valeur du stock à n'importe quelle date"),
       m("Réservation de stock : une commande client réserve les quantités, le disponible à la vente est toujours juste et la vente en rupture peut être interdite"),
+      m("Boutique en ligne connectée : votre site vend, Vertex One garde le stock — avec WooCommerce, vous copiez deux clés et tout se synchronise tout seul toutes les 5 minutes ; avec un autre site ou un tableur, vous échangez deux fichiers ; et un développeur peut aussi se brancher par code. Plus de stock à ressaisir à deux endroits"),
       m("Codes-barres : scan à la douchette ou à la caméra du téléphone, génération d'étiquettes à imprimer, et comptage d'inventaire en scannant les produits"),
       m("Variantes taille et couleur créées en un clic, et unités de mesure avec conditionnements (carton de 12 pièces) pour saisir et lire le stock"),
       m("Numéros de série : un numéro par unité, repris automatiquement à la vente, et recherche d'un numéro pour retrouver le produit, son état et le document de vente"),

@@ -1254,6 +1254,20 @@
       "when": 1795500120000,
       "tag": "0178_fiches_ouvertes_groupe",
       "breakpoints": true
+    },
+    {
+      "idx": 179,
+      "version": "7",
+      "when": 1795586520000,
+      "tag": "0179_boutique_en_ligne_stock",
+      "breakpoints": true
+    },
+    {
+      "idx": 180,
+      "version": "7",
+      "when": 1795672920000,
+      "tag": "0180_connexions_boutique",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@ import type { Module } from "@/lib/permissions";
 import { normaliser } from "./valeurs";
 import { m } from "@/lib/i18n/catalogue";
 
-export const TYPES_IMPORT = ["CONTACTS", "LEADS", "DEALS", "PRODUITS", "PROJETS_TACHES", "DEVIS", "FACTURES", "NOTES", "CHAMPS_CONTACT", "MODELES_EMAIL"] as const;
+export const TYPES_IMPORT = ["CONTACTS", "LEADS", "DEALS", "PRODUITS", "PROJETS_TACHES", "DEVIS", "FACTURES", "NOTES", "CHAMPS_CONTACT", "MODELES_EMAIL", "COMMANDES_SITE"] as const;
 export type TypeImport = (typeof TYPES_IMPORT)[number];
 
 export type ChampImport = {
@@ -68,6 +68,8 @@ export const DEFINITIONS: Record<TypeImport, DefinitionImport> = {
       { cle: "prixVente", libelle: m("Prix de vente"), alias: ["rate", "selling price", "unit price", "prix", "prix de vente", "price", "sales price", "tarif", "prix unitaire", "sales rate"] },
       { cle: "prixAchat", libelle: m("Prix d'achat"), alias: ["purchase rate", "cost price", "unit cost", "prix d achat", "cout", "purchase price", "cout d achat", "cost"] },
       { cle: "stock", libelle: m("Stock"), alias: ["stock on hand", "quantity in stock", "qty in stock", "stock", "quantite en stock", "initial stock", "opening stock", "quantity"] },
+      // Le code du produit sur le site de l'entreprise : c'est lui qui relie une boutique en ligne connectée à ce produit (voir stock-site.ts).
+      { cle: "codeBarres", libelle: m("Code-barres / code produit"), alias: ["code barres", "code barre", "barcode", "bar code", "ean", "upc", "sku", "code produit", "product code", "code article", "item code", "code"] },
     ],
   },
   PROJETS_TACHES: {
@@ -211,6 +213,22 @@ export const DEFINITIONS: Record<TypeImport, DefinitionImport> = {
       { cle: "type", libelle: m("Modèle"), obligatoire: true, alias: ["type", "template", "modele", "nom du modele", "template type"] },
       { cle: "objet", libelle: m("Objet"), obligatoire: true, alias: ["subject", "objet", "sujet"] },
       { cle: "corps", libelle: m("Corps du message"), obligatoire: true, alias: ["body", "corps", "message", "contenu", "texte"] },
+    ],
+  },
+  COMMANDES_SITE: {
+    type: "COMMANDES_SITE",
+    libelle: m("Commandes de votre site"),
+    description: m("Les commandes de votre boutique en ligne, exportées depuis votre site : une ligne par article commandé. Le stock de chaque produit reconnu (même code-barres) baisse. Une commande déjà importée est ignorée."),
+    module: "PRODUITS",
+    adminSeulement: true,
+    conseils: [
+      { source: m("Votre boutique en ligne"), texte: m("Exportez vos commandes en CSV ou Excel depuis l'administration de votre site : il faut le numéro de commande, le code (SKU) de l'article et la quantité.") },
+      { source: m("Excel ou tableur"), texte: m("Un tableau à trois colonnes : Numéro de commande, Code, Quantité.") },
+    ],
+    champs: [
+      { cle: "reference", libelle: m("Numéro de commande"), obligatoire: true, alias: ["order number", "order id", "order", "name", "order name", "numero de commande", "n commande", "commande", "reference commande", "id commande", "numero", "order no"] },
+      { cle: "code", libelle: m("Code de l'article (SKU / code-barres)"), obligatoire: true, alias: ["lineitem sku", "line item sku", "sku", "code", "code barres", "code barre", "barcode", "ean", "code produit", "code article", "item code", "reference produit", "reference article"] },
+      { cle: "quantite", libelle: m("Quantité"), obligatoire: true, alias: ["lineitem quantity", "line item quantity", "quantity", "quantite", "qte", "qty", "quantite commandee"] },
     ],
   },
 };

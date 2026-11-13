@@ -15,12 +15,17 @@ export function neutraliserFormule(cellule: string): string {
   return DECLENCHEURS.test(cellule) && !NOMBRE_OU_TELEPHONE.test(cellule) ? `'${cellule}` : cellule;
 }
 
-function echapper(cellule: string): string {
+function echapper(cellule: string, separateur: string): string {
   const sure = neutraliserFormule(cellule);
-  return /[";\r\n]/.test(sure) ? `"${sure.replace(/"/g, '""')}"` : sure;
+  return sure.includes(separateur) || /["\r\n]/.test(sure) ? `"${sure.replace(/"/g, '""')}"` : sure;
 }
 
-export function ecrireCsv(entetes: string[], lignes: string[][]): string {
-  const corps = [entetes, ...lignes].map((ligne) => ligne.map(echapper).join(";")).join("\r\n");
-  return `﻿${corps}\r\n`;
+/**
+ * `separateur` : « ; » par défaut (Excel en français). Un fichier destiné à l'outil d'import d'un autre logiciel (boutique en ligne…) prend
+ * « , » et `bom: false` (certains importeurs lisent le BOM comme faisant partie du premier titre de colonne).
+ */
+export function ecrireCsv(entetes: string[], lignes: string[][], options: { separateur?: string; bom?: boolean } = {}): string {
+  const separateur = options.separateur ?? ";";
+  const corps = [entetes, ...lignes].map((ligne) => ligne.map((c) => echapper(c, separateur)).join(separateur)).join("\r\n");
+  return `${options.bom === false ? "" : "﻿"}${corps}\r\n`;
 }

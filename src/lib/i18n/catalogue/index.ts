@@ -21,6 +21,8 @@ import { AVOIRS } from "./avoirs";
 import { COMPTABILITE } from "./comptabilite";
 import { ANALYTIQUE } from "./analytique";
 import { RH } from "./rh";
+import { BOUTIQUE_STOCK } from "./boutique-stock";
+import { BOUTIQUE_CONNEXION } from "./boutique-connexion";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -42,4 +44,6 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...COMPTABILITE,
   ...ANALYTIQUE,
   ...RH,
+  ...BOUTIQUE_STOCK,
+  ...BOUTIQUE_CONNEXION,
 };

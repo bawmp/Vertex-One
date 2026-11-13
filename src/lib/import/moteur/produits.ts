@@ -16,11 +16,14 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   const { tx, entrepriseId, utilisateurId } = ctx;
   const rapport = nouveauRapport();
 
-  const existants = await tx.select({ nom: produit.nom }).from(produit).where(eq(produit.entrepriseId, entrepriseId));
+  const existants = await tx.select({ nom: produit.nom, codeBarres: produit.codeBarres }).from(produit).where(eq(produit.entrepriseId, entrepriseId));
   const vus = new Set(existants.map((p) => normaliser(p.nom)));
+  // Un code-barres est unique dans l'entreprise (index partiel) : on retient ceux déjà pris, casse comprise, pour ne jamais faire échouer tout l'import.
+  const codesPris = new Set(existants.filter((p) => p.codeBarres).map((p) => p.codeBarres!.trim().toLowerCase()));
 
   const aCreer: (typeof produit.$inferInsert)[] = [];
   let prixAbsents = 0;
+  let codesEcartes = 0;
 
   for (const { numero, v } of lignes) {
     const nom = (v.nom ?? "").trim();
@@ -46,10 +49,21 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
     // Un stock n'a de sens que pour un bien (voir creerProduit) : jamais de suivi de stock sur un service.
     const suiviStock = type === "BIEN" && stock !== null;
     vus.add(cle);
+    let codeBarres: string | null = (v.codeBarres ?? "").trim().slice(0, 100) || null;
+    if (codeBarres) {
+      const cleCode = codeBarres.toLowerCase();
+      if (codesPris.has(cleCode)) {
+        codesEcartes++;
+        codeBarres = null;
+      } else {
+        codesPris.add(cleCode);
+      }
+    }
     aCreer.push({
       entrepriseId,
       type,
       nom,
+      codeBarres,
       description: (v.description ?? "").trim() || null,
       prixVente: prixVente ?? 0,
       prixAchat: prixAchat ?? 0,
@@ -72,5 +86,6 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   }
   rapport.crees = aCreer.length;
   if (prixAbsents > 0) avertir(rapport, 0, m("{n} article(s) sans prix de vente : prix mis à 0, à compléter."), { n: prixAbsents });
+  if (codesEcartes > 0) avertir(rapport, 0, m("{n} article(s) importé(s) sans code-barres : ce code était déjà utilisé par un autre produit."), { n: codesEcartes });
   return rapport;
 }

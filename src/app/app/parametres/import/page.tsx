@@ -11,7 +11,8 @@ import { typesImportables } from "@/lib/import/droits";
 import { AssistantImport, type TypeAffiche } from "./assistant-import";
 import { getT } from "@/lib/i18n/langue";
 
-export default async function PageImport() {
+export default async function PageImport({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+  const { type: typeDemande } = await searchParams;
   const t = await getT();
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
@@ -60,7 +61,7 @@ export default async function PageImport() {
       <p className="text-sm text-muted-foreground">
         {t("Reprenez vos données depuis Asana, Zoho One (CRM, Books, Projects…) ou toute autre application qui sait exporter en CSV ou Excel (.xlsx). Rien n'est enregistré avant que vous ayez vu le résultat d'une simulation et confirmé. Jusqu'à {n} lignes et 4 Mo par fichier.", { n: NB_MAX_LIGNES_IMPORT })}
       </p>
-      <AssistantImport types={affiches} clients={clients} />
+      <AssistantImport typeInitial={typeDemande} types={affiches} clients={clients} />
     </div>
   );
 }

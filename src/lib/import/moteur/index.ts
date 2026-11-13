@@ -4,6 +4,7 @@ import { idsVisibles } from "@/lib/portee";
 import { DEFINITIONS, type TypeImport } from "../definitions";
 import { chargerEquipe, type ContexteImport, type LigneImport, type OptionsImport, type Rapport } from "./commun";
 import { importerChampsContact } from "./champs-contact";
+import { importerCommandesSite } from "./commandes-site";
 import { importerContacts } from "./contacts";
 import { importerDeals } from "./deals";
 import { importerDocuments } from "./documents";
@@ -75,6 +76,8 @@ export async function executerImport(
       return importerChampsContact(ctx, lignes);
     case "MODELES_EMAIL":
       return importerModelesEmail(ctx, lignes);
+    case "COMMANDES_SITE":
+      return importerCommandesSite(ctx, lignes);
   }
 }
 

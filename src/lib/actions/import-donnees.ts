@@ -29,6 +29,7 @@ const FONCTIONNALITE: Record<TypeImport, Fonctionnalite | null> = {
   DEALS: "CRM",
   CHAMPS_CONTACT: null,
   MODELES_EMAIL: null,
+  COMMANDES_SITE: "FACTURATION",
 };
 
 function typeValide(brut: FormDataEntryValue | null): TypeImport | null {
@@ -127,6 +128,7 @@ function revalidatePaths(type: TypeImport) {
     DEALS: ["/app/deals", "/app/contacts"],
     CHAMPS_CONTACT: ["/app/parametres/champs-contact", "/app/contacts"],
     MODELES_EMAIL: ["/app/parametres/modeles-email"],
+    COMMANDES_SITE: ["/app/produits", "/app/parametres/integrations"],
   };
   for (const chemin of chemins[type]) revalidatePath(chemin);
 }

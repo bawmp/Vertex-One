@@ -42,3 +42,7 @@
 # Quotidiennement a 7h (UTC, soit 8h a Douala) : rappel des anniversaires du jour (collaborateurs et stagiaires) aux Administrateurs
 # et au responsable direct de la personne (fiche collaborateur, 2026-11-04). Une personne n'est prevenue qu'une fois par an.
 0 7 * * * verifier-anniversaires
+
+# Toutes les 5 minutes : synchronisation des boutiques en ligne connectees automatiquement (WooCommerce) : Vertex One lit les
+# commandes du site (le stock sort) puis envoie le stock au site. Ne traite que les entreprises qui ont une boutique connectee (2026-11-12).
+*/5 * * * * verifier-boutiques

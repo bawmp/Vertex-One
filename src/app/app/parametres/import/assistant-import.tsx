@@ -34,12 +34,13 @@ const LIENS_APRES_IMPORT: Record<string, { href: string; libelle: string }> = {
   DEALS: { href: "/app/deals", libelle: m("Voir les deals") },
   CHAMPS_CONTACT: { href: "/app/parametres/champs-contact", libelle: m("Voir les champs personnalisés") },
   MODELES_EMAIL: { href: "/app/parametres/modeles-email", libelle: m("Voir les modèles d'email") },
+  COMMANDES_SITE: { href: "/app/produits", libelle: m("Voir les produits") },
 };
 
-export function AssistantImport({ types, clients }: { types: TypeAffiche[]; clients: { id: string; nom: string }[] }) {
+export function AssistantImport({ types, clients, typeInitial }: { types: TypeAffiche[]; clients: { id: string; nom: string }[]; typeInitial?: string }) {
   const t = useT();
   const [etape, setEtape] = useState<Etape>("choix");
-  const [typeChoisi, setTypeChoisi] = useState<string>(types[0].type);
+  const [typeChoisi, setTypeChoisi] = useState<string>(typeInitial && types.some((x) => x.type === typeInitial) ? typeInitial : types[0].type);
   const [fichier, setFichier] = useState<File | null>(null);
   const [apercu, setApercu] = useState<Apercu | null>(null);
   const [correspondance, setCorrespondance] = useState<Record<string, string>>({});

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
-import { cleApiEntreprise, connexionFacebook } from "@/db/schema";
+import { cleApiEntreprise, connexionBoutique, connexionFacebook } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { getT } from "@/lib/i18n/langue";
@@ -10,6 +10,9 @@ import { receveursPossibles } from "@/lib/api-externe/assignation";
 import { lireRegleEnregistree } from "@/lib/api-externe/assignation-regle";
 import { PagesFacebook } from "./pages-facebook";
 import { CarteKyria } from "./carte-kyria";
+import { BoutiqueEnLigne } from "./boutique-en-ligne";
+import { resumeBoutique } from "@/lib/api-externe/stock-site";
+import { listerDepots } from "@/lib/produits/depots";
 import { facebookConfigure } from "@/lib/facebook/graph";
 import { listerPagesAChoisir } from "@/lib/actions/facebook";
 
@@ -37,6 +40,18 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
   const membres = (await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => receveursPossibles(tx, utilisateurConnecte.entrepriseId))).map((u) => ({ id: u.id, nom: u.nomComplet, role: u.role }));
   const pagesAChoisir = facebook === "choisir" ? await listerPagesAChoisir() : [];
   const base = process.env.BETTER_AUTH_URL ?? "https://vertexone.cm";
+  // Boutique en ligne connectée : tout est lu sous la RLS de l'entreprise de la session.
+  const { resumeStock, depots, connexionsAuto } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ({
+    resumeStock: await resumeBoutique(tx, utilisateurConnecte.entrepriseId),
+    depots: await listerDepots(tx, utilisateurConnecte.entrepriseId),
+    // Jamais la colonne des identifiants chiffrés : elle ne quitte pas le serveur.
+    connexionsAuto: await tx
+      .select({ id: connexionBoutique.id, type: connexionBoutique.type, nom: connexionBoutique.nom, statut: connexionBoutique.statut, derniereErreur: connexionBoutique.derniereErreur, dernierCycleLe: connexionBoutique.dernierCycleLe, depotId: connexionBoutique.depotId })
+      .from(connexionBoutique)
+      .where(and(eq(connexionBoutique.entrepriseId, utilisateurConnecte.entrepriseId), isNull(connexionBoutique.archiveeLe), ne(connexionBoutique.type, "FICHIER")))
+      .orderBy(desc(connexionBoutique.creeLe)),
+  }));
+  const connexionsStock = cles.filter((c) => c.autoriseStock && !c.revoqueeLe);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -57,6 +72,23 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
 
       <CarteKyria cles={cles.map((c) => ({ nom: c.nom, revoqueeLe: c.revoqueeLe?.toISOString() ?? null, dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null }))} />
 
+      <BoutiqueEnLigne
+        base={base}
+        connexionsAuto={connexionsAuto.map((c) => ({ ...c, dernierCycleLe: c.dernierCycleLe?.toISOString() ?? null, commandes30j: resumeStock.parConnexion[c.id]?.commandes ?? 0 }))}
+        resume={resumeStock}
+        depots={depots.map((d) => ({ id: d.id, nom: d.nom, principal: d.principal }))}
+        connexions={connexionsStock.map((c) => ({
+          id: c.id,
+          nom: c.nom,
+          prefixe: c.prefixe,
+          creeLe: c.creeLe.toISOString(),
+          dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null,
+          depotStockId: c.depotStockId,
+          commandes30j: resumeStock.parConnexion[c.id]?.commandes ?? 0,
+          derniereCommandeLe: resumeStock.parConnexion[c.id]?.derniereLe ?? null,
+        }))}
+      />
+
       <GestionClesApi
         membres={membres}
         cles={cles.map((c) => ({
@@ -67,6 +99,7 @@ export default async function PageIntegrations({ searchParams }: { searchParams:
           dernierUsageLe: c.dernierUsageLe?.toISOString() ?? null,
           revoqueeLe: c.revoqueeLe?.toISOString() ?? null,
           autoriseFacturation: c.autoriseFacturation,
+          autoriseStock: c.autoriseStock,
           assignation: lireRegleEnregistree(c.assignation),
         }))}
       />

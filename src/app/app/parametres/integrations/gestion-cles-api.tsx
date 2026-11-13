@@ -13,7 +13,7 @@ import type { RegleAssignation } from "@/lib/api-externe/assignation-regle";
 import { ChoixAssignationProspects, type MembreAssignable } from "./choix-assignation";
 import { useT } from "@/lib/i18n/contexte";
 
-type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean; assignation: RegleAssignation | null };
+type Cle = { id: string; nom: string; prefixe: string; creeLe: string; dernierUsageLe: string | null; revoqueeLe: string | null; autoriseFacturation: boolean; autoriseStock: boolean; assignation: RegleAssignation | null };
 
 export function GestionClesApi({ cles, membres }: { cles: Cle[]; membres: MembreAssignable[] }) {
   const t = useT();
@@ -52,7 +52,8 @@ export function GestionClesApi({ cles, membres }: { cles: Cle[]; membres: Membre
     });
   }
 
-  const format = (iso: string) => new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  // Fuseau fixé (Douala) : le serveur et le navigateur affichent la même heure, sans décalage d'hydratation.
+  const format = (iso: string) => new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Douala" }).format(new Date(iso));
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,6 +101,7 @@ export function GestionClesApi({ cles, membres }: { cles: Cle[]; membres: Membre
                       {c.nom}
                       {c.revoqueeLe ? <Badge variant="neutral">{t("Révoquée")}</Badge> : <Badge variant="success">{t("Active")}</Badge>}
                       {!c.revoqueeLe && c.autoriseFacturation ? <Badge variant="info">{t("Factures payées")}</Badge> : null}
+                      {!c.revoqueeLe && c.autoriseStock ? <Badge variant="info">{t("Stock")}</Badge> : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       <span className="font-mono">{c.prefixe}…</span> · {t("créée le {date}", { date: format(c.creeLe) })} ·{" "}

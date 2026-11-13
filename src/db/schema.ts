@@ -108,6 +108,8 @@ export const entreprise = pgTable("entreprise", {
   gereStock: boolean("gere_stock").notNull().default(false),
   // Alertes de stock bas par email (2026-11-02, priorité 3.2) : activées par défaut, l'Administrateur peut les couper.
   alertesStockEmail: boolean("alertes_stock_email").notNull().default(true),
+  // Au moins une boutique en ligne connectée automatiquement (2026-11-12) : le worker ne visite que ces entreprises, jamais un balayage complet.
+  synchroBoutiqueActive: boolean("synchro_boutique_active").notNull().default(false),
   // Méthode de valorisation du stock (2026-11-02, priorité 3.8) : « CMUP » (coût moyen pondéré, par défaut) ou « FIFO » (premier entré, premier sorti).
   methodeValorisation: text("methode_valorisation").notNull().default("CMUP"),
   // Interdire la vente en rupture (priorité 1.4, 2026-11-02) : refuse un ticket de vente, une conversion de commande ou une acceptation de
@@ -470,6 +472,11 @@ export const cleApiEntreprise = pgTable(
     revoqueeLe: timestamp("revoquee_le"),
     // Peut créer des factures payées (POST /api/externe/factures) : refusé par défaut, accordé explicitement par l'Administrateur.
     autoriseFacturation: boolean("autorise_facturation").notNull().default(false),
+    // Boutique en ligne connectée (2026-11-12) : la clé peut lire le stock et lui déclarer les commandes du site (GET /api/externe/stock,
+    // POST /api/externe/stock/commandes). Refusé par défaut. Le dépôt choisi est celui dont le site voit le stock et d'où ses commandes
+    // sortent ; nul = le dépôt principal.
+    autoriseStock: boolean("autorise_stock").notNull().default(false),
+    depotStockId: text("depot_stock_id").references(() => depot.id, { onDelete: "set null" }),
     // À qui vont les prospects reçus avec cette clé (2026-11-06). null = le premier administrateur actif. Voir src/lib/api-externe/assignation.ts.
     assignation: json("assignation").$type<RegleAssignation>(),
   },
@@ -3756,6 +3763,105 @@ export const mouvementStock = pgTable(
   (table) => [
     index("mouvement_stock_entreprise_idx").on(table.entrepriseId),
     index("mouvement_stock_produit_date_idx").on(table.produitId, table.creeLe),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Connexions automatiques à une boutique en ligne (2026-11-12) : Vertex One va CHERCHER les commandes du site et lui ENVOIE le stock, sans
+// développeur (le client copie 2 ou 3 codes depuis son site). `type` : WOOCOMMERCE (automatique) ou FICHIER (échange de fichiers, aucun
+// identifiant). Les identifiants du site (adresse, clés) sont chiffrés (AES-256-GCM) dans `config_chiffree` : jamais en clair en base, jamais
+// renvoyés au navigateur. `curseur` mémorise où l'on s'est arrêté (dernier numéro de commande lu) ; `derniere_erreur` est un message simple
+// affiché à l'Administrateur (« vos clés sont refusées… »), vide quand tout va bien.
+export const connexionBoutique = pgTable(
+  "connexion_boutique",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    type: text("type").notNull(), // WOOCOMMERCE | FICHIER
+    nom: text("nom").notNull(),
+    depotId: text("depot_id").references(() => depot.id, { onDelete: "set null" }),
+    configChiffree: text("config_chiffree"),
+    statut: text("statut").notNull().default("ACTIVE"), // ACTIVE | ERREUR
+    derniereErreur: text("derniere_erreur"),
+    dernierCycleLe: timestamp("dernier_cycle_le"),
+    curseur: text("curseur"),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    archiveeLe: timestamp("archivee_le"),
+  },
+  (table) => [
+    index("connexion_boutique_entreprise_idx").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Dernier stock envoyé au site pour chaque produit : on ne renvoie que ce qui a changé (un site avec 500 produits n'est pas rappelé 500 fois
+// toutes les 5 minutes).
+export const stockPousse = pgTable(
+  "stock_pousse",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    connexionId: text("connexion_id")
+      .notNull()
+      .references(() => connexionBoutique.id, { onDelete: "cascade" }),
+    produitId: text("produit_id")
+      .notNull()
+      .references(() => produit.id, { onDelete: "cascade" }),
+    quantite: integer("quantite").notNull(),
+    misAJourLe: timestamp("mis_a_jour_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("stock_pousse_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("stock_pousse_connexion_produit_unique").on(table.connexionId, table.produitId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Commandes d'une boutique en ligne connectée (2026-11-12) : chaque commande que le site déclare à Vertex One fait sortir le stock et laisse
+// ici une ligne — c'est elle qui rend l'envoi idempotent (même clé + même référence = jamais deux sorties de stock), qui permet de l'annuler
+// (les mouvements portent `document_type = 'COMMANDE_SITE'` et son id) et qui alimente l'écran « codes du site non reconnus ». `lignes`
+// garde le résultat de chaque ligne : « ok », « inconnu » (aucun produit n'a ce code-barres) ou « non_suivi » (produit sans suivi de stock).
+// La clé peut être supprimée plus tard : `cle_id` devient nul, `source` (nom de la connexion) reste lisible.
+export const commandeSite = pgTable(
+  "commande_site",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    cleId: text("cle_id").references(() => cleApiEntreprise.id, { onDelete: "set null" }),
+    // Commande venue d'une connexion automatique (WooCommerce…) ou d'un import de fichier : exclusif avec `cle_id`.
+    connexionId: text("connexion_id").references(() => connexionBoutique.id, { onDelete: "set null" }),
+    source: text("source").notNull(),
+    reference: text("reference").notNull(),
+    statut: text("statut").notNull().default("ENREGISTREE"), // ENREGISTREE | ANNULEE
+    lignes: json("lignes").$type<{ code: string; quantite: number; statut: "ok" | "inconnu" | "non_suivi"; produitId?: string; nom?: string }[]>().notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    annuleeLe: timestamp("annulee_le"),
+  },
+  (table) => [
+    index("commande_site_entreprise_idx").on(table.entrepriseId, table.creeLe),
+    uniqueIndex("commande_site_cle_reference_unique").on(table.cleId, table.reference),
+    uniqueIndex("commande_site_connexion_reference_unique").on(table.connexionId, table.reference),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

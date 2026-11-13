@@ -217,7 +217,7 @@ export async function definirSeuilAlerte(tx: TransactionDrizzle, entrepriseId: s
   return { ok: true, seuil };
 }
 
-export type TypeDocumentStock = "FACTURE" | "RECU_VENTE" | "FACTURE_FOURNISSEUR";
+export type TypeDocumentStock = "FACTURE" | "RECU_VENTE" | "FACTURE_FOURNISSEUR" | "COMMANDE_SITE";
 
 /**
  * Annulation d'un document (2026-11-02) : défait les mouvements de stock qu'il avait provoqués. Une vente annulée REMET les articles
