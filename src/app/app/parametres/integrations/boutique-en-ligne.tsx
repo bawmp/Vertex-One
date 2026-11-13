@@ -288,7 +288,12 @@ Content-Type: application/json
 
 # 3. Annuler une commande : le stock revient
 POST ${base}/api/externe/stock/commandes/annulation
-{ "reference": "commande-1042" }`}</pre>
+{ "reference": "commande-1042" }
+
+# 4. Faire exister des produits chez Vertex One avec le MÊME code (50 au plus ; un code déjà connu n'est jamais modifié)
+POST ${base}/api/externe/stock/produits
+{ "produits": [ { "code": "ENF-0099", "nom": "Jouet", "prixVente": 5000, "stock": 7, "image": "https://…/photo.jpg" } ] }
+→ { "produits": [ { "code": "ENF-0099", "statut": "cree" } ], "crees": 1, "existants": 0 }`}</pre>
                 <p className="text-xs text-muted-foreground">
                   {t("« reference » est obligatoire : renvoyer la même référence ne fait jamais sortir le stock deux fois. « code » est le code-barres du produit dans Vertex One. Une commande n'est jamais refusée pour cause de stock ou de code inconnu : les lignes à vérifier (« inconnu », « non_suivi ») sont signalées dans la réponse (« aVerifier »). « disponible » ne descend jamais sous 0. Réponses : 201 enregistrée, 200 déjà reçue, 400 données invalides, 401 clé invalide, 402 abonnement suspendu, 403 clé non autorisée au stock, 404 référence inconnue (annulation), 429 trop de requêtes.")}
                 </p>

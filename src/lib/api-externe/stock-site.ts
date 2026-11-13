@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
-import { commandeSite, depot, produit, stockDepot } from "@/db/schema";
-import { assurerDepotPrincipal } from "@/lib/produits/depots";
+import { commandeSite, depot, mouvementStock, produit, stockDepot } from "@/db/schema";
+import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { reservesParProduit, stockDisponible } from "@/lib/produits/reservations";
 import { decrementerStockVente, defaireMouvementsDocument } from "@/lib/produits/stock";
 
@@ -193,6 +193,89 @@ export async function annulerCommandeSite(tx: TransactionDrizzle, entrepriseId: 
   const defaits = await defaireMouvementsDocument(tx, entrepriseId, "COMMANDE_SITE", commande.id, null);
   await tx.update(commandeSite).set({ statut: "ANNULEE", annuleeLe: new Date() }).where(eq(commandeSite.id, commande.id));
   return { introuvable: false, doublon: false, remisEnStock: defaits };
+}
+
+/* ------------------------------------------------------------------ produits déclarés par le site ------------------------------------------------------------------ */
+
+const MAX_PRODUITS_PAR_APPEL = 50;
+
+/**
+ * Produits que le site veut voir exister chez Vertex One avec le MÊME code (2026-11-13) : un produit créé plus tard sur le site, ou un produit dont le
+ * stock n'est pas chiffré. Création seulement : un code déjà connu (même en majuscules/minuscules différentes) n'est JAMAIS modifié ni écrasé — le
+ * produit de Vertex One reste la référence. `stock` renseigné : le produit est suivi, avec ce stock de départ (une ligne « stock initial » ouvre son
+ * historique) ; `stock` absent ou nul : le produit est créé SANS suivi de stock, il ne sera relié au stock que quand l'entreprise l'activera.
+ */
+export const schemaProduitsSite = z.object({
+  produits: z
+    .array(
+      z.object({
+        code: z.string("Chaque produit doit avoir un « code ».").trim().min(1, "Chaque produit doit avoir un « code ».").max(100, "Un « code » est trop long (100 caractères au plus)."),
+        nom: z.string("Chaque produit doit avoir un « nom ».").trim().min(2, "Chaque produit doit avoir un « nom » (2 caractères au moins).").max(200, "Un « nom » est trop long (200 caractères au plus)."),
+        prixVente: z.number().int("Les prix sont des nombres entiers (FCFA).").min(0, "Un prix ne peut pas être négatif.").max(1_000_000_000).optional(),
+        prixAchat: z.number().int("Les prix sont des nombres entiers (FCFA).").min(0, "Un prix ne peut pas être négatif.").max(1_000_000_000).optional(),
+        description: z.string().trim().max(2000, "Une « description » est trop longue (2000 caractères au plus).").nullish(),
+        stock: z.number().int("Le « stock » est un nombre entier.").min(0, "Le « stock » ne peut pas être négatif.").max(10_000_000).nullish(),
+        image: z.string().trim().max(500).nullish(),
+      })
+    )
+    .min(1, "Au moins un produit est nécessaire.")
+    .max(MAX_PRODUITS_PAR_APPEL, `Au plus ${MAX_PRODUITS_PAR_APPEL} produits par appel.`),
+});
+
+export type ResultatProduitSite = { code: string; statut: "cree" | "existant"; suiviStock?: boolean };
+
+export async function declarerProduitsSite(tx: TransactionDrizzle, entrepriseId: string, creeParId: string, entree: z.infer<typeof schemaProduitsSite>): Promise<{ resultats: ResultatProduitSite[]; imagesAChargerNb: number }> {
+  const vus = new Set<string>();
+  const resultats: ResultatProduitSite[] = [];
+  let imagesAChargerNb = 0;
+  let principal: { id: string } | null = null;
+
+  for (const p of entree.produits) {
+    const cle = enMinuscules(p.code);
+    if (vus.has(cle)) continue; // le même code deux fois dans l'appel : une seule création
+    vus.add(cle);
+
+    const [existant] = await tx.select({ id: produit.id }).from(produit).where(and(eq(produit.entrepriseId, entrepriseId), isNotNull(produit.codeBarres), sql`lower(${produit.codeBarres}) = ${cle}`)).limit(1);
+    if (existant) {
+      resultats.push({ code: p.code, statut: "existant" });
+      continue;
+    }
+
+    const suiviStock = typeof p.stock === "number";
+    const prixAchat = p.prixAchat ?? 0;
+    const adresseImage = p.image && /^https:\/\//i.test(p.image) ? p.image : null;
+    const [cree] = await tx
+      .insert(produit)
+      .values({
+        entrepriseId,
+        type: "BIEN",
+        nom: p.nom,
+        description: p.description?.trim() || null,
+        prixVente: p.prixVente ?? 0,
+        prixAchat,
+        codeBarres: p.code,
+        suiviStock,
+        stockActuel: suiviStock ? p.stock! : 0,
+        coutMoyen: suiviStock ? prixAchat : 0,
+        imageSourceUrl: adresseImage,
+        creeParId,
+      })
+      .onConflictDoNothing()
+      .returning({ id: produit.id });
+    if (!cree) {
+      resultats.push({ code: p.code, statut: "existant" }); // créé entre-temps par quelqu'un d'autre : même résultat, rien n'est écrasé
+      continue;
+    }
+    if (adresseImage) imagesAChargerNb++;
+    // Le stock de départ ouvre l'historique du produit, comme à la création ou à l'import.
+    if (suiviStock && p.stock! > 0) {
+      principal ??= await assurerDepotPrincipal(tx, entrepriseId);
+      await deplacerStockDepot(tx, entrepriseId, cree.id, principal.id, p.stock!);
+      await tx.insert(mouvementStock).values({ entrepriseId, produitId: cree.id, type: "INITIAL", quantite: p.stock!, stockApres: p.stock!, depotId: principal.id, creeParId });
+    }
+    resultats.push({ code: p.code, statut: "cree", suiviStock });
+  }
+  return { resultats, imagesAChargerNb };
 }
 
 /* ------------------------------------------------------------------ écran de l'Administrateur ------------------------------------------------------------------ */

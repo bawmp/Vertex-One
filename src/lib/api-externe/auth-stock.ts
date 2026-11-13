@@ -17,7 +17,7 @@ export const reponse = (corps: Record<string, unknown>, statut: number) =>
  * doit en plus avoir été autorisée à gérer le stock par l'Administrateur (refusé par défaut). Toute erreur d'authentification renvoie la
  * même réponse 401, sans dire si la clé existe.
  */
-export async function authentifierCleStock(requete: Request): Promise<{ ok: true; entrepriseId: string; cle: CleStock } | { ok: false; reponse: NextResponse }> {
+export async function authentifierCleStock(requete: Request): Promise<{ ok: true; entrepriseId: string; cle: CleStock; creeParId: string } | { ok: false; reponse: NextResponse }> {
   const cle = lireCleDepuisEnTete(requete.headers.get("authorization"));
   if (!cle || !formeCleValide(cle)) return { ok: false, reponse: reponse({ erreur: "Clé d'API invalide." }, 401) };
 
@@ -35,7 +35,7 @@ export async function authentifierCleStock(requete: Request): Promise<{ ok: true
 
   if (!autoriserAppel(ligne.id)) return { ok: false, reponse: reponse({ erreur: "Trop de requêtes, réessayez dans une minute." }, 429) };
 
-  return { ok: true, entrepriseId: ligne.entrepriseId, cle: { id: ligne.id, nom: ligne.nom, depotStockId: ligne.depotStockId } };
+  return { ok: true, entrepriseId: ligne.entrepriseId, cle: { id: ligne.id, nom: ligne.nom, depotStockId: ligne.depotStockId }, creeParId: ligne.creeParId };
 }
 
 /** Lit et valide un corps JSON borné ; renvoie la réponse d'erreur toute prête sinon. */
