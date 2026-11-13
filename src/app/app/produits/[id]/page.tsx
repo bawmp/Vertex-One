@@ -196,7 +196,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
             <Card>
               <CardContent className="flex flex-col gap-2">
                 <h2 className="text-sm font-medium text-muted-foreground">{t("Image")}</h2>
-                <FormulaireImageProduit produitId={leProduit.id} />
+                <FormulaireImageProduit produitId={leProduit.id} aUneImage={Boolean(leProduit.imageCleStockage)} />
               </CardContent>
             </Card>
           ) : null}

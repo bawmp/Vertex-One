@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { creerProduit } from "@/lib/actions/produit";
+import { ChampImage } from "./champ-image";
 import { useT } from "@/lib/i18n/contexte";
 
 export function FormulaireNouveauProduit({ gereStock = false }: { gereStock?: boolean }) {
@@ -66,6 +67,8 @@ export function FormulaireNouveauProduit({ gereStock = false }: { gereStock?: bo
             <Label htmlFor="description">{t("Description")}</Label>
             <Textarea id="description" name="description" rows={2} />
           </div>
+
+          <ChampImage id="image-nouveau" />
 
           {type === "BIEN" && gereStock ? (
             <div className="flex flex-col gap-3 rounded-lg border border-dashed p-3">

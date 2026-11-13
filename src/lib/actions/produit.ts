@@ -12,8 +12,10 @@ import { estComposant } from "@/lib/produits/kits";
 import { activerSuiviStock, arreterSuiviStock, corrigerStock, definirSeuilAlerte, type CorrectionStock } from "@/lib/produits/stock";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
+import { effacerObjetStockage } from "@/lib/documents/stockage";
 import { chargerImagesEnAttente } from "@/lib/produits/image-distante";
+import { poserImageProduit, retirerImageProduit, stockerImageProduit, validerImageProduit } from "@/lib/produits/image-produit";
+import { createId } from "@paralleldrive/cuid2";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -55,6 +57,20 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
     return { erreur: analyse.error.issues[0]?.message ?? t("Formulaire invalide.") };
   }
   const { type, nom, description, prixVente, prixAchat, suiviStock, stockInitial } = analyse.data;
+
+  // Image facultative : validée (octets, taille) et envoyée AVANT la création. Si le stockage est en panne, rien n'est créé (pas de produit
+  // à moitié fait que l'utilisateur recréerait en double) ; si la création échoue ensuite, l'objet envoyé est effacé.
+  let imageStockee: { cleStockage: string; mime: string } | null = null;
+  const fichierImage = formData.get("image");
+  if (fichierImage instanceof File && fichierImage.size > 0) {
+    const validation = await validerImageProduit(fichierImage);
+    if (!validation.ok) return { erreur: t(validation.erreur) };
+    const stockage = await stockerImageProduit(utilisateurConnecte.entrepriseId, validation.image, `produit-${createId()}`);
+    if (!stockage.cleStockage) return { erreur: t(stockage.erreur ?? m("Échec du téléversement.")) };
+    imageStockee = { cleStockage: stockage.cleStockage, mime: validation.image.mime };
+  }
+
+  try {
   await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     // Une entreprise de services ne suit pas de stock : la case éventuellement envoyée par le navigateur est ignorée.
     const suiviStockReel = type === "BIEN" && suiviStock && (await gestionStockActive(tx, utilisateurConnecte.entrepriseId));
@@ -70,6 +86,8 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
         suiviStock: suiviStockReel,
         stockActuel: suiviStockReel ? (stockInitial ?? 0) : 0,
         coutMoyen: suiviStockReel ? prixAchat : 0,
+        imageCleStockage: imageStockee?.cleStockage ?? null,
+        imageTypeMime: imageStockee?.mime ?? null,
         creeParId: utilisateurConnecte.utilisateurId,
       })
       .returning({ id: produit.id });
@@ -80,6 +98,10 @@ export async function creerProduit(_etat: EtatProduit, formData: FormData): Prom
       await tx.insert(mouvementStock).values({ entrepriseId: utilisateurConnecte.entrepriseId, produitId: cree.id, type: "INITIAL", quantite: stockInitial!, stockApres: stockInitial!, depotId: principal.id, creeParId: utilisateurConnecte.utilisateurId });
     }
   });
+  } catch (e) {
+    if (imageStockee) await effacerObjetStockage(imageStockee.cleStockage); // la création a échoué : l'image envoyée ne doit pas rester orpheline dans R2
+    throw e;
+  }
 
   revalidatePath("/app/produits");
   redirect("/app/produits");
@@ -131,13 +153,11 @@ export async function modifierProduit(produitId: string, _etat: EtatProduit, for
   return null;
 }
 
-export type EtatImageProduit = { erreur?: string } | null;
+export type EtatImageProduit = { erreur?: string; confirmation?: string } | null;
 
 /**
- * Fiche détail Produit (échange du 2026-09-08) — même flux que
- * ajouterDocument() (src/lib/actions/document.ts) : upload direct serveur
- * via Buffer, jamais de presigned URL côté client. L'ancien objet R2 est
- * effacé après le succès du nouveau televersement, jamais laissé orphelin.
+ * Ajoute ou remplace l'image d'un produit depuis sa fiche. Le fichier est reconnu sur ses OCTETS (JPEG, PNG, WebP), 4 Mo au plus (voir
+ * produits/image-produit.ts) ; le produit est cherché sous la RLS de l'entreprise de la session ; l'ancien objet R2 est effacé après le succès.
  */
 export async function televerserImageProduit(produitId: string, _etat: EtatImageProduit, formData: FormData): Promise<EtatImageProduit> {
   const t = await getT();
@@ -147,35 +167,27 @@ export async function televerserImageProduit(produitId: string, _etat: EtatImage
     return { erreur: t("Vous n'avez pas le droit de modifier ce produit.") };
   }
 
-  const fichier = formData.get("image");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: t("Sélectionnez une image.") };
-  }
-
-  const contenu = Buffer.from(await fichier.arrayBuffer());
-  const { televerse, cleStockage, erreur } = await televerserDocument({
-    entrepriseId: utilisateurConnecte.entrepriseId,
-    nomFichier: fichier.name,
-    typeMime: fichier.type || "application/octet-stream",
-    contenu,
-  });
-  if (!televerse) {
-    return { erreur: erreur ?? t("Échec du téléversement.") };
-  }
-
-  const ancienneCle = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
-    const [avant] = await tx.select({ imageCleStockage: produit.imageCleStockage }).from(produit).where(eq(produit.id, produitId));
-    await tx
-      .update(produit)
-      .set({ imageCleStockage: cleStockage, imageTypeMime: fichier.type || "application/octet-stream" })
-      .where(eq(produit.id, produitId));
-    return avant?.imageCleStockage ?? null;
-  });
-  if (ancienneCle) await effacerObjetStockage(ancienneCle);
+  const validation = await validerImageProduit(formData.get("image"));
+  if (!validation.ok) return { erreur: t(validation.erreur) };
+  const pose = await poserImageProduit(utilisateurConnecte.entrepriseId, produitId, validation.image);
+  if (!pose.ok) return { erreur: t(pose.erreur) };
 
   revalidatePath(`/app/produits/${produitId}`);
   revalidatePath("/app/produits");
-  return null;
+  return { confirmation: t("Image enregistrée.") };
+}
+
+/** Retire l'image d'un produit (l'objet R2 est effacé pour de bon). Droit MODIFIER sur les produits ; le produit est cherché sous la RLS de l'entreprise. */
+export async function supprimerImageProduit(produitId: string): Promise<{ erreur?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier ce produit.") };
+  const r = await retirerImageProduit(utilisateurConnecte.entrepriseId, produitId);
+  if (!r.ok) return { erreur: t(r.erreur) };
+  revalidatePath(`/app/produits/${produitId}`);
+  revalidatePath("/app/produits");
+  return {};
 }
 
 export type ResultatImagesMaintenant = { erreur?: string; chargees: number; refusees: number; enAttente: number; stockageIndisponible: boolean };

@@ -17,4 +17,16 @@ export const PRODUITS_IMAGES: Record<string, string> = {
   "L'image est introuvable (adresse inaccessible ou supprimée).": "The image was not found (address unreachable or deleted).",
   "L'image est trop lourde (5 Mo au plus).": "The image is too large (5 MB at most).",
   "Ce fichier n'est pas une image JPEG, PNG ou WebP.": "This file is not a JPEG, PNG or WebP image.",
+  // Envoi d'une image par l'utilisateur (création, fiche produit).
+  "Photo réduite automatiquement ({ko} Ko).": "Photo reduced automatically ({ko} KB).",
+  "{ko} Ko": "{ko} KB",
+  "Aperçu de l'image": "Image preview",
+  "Préparation de la photo…": "Preparing the photo…",
+  "JPEG, PNG ou WebP. Une grande photo est réduite toute seule.": "JPEG, PNG or WebP. A large photo is reduced by itself.",
+  "Retirer l'image choisie": "Remove the chosen image",
+  "Supprimer l'image de ce produit ?": "Delete this product's image?",
+  "Remplacer l'image": "Replace the image",
+  "Supprimer l'image": "Delete the image",
+  "Image enregistrée.": "Image saved.",
+  "L'image est trop lourde (4 Mo au plus).": "The image is too large (4 MB at most).",
 };
