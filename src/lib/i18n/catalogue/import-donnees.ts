@@ -121,6 +121,7 @@ export const IMPORT_DONNEES: Record<string, string> = {
   "Prix négatif.": "Negative price.",
   "{n} article(s) sans prix de vente : prix mis à 0, à compléter.": "{n} item(s) without a selling price: price set to 0, to be completed.",
   "Code-barres / code produit": "Barcode / product code",
+  "Produits déjà présents qui ont reçu leur code-barres": "Existing products that received their barcode",
   "{n} article(s) importé(s) sans code-barres : ce code était déjà utilisé par un autre produit.": "{n} item(s) imported without a barcode: that code was already used by another product.",
   "Le client choisi pour rattacher les projets est introuvable.": "The client chosen to link the projects to was not found.",
   "Titre de la tâche manquant.": "Task title missing.",

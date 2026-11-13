@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { produit, mouvementStock } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { montant, normaliser } from "../valeurs";
@@ -16,8 +16,12 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   const { tx, entrepriseId, utilisateurId } = ctx;
   const rapport = nouveauRapport();
 
-  const existants = await tx.select({ nom: produit.nom, codeBarres: produit.codeBarres }).from(produit).where(eq(produit.entrepriseId, entrepriseId));
+  const existants = await tx.select({ id: produit.id, nom: produit.nom, codeBarres: produit.codeBarres }).from(produit).where(eq(produit.entrepriseId, entrepriseId));
   const vus = new Set(existants.map((p) => normaliser(p.nom)));
+  // Un produit déjà présent sous le même nom et SANS code-barres peut recevoir celui du fichier (jamais un code existant écrasé) : c'est ce qui permet de
+  // rapprocher, par le code, des produits que l'entreprise avait déjà créés avant de brancher sa boutique.
+  const sansCodeParNom = new Map(existants.filter((p) => !p.codeBarres).map((p) => [normaliser(p.nom), p.id]));
+  let codesCompletes = 0;
   // Un code-barres est unique dans l'entreprise (index partiel) : on retient ceux déjà pris, casse comprise, pour ne jamais faire échouer tout l'import.
   const codesPris = new Set(existants.filter((p) => p.codeBarres).map((p) => p.codeBarres!.trim().toLowerCase()));
 
@@ -35,6 +39,17 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
     const cle = normaliser(nom);
     if (vus.has(cle)) {
       rapport.ignores++;
+      const idSansCode = sansCodeParNom.get(cle);
+      const codeFichier = (v.codeBarres ?? "").trim().slice(0, 100);
+      if (idSansCode && codeFichier && !codesPris.has(codeFichier.toLowerCase())) {
+        // Mise à jour limitée au code : le `isNull` est revérifié dans la requête (une fiche modifiée entre-temps n'est pas écrasée).
+        const modifies = await tx.update(produit).set({ codeBarres: codeFichier }).where(and(eq(produit.id, idSansCode), eq(produit.entrepriseId, entrepriseId), isNull(produit.codeBarres))).returning({ id: produit.id });
+        if (modifies.length > 0) {
+          codesPris.add(codeFichier.toLowerCase());
+          sansCodeParNom.delete(cle);
+          codesCompletes++;
+        }
+      }
       continue;
     }
     const prixVente = montant(v.prixVente);
@@ -99,6 +114,7 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   if (imagesRefusees > 0) avertir(rapport, 0, m("{n} article(s) importé(s) sans image : l'adresse de l'image doit commencer par https:// (et faire 500 caractères au plus)."), { n: imagesRefusees });
   const avecImage = aCreer.filter((p) => p.imageSourceUrl).length;
   if (avecImage > 0) compter(rapport, m("Images à charger (téléchargées juste après l'import)"), avecImage);
+  if (codesCompletes > 0) compter(rapport, m("Produits déjà présents qui ont reçu leur code-barres"), codesCompletes);
   if (codesEcartes > 0) avertir(rapport, 0, m("{n} article(s) importé(s) sans code-barres : ce code était déjà utilisé par un autre produit."), { n: codesEcartes });
   return rapport;
 }

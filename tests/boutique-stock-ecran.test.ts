@@ -174,4 +174,27 @@ describe("Import de produits — colonne Code-barres", () => {
     expect(rapport.crees).toBe(0);
     expect(rapport.ignores).toBe(1);
   }, 120_000);
+
+  test("un produit déjà présent sous le même nom mais SANS code reçoit le code du fichier ; un produit qui a déjà un code n'est jamais modifié, ni un code déjà pris attribué deux fois", async () => {
+    await avecEntreprise(idA, (tx) =>
+      tx.insert(produit).values([
+        { entrepriseId: idA, creeParId: adminA, type: "BIEN", nom: `Sans code ${suffixe}`, prixVente: 111 },
+        { entrepriseId: idA, creeParId: adminA, type: "BIEN", nom: `Avec code ${suffixe}`, prixVente: 222, codeBarres: `GARDE-${suffixe}` },
+        { entrepriseId: idA, creeParId: adminA, type: "BIEN", nom: `Autre sans code ${suffixe}`, prixVente: 333 },
+      ])
+    );
+    const csv = `Nom,SKU,Prix de vente
+Sans code ${suffixe},FILL-${suffixe},9999
+Avec code ${suffixe},ECRASE-${suffixe},9999
+Autre sans code ${suffixe},FILL-${suffixe},9999`;
+    const rapport = await importer(utilisateurA(), csv);
+    expect(rapport.crees).toBe(0);
+    expect(rapport.ignores).toBe(3);
+    const lus = await avecEntreprise(idA, (tx) => tx.select().from(produit));
+    const par = (nom: string) => lus.find((p) => p.nom === `${nom} ${suffixe}`)!;
+    expect(par("Sans code")).toMatchObject({ codeBarres: `FILL-${suffixe}`, prixVente: 111 }); // seul le code est rempli, jamais le prix
+    expect(par("Avec code").codeBarres).toBe(`GARDE-${suffixe}`); // jamais écrasé
+    expect(par("Autre sans code").codeBarres).toBeNull(); // le même code ne va pas à deux produits
+    expect(rapport.resume.some((r) => /ont reçu leur code-barres/.test(r.libelle) && r.nombre === 1)).toBe(true);
+  }, 120_000);
 });

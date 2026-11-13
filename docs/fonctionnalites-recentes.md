@@ -985,3 +985,9 @@ Au-delà des tâches de projet (ponctuelles, posées dans One Projects) et des a
 - **Image** : `image` (adresse HTTPS) est gardée et téléchargée juste après la réponse (`after()`, mêmes gardes que l'import) ; une adresse non HTTPS est ignorée sans refuser le produit.
 - **À savoir** : une clé qui a le droit « stock » peut donc aussi CRÉER des produits (jamais modifier ni supprimer un existant).
 - **Repères** : `src/app/api/externe/stock/produits/route.ts`, `declarerProduitsSite` (`src/lib/api-externe/stock-site.ts`). Tests : `tests/api-externe-stock-produits.test.ts` (10 : droits, validation, création suivie ou non, existant jamais modifié, rejeu, doublon dans l'appel, image, isolation entre entreprises).
+
+### L'import remplit un code-barres manquant (2026-11-13)
+
+- **Quoi** : à l'import « Produits et services », un produit **déjà présent sous le même nom** (comparaison sans accents ni casse) qui n'a **pas** de code-barres reçoit désormais celui du fichier (colonne SKU, Code-barres…) ; avant, il était simplement ignoré et son code ne pouvait jamais être rapproché de celui d'une boutique. Le rapport compte « Produits déjà présents qui ont reçu leur code-barres ».
+- **Garde-fous** : seul le **code** est rempli (jamais le prix, le stock ni le nom) ; un produit qui a déjà un code n'est **jamais** modifié ; un code déjà pris par un autre produit n'est jamais attribué deux fois (le premier produit le reçoit, pas le second) ; la condition « pas encore de code » est revérifiée dans la requête de mise à jour. Réimporter le fichier ne change plus rien.
+- **Test** : `tests/boutique-stock-ecran.test.ts` (« un produit déjà présent sous le même nom mais SANS code… »).
