@@ -13,6 +13,7 @@ import { activerSuiviStock, arreterSuiviStock, corrigerStock, definirSeuilAlerte
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { televerserDocument, effacerObjetStockage } from "@/lib/documents/stockage";
+import { chargerImagesEnAttente } from "@/lib/produits/image-distante";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -175,6 +176,23 @@ export async function televerserImageProduit(produitId: string, _etat: EtatImage
   revalidatePath(`/app/produits/${produitId}`);
   revalidatePath("/app/produits");
   return null;
+}
+
+export type ResultatImagesMaintenant = { erreur?: string; chargees: number; refusees: number; enAttente: number; stockageIndisponible: boolean };
+
+/**
+ * « Charger maintenant » (page Produits) : télécharge les images importées par adresse web qui attendent encore, tout de suite. Droit MODIFIER sur les
+ * produits ; seules les images de CETTE entreprise sont traitées (voir `chargerImagesEnAttente`, qui ne lit que sous sa RLS).
+ */
+export async function chargerImagesMaintenant(): Promise<ResultatImagesMaintenant> {
+  const t = await getT();
+  const vide = { chargees: 0, refusees: 0, enAttente: 0, stockageIndisponible: false };
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PRODUITS", "MODIFIER")) return { ...vide, erreur: t("Vous n'avez pas le droit de modifier ce produit.") };
+  const resultat = await chargerImagesEnAttente(utilisateurConnecte.entrepriseId, { limite: 12, budgetMs: 40_000 });
+  revalidatePath("/app/produits");
+  return resultat;
 }
 
 export async function supprimerProduit(produitId: string) {

@@ -16,6 +16,8 @@ import { aReapprovisionner, niveauStock } from "@/lib/produits/niveau-stock";
 import { FormulaireNouveauProduit } from "./formulaire-nouveau-produit";
 import { BoutonSupprimerProduit } from "./bouton-supprimer-produit";
 import { getT } from "@/lib/i18n/langue";
+import { etatImages } from "@/lib/produits/image-distante";
+import { ImagesEnAttente } from "./images-en-attente";
 
 export default async function PageProduits({ searchParams }: { searchParams: Promise<{ filtre?: string }> }) {
   const { filtre } = await searchParams;
@@ -32,8 +34,9 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
     );
   }
 
-  const { tousLesProduits, gereStock } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ({
+  const { tousLesProduits, gereStock, imagesEnAttente } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => ({
     tousLesProduits: await tx.select().from(produit).orderBy(desc(produit.creeLe)),
+    imagesEnAttente: await etatImages(utilisateurConnecte.entrepriseId, tx),
     gereStock: (await tx.select({ g: entreprise.gereStock }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId)))[0]?.g === true,
   }));
   const nbAReapprovisionner = gereStock ? tousLesProduits.filter(aReapprovisionner).length : 0;
@@ -103,6 +106,8 @@ export default async function PageProduits({ searchParams }: { searchParams: Pro
           {peut(utilisateurConnecte, "PRODUITS", "CREER") ? <FormulaireNouveauProduit gereStock={gereStock} /> : null}
         </div>
       </div>
+
+      <ImagesEnAttente enAttente={imagesEnAttente.enAttente} refusees={imagesEnAttente.refusees} peutModifier={peut(utilisateurConnecte, "PRODUITS", "MODIFIER")} />
 
       {nbAReapprovisionner > 0 || filtreActif ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-600/20 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">

@@ -69,6 +69,8 @@ export const DEFINITIONS: Record<TypeImport, DefinitionImport> = {
       { cle: "prixAchat", libelle: m("Prix d'achat"), alias: ["purchase rate", "cost price", "unit cost", "prix d achat", "cout", "purchase price", "cout d achat", "cost"] },
       { cle: "stock", libelle: m("Stock"), alias: ["stock on hand", "quantity in stock", "qty in stock", "stock", "quantite en stock", "initial stock", "opening stock", "quantity"] },
       // Le code du produit sur le site de l'entreprise : c'est lui qui relie une boutique en ligne connectée à ce produit (voir stock-site.ts).
+      // Adresse web (https://…) de l'image du produit : seule l'adresse est lue à l'import, l'image est téléchargée ensuite (voir produits/image-distante.ts).
+      { cle: "imageUrl", libelle: m("Image (adresse web)"), alias: ["image url", "image_url", "image src", "image", "photo", "photo url", "url image", "url de l image", "adresse de l image", "image 1", "picture", "images"] },
       { cle: "codeBarres", libelle: m("Code-barres / code produit"), alias: ["code barres", "code barre", "barcode", "bar code", "ean", "upc", "sku", "code produit", "product code", "code article", "item code", "code"] },
     ],
   },

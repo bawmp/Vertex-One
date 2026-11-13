@@ -3,7 +3,7 @@ import { produit, mouvementStock } from "@/db/schema";
 import { assurerDepotPrincipal, deplacerStockDepot } from "@/lib/produits/depots";
 import { montant, normaliser } from "../valeurs";
 import { m } from "@/lib/i18n/catalogue";
-import { avertir, erreur, lots, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
+import { avertir, compter, erreur, lots, nouveauRapport, type ContexteImport, type LigneImport, type Rapport } from "./commun";
 
 function typeProduit(brut: string | undefined): "BIEN" | "SERVICE" {
   const t = normaliser(brut ?? "");
@@ -24,6 +24,7 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   const aCreer: (typeof produit.$inferInsert)[] = [];
   let prixAbsents = 0;
   let codesEcartes = 0;
+  let imagesRefusees = 0;
 
   for (const { numero, v } of lignes) {
     const nom = (v.nom ?? "").trim();
@@ -59,11 +60,20 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
         codesPris.add(cleCode);
       }
     }
+    // Seule l'ADRESSE de l'image est retenue (HTTPS uniquement) ; le téléchargement se fait après l'import, hors transaction, avec les gardes SSRF.
+    // Une cellule peut contenir plusieurs adresses (séparées par une virgule, un point-virgule ou un espace) : seule la première sert.
+    let imageSourceUrl: string | null = null;
+    const brutImage = (v.imageUrl ?? "").trim().split(/[\s,;|]+/)[0] ?? "";
+    if (brutImage) {
+      if (/^https:\/\//i.test(brutImage) && brutImage.length <= 500) imageSourceUrl = brutImage;
+      else imagesRefusees++;
+    }
     aCreer.push({
       entrepriseId,
       type,
       nom,
       codeBarres,
+      imageSourceUrl,
       description: (v.description ?? "").trim() || null,
       prixVente: prixVente ?? 0,
       prixAchat: prixAchat ?? 0,
@@ -86,6 +96,9 @@ export async function importerProduits(ctx: ContexteImport, lignes: LigneImport[
   }
   rapport.crees = aCreer.length;
   if (prixAbsents > 0) avertir(rapport, 0, m("{n} article(s) sans prix de vente : prix mis à 0, à compléter."), { n: prixAbsents });
+  if (imagesRefusees > 0) avertir(rapport, 0, m("{n} article(s) importé(s) sans image : l'adresse de l'image doit commencer par https:// (et faire 500 caractères au plus)."), { n: imagesRefusees });
+  const avecImage = aCreer.filter((p) => p.imageSourceUrl).length;
+  if (avecImage > 0) compter(rapport, m("Images à charger (téléchargées juste après l'import)"), avecImage);
   if (codesEcartes > 0) avertir(rapport, 0, m("{n} article(s) importé(s) sans code-barres : ce code était déjà utilisé par un autre produit."), { n: codesEcartes });
   return rapport;
 }

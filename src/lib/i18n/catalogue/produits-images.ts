@@ -1,0 +1,20 @@
+/** Images de produits chargées depuis une adresse web (import de produits) et leur suivi sur la page Produits. */
+export const PRODUITS_IMAGES: Record<string, string> = {
+  "Le stockage des images n'est pas disponible pour le moment : réessayez plus tard.": "Image storage is not available right now: try again later.",
+  "{a} image(s) chargée(s), {b} refusée(s), {c} encore en attente.": "{a} image(s) loaded, {b} rejected, {c} still waiting.",
+  "{n} image(s) de produits en cours de chargement depuis leur adresse web.": "{n} product image(s) being loaded from their web address.",
+  "Charger maintenant": "Load now",
+  "{n} image(s) n'ont pas pu être chargées": "{n} image(s) could not be loaded",
+  "Ouvrez le produit pour envoyer son image depuis votre ordinateur.": "Open the product to upload its image from your computer.",
+  "Image (adresse web)": "Image (web address)",
+  "{n} article(s) importé(s) sans image : l'adresse de l'image doit commencer par https:// (et faire 500 caractères au plus).":
+    "{n} item(s) imported without an image: the image address must start with https:// (and be 500 characters at most).",
+  "Images à charger (téléchargées juste après l'import)": "Images to load (downloaded right after the import)",
+  "Adresse d'image refusée : elle doit commencer par https://.": "Image address refused: it must start with https://.",
+  "Le site de l'image ne répond pas.": "The image's site is not responding.",
+  "Cette adresse d'image n'est pas autorisée.": "This image address is not allowed.",
+  "L'image redirige vers une autre adresse : utilisez son adresse directe.": "The image redirects to another address: use its direct address.",
+  "L'image est introuvable (adresse inaccessible ou supprimée).": "The image was not found (address unreachable or deleted).",
+  "L'image est trop lourde (5 Mo au plus).": "The image is too large (5 MB at most).",
+  "Ce fichier n'est pas une image JPEG, PNG ou WebP.": "This file is not a JPEG, PNG or WebP image.",
+};

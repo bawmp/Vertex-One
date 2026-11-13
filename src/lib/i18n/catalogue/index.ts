@@ -23,6 +23,7 @@ import { ANALYTIQUE } from "./analytique";
 import { RH } from "./rh";
 import { BOUTIQUE_STOCK } from "./boutique-stock";
 import { BOUTIQUE_CONNEXION } from "./boutique-connexion";
+import { PRODUITS_IMAGES } from "./produits-images";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -46,4 +47,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...RH,
   ...BOUTIQUE_STOCK,
   ...BOUTIQUE_CONNEXION,
+  ...PRODUITS_IMAGES,
 };

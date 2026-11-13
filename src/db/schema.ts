@@ -3683,6 +3683,10 @@ export const produit = pgTable(
     // signée à la demande par src/app/app/produits/[id]/image/route.ts).
     imageCleStockage: text("image_cle_stockage"),
     imageTypeMime: text("image_type_mime"),
+    // Image à charger depuis une adresse web (import de produits, 2026-11-13) : téléchargée par chargerImagesEnAttente (garde SSRF, octets
+    // vérifiés), puis vidée. `image_source_erreur` garde le motif d'un refus définitif, affiché sur la page Produits.
+    imageSourceUrl: text("image_source_url"),
+    imageSourceErreur: text("image_source_erreur"),
     creeParId: text("cree_par_id")
       .notNull()
       .references(() => utilisateur.id),
@@ -3690,6 +3694,7 @@ export const produit = pgTable(
   },
   (table) => [
     index("produit_entreprise_idx").on(table.entrepriseId),
+    index("produit_image_en_attente_idx").on(table.entrepriseId).where(sql`${table.imageSourceUrl} is not null`),
     uniqueIndex("produit_code_barres_unique").on(table.entrepriseId, table.codeBarres).where(sql`${table.codeBarres} is not null`),
     pgPolicy("isolation_entreprise", {
       for: "all",

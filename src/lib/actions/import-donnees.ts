@@ -2,7 +2,9 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { avecEntreprise } from "@/db/client";
+import { chargerImagesEnAttente } from "@/lib/produits/image-distante";
 import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { getT } from "@/lib/i18n/langue";
@@ -107,6 +109,12 @@ export async function lancerImport(formData: FormData): Promise<ResultatImport> 
       return resultat;
     });
     revalidatePaths(type);
+    // Produits importés avec une adresse d'image : le téléchargement part APRÈS la réponse (jamais dans la transaction, jamais attendu par
+    // l'utilisateur). Ce qui n'a pas pu être chargé dans le temps imparti reste en attente : bouton « Charger les images » sur la page Produits.
+    if (type === "PRODUITS" && rapport.crees > 0) {
+      const entrepriseId = utilisateurConnecte.entrepriseId;
+      after(() => chargerImagesEnAttente(entrepriseId, { limite: 40, budgetMs: 45_000 }));
+    }
     return { ok: true, simulation: false, rapport };
   } catch (e) {
     if (e instanceof SimulationTerminee) return { ok: true, simulation: true, rapport: e.rapport };
