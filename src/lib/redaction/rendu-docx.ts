@@ -5,8 +5,11 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  HorizontalPositionAlign,
+  HorizontalPositionRelativeFrom,
   ImageRun,
   LevelFormat,
+  LineRuleType,
   Packer,
   PageBreak,
   PageNumber,
@@ -18,11 +21,14 @@ import {
   TabStopType,
   TextRun,
   UnderlineType,
+  VerticalPositionAlign,
+  VerticalPositionRelativeFrom,
   WidthType,
 } from "docx";
 import type { ContenuRedaction, NoeudRedaction } from "./contenu";
 import { margeMm, margeTwips, type MiseEnPage } from "./mise-en-page";
 import { dimensionsImage, octetsDepuisDataUrl, type IdentiteDocument } from "./identite";
+import { logoEstompePNG } from "./filigrane";
 
 const LARGEUR_A4_TWIPS = 11906;
 const HAUTEUR_A4_TWIPS = 16838;
@@ -176,7 +182,37 @@ function niveauxListe(format: (typeof LevelFormat)[keyof typeof LevelFormat], te
   }));
 }
 
-function enteteWord(m: MiseEnPage, identite: IdentiteDocument, dateEdition: Date, compact = false): Header {
+/**
+ * Filigrane Word : le logo (déjà estompé) est une image FLOTTANTE posée derrière le texte, centrée sur la page, dans l'en-tête — donc répétée sur
+ * chaque page. Le paragraphe qui la porte a une hauteur de ligne minuscule pour ne pas décaler l'en-tête.
+ */
+function paragrapheFiligrane(logo: { octets: Buffer; largeur: number; hauteur: number } | null): Paragraph[] {
+  if (!logo) return [];
+  const cote = 420; // px (≈ 11 cm) : le plus grand côté du logo
+  const echelle = cote / Math.max(logo.largeur, logo.hauteur);
+  return [
+    new Paragraph({
+      spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT },
+      children: [
+        new ImageRun({
+          type: "png",
+          data: logo.octets,
+          transformation: { width: Math.round(logo.largeur * echelle), height: Math.round(logo.hauteur * echelle) },
+          altText: { title: "Filigrane", description: "Logo de l'entreprise en filigrane", name: "filigrane" },
+          floating: {
+            horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER },
+            verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.CENTER },
+            behindDocument: true,
+            allowOverlap: true,
+            lockAnchor: true,
+          },
+        }),
+      ],
+    }),
+  ];
+}
+
+function enteteWord(m: MiseEnPage, identite: IdentiteDocument, dateEdition: Date, compact = false, filigrane: Paragraph[] = []): Header {
   const coordonnees = [identite.adresse, identite.ville].filter(Boolean).join(", ");
   const legal = [identite.niu ? `NIU ${identite.niu}` : null, identite.rccm ? `RCCM ${identite.rccm}` : null].filter(Boolean).join(" · ");
   const couleur = sansCouleur(identite.couleur);
@@ -215,6 +251,7 @@ function enteteWord(m: MiseEnPage, identite: IdentiteDocument, dateEdition: Date
         ],
       }),
       new Paragraph({ children: [] }),
+      ...filigrane,
     ],
   });
 }
@@ -260,8 +297,11 @@ export type PropsDocumentRedigeDocx = {
   dateEdition: Date;
 };
 
-export function rendreDocumentRedigeDocx({ titre, contenu, miseEnPage: m, identite, dateEdition }: PropsDocumentRedigeDocx): Promise<Buffer> {
+export async function rendreDocumentRedigeDocx({ titre, contenu, miseEnPage: m, identite, dateEdition }: PropsDocumentRedigeDocx): Promise<Buffer> {
   const marge = margeTwips(m.marges);
+  // Filigrane : le réglage de l'entreprise ET un logo lisible ; sinon le document est inchangé.
+  const filigrane = paragrapheFiligrane(identite.filigrane && identite.logo ? await logoEstompePNG(identite.logo.octets) : null);
+  const enteteVide = () => new Header({ children: [new Paragraph({ children: [] }), ...filigrane] });
   const largeurContentePx = Math.round((210 - 2 * margeMm(m.marges)) * PX_PAR_MM);
   const avecEntete = m.enteteEntreprise || !!m.enteteGauche || !!m.enteteDroite || !!m.reference || m.afficherDate;
   const avecPied = m.numerotation !== "AUCUNE" || !!m.piedGauche || !!m.piedCentre || !!m.piedDroite;
@@ -284,11 +324,13 @@ export function rendreDocumentRedigeDocx({ titre, contenu, miseEnPage: m, identi
         },
         headers: avecEntete
           ? m.pagesEntete === "TOUTES"
-            ? { default: enteteWord(m, identite, dateEdition) }
+            ? { default: enteteWord(m, identite, dateEdition, false, filigrane) }
             : m.pagesEntete === "PREMIERE"
-              ? { first: enteteWord(m, identite, dateEdition), default: new Header({ children: [new Paragraph({ children: [] })] }) }
-              : { first: new Header({ children: [new Paragraph({ children: [] })] }), default: enteteWord(m, identite, dateEdition, true) }
-          : undefined,
+              ? { first: enteteWord(m, identite, dateEdition, false, filigrane), default: enteteVide() }
+              : { first: enteteVide(), default: enteteWord(m, identite, dateEdition, true, filigrane) }
+          : filigrane.length > 0
+            ? { first: enteteVide(), default: enteteVide() }
+            : undefined,
         footers: avecPied ? { default: piedWord(m, identite), ...(m.pagesEntete !== "TOUTES" ? { first: piedWord(m, identite) } : {}) } : undefined,
         children: blocs(contenu.content, { largeurContentePx, instances: { n: 0 } }),
       },

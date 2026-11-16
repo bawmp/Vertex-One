@@ -727,12 +727,12 @@
 
 /* Impression (étiquettes de codes-barres…) : dans l'application, on ne garde que le contenu de la page, sans menu, barre du haut ni bouton flottant. */
 @media print {
-  body:has(main.overflow-x-hidden) nav,
-  body:has(main.overflow-x-hidden) header,
-  body:has(main.overflow-x-hidden) button[aria-label][class*="fixed"] {
+  body:has(main.overflow-x-clip) nav,
+  body:has(main.overflow-x-clip) header,
+  body:has(main.overflow-x-clip) button[aria-label][class*="fixed"] {
     display: none !important;
   }
-  body:has(main.overflow-x-hidden) main {
+  body:has(main.overflow-x-clip) main {
     padding: 0 !important;
   }
 }

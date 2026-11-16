@@ -20,7 +20,7 @@ import type { IdentiteDocument } from "@/lib/redaction/identite";
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 const IMAGE = `data:image/png;base64,${PNG}`;
 
-const identite: IdentiteDocument = { nom: "GLOBAL MOBILITY", adresse: "Mendong", ville: "Yaoundé", niu: "M0123456789", rccm: "RC/YAO/2026/B/1", couleur: "#233c7e", groupeNom: "VERTEX TECHNOLOGY", logo: { octets: Buffer.from(PNG, "base64"), format: "png" } };
+const identite: IdentiteDocument = { nom: "GLOBAL MOBILITY", adresse: "Mendong", ville: "Yaoundé", niu: "M0123456789", rccm: "RC/YAO/2026/B/1", couleur: "#233c7e", groupeNom: "VERTEX TECHNOLOGY", logo: { octets: Buffer.from(PNG, "base64"), format: "png" }, filigrane: false };
 
 const para = (texte: string, marks?: { type: "bold" | "italic" | "underline" | "strike" }[]) => ({ type: "paragraph" as const, content: [{ type: "text" as const, text: texte, ...(marks ? { marks } : {}) }] });
 

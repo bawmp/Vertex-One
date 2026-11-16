@@ -28,6 +28,8 @@ const styles = StyleSheet.create({
   entete: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, paddingBottom: 8 },
   blocIdentite: { flexDirection: "row", alignItems: "flex-start", gap: 8, flexShrink: 1 },
   logo: { width: 38, height: 38, objectFit: "contain" },
+  // Logo en filigrane, centré sur la page A4 (595 × 842 pt), très pâle, répété sur chaque page (`fixed`) ; même rendu que les devis et factures.
+  filigrane: { position: "absolute", top: 196, left: 67, width: 460, height: 460, objectFit: "contain", opacity: 0.13 },
   nomEntreprise: { fontSize: 14, fontFamily: "Helvetica-Bold" },
   ligneEntete: { fontSize: 8.5, color: GRIS, marginTop: 1 },
   blocDroite: { alignItems: "flex-end", maxWidth: "45%" },
@@ -249,6 +251,9 @@ export function DocumentRedigePDF({ titre, contenu, miseEnPage: m, identite, dat
   return (
     <Document title={titre} author={identite.nom} creator="Vertex One">
       <Page size="A4" style={{ ...styles.page, paddingTop: marge, paddingHorizontal: marge, paddingBottom: marge + (pied ? 34 : 0) }}>
+        {identite.filigrane && identite.logo ? (
+          <Image fixed src={{ data: identite.logo.octets, format: identite.logo.format === "jpeg" ? "jpg" : "png" }} style={styles.filigrane} />
+        ) : null}
         {aUnEntete(m) ? (
           m.pagesEntete === "SUIVANTES" ? (
             <View fixed render={({ pageNumber }) => (pageNumber === 1 ? <View /> : Entete({ miseEnPage: m, identite, dateEdition, compact: true }))} />

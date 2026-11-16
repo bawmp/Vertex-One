@@ -6,6 +6,7 @@ import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { documentRedigeAutorise, lireDocument } from "@/lib/redaction/service";
 import { chargerIdentite } from "@/lib/redaction/identite";
+import { logoEstompePNG } from "@/lib/redaction/filigrane";
 import { EditeurDocument } from "../editeur-document";
 
 export default async function PageEditeurDocument({ params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +25,9 @@ export default async function PageEditeurDocument({ params }: { params: Promise<
 
   const { contenu, miseEnPage } = lireDocument(donnees.d);
   const { identite } = donnees;
+  // Filigrane de la feuille à l'écran : le même logo estompé que dans le PDF et le Word (réglage de l'entreprise respecté).
+  const filigrane = identite.filigrane && identite.logo ? await logoEstompePNG(identite.logo.octets) : null;
+  const logoFiligrane = filigrane ? `data:image/png;base64,${filigrane.octets.toString("base64")}` : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,7 +39,7 @@ export default async function PageEditeurDocument({ params }: { params: Promise<
         titreInitial={donnees.d.titre}
         contenuInitial={contenu}
         miseEnPageInitiale={miseEnPage}
-        identite={{ nom: identite.nom, groupeNom: identite.groupeNom, adresse: identite.adresse, ville: identite.ville, niu: identite.niu, rccm: identite.rccm, couleur: identite.couleur, aLogo: !!identite.logo }}
+        identite={{ nom: identite.nom, groupeNom: identite.groupeNom, adresse: identite.adresse, ville: identite.ville, niu: identite.niu, rccm: identite.rccm, couleur: identite.couleur, aLogo: !!identite.logo, logoFiligrane }}
         peutModifier={donnees.modifiable}
         peutCreer={peut(utilisateurConnecte, "DOCUMENTS", "CREER")}
       />

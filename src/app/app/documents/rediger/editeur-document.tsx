@@ -40,7 +40,7 @@ const ImageLargeur = Image.extend({
   },
 });
 
-type Identite = { nom: string; groupeNom: string | null; adresse: string | null; ville: string | null; niu: string | null; rccm: string | null; couleur: string; aLogo: boolean };
+type Identite = { nom: string; groupeNom: string | null; adresse: string | null; ville: string | null; niu: string | null; rccm: string | null; couleur: string; aLogo: boolean; logoFiligrane: string | null };
 
 /** Redimensionne et réencode une image choisie (PNG ou JPEG, 1 Mo maximum, 1400 px de large maximum) — jamais d'envoi brut. */
 async function preparerImage(fichier: File): Promise<string> {
@@ -280,7 +280,7 @@ export function EditeurDocument({
       ) : null}
 
       {peutModifier ? (
-        <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-background/95 p-1.5 shadow-sm backdrop-blur" role="toolbar" aria-label="Mise en forme">
+        <div className="sticky top-14 z-10 flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-background/95 p-1.5 shadow-sm backdrop-blur" role="toolbar" aria-label="Mise en forme">
           <Bouton titre="Annuler" onClick={() => editeur.chain().focus().undo().run()} disabled={!editeur.can().undo()}><Undo2 className="size-4" /></Bouton>
           <Bouton titre="Rétablir" onClick={() => editeur.chain().focus().redo().run()} disabled={!editeur.can().redo()}><Redo2 className="size-4" /></Bouton>
           <span className="mx-1 h-5 w-px bg-border" />
@@ -351,9 +351,13 @@ export function EditeurDocument({
 
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_20rem]">
         {/* La « feuille » : en-tête et pied de page simulés autour du contenu ; l'aperçu PDF donne la mise en page exacte. */}
-        <div className="mx-auto w-full max-w-[794px] overflow-hidden rounded-md border border-border bg-white text-black shadow-md">
+        <div className="relative mx-auto w-full max-w-[794px] overflow-hidden rounded-md border border-border bg-white text-black shadow-md">
+          {identite.logoFiligrane ? (
+            // Logo de l'entreprise en filigrane (déjà estompé), centré derrière le texte comme dans le PDF et le Word ; jamais cliquable.
+            <div aria-hidden data-filigrane className="pointer-events-none absolute inset-0 z-0 bg-center bg-no-repeat" style={{ backgroundImage: `url(${identite.logoFiligrane})`, backgroundSize: "55%" }} />
+          ) : null}
           {avecEntete ? (
-            <div className="flex items-start justify-between gap-4 border-b-2 px-10 pt-8 pb-3" style={{ borderColor: identite.couleur }}>
+            <div className="relative z-[1] flex items-start justify-between gap-4 border-b-2 px-10 pt-8 pb-3" style={{ borderColor: identite.couleur }}>
               <div className="min-w-0">
                 {miseEnPage.enteteEntreprise ? (
                   <>
@@ -373,11 +377,11 @@ export function EditeurDocument({
               </div>
             </div>
           ) : null}
-          <div className="min-h-[560px] px-10 py-6">
+          <div className="relative z-[1] min-h-[560px] px-10 py-6">
             <EditorContent editor={editeur} />
           </div>
           {avecPied ? (
-            <div className="grid grid-cols-3 gap-2 border-t-2 px-10 py-3 text-[11px] text-stone-500" style={{ borderColor: identite.couleur }}>
+            <div className="relative z-[1] grid grid-cols-3 gap-2 border-t-2 px-10 py-3 text-[11px] text-stone-500" style={{ borderColor: identite.couleur }}>
               <p>{cellulePied("GAUCHE", miseEnPage.piedGauche)}</p>
               <p className="text-center">{cellulePied("CENTRE", miseEnPage.piedCentre)}</p>
               <p className="text-right">{cellulePied("DROITE", miseEnPage.piedDroite)}</p>

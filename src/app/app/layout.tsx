@@ -479,7 +479,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
             afficherEspacePersonnel={utilisateurConnecte.role === "ADMIN"}
           />
         </BarreSuperieure>
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">
+        <main className="min-w-0 flex-1 overflow-x-clip p-4 pb-24 sm:p-6 sm:pb-24 md:p-8">
           <div className="mx-auto flex max-w-6xl flex-col gap-4">
             {evenement && ligne ? (
               <BanniereAbonnement evenement={evenement} essaiFinLe={ligne.essaiFinLe} abonnementEcheanceLe={ligne.abonnementEcheanceLe} />

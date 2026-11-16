@@ -18,6 +18,8 @@ export type IdentiteDocument = {
   groupeNom: string | null;
   /** Logo en octets (PNG ou JPEG seulement : les deux formats que PDF et Word savent intégrer), sinon null. */
   logo: { octets: Buffer; format: "png" | "jpeg" } | null;
+  /** Réglage de l'entreprise (Paramètres → Personnalisation) : le logo en filigrane sur ses documents. Activé par défaut, comme les devis et factures. */
+  filigrane: boolean;
 };
 
 export const COULEUR_PAR_DEFAUT = "#233c7e";
@@ -75,5 +77,6 @@ export async function chargerIdentite(tx: TransactionDrizzle, entrepriseId: stri
     couleur: e.couleurMarque ?? COULEUR_PAR_DEFAUT,
     groupeNom: await groupeNomPourPDF(tx, e.nom, e.groupeId),
     logo,
+    filigrane: e.filigraneDocuments !== false,
   };
 }
