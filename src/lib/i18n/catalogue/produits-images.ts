@@ -29,4 +29,5 @@ export const PRODUITS_IMAGES: Record<string, string> = {
   "Supprimer l'image": "Delete the image",
   "Image enregistrée.": "Image saved.",
   "L'image est trop lourde (4 Mo au plus).": "The image is too large (4 MB at most).",
+  "Produit actif (décochez pour le masquer des nouveaux documents)": "Active product (untick to hide it from new documents)",
 };

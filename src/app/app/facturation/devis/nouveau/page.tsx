@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
@@ -24,7 +25,7 @@ export default async function PageNouveauDevis({
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const client = await resoudreDonneesClientPage(tx, { dealId, contactId });
     if (!client) return null;
-    const catalogue = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente }).from(produit);
+    const catalogue = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente }).from(produit).where(eq(produit.actif, true));
     const produits = await produitsAuPrixDuClient(tx, utilisateurConnecte.entrepriseId, client.contact.listePrixId, catalogue);
     // Devises proposées : celles dont un taux est en vigueur aujourd'hui (le XOF, à parité avec le FCFA, n'a pas lieu d'être converti).
     const taux = await listerTaux(tx, utilisateurConnecte.entrepriseId);

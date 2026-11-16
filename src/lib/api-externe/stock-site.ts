@@ -359,3 +359,82 @@ export async function resumeBoutique(tx: TransactionDrizzle, entrepriseId: strin
     parConnexion,
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// Catalogue synchronisé dans les DEUX sens (2026-11-16) : nom, description, prix de vente, prix d'achat et état actif d'un produit. Le site lit le
+// catalogue (`lireCatalogueSite`) et renvoie ses propres changements (`appliquerChangementsCatalogue`). La règle « la dernière modification gagne » est
+// décidée par le site, qui connaît ce qu'il a déjà synchronisé ; Vertex One empêche seulement d'écraser un changement qu'il n'a pas encore montré :
+// chaque changement porte `vuLe` (la `modifieLe` que le site a lue). Si le produit a changé depuis (modifieLe différente), c'est un CONFLIT : rien n'est
+// écrit, le site relit et décide au passage suivant. Jamais de création ni de suppression ici (voir la déclaration de produits pour la création).
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+
+export type ProduitCatalogue = { code: string; nom: string; description: string | null; prixVente: number; prixAchat: number; actif: boolean; modifieLe: string };
+
+export async function lireCatalogueSite(tx: TransactionDrizzle, entrepriseId: string): Promise<{ produits: ProduitCatalogue[]; tronque: boolean }> {
+  const lignes = await tx
+    .select({ code: produit.codeBarres, nom: produit.nom, description: produit.description, prixVente: produit.prixVente, prixAchat: produit.prixAchat, actif: produit.actif, modifieLe: produit.modifieLe })
+    .from(produit)
+    .where(and(eq(produit.entrepriseId, entrepriseId), isNotNull(produit.codeBarres)))
+    .orderBy(asc(produit.codeBarres))
+    .limit(MAX_PRODUITS_LECTURE + 1);
+  const tronque = lignes.length > MAX_PRODUITS_LECTURE;
+  return {
+    produits: (tronque ? lignes.slice(0, MAX_PRODUITS_LECTURE) : lignes).map((p) => ({ ...p, code: p.code!, modifieLe: p.modifieLe.toISOString() })),
+    tronque,
+  };
+}
+
+export const schemaChangementsCatalogue = z.object({
+  produits: z
+    .array(
+      z.object({
+        code: z.string().trim().min(1, "Chaque produit doit avoir un « code ».").max(100, "Un « code » est trop long (100 caractères au plus)."),
+        vuLe: z.string().trim().min(1, "Chaque produit doit avoir un « vuLe » (la « modifieLe » lue dans le catalogue).").refine((v) => !Number.isNaN(Date.parse(v)), "« vuLe » doit être une date ISO."),
+        nom: z.string().trim().min(2, "Le « nom » est trop court.").max(200, "Le « nom » est trop long (200 caractères au plus).").optional(),
+        description: z.string().trim().max(5000, "La « description » est trop longue (5000 caractères au plus).").nullable().optional(),
+        prixVente: z.number("« prixVente » doit être un nombre.").int("« prixVente » doit être un entier.").min(0, "« prixVente » ne peut pas être négatif.").max(2_000_000_000, "« prixVente » est trop grand.").optional(),
+        prixAchat: z.number("« prixAchat » doit être un nombre.").int("« prixAchat » doit être un entier.").min(0, "« prixAchat » ne peut pas être négatif.").max(2_000_000_000, "« prixAchat » est trop grand.").optional(),
+        actif: z.boolean("« actif » doit être vrai ou faux.").optional(),
+      })
+    )
+    .min(1, "Au moins un produit est nécessaire.")
+    .max(50, "Au plus 50 produits par appel."),
+});
+
+export type ResultatChangementCatalogue = { code: string; statut: "modifie" | "identique" | "conflit" | "inconnu"; modifieLe?: string };
+
+export async function appliquerChangementsCatalogue(tx: TransactionDrizzle, entrepriseId: string, entree: z.infer<typeof schemaChangementsCatalogue>): Promise<ResultatChangementCatalogue[]> {
+  const resultats: ResultatChangementCatalogue[] = [];
+  for (const c of entree.produits) {
+    // Verrou par produit : deux appels simultanés sur le même code ne se croisent pas.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${entrepriseId}:catalogue:${enMinuscules(c.code)}`}))`);
+    const [actuel] = await tx
+      .select()
+      .from(produit)
+      .where(and(eq(produit.entrepriseId, entrepriseId), isNotNull(produit.codeBarres), sql`lower(${produit.codeBarres}) = ${enMinuscules(c.code)}`));
+    if (!actuel) {
+      resultats.push({ code: c.code, statut: "inconnu" });
+      continue;
+    }
+    // Comparaison à la milliseconde : l'horodatage est lu en JavaScript, sans les microsecondes de la base.
+    if (actuel.modifieLe.getTime() !== new Date(c.vuLe).getTime()) {
+      resultats.push({ code: c.code, statut: "conflit", modifieLe: actuel.modifieLe.toISOString() });
+      continue;
+    }
+    const nouveau = {
+      ...(c.nom !== undefined ? { nom: c.nom } : {}),
+      ...(c.description !== undefined ? { description: c.description || null } : {}),
+      ...(c.prixVente !== undefined ? { prixVente: c.prixVente } : {}),
+      ...(c.prixAchat !== undefined ? { prixAchat: c.prixAchat } : {}),
+      ...(c.actif !== undefined ? { actif: c.actif } : {}),
+    };
+    const change = (Object.keys(nouveau) as (keyof typeof nouveau)[]).some((k) => (nouveau[k] ?? null) !== (actuel[k] ?? null));
+    if (!change) {
+      resultats.push({ code: c.code, statut: "identique", modifieLe: actuel.modifieLe.toISOString() });
+      continue;
+    }
+    const [maj] = await tx.update(produit).set(nouveau).where(and(eq(produit.id, actuel.id), eq(produit.entrepriseId, entrepriseId))).returning({ modifieLe: produit.modifieLe });
+    resultats.push({ code: c.code, statut: "modifie", modifieLe: maj!.modifieLe.toISOString() });
+  }
+  return resultats;
+}

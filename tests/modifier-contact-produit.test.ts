@@ -139,6 +139,17 @@ describe("Modifier un produit ou service du catalogue", () => {
     expect((await lireProduit(produitA)).description).toBeNull();
   }, 120_000);
 
+  test("produit masqué : la case décochée (champ « actifChamp » présent) masque le produit ; sans ce champ l'état actuel est conservé ; recocher le réactive", async () => {
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    const base = { nom: "Ordinateur portable", prixVente: "450000", prixAchat: "320000" };
+    expect(await modifierProduit(produitA, null, formulaire({ ...base, actifChamp: "1" }))).toBeNull(); // case non cochée : « actif » absent du formulaire
+    expect((await lireProduit(produitA)).actif).toBe(false);
+    await modifierProduit(produitA, null, formulaire(base)); // ancien formulaire / autre appelant : l'état n'est pas touché
+    expect((await lireProduit(produitA)).actif).toBe(false);
+    await modifierProduit(produitA, null, formulaire({ ...base, actifChamp: "1", actif: "on" }));
+    expect((await lireProduit(produitA)).actif).toBe(true);
+  }, 120_000);
+
   test("valeurs invalides refusées (nom trop court, prix négatif, prix décimal) : rien ne change", async () => {
     connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
     const avant = await lireProduit(produitA);

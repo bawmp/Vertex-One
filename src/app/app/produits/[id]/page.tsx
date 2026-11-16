@@ -138,7 +138,7 @@ export default async function PageDetailProduit({ params, searchParams }: { para
 
       {peutModifier ? (
         <FormulaireModifierProduit
-          produit={{ id: leProduit.id, nom: leProduit.nom, description: leProduit.description, prixVente: leProduit.prixVente, prixAchat: leProduit.prixAchat }}
+          produit={{ id: leProduit.id, nom: leProduit.nom, description: leProduit.description, prixVente: leProduit.prixVente, prixAchat: leProduit.prixAchat, actif: leProduit.actif }}
           ouvertParDefaut={modifier === "1"}
         />
       ) : null}

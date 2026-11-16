@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { modifierProduit } from "@/lib/actions/produit";
 import { useT } from "@/lib/i18n/contexte";
 
-export type ProduitAModifier = { id: string; nom: string; description: string | null; prixVente: number; prixAchat: number };
+export type ProduitAModifier = { id: string; nom: string; description: string | null; prixVente: number; prixAchat: number; actif: boolean };
 
 /**
  * Modification d'un produit ou service de la fiche détail : un bouton « Modifier » ouvre le formulaire prérempli. Le type
@@ -69,6 +69,11 @@ export function FormulaireModifierProduit({ produit, ouvertParDefaut = false }: 
             <Label htmlFor="description-produit">{t("Description")}</Label>
             <Textarea id="description-produit" name="description" rows={3} defaultValue={produit.description ?? ""} />
           </div>
+          <input type="hidden" name="actifChamp" value="1" />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="actif" defaultChecked={produit.actif} className="size-4" />
+            {t("Produit actif (décochez pour le masquer des nouveaux documents)")}
+          </label>
           <p className="text-xs text-muted-foreground">{t("Les devis et factures déjà établis gardent leur prix ; la modification s'applique aux prochains documents.")}</p>
 
           {erreur ? <p className="text-sm text-destructive">{erreur}</p> : null}

@@ -3691,6 +3691,10 @@ export const produit = pgTable(
       .notNull()
       .references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
+    // Produit masqué (2026-11-16) : faux = plus proposé dans les nouveaux documents, reste dans la liste. Synchronisé avec la boutique en ligne.
+    actif: boolean("actif").notNull().default(true),
+    // Dernière modification du nom, de la description, des prix ou de l'état actif — tenue par un déclencheur (migration 0182), jamais à la main.
+    modifieLe: timestamp("modifie_le").notNull().defaultNow(),
   },
   (table) => [
     index("produit_entreprise_idx").on(table.entrepriseId),

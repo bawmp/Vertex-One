@@ -138,11 +138,13 @@ export async function modifierProduit(produitId: string, _etat: EtatProduit, for
     return { erreur: t(analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
   }
   const { nom, description, prixVente, prixAchat } = analyse.data;
+  // État actif / masqué : pris seulement si le formulaire l'a envoyé (champ `actifChamp`), sinon l'état actuel est conservé.
+  const actif = formData.has("actifChamp") ? formData.get("actif") === "on" : undefined;
 
   const modifies = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
     tx
       .update(produit)
-      .set({ nom, description: description || null, prixVente, prixAchat })
+      .set({ nom, description: description || null, prixVente, prixAchat, ...(actif === undefined ? {} : { actif }) })
       .where(and(eq(produit.id, produitId), eq(produit.entrepriseId, utilisateurConnecte.entrepriseId)))
       .returning({ id: produit.id })
   );

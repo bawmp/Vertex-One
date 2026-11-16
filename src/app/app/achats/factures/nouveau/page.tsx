@@ -18,7 +18,7 @@ export default async function PageNouvelleFactureFournisseur() {
     const [fournisseurs, comptesCharge, produits] = await Promise.all([
       tx.select({ id: fournisseur.id, nom: fournisseur.nom }).from(fournisseur),
       tx.select({ id: compteComptable.id, numero: compteComptable.numero, libelle: compteComptable.libelle }).from(compteComptable).where(eq(compteComptable.classe, 6)),
-      tx.select({ id: produit.id, nom: produit.nom, prixAchat: produit.prixAchat }).from(produit),
+      tx.select({ id: produit.id, nom: produit.nom, prixAchat: produit.prixAchat }).from(produit).where(eq(produit.actif, true)),
     ]);
     const sections = peut(utilisateurConnecte, "COMPTABILITE", "MODIFIER") ? (await listerSections(tx, utilisateurConnecte.entrepriseId)).filter((x) => x.actif) : [];
     return { fournisseurs, comptesCharge, produits, sections };

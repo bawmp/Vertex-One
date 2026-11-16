@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 import { avecEntreprise } from "@/db/client";
 import { produit } from "@/db/schema";
@@ -22,7 +23,7 @@ export default async function PageNouveauRecuVente({
   const donnees = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const client = await resoudreDonneesClientPage(tx, { dealId, contactId });
     if (!client) return null;
-    const catalogue = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente, suiviSerie: produit.suiviSerie }).from(produit);
+    const catalogue = await tx.select({ id: produit.id, nom: produit.nom, prixVente: produit.prixVente, suiviSerie: produit.suiviSerie }).from(produit).where(eq(produit.actif, true));
     const disponibles = await seriesEnStockParProduit(tx, utilisateurConnecte.entrepriseId, catalogue.filter((p) => p.suiviSerie).map((p) => p.id));
     const produits = (await produitsAuPrixDuClient(tx, utilisateurConnecte.entrepriseId, client.contact.listePrixId, catalogue)).map((p) => ({ ...p, series: disponibles[p.id] ?? [] }));
     return { ...client, produits };

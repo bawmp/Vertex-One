@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { avecEntreprise } from "@/db/client";
 import { cleApiEntreprise } from "@/db/schema";
 import { authentifierCleStock, lireCorpsJson, reponse } from "@/lib/api-externe/auth-stock";
-import { declarerProduitsSite, schemaProduitsSite } from "@/lib/api-externe/stock-site";
+import { appliquerChangementsCatalogue, declarerProduitsSite, schemaChangementsCatalogue, schemaProduitsSite } from "@/lib/api-externe/stock-site";
 import { chargerImagesEnAttente } from "@/lib/produits/image-distante";
 
 /**
@@ -49,4 +49,33 @@ export async function POST(requete: Request) {
   return reponse({ produits: resultat.resultats, crees: crees.length, existants: resultat.resultats.length - crees.length }, crees.length > 0 ? 201 : 200);
 }
 
-// Aucun autre verbe n'est servi : Next répond 405.
+/**
+ * PATCH /api/externe/stock/produits — le site renvoie ses changements de catalogue (50 produits au plus) : nom, description, prixVente, prixAchat, actif.
+ * Corps : `{ produits: [{ code, vuLe, nom?, description?, prixVente?, prixAchat?, actif? }] }` où `vuLe` est la `modifieLe` lue dans le catalogue.
+ * Par produit : « modifie » (avec la nouvelle `modifieLe`), « identique », « inconnu » (code absent) ou « conflit » (le produit a changé chez Vertex One
+ * depuis `vuLe` : rien n'est écrit, le site relit le catalogue et décide). Jamais de création ni de suppression.
+ */
+export async function PATCH(requete: Request) {
+  const auth = await authentifierCleStock(requete);
+  if (!auth.ok) return auth.reponse;
+
+  const lecture = await lireCorpsJson(requete);
+  if (!lecture.ok) return lecture.reponse;
+  const analyse = schemaChangementsCatalogue.safeParse(lecture.corps);
+  if (!analyse.success) return reponse({ erreur: analyse.error.issues[0]?.message ?? "Données invalides." }, 400);
+
+  let resultats: Awaited<ReturnType<typeof appliquerChangementsCatalogue>>;
+  try {
+    resultats = await avecEntreprise(auth.entrepriseId, async (tx) => {
+      await tx.update(cleApiEntreprise).set({ dernierUsageLe: new Date() }).where(eq(cleApiEntreprise.id, auth.cle.id));
+      return appliquerChangementsCatalogue(tx, auth.entrepriseId, analyse.data);
+    });
+  } catch (erreur) {
+    console.error("[api-externe] changements de catalogue impossibles :", erreur instanceof Error ? erreur.message : erreur);
+    return reponse({ erreur: "Les changements n'ont pas pu être enregistrés pour le moment, réessayez." }, 500);
+  }
+  if (resultats.some((r) => r.statut === "modifie")) revalidatePath("/app/produits");
+  return reponse({ produits: resultats, modifies: resultats.filter((r) => r.statut === "modifie").length }, 200);
+}
+
+// Seuls POST et PATCH sont servis : Next répond 405 pour les autres verbes.
