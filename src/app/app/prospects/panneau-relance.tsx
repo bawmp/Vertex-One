@@ -1,22 +1,24 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Mail, MessageCircle, PhoneCall, BellRing, CheckCircle2, TriangleAlert, Send, Paperclip } from "lucide-react";
+import { Mail, MessageCircle, PhoneCall, BellRing, CheckCircle2, TriangleAlert, Send, Paperclip, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { definirRappelProspect, noterRelanceProspect, ouvrirRelanceWhatsApp, relancerProspectParEmail } from "@/lib/actions/prospect";
+import { arreterSequenceProspect, definirRappelProspect, marquerAReponduProspect, noterRelanceProspect, ouvrirRelanceWhatsApp, relancerProspectParEmail, reprendreSequenceProspect } from "@/lib/actions/prospect";
 import { MODELES_RELANCE } from "@/lib/crm/prospects";
+import type { InfoAuto } from "@/lib/crm/sequence-prospects";
+import { phraseAuto } from "./resume-auto";
 import { elementsACompleter } from "@/lib/email/modeles";
 import { aujourdhuiDouala } from "@/lib/facturation/promesse-regles";
 import { useT } from "@/lib/i18n/contexte";
 
-type Onglet = "email" | "whatsapp" | "note" | "rappel";
+type Onglet = "email" | "whatsapp" | "note" | "rappel" | "auto";
 
-export type ProspectPourRelance = { id: string; nom: string; telephone: string; email: string | null; rappelLe: string | null };
+export type ProspectPourRelance = { id: string; nom: string; telephone: string; email: string | null; rappelLe: string | null; auto?: InfoAuto | null };
 
 /**
  * Tout ce qu'il faut pour relancer UN prospect, au même endroit : e-mail (part réellement), WhatsApp (ouvre la conversation avec le message déjà écrit),
@@ -32,6 +34,8 @@ export function PanneauRelance({ prospect, nomEntreprise, ongletInitial = "email
     { cle: "whatsapp", libelle: t("WhatsApp"), Icone: MessageCircle },
     { cle: "note", libelle: t("Appel / note"), Icone: PhoneCall },
     { cle: "rappel", libelle: t("Rappel"), Icone: BellRing },
+    // L'onglet « Automatique » n'existe que si l'entreprise a activé la relance automatique (Paramètres).
+    ...(prospect.auto ? [{ cle: "auto" as Onglet, libelle: t("Automatique"), Icone: Repeat }] : []),
   ];
 
   return (
@@ -49,6 +53,7 @@ export function PanneauRelance({ prospect, nomEntreprise, ongletInitial = "email
       {onglet === "whatsapp" ? <OngletWhatsApp prospect={prospect} nomEntreprise={nomEntreprise} /> : null}
       {onglet === "note" ? <OngletNote prospect={prospect} /> : null}
       {onglet === "rappel" ? <OngletRappel prospect={prospect} /> : null}
+      {onglet === "auto" && prospect.auto ? <OngletAuto prospect={prospect} auto={prospect.auto} /> : null}
     </div>
   );
 }
@@ -279,6 +284,55 @@ function OngletRappel({ prospect }: { prospect: ProspectPourRelance }) {
         {prospect.rappelLe ? (
           <Button type="button" variant="outline" onClick={() => enregistrer(null)} disabled={enCours}>
             {t("Retirer le rappel")}
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function OngletAuto({ prospect, auto }: { prospect: ProspectPourRelance; auto: InfoAuto }) {
+  const t = useT();
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [fait, setFait] = useState<string | null>(null);
+  const [enCours, demarrer] = useTransition();
+
+  function lancer(action: (id: string) => Promise<{ erreur?: string; ok?: boolean }>, message: string) {
+    setErreur(null);
+    setFait(null);
+    demarrer(async () => {
+      const r = await action(prospect.id);
+      if (r.erreur) setErreur(r.erreur);
+      else setFait(message);
+    });
+  }
+
+  const arretee = auto.action === "ARRETEE";
+  const enCoursDeSequence = auto.action === "ENVOYER" || auto.action === "ATTENDRE";
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm">{phraseAuto(t, auto)}</p>
+      <p className="text-xs text-muted-foreground">
+        {t("Des e-mails modèles partent tout seuls, aux dates prévues, jusqu'à ce que ce prospect réponde, devienne client ou que vous arrêtiez. Une relance faite à la main retarde le prochain e-mail automatique.")}
+      </p>
+      <Retour erreur={erreur} succes={fait} />
+      <div className="flex flex-wrap gap-2">
+        {enCoursDeSequence ? (
+          <>
+            <Button type="button" onClick={() => lancer(marquerAReponduProspect, t("C'est noté : les relances automatiques sont arrêtées."))} disabled={enCours}>
+              {enCours ? <Spinner /> : <CheckCircle2 data-icon="inline-start" aria-hidden />}
+              {t("Il a répondu")}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => lancer(arreterSequenceProspect, t("Les relances automatiques de ce prospect sont arrêtées."))} disabled={enCours}>
+              {t("Arrêter les relances automatiques")}
+            </Button>
+          </>
+        ) : null}
+        {arretee ? (
+          <Button type="button" onClick={() => lancer(reprendreSequenceProspect, t("Les relances automatiques reprennent."))} disabled={enCours}>
+            {enCours ? <Spinner /> : <Repeat data-icon="inline-start" aria-hidden />}
+            {t("Reprendre les relances automatiques")}
           </Button>
         ) : null}
       </div>

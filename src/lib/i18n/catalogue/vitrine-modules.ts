@@ -4,6 +4,8 @@ export const VITRINE_MODULES: Record<string, string> = {
   "Prospects, opportunités et pipeline commercial, du premier contact à la facture.": "Prospects, opportunities and sales pipeline, from first contact to invoice.",
   "Un espace « Prospects qualifiés » : un lead qualifié n'entre pas directement dans vos contacts, vous le relancez par e-mail ou sur WhatsApp (message déjà écrit, modèles modifiables) avec un historique et des rappels, puis vous le faites entrer dans vos contacts quand il devient client":
     "A “Qualified prospects” space: a qualified lead does not go straight into your contacts; you follow it up by email or on WhatsApp (message already written, editable templates) with a history and reminders, then add it to your contacts when it becomes a customer",
+  "Relance des prospects qualifiés en série : écrivez le même message personnalisé à plusieurs prospects d'un coup, ou activez la relance automatique (désactivée par défaut) qui envoie des e-mails modèles aux dates choisies, avec un plafond par jour, jusqu'à ce que le prospect réponde ou devienne client":
+    "Qualified-prospect follow-up in bulk: write the same personalised message to several prospects at once, or turn on automatic follow-up (off by default) that sends template emails on the dates you choose, with a daily cap, until the prospect replies or becomes a customer",
   "Suivi des prospects du statut Nouveau à Gagné/Perdu, avec qualification et proposition comme étapes intermédiaires":
     "Prospect tracking from New to Won/Lost, with qualification and proposal as intermediate stages",
   "Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)":

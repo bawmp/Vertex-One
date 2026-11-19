@@ -19,9 +19,18 @@ export type ProspectQualifie = {
   assigneANom: string | null;
   derniereRelanceLe: Date | null;
   nbRelances: number;
+  // État de la relance automatique (voir src/lib/crm/sequence-prospects.ts).
+  statut: string;
+  convertiLe: Date | null;
+  sequenceEtape: number;
+  sequenceDerniereLe: Date | null;
+  sequenceArreteeLe: Date | null;
+  sequenceArretMotif: string | null;
 };
 
 /**
+ * Une simple remarque (canal « note ») n'est pas une relance : elle ne compte ni dans la « dernière relance » ni dans le nombre de relances (les e-mails, WhatsApp et appels comptent).
+ *
  * Prospects qualifiés : leads de statut QUALIFIE pas encore convertis, dans la portée CRM de la personne connectée
  * (un Manager ou un Employé ne voit que les siens, comme pour les Leads). `derniereRelanceLe` / `nbRelances` viennent de
  * l'historique des relances.
@@ -47,8 +56,14 @@ export async function listerProspectsQualifies(tx: TransactionDrizzle, utilisate
       sourceExterne: lead.sourceExterne,
       assigneAId: lead.assigneAId,
       assigneANom: utilisateur.nomComplet,
-      derniereRelanceLe: sql<Date | null>`(select max(${relanceProspect.creeLe}) from ${relanceProspect} where ${relanceProspect.leadId} = ${lead.id})`,
-      nbRelances: sql<number>`(select count(*)::int from ${relanceProspect} where ${relanceProspect.leadId} = ${lead.id})`,
+      statut: lead.statut,
+      convertiLe: lead.convertiLe,
+      sequenceEtape: lead.sequenceEtape,
+      sequenceDerniereLe: lead.sequenceDerniereLe,
+      sequenceArreteeLe: lead.sequenceArreteeLe,
+      sequenceArretMotif: lead.sequenceArretMotif,
+      derniereRelanceLe: sql<Date | null>`(select max(${relanceProspect.creeLe}) from ${relanceProspect} where ${relanceProspect.leadId} = ${lead.id} and ${relanceProspect.canal} <> 'note')`,
+      nbRelances: sql<number>`(select count(*)::int from ${relanceProspect} where ${relanceProspect.leadId} = ${lead.id} and ${relanceProspect.canal} <> 'note')`,
     })
     .from(lead)
     .leftJoin(utilisateur, and(eq(utilisateur.id, lead.assigneAId), eq(utilisateur.entrepriseId, lead.entrepriseId)))
@@ -73,12 +88,12 @@ export async function compterProspectsQualifies(tx: TransactionDrizzle, utilisat
   return Number(ligne?.n ?? 0);
 }
 
-export type LigneHistoriqueRelance = { id: string; canal: string; contenu: string; creeLe: Date; auteurNom: string | null };
+export type LigneHistoriqueRelance = { id: string; canal: string; contenu: string; creeLe: Date; auteurNom: string | null; automatique: boolean };
 
 /** Historique des relances d'UN prospect, du plus récent au plus ancien (le prospect doit avoir été relu avec sa portée par l'appelant). */
 export async function historiqueRelances(tx: TransactionDrizzle, leadId: string, limite = 50): Promise<LigneHistoriqueRelance[]> {
   return tx
-    .select({ id: relanceProspect.id, canal: relanceProspect.canal, contenu: relanceProspect.contenu, creeLe: relanceProspect.creeLe, auteurNom: utilisateur.nomComplet })
+    .select({ id: relanceProspect.id, canal: relanceProspect.canal, contenu: relanceProspect.contenu, creeLe: relanceProspect.creeLe, auteurNom: utilisateur.nomComplet, automatique: relanceProspect.automatique })
     .from(relanceProspect)
     .leftJoin(utilisateur, and(eq(utilisateur.id, relanceProspect.auteurId), eq(utilisateur.entrepriseId, relanceProspect.entrepriseId)))
     .where(eq(relanceProspect.leadId, leadId))

@@ -56,6 +56,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Pièces jointes dans les emails écrits à un client depuis sa fiche (image, PDF, Word ou Excel, cinq fichiers au plus), contrôlées sur leur contenu réel"),
       m("Modèles de messages à envoyer à un client depuis sa fiche (ex. « votre profil est dans le bassin Entrée express »), modifiables, avec blocage de l'envoi tant qu'un élément à compléter reste entre crochets"),
       m("Un espace « Prospects qualifiés » : un lead qualifié n'entre pas directement dans vos contacts, vous le relancez par e-mail ou sur WhatsApp (message déjà écrit, modèles modifiables) avec un historique et des rappels, puis vous le faites entrer dans vos contacts quand il devient client"),
+      m("Relance des prospects qualifiés en série : écrivez le même message personnalisé à plusieurs prospects d'un coup, ou activez la relance automatique (désactivée par défaut) qui envoie des e-mails modèles aux dates choisies, avec un plafond par jour, jusqu'à ce que le prospect réponde ou devienne client"),
       m("Suivi des prospects du statut Nouveau à Gagné/Perdu, avec qualification et proposition comme étapes intermédiaires"),
       m("Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)"),
       m("Tâches et réunions rattachées directement à une opportunité"),

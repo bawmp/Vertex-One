@@ -21,6 +21,8 @@ const TYPES = {
   CONTRAT: m("Contrat"),
   RELANCE: m("Relance"),
   CAMPAGNE: m("Campagne"),
+  PROSPECT: m("Relance de prospect"),
+  PROSPECT_AUTO: m("Relance automatique de prospect"),
 } as const;
 
 const PAS = 50;

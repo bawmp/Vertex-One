@@ -70,7 +70,12 @@ export async function changerStatutLead(leadId: string, statut: (typeof statutLe
     if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return;
     // `qualifieLe` = le jour où le lead est devenu prospect qualifié (il apparaît alors dans « Prospects qualifiés ») ; il se vide si le lead quitte ce statut.
     const qualifieLe = statut === "QUALIFIE" ? (ligne.qualifieLe ?? new Date()) : null;
-    await tx.update(lead).set({ statut, qualifieLe }).where(eq(lead.id, leadId));
+    // Un lead qui (re)devient prospect qualifié repart d'une séquence de relance automatique vierge.
+    const nouvellementQualifie = statut === "QUALIFIE" && !ligne.qualifieLe;
+    await tx
+      .update(lead)
+      .set({ statut, qualifieLe, ...(nouvellementQualifie ? { sequenceEtape: 0, sequenceDerniereLe: null, sequenceArreteeLe: null, sequenceArretMotif: null } : {}) })
+      .where(eq(lead.id, leadId));
   });
 
   revalidatePath(`/app/leads/${leadId}`);

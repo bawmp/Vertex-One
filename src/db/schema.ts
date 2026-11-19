@@ -220,6 +220,11 @@ export const entreprise = pgTable("entreprise", {
   filigraneDocuments: boolean("filigrane_documents").notNull().default(true),
   // Paiement en plusieurs fois (2026-10-25) : le client choisit le montant de chaque tranche, jusqu'au solde de sa facture. Activé par défaut.
   paiementEnTranches: boolean("paiement_en_tranches").notNull().default(true),
+  // Relance automatique des prospects qualifiés (2026-11-19) : DÉSACTIVÉE par défaut (elle envoie des e-mails aux prospects sans clic). Délais en jours
+  // après la qualification (« 3,7,14 » = un e-mail à J+3, J+7 puis J+14 — l'écart se compte depuis le précédent envoi) et plafond d'e-mails automatiques par jour.
+  sequenceProspectsActive: boolean("sequence_prospects_active").notNull().default(false),
+  sequenceProspectsDelais: text("sequence_prospects_delais").notNull().default("3,7,14"),
+  sequenceProspectsPlafond: integer("sequence_prospects_plafond").notNull().default(30),
   // Premier mois de l'exercice comptable (priorité 4.6) : 1 = année civile. Modifiable tant qu'aucun exercice n'est clôturé.
   moisDebutExercice: integer("mois_debut_exercice").notNull().default(1),
   // Réglage de l'Administrateur : les Managers voient les données de toute l'entreprise (modules métier seulement, voir
@@ -925,6 +930,12 @@ export const lead = pgTable(
     // client). `qualifieLe` = le jour où il l'est devenu (tenu par changerStatutLead) ; `rappelLe` = le jour où l'équipe veut le relancer (AAAA-MM-JJ).
     qualifieLe: timestamp("qualifie_le"),
     rappelLe: date("rappel_le"),
+    // Relance automatique : nombre d'e-mails automatiques déjà envoyés (0 = aucun), date du dernier, et — si la séquence est arrêtée (« a répondu »,
+    // arrêt manuel) — quand et pourquoi. Remis à zéro quand le lead est (re)qualifié.
+    sequenceEtape: integer("sequence_etape").notNull().default(0),
+    sequenceDerniereLe: timestamp("sequence_derniere_le"),
+    sequenceArreteeLe: timestamp("sequence_arretee_le"),
+    sequenceArretMotif: text("sequence_arret_motif"), // "a_repondu" | "manuel"
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
@@ -954,6 +965,8 @@ export const relanceProspect = pgTable(
     canal: text("canal").notNull(), // "email" | "whatsapp" | "appel" | "note"
     contenu: text("contenu").notNull(),
     auteurId: text("auteur_id").references(() => utilisateur.id),
+    // Vrai pour un e-mail parti tout seul (relance automatique) : aucun utilisateur humain déclencheur (`auteurId` nul).
+    automatique: boolean("automatique").notNull().default(false),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [

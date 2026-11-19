@@ -10,6 +10,9 @@ import { idsVisibles } from "@/lib/portee";
 import { STATUT_LEAD } from "@/lib/libelles";
 import { historiqueRelances } from "@/lib/crm/prospects-donnees";
 import { ETAT_RELANCE, LIBELLES_CANAL_RELANCE, etatRelance, type CanalRelance } from "@/lib/crm/prospects";
+import { infoAuto } from "@/lib/crm/sequence-prospects";
+import { lireConfiguration } from "@/lib/crm/sequence-prospects-executer";
+import { ResumeAuto } from "../../prospects/resume-auto";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,17 +41,23 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
     const estProspect = ligne.statut === "QUALIFIE" && !ligne.convertiLe;
     const historique = estProspect || ligne.convertiLe ? await historiqueRelances(tx, ligne.id) : [];
     const [ent] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    return { ligne, historique, nomEntreprise: ent?.nom ?? "" };
+    return { ligne, historique, nomEntreprise: ent?.nom ?? "", config: await lireConfiguration(tx, utilisateurConnecte.entrepriseId) };
   });
 
   if (!donnees) notFound();
-  const { ligne: fiche, historique, nomEntreprise } = donnees;
+  const { ligne: fiche, historique, nomEntreprise, config } = donnees;
   const info = STATUT_LEAD[fiche.statut];
   const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
   const modifierNotesAction = modifierNotesLead.bind(null, fiche.id);
   const estProspect = fiche.statut === "QUALIFIE" && !fiche.convertiLe;
-  const derniere = historique[0]?.creeLe ?? null;
+  // Une remarque (canal « note ») n'est pas une relance.
+  const derniere = historique.find((h) => h.canal !== "note")?.creeLe ?? null;
   const etat = estProspect ? etatRelance({ rappelLe: fiche.rappelLe, derniereRelanceLe: derniere }) : null;
+  // Relance automatique : seulement si l'entreprise l'a activée, et pour un prospect qualifié.
+  const auto =
+    estProspect && config?.active
+      ? infoAuto({ ...fiche, derniereRelanceLe: derniere }, config.delais)
+      : null;
   const formatDate = new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Douala" });
 
   return (
@@ -77,6 +86,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
                 {fiche.email}
               </span>
             ) : null}
+            {auto ? <ResumeAuto auto={auto} /> : null}
             {estProspect && fiche.rappelLe ? (
               <span className="flex items-center gap-1.5">
                 <BellRing className="size-3.5" aria-hidden />
@@ -112,7 +122,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
 
       {estProspect && peutModifier ? (
         <PanneauRelance
-          prospect={{ id: fiche.id, nom: fiche.nom, telephone: fiche.telephone, email: fiche.email, rappelLe: fiche.rappelLe }}
+          prospect={{ id: fiche.id, nom: fiche.nom, telephone: fiche.telephone, email: fiche.email, rappelLe: fiche.rappelLe, auto }}
           nomEntreprise={nomEntreprise}
         />
       ) : null}
@@ -133,7 +143,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
                       <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{t(LIBELLES_CANAL_RELANCE[h.canal as CanalRelance] ?? h.canal)}</span>
                         <span>{formatDate.format(h.creeLe)}</span>
-                        {h.auteurNom ? <span>{h.auteurNom}</span> : null}
+                        {h.automatique ? <span>{t("Automatique")}</span> : h.auteurNom ? <span>{h.auteurNom}</span> : null}
                       </p>
                       <p className="mt-0.5 whitespace-pre-wrap break-words">{h.contenu}</p>
                     </div>
