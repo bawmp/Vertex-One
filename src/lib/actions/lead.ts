@@ -8,7 +8,7 @@ import { avecEntreprise } from "@/db/client";
 import { lead, statutLead } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
-import { convertirLead } from "@/lib/crm/conversion";
+import { idsVisibles } from "@/lib/portee";
 import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -62,10 +62,20 @@ export async function changerStatutLead(leadId: string, statut: (typeof statutLe
   if (!utilisateurConnecte) redirect("/connexion");
   if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
 
-  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => tx.update(lead).set({ statut }).where(eq(lead.id, leadId)));
+  await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    // Le lead est relu avec la portée CRM de la personne connectée : un identifiant reçu du navigateur ne suffit jamais. Un lead déjà devenu client ne change plus de statut.
+    const [ligne] = await tx.select().from(lead).where(eq(lead.id, leadId));
+    if (!ligne || ligne.convertiLe) return;
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "CRM");
+    if (visibles !== "TOUT" && !visibles.includes(ligne.assigneAId)) return;
+    // `qualifieLe` = le jour où le lead est devenu prospect qualifié (il apparaît alors dans « Prospects qualifiés ») ; il se vide si le lead quitte ce statut.
+    const qualifieLe = statut === "QUALIFIE" ? (ligne.qualifieLe ?? new Date()) : null;
+    await tx.update(lead).set({ statut, qualifieLe }).where(eq(lead.id, leadId));
+  });
 
   revalidatePath(`/app/leads/${leadId}`);
   revalidatePath("/app/leads");
+  revalidatePath("/app/prospects");
 }
 
 export async function modifierNotesLead(leadId: string, notes: string) {
@@ -78,23 +88,6 @@ export async function modifierNotesLead(leadId: string, notes: string) {
   revalidatePath(`/app/leads/${leadId}`);
 }
 
-/**
- * Docs de référence Zoho CRM (échange du 2026-09-06) : "Once the lead is
- * qualified, you can convert the lead into a Contact, Account, and Deal."
- * Redirige directement vers le Deal créé, pas vers le Lead (qui devient
- * archivé/converti).
- */
-export async function convertirLeadAction(leadId: string) {
-  const utilisateurConnecte = await recupererUtilisateurConnecte();
-  if (!utilisateurConnecte) redirect("/connexion");
-  if (!peut(utilisateurConnecte, "CRM", "MODIFIER")) return;
-
-  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
-    convertirLead(tx, { entrepriseId: utilisateurConnecte.entrepriseId, leadId, modifieParId: utilisateurConnecte.utilisateurId })
-  );
-
-  revalidatePath("/app/leads");
-  if (!resultat) return;
-
-  redirect(`/app/deals/${resultat.dealId}`);
-}
+// La conversion d'un lead en Contact/Deal (Zoho : « Once the lead is qualified, you can convert the lead into a Contact, Account, and Deal »)
+// passe désormais UNIQUEMENT par « Devenir client » (`devenirClient`, src/lib/actions/prospect.ts) : réservée à un prospect qualifié, avec la portée CRM
+// vérifiée. Il n'y a plus de raccourci qui crée un Contact depuis un lead non qualifié.

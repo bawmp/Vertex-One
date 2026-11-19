@@ -3,6 +3,7 @@ import type { PgTable } from "drizzle-orm/pg-core";
 import type { TransactionDrizzle } from "@/db/client";
 import {
   lead,
+  relanceProspect,
   contact,
   deal,
   dealContact,
@@ -62,6 +63,8 @@ export async function supprimerLeadEnBase(tx: TransactionDrizzle, leadId: string
   // sont conservées (donnée de One Form) et simplement détachées.
   await tx.delete(tacheCrm).where(eq(tacheCrm.leadId, leadId));
   await tx.delete(reunionCrm).where(eq(reunionCrm.leadId, leadId));
+  // L'historique des relances d'un prospect n'a plus d'objet sans lui.
+  await tx.delete(relanceProspect).where(eq(relanceProspect.leadId, leadId));
   await tx.update(reponseFormulaire).set({ leadId: null }).where(eq(reponseFormulaire.leadId, leadId));
   await tx.delete(lead).where(eq(lead.id, leadId));
   return { supprime: true, clesStockage: [] };

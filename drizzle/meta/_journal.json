@@ -1282,6 +1282,13 @@
       "when": 1795845720000,
       "tag": "0182_produit_actif_modifie_le",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1795932120000,
+      "tag": "0183_prospects_qualifies",
+      "breakpoints": true
     }
   ]
 }

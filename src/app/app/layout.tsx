@@ -1,7 +1,7 @@
 import { m, traducteur } from "@/lib/i18n/catalogue";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Users, UserPlus, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, FileSpreadsheet, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal, Warehouse, ScanBarcode, PackageCheck, Hourglass, Hash, Layers, Gift } from "lucide-react";
+import { Users, UserPlus, UserCheck, Building2, Handshake, Receipt, FolderKanban, FileText, MessageSquare, Megaphone, FileSignature, Calculator, IdCard, Rocket, ShoppingCart, Package, Landmark, Wallet, BarChart3, Clock, ClipboardList, Repeat, CreditCard, Undo2, BookText, BookOpenText, BookMarked, BookCopy, Scale, Percent, LockKeyhole, Users2, FileSpreadsheet, PiggyBank, ShieldCheck, CalendarClock, LifeBuoy, ClipboardCheck, CalendarCheck, Briefcase, Mail, Send, KeyRound, Upload, Download, SlidersHorizontal, Warehouse, ScanBarcode, PackageCheck, Hourglass, Hash, Layers, Gift } from "lucide-react";
 import { db } from "@/db/client";
 import { utilisateur, entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -75,6 +75,7 @@ const MODULES_MENU: ItemMenu[] = [
         categorie: "Ventes",
         liens: [
           { libelle: m("Leads"), href: "/app/leads", Icone: UserPlus },
+          { libelle: m("Prospects qualifiés"), href: "/app/prospects", Icone: UserCheck },
           { libelle: m("Contacts"), href: "/app/contacts", Icone: Users },
           { libelle: m("Comptes"), href: "/app/comptes", Icone: Building2 },
           { libelle: m("Deals"), href: "/app/deals", Icone: Handshake },

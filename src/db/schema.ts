@@ -921,12 +921,44 @@ export const lead = pgTable(
     // Espace où ce prospect suit sa procédure (page de suivi du site de l'entreprise), transmis par l'API des leads et repris
     // sur le contact à la conversion — voir src/lib/client-documents/espace-client.ts.
     espaceClientUrl: text("espace_client_url"),
+    // Prospects qualifiés (2026-11-19) : un lead QUALIFIE non converti vit dans « Prospects qualifiés » (jamais dans les Contacts tant qu'il n'est pas
+    // client). `qualifieLe` = le jour où il l'est devenu (tenu par changerStatutLead) ; `rappelLe` = le jour où l'équipe veut le relancer (AAAA-MM-JJ).
+    qualifieLe: timestamp("qualifie_le"),
+    rappelLe: date("rappel_le"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
   },
   (table) => [
     index("lead_entreprise_idx").on(table.entrepriseId),
     index("lead_assigne_a_idx").on(table.assigneAId),
     uniqueIndex("lead_reference_externe_unique").on(table.entrepriseId, table.sourceExterne, table.referenceExterne).where(sql`${table.referenceExterne} IS NOT NULL`),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+// Historique des relances d'un prospect (2026-11-19) : chaque e-mail envoyé, conversation WhatsApp ouverte, appel ou note. Table à part de
+// `interaction`, qui exige un Contact : un prospect n'en a pas encore (il n'en devient un qu'une fois client).
+export const relanceProspect = pgTable(
+  "relance_prospect",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => lead.id),
+    canal: text("canal").notNull(), // "email" | "whatsapp" | "appel" | "note"
+    contenu: text("contenu").notNull(),
+    auteurId: text("auteur_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+  },
+  (table) => [
+    index("relance_prospect_entreprise_idx").on(table.entrepriseId),
+    index("relance_prospect_lead_idx").on(table.leadId, table.creeLe),
     pgPolicy("isolation_entreprise", {
       for: "all",
       using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,

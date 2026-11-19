@@ -1,25 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Search, Phone, Building2, ArrowRightCircle, SearchX, UserPlus } from "lucide-react";
+import { Search, Phone, Building2, SearchX, UserPlus } from "lucide-react";
 import { EtatVide } from "@/components/etat-vide";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
 import { STATUT_LEAD } from "@/lib/libelles";
-import { convertirLeadAction } from "@/lib/actions/lead";
 import { useT } from "@/lib/i18n/contexte";
 
 type Lead = { id: string; nom: string; societeCliente: string | null; telephone: string; statut: string; convertiLe: boolean };
 
-export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier: boolean }) {
+/**
+ * Liste des leads « en travail » (nouveaux, contactés, disqualifiés) et des leads devenus clients. Un lead qualifié pas encore client n'est plus ici : il est
+ * dans « Prospects qualifiés ». La création d'un contact passe uniquement par « Devenir client » (plus de bouton « Convertir » sur chaque ligne).
+ */
+export function LeadsVues({ leads }: { leads: Lead[] }) {
   const t = useT();
   const [recherche, setRecherche] = useState("");
-  const [enCours, demarrer] = useTransition();
-  const [enConversion, setEnConversion] = useState<string | null>(null);
 
   const terme = recherche.trim().toLowerCase();
   const leadsFiltres = terme
@@ -66,21 +65,7 @@ export function LeadsVues({ leads, peutModifier }: { leads: Lead[]; peutModifier
                   </span>
                 </Link>
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                  <Badge variant={info?.variante ?? "neutral"}>{l.convertiLe ? t("Converti") : t(info?.libelle ?? l.statut)}</Badge>
-                  {peutModifier && !l.convertiLe ? (
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      disabled={enCours}
-                      onClick={() => {
-                        setEnConversion(l.id);
-                        demarrer(() => convertirLeadAction(l.id));
-                      }}
-                    >
-                      {enCours && enConversion === l.id ? <Spinner /> : <ArrowRightCircle data-icon="inline-start" aria-hidden />}
-                      {t("Convertir")}
-                    </Button>
-                  ) : null}
+                  <Badge variant={l.convertiLe ? "success" : info?.variante ?? "neutral"}>{l.convertiLe ? t("Devenu client") : t(info?.libelle ?? l.statut)}</Badge>
                 </div>
               </div>
             );
