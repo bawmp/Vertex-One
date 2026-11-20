@@ -10,7 +10,7 @@ import { BoutonDecision } from "@/components/formulaire/parcours-client";
 import { PaiementMobileMoney } from "@/components/formulaire/paiement-mobile-money";
 import { PromesseClient } from "./promesse-client";
 
-export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye, tranchesAutorisees, numero, promesse, jourMin, jourMax }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string; promesse: { datePromise: string; montant: number } | null; jourMin: string; jourMax: string }) {
+export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye, tranchesAutorisees, numero, paiementEnLigne, promesse, jourMin, jourMax }: { jeton: string; reponse: "ACCEPTEE" | "CONTESTEE" | null; nomEntreprise: string; solde: number; dejaPaye: number; tranchesAutorisees: boolean; numero: string; paiementEnLigne: boolean; promesse: { datePromise: string; montant: number } | null; jourMin: string; jourMax: string }) {
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [contestation, setContestation] = useState(false);
@@ -51,6 +51,21 @@ export function ReponseFacture({ jeton, reponse, nomEntreprise, solde, dejaPaye,
         <MessageCircleWarning className="mt-0.5 size-5 shrink-0" aria-hidden />
         <span>Votre contestation a été transmise à {nomEntreprise}, qui va vous recontacter. Le règlement est suspendu d&apos;ici là.</span>
       </p>
+    );
+  }
+
+  // L'entreprise n'a pas branché son compte de paiement : pas de « Payer maintenant ». Le client peut quand même dire quand il paiera.
+  if (reponse === "ACCEPTEE" && !paiementEnLigne) {
+    return (
+      <section aria-labelledby="titre-reglement" className="flex animate-in flex-col gap-4 rounded-2xl border border-border bg-muted/30 p-4 duration-500 fade-in slide-in-from-bottom-2 sm:p-5">
+        <div>
+          <h2 id="titre-reglement" className="text-base font-semibold">
+            Régler cette facture
+          </h2>
+          <p className="text-sm text-muted-foreground">Le paiement en ligne n&apos;est pas proposé par {nomEntreprise} : contactez-la pour régler cette facture. Vous pouvez lui indiquer ci-dessous quand vous paierez.</p>
+        </div>
+        <PromesseClient jeton={jeton} promesse={promesse} jourMin={jourMin} jourMax={jourMax} nomEntreprise={nomEntreprise} />
+      </section>
     );
   }
 

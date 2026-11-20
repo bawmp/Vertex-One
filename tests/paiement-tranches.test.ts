@@ -82,6 +82,12 @@ beforeAll(async () => {
     ])
     .returning({ id: utilisateur.id });
   [{ id: adminB }] = await db.insert(utilisateur).values({ entrepriseId: idB, email: `admin-b-${suffixe}@vertexone.test`, nomComplet: "Admin B", role: "ADMIN" }).returning({ id: utilisateur.id });
+  // Le paiement en ligne exige le compte ElyonPay de l'entreprise (voir tests/compte-elyonpay.test.ts) : un compte d'essai est branché pour chacune.
+  process.env.BETTER_AUTH_SECRET ??= "secret-de-test-assez-long-pour-etre-valide";
+  const { enregistrerCompte } = await import("@/lib/paiement/compte-elyonpay");
+  for (const [entrepriseId, creeParId] of [[idA, adminA], [idB, adminB]] as const) {
+    await avecEntreprise(entrepriseId, (tx) => enregistrerCompte(tx, { entrepriseId, marchandId: 4242, nomMarchand: "Entreprise de test", cle: `pk_live_test_${entrepriseId}_0000`, creeParId }));
+  }
 }, 180_000);
 
 afterAll(async () => {

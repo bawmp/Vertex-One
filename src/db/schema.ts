@@ -1864,6 +1864,38 @@ export const paiement = pgTable(
 // et le webhook retrouve l'entrepriseId par une lecture anonyme (policy
 // ci-dessous), avant d'ouvrir avecEntreprise() pour la mise à jour — jamais
 // l'inverse. Écriture toujours stricte.
+
+// Compte ElyonPay PROPRE à chaque entreprise (2026-11-20) : les paiements Mobile Money de ses clients vont directement sur ce compte, Vertex One ne détient jamais ces fonds.
+// La clé d'API est un secret : chiffrée (AES-256-GCM, voir src/lib/boutique/chiffrement.ts), jamais renvoyée au navigateur ; seuls ses 4 derniers caractères sont gardés en clair
+// pour l'affichage. Une seule ligne par entreprise. RLS stricte, SANS lecture anonyme : relire un paiement relit ce compte via avecEntreprise() avec l'entreprise de la tentative.
+export const compteElyonpay = pgTable(
+  "compte_elyonpay",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    marchandId: integer("marchand_id").notNull(),
+    nomMarchand: text("nom_marchand").notNull(), // nom affiché au payeur sur son téléphone
+    configChiffree: text("config_chiffree").notNull(), // { cle }
+    cleFin: text("cle_fin").notNull(),
+    statut: text("statut").notNull().default("ACTIF"), // "ACTIF" | "ERREUR" (clé refusée par ElyonPay : paiement en ligne suspendu jusqu'à la reconnexion)
+    derniereErreur: text("derniere_erreur"),
+    verifieLe: timestamp("verifie_le"),
+    creeParId: text("cree_par_id").references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    modifieLe: timestamp("modifie_le").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("compte_elyonpay_entreprise_unique").on(table.entrepriseId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const tentativePaiementFacture = pgTable(
   "tentative_paiement_facture",
   {
@@ -1879,6 +1911,9 @@ export const tentativePaiementFacture = pgTable(
     // Paiement direct (2026-10-25, comme l'abonnement) : payToken renvoyé à l'initiation, pour relire activement le statut.
     payToken: text("pay_token"),
     raisonEchec: text("raison_echec"), // raison donnée par le prestataire (solde insuffisant, expirée…), expliquée au client
+    // Sur quel compte ElyonPay la tentative a été faite (2026-11-20) : "ENTREPRISE" = le compte de l'entreprise elle-même (compte_elyonpay), l'argent va directement chez
+    // elle ; "PLATEFORME" = l'ancien circuit (compte de Vertex One, variables d'environnement), gardé seulement pour relire les tentatives d'avant ce changement.
+    compte: text("compte").notNull().default("PLATEFORME"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     confirmeLe: timestamp("confirme_le"),
   },

@@ -1,4 +1,5 @@
 import { numeroAcompteDeReference } from "@/lib/facturation/acompte";
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { Download, CheckCircle2, XCircle, CreditCard } from "lucide-react";
@@ -7,6 +8,7 @@ import { facture, ligneFacture, contact, compteClient, paiement, entreprise, avo
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { disponible } from "@/lib/plans";
+import { lireEtatCompte } from "@/lib/paiement/compte-elyonpay";
 import { formaterFCFA } from "@/lib/facturation/calcul";
 import { calculerSolde } from "@/lib/facturation/tranche";
 import { Button } from "@/components/ui/button";
@@ -71,12 +73,14 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
     const lignesAvoir = await lignesCreditables(tx, utilisateurConnecte.entrepriseId, id);
     const avoirsEmis = await listerAvoirsFacture(tx, utilisateurConnecte.entrepriseId, id);
 
+    // Le paiement en ligne passe par le compte ElyonPay DE L'ENTREPRISE : son état (branché, à reconnecter, absent) décide de ce que l'équipe voit.
+    const compteElyonpay = await lireEtatCompte(tx, utilisateurConnecte.entrepriseId);
     const series = monEntreprise.gereStock ? await seriesDeDocument(tx, utilisateurConnecte.entrepriseId, "FACTURE", id) : [];
-    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, avoir: avoir ?? null, jetonClient, promesses, lignesAvoir, avoirsEmis, series };
+    return { facture: f, lignes, prospect: p, compte, paiements, entreprise: monEntreprise, compteElyonpay, avoir: avoir ?? null, jetonClient, promesses, lignesAvoir, avoirsEmis, series };
   });
 
   if (!donnees) notFound();
-  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, avoir, jetonClient, promesses, lignesAvoir, avoirsEmis, series } = donnees;
+  const { facture: laFacture, lignes, prospect: leProspect, compte: leCompte, paiements, entreprise: monEntreprise, compteElyonpay, avoir, jetonClient, promesses, lignesAvoir, avoirsEmis, series } = donnees;
   const totalAvoirs = avoirsEmis.reduce((s, a) => s + a.montantTTC, 0);
   const montantNet = Math.max(0, laFacture.montantTTC - totalAvoirs);
 
@@ -89,7 +93,8 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
         : null;
 
   const peutModifier = peut(utilisateurConnecte, "FACTURATION", "MODIFIER");
-  const paiementEnLigneDisponible = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
+  const abonnementOk = disponible(monEntreprise, "PAIEMENTS_EN_LIGNE");
+  const paiementEnLigneDisponible = abonnementOk && compteElyonpay?.statut === "ACTIF";
   const estReglee = laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE";
   const info = STATUT_FACTURE[laFacture.statut];
   const { paye, solde } = calculerSolde(montantNet, paiements); // le solde se mesure sur le montant net : facture moins avoirs
@@ -223,9 +228,20 @@ export default async function PageDetailFacture({ params }: { params: Promise<{ 
 
       {peutModifier && !estReglee ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4">
-          {!paiementEnLigneDisponible ? (
+          {!abonnementOk ? (
             <p className="text-sm text-muted-foreground">
               {t("Paiement en ligne indisponible : votre abonnement est suspendu — en attendant, pointez le règlement manuellement.")}
+            </p>
+          ) : !paiementEnLigneDisponible ? (
+            <p className="text-sm text-muted-foreground">
+              {compteElyonpay ? t("ElyonPay a refusé la clé de votre compte : reconnectez-le pour que vos clients puissent payer en ligne.") : t("Paiement en ligne non activé : branchez votre compte ElyonPay pour que vos clients puissent payer par Mobile Money.")}{" "}
+              {peut(utilisateurConnecte, "PARAMETRES", "MODIFIER") ? (
+                <Link href="/app/parametres/paiement-mobile-money" className="font-medium text-primary underline-offset-4 hover:underline">
+                  {t("Brancher mon compte")}
+                </Link>
+              ) : (
+                t("Demandez à l'Administrateur de le brancher (Paramètres).")
+              )}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">

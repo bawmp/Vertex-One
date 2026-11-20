@@ -12,6 +12,8 @@ import { rendreRecuAbonnementPDF } from "@/lib/pdf/rendu";
 import { resoudrePromessesFacture } from "@/lib/facturation/promesse";
 import { lireSolde, montantNetFacture, statutApresReglement } from "@/lib/facturation/solde";
 import { libelleMoyenPaiement, notifierPaiementFacture, type NotificationPaiementFacture } from "./recu-facture";
+import { lireIdentifiants, marquerCompteEnErreur } from "./compte-elyonpay";
+import type { IdentifiantsElyonpay } from "@/lib/elyonpay/utilitaires";
 import type { ResultatVerification } from "./types";
 
 function urlBase(): string {
@@ -230,7 +232,18 @@ export async function relireEtConfirmerFacture(idTentative: string): Promise<Sta
   if (anonyme.statut === "ECHEC") return "ECHEC";
   if (!anonyme.payToken) return "EN_ATTENTE"; // rien à relire pour l'instant (réponse initiale sans payToken exploitable)
 
-  const verification = await verifierTransaction(anonyme.payToken);
+  // Une tentative faite sur le compte de l'entreprise se relit avec SES identifiants (relus avec l'entreprise de la tentative, jamais une valeur du navigateur) ; une tentative d'avant
+  // ce changement (« PLATEFORME ») avec ceux de la plateforme. Compte déconnecté ou clé refusée : on ne peut pas relire — « indisponible », jamais une confirmation.
+  let identifiants: IdentifiantsElyonpay | undefined;
+  if (anonyme.compte === "ENTREPRISE") {
+    const compte = await avecEntreprise(anonyme.entrepriseId, (tx) => lireIdentifiants(tx, anonyme.entrepriseId));
+    if (!compte) return "INDISPONIBLE";
+    identifiants = compte;
+  }
+  const verification = await verifierTransaction(anonyme.payToken, identifiants);
+  if (verification.cleRefusee && identifiants) {
+    await marquerCompteEnErreur(anonyme.entrepriseId, "ElyonPay a refusé la clé d'API : reconnectez votre compte.");
+  }
   if (verification.indisponible) return "INDISPONIBLE";
 
   await confirmerTentativeFacture(idTentative, verification);

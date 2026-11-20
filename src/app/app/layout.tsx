@@ -312,6 +312,7 @@ const LIENS_PARAMETRES: { libelle: string; href: string; Icone: IconeComposant }
   { libelle: m("Modèles d'email"), href: "/app/parametres/modeles-email", Icone: Mail },
   { libelle: m("Emails envoyés"), href: "/app/parametres/emails-envoyes", Icone: Send },
   { libelle: m("Relance des prospects"), href: "/app/parametres/relance-prospects", Icone: Repeat },
+  { libelle: m("Paiement Mobile Money"), href: "/app/parametres/paiement-mobile-money", Icone: Wallet },
   { libelle: m("Champs personnalisés (Contact)"), href: "/app/parametres/champs-contact", Icone: SlidersHorizontal },
   { libelle: m("Importer des données"), href: "/app/parametres/import", Icone: Upload },
   { libelle: m("Exporter mes données"), href: "/app/parametres/export", Icone: Download },

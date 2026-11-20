@@ -18,4 +18,6 @@ export type ResultatVerification = {
   operateur?: string;
   /** Renseignée seulement quand `statut` vaut REFUSED. */
   raisonEchec?: RaisonEchec;
+  /** Le prestataire a REFUSÉ la clé d'API utilisée (HTTP 401/403) : pour un compte d'entreprise, il faut la reconnecter (voir marquerCompteEnErreur). */
+  cleRefusee?: boolean;
 };

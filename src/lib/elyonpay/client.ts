@@ -1,6 +1,6 @@
 import "server-only";
 import type { ResultatVerification } from "@/lib/paiement/types";
-import { analyserReponseTransaction, codeMethodePaiement, identifiantTransactionValide, lireIdentifiantTransaction, masquerCle, moyenPaiementDepuisOperateur, type OperateurMobileMoney } from "./utilitaires";
+import { analyserReponseTransaction, codeMethodePaiement, identifiantTransactionValide, lireIdentifiantTransaction, masquerCle, moyenPaiementDepuisOperateur, type IdentifiantsElyonpay, type OperateurMobileMoney } from "./utilitaires";
 
 export { moyenPaiementDepuisOperateur };
 
@@ -24,9 +24,16 @@ function urlApi(): string {
   return (process.env.ELYONPAY_API_URL || API_PAR_DEFAUT).replace(/\/+$/, "");
 }
 
+/** Identifiants de la PLATEFORME (compte de Vertex One) : servent aux abonnements des entreprises à Vertex One, et à relire les anciennes tentatives de paiement de facture. */
+export function identifiantsPlateforme(): IdentifiantsElyonpay | null {
+  const marchandId = Number(process.env.ELYONPAY_MERCHANT_ID);
+  const cle = process.env.ELYONPAY_API_KEY;
+  if (!cle || !Number.isInteger(marchandId) || marchandId <= 0) return null;
+  return { cle, marchandId, nomMarchand: process.env.ELYONPAY_MERCHANT_NAME?.trim() || "Vertex One" };
+}
+
 export function elyonpayConfigure(): boolean {
-  const marchand = Number(process.env.ELYONPAY_MERCHANT_ID);
-  return Boolean(process.env.ELYONPAY_API_KEY) && Number.isInteger(marchand) && marchand > 0;
+  return identifiantsPlateforme() !== null;
 }
 
 type ReponseApi = { statut: number; corps: unknown };
@@ -47,15 +54,15 @@ type ResultatAppel = { reponse: ReponseApi } | { reponse: null; avantEnvoi: bool
  * (déclencher un paiement) : après un délai dépassé ou une coupure en cours de route, le prestataire a peut-être déjà traité la demande —
  * la rejouer risquerait un second prélèvement. Seule une erreur qui prouve que la requête n'est jamais partie est alors rejouée.
  */
-async function appelerBrut(methode: "GET" | "POST", chemin: string, corps?: Record<string, unknown>, options: { delaiMs?: number; reessayerSiIncertain?: boolean } = {}): Promise<ResultatAppel> {
-  const { delaiMs = DELAI_MS, reessayerSiIncertain = true } = options;
+async function appelerBrut(methode: "GET" | "POST", chemin: string, corps: Record<string, unknown> | undefined, options: { delaiMs?: number; reessayerSiIncertain?: boolean; cle: string }): Promise<ResultatAppel> {
+  const { delaiMs = DELAI_MS, reessayerSiIncertain = true, cle } = options;
   let avantEnvoi = false;
   for (let essai = 0; essai < 2; essai++) {
     const debut = Date.now();
     try {
       const reponse = await fetch(`${urlApi()}${chemin}`, {
         method: methode,
-        headers: { Authorization: `Bearer ${process.env.ELYONPAY_API_KEY}`, Accept: "application/json", ...(corps ? { "Content-Type": "application/json" } : {}) },
+        headers: { Authorization: `Bearer ${cle}`, Accept: "application/json", ...(corps ? { "Content-Type": "application/json" } : {}) },
         body: corps ? JSON.stringify(corps) : undefined,
         signal: AbortSignal.timeout(delaiMs),
       });
@@ -72,7 +79,7 @@ async function appelerBrut(methode: "GET" | "POST", chemin: string, corps?: Reco
       avantEnvoi = code !== undefined && ERREURS_AVANT_ENVOI.has(code);
       console.error(
         `[elyonpay] erreur réseau sur ${methode} ${chemin.replace(/\/[^/]+$/, "/…")} (essai ${essai + 1}/2, après ${((Date.now() - debut) / 1000).toFixed(1)} s, ${avantEnvoi ? "requête non partie" : "résultat incertain"}) :`,
-        erreur instanceof Error ? masquerCle(erreur.message, process.env.ELYONPAY_API_KEY) : erreur,
+        erreur instanceof Error ? masquerCle(erreur.message, cle) : erreur,
       );
       if (!avantEnvoi && !reessayerSiIncertain) break;
     }
@@ -92,6 +99,8 @@ export type InitierPaiementDirectParams = {
   operateur: OperateurMobileMoney;
   /** Langue de l'invite (« fr » par défaut). */
   langue?: "fr" | "en";
+  /** Compte marchand à utiliser : celui de l'entreprise pour un paiement de facture. Absent = le compte de la plateforme (abonnement à Vertex One). */
+  identifiants?: IdentifiantsElyonpay;
 };
 
 /** Montré au client quand on ne sait pas si le prestataire a traité la demande : jamais « échec » (il a peut-être déjà été débité). */
@@ -111,7 +120,8 @@ export type ResultatInitiationDirecte =
  * mode : la confirmation repose sur la relecture active (sondage de l'écran, puis réconciliation serveur toutes les minutes).
  */
 export async function initierPaiementDirect(params: InitierPaiementDirectParams): Promise<ResultatInitiationDirecte> {
-  if (!elyonpayConfigure()) return { erreur: "Intégration ElyonPay non configurée pour le moment — utilisez l'encaissement manuel." };
+  const compte = params.identifiants ?? identifiantsPlateforme();
+  if (!compte) return { erreur: "Intégration ElyonPay non configurée pour le moment — utilisez l'encaissement manuel." };
 
   const appel = await appelerBrut(
     "POST",
@@ -119,8 +129,8 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
     {
       amount: params.montant,
       user_lang: params.langue ?? "fr",
-      merchant_name: process.env.ELYONPAY_MERCHANT_NAME?.trim() || "Vertex One",
-      merchant_id: Number(process.env.ELYONPAY_MERCHANT_ID),
+      merchant_name: compte.nomMarchand,
+      merchant_id: compte.marchandId,
       currency: "XAF",
       country_name: "Cameroon",
       payment_method: codeMethodePaiement(params.operateur),
@@ -129,19 +139,19 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
       // uuid [...] not found » sinon) — il ne faut donc jamais l'envoyer. Notre référence n'est pas transmise : la tentative est reliée par l'`uuid` renvoyé.
       customer_msisdn: params.telephone.startsWith("+") ? params.telephone : `+${params.telephone}`,
     },
-    { delaiMs: DELAI_INITIATION_MS, reessayerSiIncertain: false },
+    { delaiMs: DELAI_INITIATION_MS, reessayerSiIncertain: false, cle: compte.cle },
   );
   const reponse = appel.reponse;
 
   if (reponse && reponse.statut >= 200 && reponse.statut < 300) {
     // La réponse n'étant pas documentée, on garde une trace de sa forme réelle. Rien de secret dedans.
-    console.log("[elyonpay] paiement direct déclenché, réponse :", masquerCle(JSON.stringify(reponse.corps), process.env.ELYONPAY_API_KEY));
+    console.log("[elyonpay] paiement direct déclenché, réponse :", masquerCle(JSON.stringify(reponse.corps), compte.cle));
     return { declenche: true, payToken: lireIdentifiantTransaction(reponse.corps) };
   }
 
   // Aucune réponse après l'envoi, ou erreur du serveur du prestataire : on NE SAIT PAS s'il a déclenché le paiement.
   const incertain = reponse ? reponse.statut >= 500 : !appel.avantEnvoi;
-  console.error("[elyonpay] échec d'initiation de paiement direct :", reponse ? masquerCle(`HTTP ${reponse.statut} ${JSON.stringify(reponse.corps)}`, process.env.ELYONPAY_API_KEY) : "aucune réponse");
+  console.error("[elyonpay] échec d'initiation de paiement direct :", reponse ? masquerCle(`HTTP ${reponse.statut} ${JSON.stringify(reponse.corps)}`, compte.cle) : "aucune réponse");
   if (incertain) return { incertain: true, erreur: MESSAGE_PAIEMENT_INCERTAIN };
   return { erreur: "Impossible de déclencher le paiement pour le moment." };
 }
@@ -150,19 +160,38 @@ export async function initierPaiementDirect(params: InitierPaiementDirectParams)
  * Relit une transaction chez ElyonPay (`GET /transactions/{uuid}`). Seule source de vérité sur l'état, le montant et l'opérateur :
  * rien d'autre n'est cru. Erreur serveur, réseau ou clé refusée = « indisponible » (à réessayer), jamais « transaction inconnue ».
  */
-export async function verifierTransaction(identifiant: string): Promise<ResultatVerification> {
-  if (!elyonpayConfigure()) return { statut: "INCONNU", indisponible: true };
+export async function verifierTransaction(identifiant: string, identifiants?: IdentifiantsElyonpay): Promise<ResultatVerification> {
+  const compte = identifiants ?? identifiantsPlateforme();
+  if (!compte) return { statut: "INCONNU", indisponible: true };
   if (!identifiantTransactionValide(identifiant)) return { statut: "INCONNU", indisponible: false };
 
-  const appel = await appelerBrut("GET", `/transactions/${encodeURIComponent(identifiant)}`);
+  const appel = await appelerBrut("GET", `/transactions/${encodeURIComponent(identifiant)}`, undefined, { cle: compte.cle });
   const reponse = appel.reponse;
   if (!reponse) return { statut: "INCONNU", indisponible: true };
   if (reponse.statut >= 500) return { statut: "INCONNU", indisponible: true };
   if (reponse.statut === 401 || reponse.statut === 403) {
-    // Une clé refusée est un problème de NOTRE configuration, pas une transaction inconnue : signalé et traité comme « indisponible ».
-    console.error(`[elyonpay] clé d'API refusée à la relecture d'une transaction (HTTP ${reponse.statut}) : vérifier ELYONPAY_API_KEY`);
-    return { statut: "INCONNU", indisponible: true };
+    // Une clé refusée est un problème de configuration du compte, pas une transaction inconnue : signalé et traité comme « indisponible » (jamais une confirmation).
+    console.error(`[elyonpay] clé d'API refusée à la relecture d'une transaction (HTTP ${reponse.statut}) : ${identifiants ? "compte de l'entreprise à reconnecter" : "vérifier ELYONPAY_API_KEY"}`);
+    return { statut: "INCONNU", indisponible: true, cleRefusee: true };
   }
   if (reponse.statut >= 400) return { statut: "INCONNU", indisponible: false }; // identifiant inconnu : rien à confirmer
   return { ...analyserReponseTransaction(reponse.corps), indisponible: false };
+}
+
+/** Identifiant de transaction qui n'existe jamais : sert uniquement à tester une clé (une clé valide répond 404, une clé refusée 401/403). Aucun paiement, aucun effet de bord. */
+const IDENTIFIANT_DE_SONDE = "00000000-0000-0000-0000-000000000000";
+
+export type ResultatVerificationCle = { valide: true } | { valide: false; refusee: boolean; indisponible: boolean };
+
+/**
+ * Teste une clé d'API ElyonPay SANS rien payer : relit une transaction qui n'existe pas. Clé acceptée → l'API répond « introuvable » (404) ; clé refusée → 401/403 ;
+ * réseau ou erreur serveur → impossible de conclure (« indisponible »). L'identifiant marchand ne peut PAS être vérifié ainsi : il est validé au premier paiement.
+ * Jamais la clé dans un message ni un journal.
+ */
+export async function verifierIdentifiants(identifiants: IdentifiantsElyonpay): Promise<ResultatVerificationCle> {
+  const appel = await appelerBrut("GET", `/transactions/${IDENTIFIANT_DE_SONDE}`, undefined, { cle: identifiants.cle });
+  const reponse = appel.reponse;
+  if (!reponse || reponse.statut >= 500) return { valide: false, refusee: false, indisponible: true };
+  if (reponse.statut === 401 || reponse.statut === 403) return { valide: false, refusee: true, indisponible: false };
+  return { valide: true };
 }

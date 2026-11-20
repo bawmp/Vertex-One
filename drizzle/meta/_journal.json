@@ -1296,6 +1296,13 @@
       "when": 1796018520000,
       "tag": "0184_sequence_prospects",
       "breakpoints": true
+    },
+    {
+      "idx": 185,
+      "version": "7",
+      "when": 1796104920000,
+      "tag": "0185_compte_elyonpay_entreprise",
+      "breakpoints": true
     }
   ]
 }

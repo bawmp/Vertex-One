@@ -6,6 +6,7 @@ import { DELAI_RESERVATION_TENTATIVE_MS, determinerMontantTranche, lireSolde } f
 import { initierPaiementDirect } from "@/lib/elyonpay/client";
 import { operateurValide, type OperateurMobileMoney } from "@/lib/elyonpay/utilitaires";
 import { referenceExterne } from "@/lib/paiement/reference";
+import { lireIdentifiants } from "@/lib/paiement/compte-elyonpay";
 import { telephoneInternational } from "@/lib/paiement/telephone";
 
 /**
@@ -42,6 +43,11 @@ export async function declencherPaiementDirectFacture(
     return { erreur: "Le paiement en ligne est indisponible : votre abonnement est suspendu." };
   }
 
+  // Le paiement va sur le compte ElyonPay de L'ENTREPRISE (2026-11-20) : sans compte branché et actif, pas de paiement en ligne — jamais un repli sur le compte de la plateforme,
+  // sinon l'argent d'un client de l'entreprise arriverait chez Vertex One.
+  const identifiants = await lireIdentifiants(tx, entrepriseId);
+  if (!identifiants) return { erreur: "Le paiement en ligne n'est pas activé pour cette entreprise : contactez-la pour régler cette facture." };
+
   // Toujours relue en base (RLS de l'entreprise) : le montant ne vient jamais du navigateur.
   const [laFacture] = await tx.select().from(facture).where(eq(facture.id, factureId));
   if (!laFacture || laFacture.statut === "PAYEE" || laFacture.statut === "ANNULEE") {
@@ -72,12 +78,13 @@ export async function declencherPaiementDirectFacture(
 
   const [tentative] = await tx
     .insert(tentativePaiementFacture)
-    .values({ entrepriseId, factureId, montant })
+    .values({ entrepriseId, factureId, montant, compte: "ENTREPRISE" })
     .returning({ id: tentativePaiementFacture.id });
 
   const resultat = await initierPaiementDirect({
     telephone,
     operateur,
+    identifiants,
     reference: referenceExterne("FACTURE", tentative.id),
     montant,
     description: montant < laFacture.montantTTC ? `Facture ${laFacture.numero} (tranche)` : `Facture ${laFacture.numero}`,

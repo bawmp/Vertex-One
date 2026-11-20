@@ -72,6 +72,9 @@ export function moyenPaiementDepuisOperateur(operateur: string | undefined): Moy
   return "mtn_momo";
 }
 
+/** Identifiants d'un compte marchand ElyonPay : ceux de l'entreprise (table compte_elyonpay) ou, pour les abonnements à Vertex One, ceux de la plateforme (variables d'environnement). */
+export type IdentifiantsElyonpay = { cle: string; marchandId: number; nomMarchand: string };
+
 /** Masque la clé d'API dans un texte à consigner, au cas où un message d'erreur la répète. */
 export function masquerCle(texte: string, cle: string | undefined): string {
   return cle ? texte.split(cle).join("***") : texte;
