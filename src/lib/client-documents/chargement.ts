@@ -10,8 +10,13 @@ import { promesseEnCours } from "@/lib/facturation/promesse";
 export async function chargerDevisParJeton(jeton: string) {
   const lien = await trouverLien(jeton);
   if (!lien?.devisId) return null;
-  const donnees = await avecEntreprise(lien.entrepriseId, (tx) => recupererDevisPourClient(tx, lien.entrepriseId, lien.devisId!));
-  return donnees ? { ...donnees, entrepriseId: lien.entrepriseId } : null;
+  const resultat = await avecEntreprise(lien.entrepriseId, async (tx) => {
+    const donnees = await recupererDevisPourClient(tx, lien.entrepriseId, lien.devisId!);
+    if (!donnees) return null;
+    const [ent] = await tx.select({ revisionDevisActive: entreprise.revisionDevisActive }).from(entreprise).where(eq(entreprise.id, lien.entrepriseId));
+    return { ...donnees, revisionActive: ent?.revisionDevisActive ?? true };
+  });
+  return resultat ? { ...resultat, entrepriseId: lien.entrepriseId } : null;
 }
 
 export async function chargerFactureParJeton(jeton: string) {

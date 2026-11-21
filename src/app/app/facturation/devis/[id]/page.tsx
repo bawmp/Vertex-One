@@ -124,6 +124,12 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
                     <li key={i}>{a}</li>
                   ))}
                 </ol>
+                {r.contreMontant !== null ? (
+                  <p className="mt-1.5 font-medium">
+                    {t("Contre-proposition du client : {montant} (au lieu de {actuel})", { montant: formaterFCFA(r.contreMontant), actuel: formaterFCFA(leDevis.montantTTC) })}
+                  </p>
+                ) : null}
+                {r.contreConditions ? <p className="mt-0.5">{t("Autres conditions proposées : « {conditions} »", { conditions: r.contreConditions })}</p> : null}
                 <p className="mt-0.5 text-xs opacity-75">{new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(r.creeLe)}</p>
               </blockquote>
             ))}

@@ -1,4 +1,6 @@
 import { m } from "@/lib/i18n/catalogue";
+import { lirePrixDevise } from "@/lib/devises/facture";
+import { convertirVersXaf } from "@/lib/devises/regles";
 
 /**
  * Demande de révision d'un devis par le client : il doit AVANCER DES ARGUMENTS — au moins 3, chacun rédigé en phrase complète et
@@ -38,3 +40,35 @@ export function erreurArguments(arguments_: string[]): string | null {
 /** Les arguments sont rangés dans une seule colonne texte, un par ligne (jamais de retour à la ligne dans un argument). */
 export const argumentsVersTexte = (liste: string[]) => liste.join("\n");
 export const texteVersArguments = (texte: string) => texte.split("\n").map((l) => l.trim()).filter(Boolean);
+
+export const CONDITIONS_LONGUEUR_MAX = 500;
+
+export type ContreProposition = { montant: number | null; conditions: string | null };
+
+/**
+ * Contre-proposition facultative du client, avancée avec ses arguments : un montant TTC (dans la devise du devis s'il en a une,
+ * converti au taux figé du devis relu en base, jamais un taux du navigateur) et/ou d'autres conditions (délai, paiement…). Le montant
+ * doit être positif et INFÉRIEUR au montant actuel du devis : demander plus que l'offre n'a pas de sens (une prestation en plus
+ * s'écrit dans les arguments). Renvoie la clé française de l'erreur, ou la contre-proposition (champs nuls si rien n'est saisi).
+ */
+export function lireContreProposition(
+  montantBrut: unknown,
+  conditionsBrutes: unknown,
+  devis: { montantTTC: number; devise: string | null; tauxChangeMilliemes: number | null },
+): { erreur: string } | ContreProposition {
+  const texte = String(montantBrut ?? "").trim();
+  const conditions = String(conditionsBrutes ?? "").replace(/\s+/g, " ").trim().slice(0, CONDITIONS_LONGUEUR_MAX) || null;
+  if (!texte) return { montant: null, conditions };
+  let montant: number;
+  if (devis.devise && devis.tauxChangeMilliemes) {
+    const prix = lirePrixDevise(texte);
+    if (prix === null) return { erreur: m("Montant invalide : deux décimales au plus.") };
+    montant = convertirVersXaf(prix, devis.tauxChangeMilliemes);
+  } else {
+    const net = texte.replace(/[\s\u00a0\u202f]/g, "");
+    if (!/^\d{1,12}$/.test(net)) return { erreur: m("Montant invalide : un nombre entier, sans décimales.") };
+    montant = Number(net);
+  }
+  if (montant <= 0 || montant >= devis.montantTTC) return { erreur: m("Votre montant doit être supérieur à 0 et inférieur au montant actuel du devis.") };
+  return { montant, conditions };
+}

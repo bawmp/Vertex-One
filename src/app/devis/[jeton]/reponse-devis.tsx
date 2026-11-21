@@ -10,7 +10,9 @@ import { ARGUMENTS_MIN, ARGUMENTS_MAX, ARGUMENT_LONGUEUR_MAX, nettoyerArguments,
 import { BoutonDecision } from "@/components/formulaire/parcours-client";
 import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
 
-export function ReponseDevis({ jeton }: { jeton: string }) {
+export function ReponseDevis({ jeton, devise, revisionActive = true }: { jeton: string; devise?: string | null; revisionActive?: boolean }) {
+  const [contreMontant, setContreMontant] = useState("");
+  const [contreConditions, setContreConditions] = useState("");
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [refus, setRefus] = useState(false);
@@ -41,11 +43,13 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
   function demanderRevision() {
     setErreur(null);
     startTransition(async () => {
-      const resultat = await demanderRevisionDevisPublic(jeton, arguments_);
+      const resultat = await demanderRevisionDevisPublic(jeton, arguments_, { montant: contreMontant, conditions: contreConditions });
       if (resultat?.erreur) return setErreur(resultat.erreur);
       setEnvoye(resultat?.succes ?? "Votre demande a été transmise.");
       setRevision(false);
       setArguments(Array.from({ length: ARGUMENTS_MIN }, () => ""));
+      setContreMontant("");
+      setContreConditions("");
       router.refresh();
     });
   }
@@ -100,6 +104,34 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {nettoyerArguments(arguments_).length} / {ARGUMENTS_MIN} arguments rédigés minimum
           </p>
+          <fieldset className="flex flex-col gap-2 rounded-xl border border-border p-3">
+            <legend className="px-1 text-sm font-medium">
+              Votre contre-proposition <span className="font-normal text-muted-foreground">(facultative)</span>
+            </legend>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>Montant TTC que vous proposez ({devise ?? "FCFA"})</span>
+              <input
+                type="text"
+                inputMode={devise ? "decimal" : "numeric"}
+                value={contreMontant}
+                onChange={(e) => setContreMontant(e.target.value)}
+                maxLength={14}
+                className="h-11 w-full max-w-xs rounded-xl border border-input bg-background px-3.5 text-base outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span>
+                Autres conditions proposées <span className="text-muted-foreground">(délai, paiement en plusieurs fois…)</span>
+              </span>
+              <textarea
+                value={contreConditions}
+                onChange={(e) => setContreConditions(e.target.value)}
+                rows={2}
+                maxLength={500}
+                className="w-full resize-none rounded-xl border border-input bg-background p-3 text-base outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
+              />
+            </label>
+          </fieldset>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="lg" className="h-11" disabled={enCours || erreurArguments(nettoyerArguments(arguments_)) !== null} onClick={demanderRevision}>
               {enCours ? <Spinner /> : <MessageSquareText data-icon="inline-start" aria-hidden />}
@@ -135,9 +167,9 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-3 ${revisionActive ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
           <BoutonDecision principal icone={Check} titre="Accepter le devis" detail="Votre facture est créée aussitôt" chargement={enCours && choix === "ACCEPTER"} disabled={enCours} onClick={() => repondre("ACCEPTER")} />
-          <BoutonDecision icone={MessageSquareText} titre="Demander une révision" detail="Expliquez ce que vous aimeriez changer" disabled={enCours} onClick={() => setRevision(true)} />
+          {revisionActive ? <BoutonDecision icone={MessageSquareText} titre="Demander une révision" detail="Expliquez ce que vous aimeriez changer" disabled={enCours} onClick={() => setRevision(true)} /> : null}
           <BoutonDecision icone={X} titre="Refuser" detail="Vous pourrez expliquer pourquoi" disabled={enCours} onClick={() => setRefus(true)} />
         </div>
       )}

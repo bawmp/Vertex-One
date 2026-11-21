@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireLogo } from "./formulaire-logo";
 import { FormulaireCouleur } from "./formulaire-couleur";
 import { FormulaireFiligrane } from "./formulaire-filigrane";
+import { FormulaireRevisionDevis } from "./formulaire-revision-devis";
 import { FormulairePaiementTranches } from "./formulaire-paiement-tranches";
 import { FormulaireManagersVoientTout } from "./formulaire-managers-voient-tout";
 import { getT } from "@/lib/i18n/langue";
@@ -36,6 +37,7 @@ export default async function PageParametres() {
       couleurMarque: entreprise.couleurMarque,
       filigraneDocuments: entreprise.filigraneDocuments,
       paiementEnTranches: entreprise.paiementEnTranches,
+      revisionDevisActive: entreprise.revisionDevisActive,
       managersVoientTout: entreprise.managersVoientTout,
     })
     .from(entreprise)
@@ -87,6 +89,10 @@ export default async function PageParametres() {
             <div>
               <p className="mb-2 text-sm font-medium">{t("Paiement des factures")}</p>
               <FormulairePaiementTranches actifInitial={monEntreprise?.paiementEnTranches ?? true} />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium">{t("Devis")}</p>
+              <FormulaireRevisionDevis actifInitial={monEntreprise?.revisionDevisActive ?? true} />
             </div>
             <div>
               <p className="mb-2 text-sm font-medium">{t("Visibilité des managers")}</p>

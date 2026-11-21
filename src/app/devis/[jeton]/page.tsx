@@ -71,7 +71,7 @@ export default async function PageDevisClient({ params }: { params: Promise<{ je
       </Link>
 
       {devis.statut === "ENVOYE" && !expire ? (
-        <ReponseDevis jeton={jeton} />
+        <ReponseDevis jeton={jeton} devise={devis.devise} revisionActive={donnees.revisionActive} />
       ) : devis.statut === "ACCEPTE" ? (
         <div className="flex flex-col gap-2 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
           <p className="font-medium">Ce devis a été accepté{devis.reponseLe ? ` le ${formatDate(devis.reponseLe)}` : ""}. Merci !</p>

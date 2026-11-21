@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
 import { entreprise, utilisateur, contact, devis, ligneDevis, demandeRevisionDevis } from "@/db/schema";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
-import { nettoyerArguments, erreurArguments } from "@/lib/facturation/revision-devis";
+import { nettoyerArguments, erreurArguments, lireContreProposition } from "@/lib/facturation/revision-devis";
+import { definirRevisionDevis } from "@/lib/actions/entreprise-branding";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
@@ -69,6 +70,21 @@ describe("règles des arguments (pures)", () => {
   });
 });
 
+describe("contre-proposition (règles pures)", () => {
+  const fcfa = { montantTTC: 100000, devise: null, tauxChangeMilliemes: null };
+  test("facultative ; montant entier positif inférieur au devis ; devise convertie au taux figé", () => {
+    expect(lireContreProposition("", "", fcfa)).toEqual({ montant: null, conditions: null });
+    expect(lireContreProposition("85 000", "  Livraison  en 2 semaines ", fcfa)).toEqual({ montant: 85000, conditions: "Livraison en 2 semaines" });
+    expect(lireContreProposition("100000", "", fcfa)).toHaveProperty("erreur");
+    expect(lireContreProposition("0", "", fcfa)).toHaveProperty("erreur");
+    expect(lireContreProposition("85,5", "", fcfa)).toHaveProperty("erreur");
+    expect(lireContreProposition("abc", "", fcfa)).toHaveProperty("erreur");
+    const eur = { montantTTC: 655957, devise: "EUR", tauxChangeMilliemes: 655957 };
+    expect(lireContreProposition("900,00", "", eur)).toEqual({ montant: 590361, conditions: null });
+    expect(lireContreProposition("1000", "", eur)).toHaveProperty("erreur");
+  });
+});
+
 describe("demanderRevisionDevisPublic", () => {
   test("avec 3 arguments : la demande est enregistrée et l'équipe prévenue par email, le devis reste envoyé", async () => {
     const { id, jeton } = await creer(a, "ENVOYE");
@@ -116,6 +132,36 @@ describe("demanderRevisionDevisPublic", () => {
     await Promise.all(taches.splice(0));
     expect(await avecEntreprise(b, (tx) => tx.select().from(demandeRevisionDevis).where(eq(demandeRevisionDevis.devisId, id)))).toHaveLength(0);
     expect(await avecEntreprise(b, (tx) => tx.select().from(demandeRevisionDevis))).toHaveLength(0);
+  }, 120_000);
+
+  test("avec une contre-proposition : montant et conditions enregistrés, annoncés dans l'email ; montant trop élevé refusé", async () => {
+    const { id, jeton } = await creer(a, "ENVOYE");
+    expect((await demanderRevisionDevisPublic(jeton, ARGS, { montant: "1000", conditions: "" }))?.erreur).toMatch(/inférieur au montant actuel/);
+    expect(await demandes(id)).toHaveLength(0);
+    courriers.length = 0;
+    expect((await demanderRevisionDevisPublic(jeton, ARGS, { montant: "800", conditions: "Paiement en deux fois" }))?.succes).toBeTruthy();
+    await Promise.all(taches.splice(0));
+    const [l] = await demandes(id);
+    expect(l.contreMontant).toBe(800);
+    expect(l.contreConditions).toBe("Paiement en deux fois");
+    expect(courriers.some((c) => c.html.includes("Contre-proposition") && c.html.includes("Paiement en deux fois"))).toBe(true);
+  }, 120_000);
+
+  test("une entreprise peut désactiver la fonction : le serveur refuse toute demande ; réactivée, elle repasse", async () => {
+    const { id, jeton } = await creer(a, "ENVOYE");
+    connecte = { utilisateurId: adminA, entrepriseId: a, role: "ADMIN" };
+    expect(await definirRevisionDevis(false)).toBeNull();
+    expect((await demanderRevisionDevisPublic(jeton, ARGS))?.erreur).toMatch(/n'accepte pas les demandes de révision/);
+    expect(await demandes(id)).toHaveLength(0);
+    expect(await definirRevisionDevis(true)).toBeNull();
+    expect((await demanderRevisionDevisPublic(jeton, ARGS))?.succes).toBeTruthy();
+    await Promise.all(taches.splice(0));
+  }, 120_000);
+
+  test("un Employé sans droit sur les paramètres ne peut pas changer le réglage", async () => {
+    const employe = (await db.insert(utilisateur).values({ entrepriseId: a, email: `employe-a-${suffixe}@vertexone.test`, nomComplet: "Employé A", role: "EMPLOYE" }).returning({ id: utilisateur.id }))[0].id;
+    connecte = { utilisateurId: employe, entrepriseId: a, role: "EMPLOYE" };
+    expect(await definirRevisionDevis(false)).toEqual({ erreur: "Vous n'avez pas le droit de modifier les réglages des devis de l'entreprise." });
   }, 120_000);
 
   test("modifier le devis traite les demandes en attente", async () => {

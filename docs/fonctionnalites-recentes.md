@@ -1057,3 +1057,9 @@ Avant : tous les paiements Mobile Money des clients d'une entreprise arrivaient 
 **Listes classées** (Facturation → Devis et Factures) : rangées par **mois, trimestre, semestre ou année** (jour civil de Douala), le groupe le plus récent est ouvert, chaque groupe annonce son nombre de documents et son total (hors factures annulées et devis refusés), recherche par numéro ou client. Filtres de statut : **factures** toutes / non payées (émises, partielles, en retard) / en attente / en retard / payées / annulées ; **devis** tous / brouillons / en attente de réponse / acceptés / refusés / expirés (un devis envoyé dont la validité est passée est « expiré »). Règles pures `src/lib/facturation/classement.ts`, composant `src/app/app/facturation/liste-classee.tsx`. Test : `tests/classement-factures-devis.test.ts`.
 
 **Déploiement** : migration `0186` AVANT le code.
+
+### Contre-proposition du client et réglage par entreprise (2026-11-21)
+
+Avec ses arguments, le client peut faire une **contre-proposition facultative** : un montant TTC (dans la devise du devis s'il en a une, converti au taux figé du devis relu en base) strictement **inférieur** au montant actuel, et/ou d'autres conditions (délai, paiement en plusieurs fois…, 500 caractères). Règles pures `lireContreProposition` (`src/lib/facturation/revision-devis.ts`), revérifiées par le serveur ; stockée dans `demande_revision_devis` (`contre_montant`, `contre_conditions`), annoncée par email à l'équipe et affichée sur la fiche du devis.
+
+**Une entreprise peut désactiver la fonction** : Paramètres → Devis → « Permettre à vos clients de demander la révision d'un devis » (`entreprise.revision_devis_active`, activé par défaut, Administrateur seul : `definirRevisionDevis`). Désactivée, la page publique ne propose plus que d'accepter ou de refuser, et le serveur refuse toute demande venue d'un ancien formulaire. **Déploiement** : migration `0187` AVANT le code (en plus de `0186`).

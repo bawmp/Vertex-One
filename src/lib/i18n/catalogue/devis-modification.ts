@@ -30,4 +30,12 @@ export const DEVIS_MODIFICATION: Record<string, string> = {
   "Chaque argument doit être une phrase complète (15 caractères et 3 mots au moins).": "Each argument must be a complete sentence (at least 15 characters and 3 words).",
   "Vos arguments doivent être différents les uns des autres.": "Your arguments must differ from one another.",
   "Devis modifiable tant que le client n'a pas répondu, et le client peut en demander la révision depuis son lien en avançant au moins 3 arguments ; devis et factures classés par mois, trimestre, semestre ou année, et filtrés par statut (payées, non payées, en attente, en retard)": "Quote editable until the customer replies, and the customer can ask for a review from their link by giving at least 3 arguments; quotes and invoices sorted by month, quarter, half-year or year, and filtered by status (paid, unpaid, pending, overdue)",
+  "Contre-proposition du client : {montant} (au lieu de {actuel})": "Customer counter-offer: {montant} (instead of {actuel})",
+  "Autres conditions proposées : « {conditions} »": "Other proposed terms: \"{conditions}\"",
+  "Permettre à vos clients de demander la révision d'un devis": "Let your customers ask for a quote to be reviewed",
+  "Depuis son lien, le client avance au moins 3 arguments et peut faire une contre-proposition ; vous êtes prévenu par email. Désactivé, il peut seulement accepter ou refuser le devis.": "From their link, the customer gives at least 3 arguments and may make a counter-offer; you are notified by email. Disabled, they can only accept or decline the quote.",
+  "Vous n'avez pas le droit de modifier les réglages des devis de l'entreprise.": "You are not allowed to change the company's quote settings.",
+  "Montant invalide : un nombre entier, sans décimales.": "Invalid amount: a whole number, without decimals.",
+  "Montant invalide : deux décimales au plus.": "Invalid amount: two decimals at most.",
+  "Votre montant doit être supérieur à 0 et inférieur au montant actuel du devis.": "Your amount must be greater than 0 and lower than the current quote amount.",
 };

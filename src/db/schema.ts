@@ -220,6 +220,8 @@ export const entreprise = pgTable("entreprise", {
   filigraneDocuments: boolean("filigrane_documents").notNull().default(true),
   // Paiement en plusieurs fois (2026-10-25) : le client choisit le montant de chaque tranche, jusqu'au solde de sa facture. Activé par défaut.
   paiementEnTranches: boolean("paiement_en_tranches").notNull().default(true),
+  // Le client peut demander la révision d'un devis (arguments + contre-proposition) depuis son lien : activé par défaut, l'entreprise peut le désactiver.
+  revisionDevisActive: boolean("revision_devis_active").notNull().default(true),
   // Relance automatique des prospects qualifiés (2026-11-19) : DÉSACTIVÉE par défaut (elle envoie des e-mails aux prospects sans clic). Délais en jours
   // après la qualification (« 3,7,14 » = un e-mail à J+3, J+7 puis J+14 — l'écart se compte depuis le précédent envoi) et plafond d'e-mails automatiques par jour.
   sequenceProspectsActive: boolean("sequence_prospects_active").notNull().default(false),
@@ -1881,6 +1883,9 @@ export const demandeRevisionDevis = pgTable(
       .notNull()
       .references(() => devis.id),
     message: text("message").notNull(),
+    // Contre-proposition facultative du client : montant TTC qu'il propose (FCFA, jamais supérieur au devis) et autres conditions (délai, paiement…).
+    contreMontant: integer("contre_montant"),
+    contreConditions: text("contre_conditions"),
     clientIp: text("client_ip"),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     traiteLe: timestamp("traite_le"),

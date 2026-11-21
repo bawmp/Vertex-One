@@ -22,7 +22,7 @@ import {
 } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
-import { nettoyerArguments, erreurArguments, argumentsVersTexte } from "@/lib/facturation/revision-devis";
+import { nettoyerArguments, erreurArguments, argumentsVersTexte, lireContreProposition } from "@/lib/facturation/revision-devis";
 import { enregistrerPromesse } from "@/lib/facturation/promesse";
 import { aujourdhuiDouala, ajouterJours, noteNettoyee, verifierDatePromesse } from "@/lib/facturation/promesse-regles";
 
@@ -65,7 +65,7 @@ const REVISIONS_MAX_PAR_HEURE = 5;
  * l'adresse IP est lue côté serveur, le texte est échappé avant d'entrer dans un email, l'équipe est prévenue APRÈS la réponse.
  * Le devis reste ENVOYE (le client peut encore l'accepter ou le refuser) ; 5 demandes par heure et par devis au plus.
  */
-export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts: string[]): Promise<EtatReponseClient> {
+export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts: string[], contreBrute?: { montant?: string; conditions?: string }): Promise<EtatReponseClient> {
   // Des arguments sont exigés : au moins 3, chacun en phrase complète et distinct (revérifié ici, jamais cru du navigateur).
   const arguments_ = nettoyerArguments(argumentsBruts);
   const insuffisant = erreurArguments(arguments_);
@@ -78,6 +78,8 @@ export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts:
   const resultat = await avecEntreprise(lien.entrepriseId, async (tx) => {
     const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
     if (!leDevis) return { erreur: "Ce devis est introuvable." };
+    const [reglage] = await tx.select({ actif: entreprise.revisionDevisActive }).from(entreprise).where(eq(entreprise.id, lien.entrepriseId));
+    if (reglage && !reglage.actif) return { erreur: "Cette entreprise n'accepte pas les demandes de révision : vous pouvez accepter ou refuser ce devis, ou la contacter." };
     if (leDevis.statut !== "ENVOYE") return { erreur: "Ce devis n'est plus disponible : vous ne pouvez plus en demander la révision." };
     if (leDevis.dateValidite < new Date()) return { erreur: "Ce devis a expiré : contactez l'entreprise pour en obtenir un nouveau." };
 
@@ -87,13 +89,17 @@ export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts:
       .where(and(eq(demandeRevisionDevis.devisId, devisId), gt(demandeRevisionDevis.creeLe, new Date(Date.now() - 3600_000))));
     if (recentes.length >= REVISIONS_MAX_PAR_HEURE) return { erreur: "Vous avez déjà envoyé plusieurs demandes : réessayez dans une heure." };
 
-    await tx.insert(demandeRevisionDevis).values({ entrepriseId: lien.entrepriseId, devisId, message: argumentsVersTexte(arguments_), clientIp: ip });
+    // Contre-proposition facultative : relue ici avec le montant et le taux figé du devis (jamais ceux du navigateur).
+    const contre = lireContreProposition(contreBrute?.montant, contreBrute?.conditions, leDevis);
+    if ("erreur" in contre) return { erreur: contre.erreur };
+    await tx.insert(demandeRevisionDevis).values({ entrepriseId: lien.entrepriseId, devisId, message: argumentsVersTexte(arguments_), contreMontant: contre.montant, contreConditions: contre.conditions, clientIp: ip });
     const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDevis.contactId));
     return {
       destinataires: await adressesAAlerter(tx, lien.entrepriseId, [leDevis.assigneAId, leDevis.creeParId]),
       numero: leDevis.numero,
       montant: formaterFCFA(leDevis.montantTTC),
       clientNom: leContact?.nom ?? "Le client",
+      contre,
     };
   });
   if ("erreur" in resultat) return { erreur: resultat.erreur };
@@ -102,7 +108,7 @@ export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts:
     alerterParEmail(
       resultat.destinataires,
       `${resultat.clientNom} demande la révision du devis ${resultat.numero}`,
-      `<p>${echapper(resultat.clientNom)} demande que le devis ${echapper(resultat.numero)} (${resultat.montant}) soit <strong>revu</strong>.</p><p>Ses arguments :</p><ol>${arguments_.map((a) => `<li>${echapper(a)}</li>`).join("")}</ol><p>Modifiez le devis depuis sa fiche (bouton « Modifier ») puis renvoyez-le au client. Il peut toujours l'accepter ou le refuser entre-temps.</p>`,
+      `<p>${echapper(resultat.clientNom)} demande que le devis ${echapper(resultat.numero)} (${resultat.montant}) soit <strong>revu</strong>.</p><p>Ses arguments :</p><ol>${arguments_.map((a) => `<li>${echapper(a)}</li>`).join("")}</ol>${resultat.contre.montant !== null ? `<p><strong>Contre-proposition : ${formaterFCFA(resultat.contre.montant)}</strong> (au lieu de ${resultat.montant}).</p>` : ""}${resultat.contre.conditions ? `<p>Autres conditions proposées : « ${echapper(resultat.contre.conditions)} »</p>` : ""}<p>Modifiez le devis depuis sa fiche (bouton « Modifier ») puis renvoyez-le au client. Il peut toujours l'accepter ou le refuser entre-temps.</p>`,
     ),
   );
   revalidatePath(`/app/facturation/devis/${devisId}`);

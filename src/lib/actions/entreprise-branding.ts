@@ -121,6 +121,27 @@ export async function definirPaiementEnTranches(actif: boolean): Promise<{ erreu
 }
 
 /**
+ * Active ou désactive la demande de révision d'un devis par le client (arguments et contre-proposition depuis son lien). Désactivée,
+ * la page publique du devis ne propose plus que d'accepter ou de refuser, et le serveur refuse toute demande de révision. Réservé à
+ * qui peut modifier les paramètres ; la valeur est un booléen strict.
+ */
+export async function definirRevisionDevis(actif: boolean): Promise<{ erreur?: string } | null> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "PARAMETRES", "MODIFIER")) {
+    return { erreur: t("Vous n'avez pas le droit de modifier les réglages des devis de l'entreprise.") };
+  }
+
+  await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) =>
+    tx.update(entreprise).set({ revisionDevisActive: actif === true }).where(eq(entreprise.id, utilisateurConnecte.entrepriseId))
+  );
+
+  revalidatePath("/app/parametres");
+  return null;
+}
+
+/**
  * Les Managers voient les données de toute l'entreprise (et non plus seulement celles de leur équipe) sur les modules métier. Réservé à
  * l'Administrateur (droit de modifier les paramètres) ; la valeur est un booléen strict.
  */
