@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X } from "lucide-react";
+import { Check, X, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { repondreDevisPublic } from "@/lib/actions/client-documents";
+import { repondreDevisPublic, demanderRevisionDevisPublic } from "@/lib/actions/client-documents";
+import { ARGUMENTS_MIN, ARGUMENTS_MAX, ARGUMENT_LONGUEUR_MAX, nettoyerArguments, erreurArguments } from "@/lib/facturation/revision-devis";
 import { BoutonDecision } from "@/components/formulaire/parcours-client";
 import { EcranPaiementReussi } from "@/components/formulaire/ecrans-paiement";
 
@@ -13,6 +14,9 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
   const router = useRouter();
   const [enCours, startTransition] = useTransition();
   const [refus, setRefus] = useState(false);
+  const [revision, setRevision] = useState(false);
+  const [arguments_, setArguments] = useState<string[]>(Array.from({ length: ARGUMENTS_MIN }, () => ""));
+  const [envoye, setEnvoye] = useState<string | null>(null);
   const [motif, setMotif] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [merci, setMerci] = useState<string | null>(null);
@@ -34,6 +38,18 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
     });
   }
 
+  function demanderRevision() {
+    setErreur(null);
+    startTransition(async () => {
+      const resultat = await demanderRevisionDevisPublic(jeton, arguments_);
+      if (resultat?.erreur) return setErreur(resultat.erreur);
+      setEnvoye(resultat?.succes ?? "Votre demande a été transmise.");
+      setRevision(false);
+      setArguments(Array.from({ length: ARGUMENTS_MIN }, () => ""));
+      router.refresh();
+    });
+  }
+
   if (merci) return <EcranPaiementReussi titre={merci} />;
 
   return (
@@ -45,7 +61,56 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
         <p className="text-sm text-muted-foreground">Votre réponse est transmise tout de suite à l&apos;entreprise.</p>
       </div>
 
-      {refus ? (
+      {envoye ? (
+        <p role="status" className="rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+          {envoye}
+        </p>
+      ) : null}
+
+      {revision ? (
+        <div className="flex animate-in flex-col gap-3 duration-300 fade-in slide-in-from-right-2">
+          <p className="text-sm font-medium">
+            Avancez vos arguments <span className="font-normal text-muted-foreground">({ARGUMENTS_MIN} au moins, une phrase chacun : prix visé, délai souhaité, prestation à ajouter ou retirer…)</span>
+          </p>
+          <ol className="flex flex-col gap-2">
+            {arguments_.map((a, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span aria-hidden className="mt-3 w-5 shrink-0 text-right text-sm text-muted-foreground tabular-nums">{i + 1}.</span>
+                <textarea
+                  aria-label={`Argument ${i + 1}`}
+                  value={a}
+                  onChange={(e) => setArguments((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
+                  rows={2}
+                  maxLength={ARGUMENT_LONGUEUR_MAX}
+                  className="w-full resize-none rounded-xl border border-input bg-background p-3 text-base outline-none transition-all hover:border-primary/40 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                />
+                {i >= ARGUMENTS_MIN ? (
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Retirer cet argument" className="mt-1.5" onClick={() => setArguments((p) => p.filter((_, j) => j !== i))}>
+                    <X aria-hidden />
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          {arguments_.length < ARGUMENTS_MAX ? (
+            <Button type="button" variant="outline" size="sm" className="self-start border-dashed" onClick={() => setArguments((p) => [...p, ""])}>
+              Ajouter un argument
+            </Button>
+          ) : null}
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            {nettoyerArguments(arguments_).length} / {ARGUMENTS_MIN} arguments rédigés minimum
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="lg" className="h-11" disabled={enCours || erreurArguments(nettoyerArguments(arguments_)) !== null} onClick={demanderRevision}>
+              {enCours ? <Spinner /> : <MessageSquareText data-icon="inline-start" aria-hidden />}
+              Envoyer ma demande
+            </Button>
+            <Button type="button" variant="ghost" size="lg" className="h-11" disabled={enCours} onClick={() => setRevision(false)}>
+              Retour
+            </Button>
+          </div>
+        </div>
+      ) : refus ? (
         <div className="flex animate-in flex-col gap-3 duration-300 fade-in slide-in-from-right-2">
           <label htmlFor="motif" className="text-sm font-medium">
             Pourquoi refusez-vous ce devis ? <span className="font-normal text-muted-foreground">(facultatif)</span>
@@ -70,8 +135,9 @@ export function ReponseDevis({ jeton }: { jeton: string }) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <BoutonDecision principal icone={Check} titre="Accepter le devis" detail="Votre facture est créée aussitôt" chargement={enCours && choix === "ACCEPTER"} disabled={enCours} onClick={() => repondre("ACCEPTER")} />
+          <BoutonDecision icone={MessageSquareText} titre="Demander une révision" detail="Expliquez ce que vous aimeriez changer" disabled={enCours} onClick={() => setRevision(true)} />
           <BoutonDecision icone={X} titre="Refuser" detail="Vous pourrez expliquer pourquoi" disabled={enCours} onClick={() => setRefus(true)} />
         </div>
       )}

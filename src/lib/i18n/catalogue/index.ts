@@ -27,6 +27,7 @@ import { PRODUITS_IMAGES } from "./produits-images";
 import { PROSPECTS } from "./prospects";
 import { PROSPECTS_AUTO } from "./prospects-auto";
 import { PAIEMENT_COMPTE } from "./paiement-compte";
+import { DEVIS_MODIFICATION } from "./devis-modification";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -54,4 +55,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...PROSPECTS,
   ...PROSPECTS_AUTO,
   ...PAIEMENT_COMPTE,
+  ...DEVIS_MODIFICATION,
 };

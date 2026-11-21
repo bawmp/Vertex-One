@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { inArray, desc } from "drizzle-orm";
-import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2, Download, CalendarClock } from "lucide-react";
+import { FileText, Receipt, Repeat, Wallet, PiggyBank, ClipboardList, ArrowRight, CreditCard, Undo2, Download } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { devis, facture, bonCommandeVente, factureRecurrente, recuVente, factureAcompte, paiement, avoirFacture, contact, compteClient } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -27,7 +27,7 @@ import {
 } from "@/lib/libelles";
 import { DeclencheurRelances } from "./declencheur-relances";
 import { BoutonEnvoiDocumentVente } from "./bouton-envoi-document-vente";
-import { BoutonSupprimerDevis } from "./bouton-supprimer-devis";
+import { ListeClassee } from "./liste-classee";
 import { TableauDeBord } from "./tableau-de-bord";
 import { BoutonConvertirBCV } from "../deals/[id]/bouton-convertir-bcv";
 import { BoutonsFactureRecurrente } from "../deals/[id]/boutons-facture-recurrente";
@@ -152,38 +152,26 @@ export default async function PageFacturation() {
           <FileText className="size-4" aria-hidden />
           {t("Devis")}
         </h2>
-        <Card className="p-0">
-          <div className="flex flex-col divide-y divide-border">
-            {devisVisibles.map((d, index) => {
-              const info = statutDevisAffiche(d);
-              return (
-                <div key={d.id} className="flex items-center hover:bg-muted/60">
-                <Link
-                  href={`/app/facturation/devis/${d.id}`}
-                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex min-w-0 flex-1 animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300"
-                >
-                  <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                  <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
-                    <span className="font-medium">{d.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParClientId[d.id]}</span>
-                  </span>
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0">
-                    <span className="tabular-nums text-muted-foreground">{formaterFCFA(d.montantTTC)}</span>
-                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? d.statut)}</Badge>
-                  </span>
-                </Link>
-                {d.statut === "BROUILLON" && peutModifier ? (
-                  <div className="shrink-0 pr-3">
-                    <BoutonSupprimerDevis devisId={d.id} numero={d.numero} compact />
-                  </div>
-                ) : null}
-                </div>
-              );
-            })}
-            {devisVisibles.length === 0 ? <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucun devis.")}</p> : null}
-          </div>
-        </Card>
+        <ListeClassee
+          type="devis"
+          peutSupprimer={peutModifier}
+          lignes={devisVisibles.map((d) => {
+            const info = statutDevisAffiche(d);
+            return {
+              id: d.id,
+              numero: d.numero,
+              client: nomParClientId[d.id],
+              montantTTC: d.montantTTC,
+              statut: d.statut,
+              statutLibelle: info?.libelle ?? d.statut,
+              variante: info?.variante ?? "neutral",
+              date: d.creeLe.toISOString(),
+              dateValidite: d.dateValidite.toISOString(),
+              href: `/app/facturation/devis/${d.id}`,
+              supprimable: d.statut === "BROUILLON",
+            };
+          })}
+        />
       </div>
 
       <div id="factures">
@@ -191,40 +179,25 @@ export default async function PageFacturation() {
           <Receipt className="size-4" aria-hidden />
           {t("Factures")}
         </h2>
-        <Card className="p-0">
-          <div className="flex flex-col divide-y divide-border">
-            {facturesVisibles.map((f, index) => {
-              const info = STATUT_FACTURE[f.statut];
-              return (
-                <Link
-                  key={f.id}
-                  href={`/app/facturation/factures/${f.id}`}
-                  style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-                  className="group/ligne relative flex animate-in fade-in flex-col gap-1 overflow-hidden px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 text-sm fill-mode-both duration-300 hover:bg-muted/60"
-                >
-                  <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-primary transition-transform duration-150 group-hover/ligne:scale-y-100" />
-                  <span className="min-w-0 transition-transform duration-150 group-hover/ligne:translate-x-1 sm:truncate">
-                    <span className="font-medium">{f.numero}</span>
-                    <span className="text-muted-foreground"> — {nomParClientId[f.id]}</span>
-                  </span>
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0">
-                    <span className="tabular-nums text-muted-foreground">{formaterFCFA(f.montantTTC)}</span>
-                    {promessesParFacture[f.id] ? (
-                      <Badge variant="info" className="gap-1">
-                        <CalendarClock className="size-3" aria-hidden />
-                        {t("Promis le {date}", { date: formaterJourPromesse(promessesParFacture[f.id].datePromise, t.locale, "medium") })}
-                      </Badge>
-                    ) : null}
-                    <Badge variant={info?.variante ?? "neutral"}>{t(info?.libelle ?? f.statut)}</Badge>
-                  </span>
-                </Link>
-              );
-            })}
-            {facturesVisibles.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("Aucune facture.")}</p>
-            ) : null}
-          </div>
-        </Card>
+        <ListeClassee
+          type="facture"
+          peutSupprimer={false}
+          lignes={facturesVisibles.map((f) => {
+            const info = STATUT_FACTURE[f.statut];
+            return {
+              id: f.id,
+              numero: f.numero,
+              client: nomParClientId[f.id],
+              montantTTC: f.montantTTC,
+              statut: f.statut,
+              statutLibelle: info?.libelle ?? f.statut,
+              variante: info?.variante ?? "neutral",
+              date: f.dateEmission.toISOString(),
+              promesse: promessesParFacture[f.id] ? formaterJourPromesse(promessesParFacture[f.id].datePromise, t.locale, "medium") : undefined,
+              href: `/app/facturation/factures/${f.id}`,
+            };
+          })}
+        />
       </div>
 
       <div id="commandes-client">

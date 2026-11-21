@@ -1,11 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, devis, ligneDevis, facture, projet, lienClientDocument } from "@/db/schema";
+import { entreprise, devis, ligneDevis, facture, projet, lienClientDocument, demandeRevisionDevis } from "@/db/schema";
 import { idsVisibles } from "@/lib/portee";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
@@ -155,6 +155,85 @@ export async function creerDevis(_etat: EtatDevis, formData: FormData): Promise<
 }
 
 /**
+ * Modifie un devis : lignes, date de validité, dépôt. Possible tant que le client n'a pas tranché (BROUILLON ou ENVOYE) : un devis
+ * accepté a déjà donné une facture, un devis refusé ou expiré reste la trace de ce qui a été proposé. Le numéro, le client et la
+ * devise (avec son taux figé à la création) ne changent jamais. Le statut est relu en base, jamais pris dans la requête ; droit de
+ * modifier la facturation + devis dans la portée de l'utilisateur. Un devis déjà envoyé garde son lien : le client y voit aussitôt
+ * la version à jour (le PDF joint à l'ancien e-mail, lui, reste l'ancienne version : il faut renvoyer le devis).
+ */
+export async function modifierDevis(devisId: string, _etat: EtatDevis, formData: FormData): Promise<EtatDevis> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+  if (!peut(utilisateurConnecte, "FACTURATION", "MODIFIER")) return { erreur: t("Vous n'avez pas le droit de modifier ce devis.") };
+
+  const dateValidite = String(formData.get("dateValidite") ?? "");
+  const verifDepot = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => verifierDepotDocument(tx, utilisateurConnecte.entrepriseId, String(formData.get("depotId") ?? "") || undefined));
+  if (!verifDepot.ok) return { erreur: t(verifDepot.erreur) };
+
+  const lignesBrutes = formData.getAll("designation").map((_, i) => ({
+    produitId: formData.getAll("produitId")[i] || undefined,
+    designation: formData.getAll("designation")[i],
+    quantite: formData.getAll("quantite")[i],
+    prixUnitaire: formData.getAll("prixUnitaire")[i],
+    tauxTVA: formData.getAll("tauxTVA")[i],
+  }));
+
+  const resultat = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+    const visibles = await idsVisibles(tx, utilisateurConnecte, "FACTURATION");
+    const [d] = await tx.select().from(devis).where(and(eq(devis.id, devisId), eq(devis.entrepriseId, utilisateurConnecte.entrepriseId)));
+    if (!d || (visibles !== "TOUT" && !visibles.includes(d.assigneAId))) return { erreur: m("Devis introuvable.") };
+    if (d.statut !== "BROUILLON" && d.statut !== "ENVOYE") return { erreur: m("Ce devis ne peut plus être modifié : le client a déjà répondu ou il n'est plus valable.") };
+
+    // Devis dans une autre devise : les prix sont saisis dans cette devise, convertis au taux figé À LA CRÉATION (jamais un taux venu du navigateur).
+    if (d.devise && d.tauxChangeMilliemes) {
+      for (const l of lignesBrutes) {
+        const prix = lirePrixDevise(String(l.prixUnitaire ?? ""));
+        if (prix === null) return { erreur: m("Prix invalide : deux décimales au plus.") };
+        l.prixUnitaire = String(convertirVersXaf(prix, d.tauxChangeMilliemes));
+      }
+    }
+    const analyse = z.array(schemaLigne).min(1, m("Au moins une ligne est requise.")).safeParse(lignesBrutes);
+    if (!analyse.success || !dateValidite) return { erreur: analyse.success ? m("Formulaire invalide.") : (analyse.error.issues[0]?.message ?? m("Formulaire invalide.")) };
+    const lignes = analyse.data;
+    const montants = calculerMontants(lignes);
+
+    await tx
+      .update(devis)
+      .set({
+        dateValidite: new Date(dateValidite),
+        depotId: verifDepot.depotId ?? d.depotId,
+        montantHT: montants.montantHT,
+        montantTVA: montants.montantTVA,
+        montantTTC: montants.montantTTC,
+        ...(d.devise && d.tauxChangeMilliemes ? { montantDeviseCentimes: totalEnDeviseCentimes(montants.montantTTC, d.tauxChangeMilliemes) } : {}),
+      })
+      .where(and(eq(devis.id, devisId), eq(devis.entrepriseId, utilisateurConnecte.entrepriseId)));
+    await tx.delete(ligneDevis).where(eq(ligneDevis.devisId, devisId));
+    // Le devis a été revu : les demandes de révision du client en attente sont traitées.
+    await tx.update(demandeRevisionDevis).set({ traiteLe: new Date() }).where(and(eq(demandeRevisionDevis.devisId, devisId), isNull(demandeRevisionDevis.traiteLe)));
+    await tx.insert(ligneDevis).values(
+      lignes.map((l) => ({
+        entrepriseId: utilisateurConnecte.entrepriseId,
+        devisId,
+        produitId: l.produitId || undefined,
+        designation: l.designation,
+        quantite: l.quantite,
+        prixUnitaire: l.prixUnitaire,
+        tauxTVA: l.tauxTVA,
+      }))
+    );
+    return { ok: true as const };
+  });
+  if ("erreur" in resultat && resultat.erreur) return { erreur: t(resultat.erreur) };
+
+  revalidatePath(`/app/facturation/devis/${devisId}`);
+  revalidatePath("/app/facturation");
+  revalidatePath(`/devis`, "layout");
+  redirect(`/app/facturation/devis/${devisId}`);
+}
+
+/**
  * Devis accepté → facture créée automatiquement dans le même mouvement
  * (docs/palier-1-*, section 6, étape 4), numéro de facture généré à cet
  * instant précis (jamais avant) via genererNumeroFacture(), dans la même
@@ -214,6 +293,7 @@ export async function supprimerDevis(devisId: string, retourListe = false): Prom
     const [unProjet] = await tx.select({ id: projet.id }).from(projet).where(eq(projet.devisOrigineId, devisId)).limit(1);
     if (uneFacture || unProjet) return { erreur: t("Ce devis a déjà donné lieu à d'autres documents : il ne peut pas être supprimé.") };
 
+    await tx.delete(demandeRevisionDevis).where(eq(demandeRevisionDevis.devisId, devisId));
     await tx.delete(lienClientDocument).where(eq(lienClientDocument.devisId, devisId));
     await tx.delete(ligneDevis).where(eq(ligneDevis.devisId, devisId));
     await tx.delete(devis).where(and(eq(devis.id, devisId), eq(devis.entrepriseId, utilisateurConnecte.entrepriseId)));

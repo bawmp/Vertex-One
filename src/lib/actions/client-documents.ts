@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { avecEntreprise } from "@/db/client";
-import { devis, facture, contact, entreprise, promessePaiement, tentativePaiementFacture } from "@/db/schema";
+import { devis, facture, contact, entreprise, promessePaiement, tentativePaiementFacture, demandeRevisionDevis } from "@/db/schema";
 import {
   obtenirOuCreerLien,
   trouverLien,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/notifications/equipe";
 import { envoyerEmail } from "@/lib/email/client";
 import { journaliserEmailEnvoye } from "@/lib/crm/journaliser-email";
+import { nettoyerArguments, erreurArguments, argumentsVersTexte } from "@/lib/facturation/revision-devis";
 import { enregistrerPromesse } from "@/lib/facturation/promesse";
 import { aujourdhuiDouala, ajouterJours, noteNettoyee, verifierDatePromesse } from "@/lib/facturation/promesse-regles";
 
@@ -54,6 +55,59 @@ async function adresseIP(): Promise<string | null> {
 function motifNettoye(brut: string | undefined): string | null {
   const motif = (brut ?? "").trim().slice(0, 1000);
   return motif || null;
+}
+
+const REVISIONS_MAX_PAR_HEURE = 5;
+
+/**
+ * Le client n'accepte pas ni ne refuse : il avance ses arguments (prix, délai, périmètre…) et demande que le devis soit revu. Même
+ * règles que les autres réponses du lien : le jeton est l'unique autorisation, l'entreprise et le devis viennent de la ligne du lien,
+ * l'adresse IP est lue côté serveur, le texte est échappé avant d'entrer dans un email, l'équipe est prévenue APRÈS la réponse.
+ * Le devis reste ENVOYE (le client peut encore l'accepter ou le refuser) ; 5 demandes par heure et par devis au plus.
+ */
+export async function demanderRevisionDevisPublic(jeton: string, argumentsBruts: string[]): Promise<EtatReponseClient> {
+  // Des arguments sont exigés : au moins 3, chacun en phrase complète et distinct (revérifié ici, jamais cru du navigateur).
+  const arguments_ = nettoyerArguments(argumentsBruts);
+  const insuffisant = erreurArguments(arguments_);
+  if (insuffisant) return { erreur: insuffisant };
+  const lien = await trouverLien(jeton);
+  if (!lien?.devisId) return { erreur: "Ce lien n'est pas valide." };
+  const devisId = lien.devisId;
+  const ip = await adresseIP();
+
+  const resultat = await avecEntreprise(lien.entrepriseId, async (tx) => {
+    const [leDevis] = await tx.select().from(devis).where(eq(devis.id, devisId));
+    if (!leDevis) return { erreur: "Ce devis est introuvable." };
+    if (leDevis.statut !== "ENVOYE") return { erreur: "Ce devis n'est plus disponible : vous ne pouvez plus en demander la révision." };
+    if (leDevis.dateValidite < new Date()) return { erreur: "Ce devis a expiré : contactez l'entreprise pour en obtenir un nouveau." };
+
+    const recentes = await tx
+      .select({ id: demandeRevisionDevis.id })
+      .from(demandeRevisionDevis)
+      .where(and(eq(demandeRevisionDevis.devisId, devisId), gt(demandeRevisionDevis.creeLe, new Date(Date.now() - 3600_000))));
+    if (recentes.length >= REVISIONS_MAX_PAR_HEURE) return { erreur: "Vous avez déjà envoyé plusieurs demandes : réessayez dans une heure." };
+
+    await tx.insert(demandeRevisionDevis).values({ entrepriseId: lien.entrepriseId, devisId, message: argumentsVersTexte(arguments_), clientIp: ip });
+    const [leContact] = await tx.select({ nom: contact.nom }).from(contact).where(eq(contact.id, leDevis.contactId));
+    return {
+      destinataires: await adressesAAlerter(tx, lien.entrepriseId, [leDevis.assigneAId, leDevis.creeParId]),
+      numero: leDevis.numero,
+      montant: formaterFCFA(leDevis.montantTTC),
+      clientNom: leContact?.nom ?? "Le client",
+    };
+  });
+  if ("erreur" in resultat) return { erreur: resultat.erreur };
+
+  after(() =>
+    alerterParEmail(
+      resultat.destinataires,
+      `${resultat.clientNom} demande la révision du devis ${resultat.numero}`,
+      `<p>${echapper(resultat.clientNom)} demande que le devis ${echapper(resultat.numero)} (${resultat.montant}) soit <strong>revu</strong>.</p><p>Ses arguments :</p><ol>${arguments_.map((a) => `<li>${echapper(a)}</li>`).join("")}</ol><p>Modifiez le devis depuis sa fiche (bouton « Modifier ») puis renvoyez-le au client. Il peut toujours l'accepter ou le refuser entre-temps.</p>`,
+    ),
+  );
+  revalidatePath(`/app/facturation/devis/${devisId}`);
+  revalidatePath("/app/facturation");
+  return { succes: "Votre demande a été transmise : l'entreprise va revoir ce devis et vous répondre." };
 }
 
 export async function repondreDevisPublic(

@@ -1,0 +1,33 @@
+/** Modification d'un devis (brouillon ou envoyé, tant que le client n'a pas répondu). */
+export const DEVIS_MODIFICATION: Record<string, string> = {
+  "Modifier le devis {numero}": "Edit quote {numero}",
+  "Ce devis a déjà été envoyé : son lien en ligne montrera aussitôt la version modifiée. Pensez à le renvoyer au client pour qu'il reçoive le PDF à jour.":
+    "This quote has already been sent: its online link will immediately show the edited version. Remember to send it again so the customer receives the updated PDF.",
+  "Vous n'avez pas le droit de modifier ce devis.": "You are not allowed to edit this quote.",
+  "Ce devis ne peut plus être modifié : le client a déjà répondu ou il n'est plus valable.":
+    "This quote can no longer be edited: the customer has already replied or it is no longer valid.",
+  "Le client demande la révision de ce devis.": "The customer is asking for this quote to be reviewed.",
+  "Modifiez le devis puis renvoyez-le au client : la demande sera marquée comme traitée.": "Edit the quote then send it again to the customer: the request will be marked as handled.",
+  "Brouillons": "Drafts",
+  "En attente de réponse": "Awaiting reply",
+  "Acceptés": "Accepted",
+  "Refusés": "Declined",
+  "Expirés": "Expired",
+  "Toutes": "All",
+  "Non payées": "Unpaid",
+  "Payées": "Paid",
+  "Annulées": "Cancelled",
+  "T{n} {annee}": "Q{n} {annee}",
+  "S{n} {annee}": "H{n} {annee}",
+  "Regrouper par": "Group by",
+  "Rechercher par numéro ou client": "Search by number or customer",
+  "Filtrer par statut": "Filter by status",
+  "Aucun document ne correspond à ces critères.": "No document matches these criteria.",
+  "{n} document": "{n} document",
+  "{n} documents": "{n} documents",
+  "Avancez au moins 3 arguments pour demander la révision de ce devis.": "Give at least 3 arguments to ask for this quote to be reviewed.",
+  "Six arguments au plus : gardez les plus importants.": "Six arguments at most: keep the most important ones.",
+  "Chaque argument doit être une phrase complète (15 caractères et 3 mots au moins).": "Each argument must be a complete sentence (at least 15 characters and 3 words).",
+  "Vos arguments doivent être différents les uns des autres.": "Your arguments must differ from one another.",
+  "Devis modifiable tant que le client n'a pas répondu, et le client peut en demander la révision depuis son lien en avançant au moins 3 arguments ; devis et factures classés par mois, trimestre, semestre ou année, et filtrés par statut (payées, non payées, en attente, en retard)": "Quote editable until the customer replies, and the customer can ask for a review from their link by giving at least 3 arguments; quotes and invoices sorted by month, quarter, half-year or year, and filtered by status (paid, unpaid, pending, overdue)",
+};

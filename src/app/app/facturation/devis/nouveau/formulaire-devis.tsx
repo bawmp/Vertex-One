@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Champ, ChampSelect } from "@/components/formulaire/champ";
 import { SectionFormulaire } from "@/components/formulaire/cadre-formulaire";
-import { creerDevis } from "@/lib/actions/devis";
+import { creerDevis, modifierDevis } from "@/lib/actions/devis";
 import { calculerMontants, formaterFCFA } from "@/lib/facturation/calcul";
 import { convertirDepuisXaf, convertirVersXaf, formaterMontantDevise, formaterTaux } from "@/lib/devises/regles";
 import { useT } from "@/lib/i18n/contexte";
@@ -21,19 +21,22 @@ export function FormulaireDevis({
   contactId,
   produits,
   devises = [],
+  modification,
 }: {
   dealId?: string;
   contactId?: string;
   produits: { id: string; nom: string; prixVente: number }[];
   /** Devises dont un taux est en vigueur (vide = devis en FCFA uniquement). */
   devises?: { devise: string; tauxMilliemes: number }[];
+  /** Modification d'un devis existant : valeurs de départ ; la devise (et son taux figé) ne changent pas. */
+  modification?: { devisId: string; dateValidite: string; devise: string | null; tauxMilliemes: number | null; lignes: Omit<Ligne, "cle">[] };
 }) {
   const t = useT();
-  const [etat, action, enCours] = useActionState(creerDevis, null);
-  const [prochaineCle, setProchaineCle] = useState(1);
-  const [lignes, setLignes] = useState<Ligne[]>([{ cle: 0, ...LIGNE_VIDE }]);
-  const [devise, setDevise] = useState("");
-  const tauxDevise = devises.find((d) => d.devise === devise)?.tauxMilliemes ?? null;
+  const [etat, action, enCours] = useActionState(modification ? modifierDevis.bind(null, modification.devisId) : creerDevis, null);
+  const [prochaineCle, setProchaineCle] = useState(modification ? modification.lignes.length : 1);
+  const [lignes, setLignes] = useState<Ligne[]>(modification ? modification.lignes.map((l, i) => ({ cle: i, ...l })) : [{ cle: 0, ...LIGNE_VIDE }]);
+  const [devise, setDevise] = useState(modification?.devise ?? "");
+  const tauxDevise = modification ? modification.tauxMilliemes : (devises.find((d) => d.devise === devise)?.tauxMilliemes ?? null);
 
   function majLigne(index: number, champ: keyof Ligne, valeur: string) {
     setLignes((precedent) => precedent.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
@@ -60,7 +63,7 @@ export function FormulaireDevis({
       {contactId ? <input type="hidden" name="contactId" value={contactId} /> : null}
 
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
-        {devises.length > 0 ? (
+        {!modification && devises.length > 0 ? (
           <SectionFormulaire titre={t("Devise")}>
             <ChampSelect label={t("Devise du devis")} name="devise" value={devise} onChange={(e) => setDevise(e.target.value)} className="max-w-xs">
               <option value="">FCFA</option>
@@ -74,7 +77,7 @@ export function FormulaireDevis({
           </SectionFormulaire>
         ) : null}
         <SectionFormulaire titre={t("Validité")}>
-          <Champ label={t("Valide jusqu'au")} id="dateValidite" name="dateValidite" type="date" required icone={CalendarClock} className="max-w-xs" />
+          <Champ label={t("Valide jusqu'au")} id="dateValidite" name="dateValidite" type="date" required icone={CalendarClock} className="max-w-xs" defaultValue={modification?.dateValidite} />
         </SectionFormulaire>
       </div>
 
@@ -145,7 +148,7 @@ export function FormulaireDevis({
         </div>
       </div>
 
-      <ChoixDepotDocument sens="sortie" />
+      {modification ? null : <ChoixDepotDocument sens="sortie" />}
 
       {etat?.erreur ? (
         <p role="alert" className="animate-in rounded-xl bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive fade-in slide-in-from-top-1">
@@ -155,7 +158,7 @@ export function FormulaireDevis({
 
       <Button type="submit" size="lg" disabled={enCours} className="h-12 self-start px-6 text-base">
         {enCours ? <Spinner data-icon="inline-start" /> : null}
-        {enCours ? t("Création…") : t("Créer le devis")}
+        {modification ? (enCours ? t("Enregistrement…") : t("Enregistrer les modifications")) : enCours ? t("Création…") : t("Créer le devis")}
       </Button>
     </form>
   );

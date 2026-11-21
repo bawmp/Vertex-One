@@ -137,6 +137,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Comptabilité analytique : résultat par projet, par agence ou par département, en rattachant une facture ou une dépense à une section (ses règlements la suivent)"),
       m("Taux de change : l'équivalent de chaque facture dans une autre devise (euro, dollar…) à la date d'émission, et un convertisseur ; la comptabilité reste en FCFA"),
       m("Devis en euro, dollar ou autre devise : prix saisis dans la devise, taux du jour figé sur le devis puis repris par la facture, total affiché en devise sur le PDF ; la comptabilité reste en FCFA"),
+      m("Devis modifiable tant que le client n'a pas répondu, et le client peut en demander la révision depuis son lien en avançant au moins 3 arguments ; devis et factures classés par mois, trimestre, semestre ou année, et filtrés par statut (payées, non payées, en attente, en retard)"),
       m("Exercice comptable décalé : début en juillet, avril… au choix (clôture, bilan, compte de résultat et dossier du comptable suivent les vraies dates)"),
       m("Suivi des déclarations de TVA mois par mois (échéance, statut, récépissé) et estimation de l'impôt sur les sociétés ; la télédéclaration se fait sur le portail de l'administration"),
       m("Numéros de série imprimés sur la facture, échangeables en un clic, et section analytique par défaut sur la fiche client"),

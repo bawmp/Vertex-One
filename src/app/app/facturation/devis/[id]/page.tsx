@@ -1,10 +1,10 @@
 import { mentionDevise } from "@/lib/devises/facture";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
-import { Download, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { eq, desc } from "drizzle-orm";
+import { Download, Pencil, ArrowRight, CheckCircle2, XCircle, MessageSquareText } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { devis, ligneDevis, contact, compteClient, facture } from "@/db/schema";
+import { devis, ligneDevis, contact, compteClient, facture, demandeRevisionDevis } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { formaterFCFA } from "@/lib/facturation/calcul";
@@ -19,6 +19,7 @@ import { FormulaireMessageClient } from "../../../contacts/[id]/formulaire-messa
 import { EncartLienClient } from "@/components/encart-lien-client";
 import { obtenirOuCreerLien, urlPubliqueDevis } from "@/lib/client-documents/liens";
 import { getT } from "@/lib/i18n/langue";
+import { texteVersArguments } from "@/lib/facturation/revision-devis";
 
 export default async function PageDetailDevis({ params }: { params: Promise<{ id: string }> }) {
   const t = await getT();
@@ -30,9 +31,10 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
     const [d] = await tx.select().from(devis).where(eq(devis.id, id));
     if (!d) return null;
 
-    const [l, [f]] = await Promise.all([
+    const [l, [f], revisions] = await Promise.all([
       tx.select().from(ligneDevis).where(eq(ligneDevis.devisId, id)),
       tx.select().from(facture).where(eq(facture.devisOrigineId, id)),
+      tx.select().from(demandeRevisionDevis).where(eq(demandeRevisionDevis.devisId, id)).orderBy(desc(demandeRevisionDevis.creeLe)),
     ]);
     const [p] = d.contactId ? await tx.select().from(contact).where(eq(contact.id, d.contactId)) : [null];
     const [compte] = d.compteId ? await tx.select().from(compteClient).where(eq(compteClient.id, d.compteId)) : [null];
@@ -40,11 +42,12 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
     // Lien à partager au client dès que le devis n'est plus un brouillon.
     const jetonClient = d.statut === "BROUILLON" ? null : await obtenirOuCreerLien(tx, utilisateurConnecte.entrepriseId, { devisId: id });
 
-    return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null, jetonClient };
+    return { leDevis: d, lignes: l, leProspect: p, leCompte: compte, laFacture: f ?? null, jetonClient, revisions };
   });
 
   if (!donnees) notFound();
-  const { leDevis, lignes, leProspect, leCompte, laFacture, jetonClient } = donnees;
+  const { leDevis, lignes, leProspect, leCompte, laFacture, jetonClient, revisions } = donnees;
+  const revisionsEnAttente = revisions.filter((r) => !r.traiteLe);
 
   const quand = (d: Date | null) => (d ? ` le ${new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(d)}` : "");
   const resumeReponse =
@@ -71,6 +74,13 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
             {leCompte ? ` — ${leCompte.nom}` : ""}
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        {peutModifier && !laFacture && (leDevis.statut === "BROUILLON" || leDevis.statut === "ENVOYE") ? (
+          <Button variant="outline" size="sm" render={<Link href={`/app/facturation/devis/${leDevis.id}/modifier`} />} nativeButton={false}>
+            <Pencil data-icon="inline-start" aria-hidden />
+            {t("Modifier")}
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           size="sm"
@@ -80,6 +90,7 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           <Download data-icon="inline-start" aria-hidden />
           {t("Télécharger le PDF")}
         </Button>
+        </div>
       </div>
 
       {leDevis.reponseLe && leDevis.statut === "ACCEPTE" ? (
@@ -97,6 +108,26 @@ export default async function PageDetailDevis({ params }: { params: Promise<{ id
           <div>
             <p className="font-medium">{t("Le client a refusé ce devis le {date}.", { date: dateReponse ?? "" })}</p>
             <p className="mt-0.5">{leDevis.motifRefus ? t("Motif : « {motif} »", { motif: leDevis.motifRefus }) : t("Aucun motif indiqué.")}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {revisionsEnAttente.length > 0 ? (
+        <div role="status" className="flex items-start gap-3 rounded-lg bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
+          <MessageSquareText className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <div className="flex min-w-0 flex-col gap-2">
+            <p className="font-medium">{t("Le client demande la révision de ce devis.")}</p>
+            {revisionsEnAttente.map((r) => (
+              <blockquote key={r.id} className="border-l-2 border-sky-300 pl-3">
+                <ol className="list-decimal pl-5">
+                  {texteVersArguments(r.message).map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ol>
+                <p className="mt-0.5 text-xs opacity-75">{new Intl.DateTimeFormat(t.locale, { dateStyle: "long", timeStyle: "short" }).format(r.creeLe)}</p>
+              </blockquote>
+            ))}
+            {peutModifier ? <p className="text-xs opacity-80">{t("Modifiez le devis puis renvoyez-le au client : la demande sera marquée comme traitée.")}</p> : null}
           </div>
         </div>
       ) : null}

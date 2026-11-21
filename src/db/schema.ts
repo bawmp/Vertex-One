@@ -1868,6 +1868,33 @@ export const paiement = pgTable(
 // Compte ElyonPay PROPRE à chaque entreprise (2026-11-20) : les paiements Mobile Money de ses clients vont directement sur ce compte, Vertex One ne détient jamais ces fonds.
 // La clé d'API est un secret : chiffrée (AES-256-GCM, voir src/lib/boutique/chiffrement.ts), jamais renvoyée au navigateur ; seuls ses 4 derniers caractères sont gardés en clair
 // pour l'affichage. Une seule ligne par entreprise. RLS stricte, SANS lecture anonyme : relire un paiement relit ce compte via avecEntreprise() avec l'entreprise de la tentative.
+// Demande de révision d'un devis par le client (2026-11-21) : depuis son lien public, il avance ses arguments (prix, délai, périmètre…) et demande
+// que le devis soit revu. Traitée (traiteLe) quand l'équipe modifie le devis. Jamais lue en anonyme : via avecEntreprise(entrepriseId du lien).
+export const demandeRevisionDevis = pgTable(
+  "demande_revision_devis",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    devisId: text("devis_id")
+      .notNull()
+      .references(() => devis.id),
+    message: text("message").notNull(),
+    clientIp: text("client_ip"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    traiteLe: timestamp("traite_le"),
+  },
+  (table) => [
+    index("demande_revision_devis_devis_idx").on(table.devisId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
 export const compteElyonpay = pgTable(
   "compte_elyonpay",
   {
