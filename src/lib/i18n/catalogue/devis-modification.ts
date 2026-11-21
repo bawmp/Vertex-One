@@ -38,4 +38,5 @@ export const DEVIS_MODIFICATION: Record<string, string> = {
   "Montant invalide : un nombre entier, sans décimales.": "Invalid amount: a whole number, without decimals.",
   "Montant invalide : deux décimales au plus.": "Invalid amount: two decimals at most.",
   "Votre montant doit être supérieur à 0 et inférieur au montant actuel du devis.": "Your amount must be greater than 0 and lower than the current quote amount.",
+  "Réglages des devis": "Quote settings",
 };

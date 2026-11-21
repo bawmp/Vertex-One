@@ -151,6 +151,11 @@ export default async function PageFacturation() {
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <FileText className="size-4" aria-hidden />
           {t("Devis")}
+          {peut(utilisateurConnecte, "PARAMETRES", "MODIFIER") ? (
+            <Link href="/app/parametres#devis" className="ml-auto text-xs font-normal text-primary hover:underline">
+              {t("Réglages des devis")}
+            </Link>
+          ) : null}
         </h2>
         <ListeClassee
           type="devis"

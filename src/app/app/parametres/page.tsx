@@ -90,7 +90,7 @@ export default async function PageParametres() {
               <p className="mb-2 text-sm font-medium">{t("Paiement des factures")}</p>
               <FormulairePaiementTranches actifInitial={monEntreprise?.paiementEnTranches ?? true} />
             </div>
-            <div>
+            <div id="devis" className="scroll-mt-20">
               <p className="mb-2 text-sm font-medium">{t("Devis")}</p>
               <FormulaireRevisionDevis actifInitial={monEntreprise?.revisionDevisActive ?? true} />
             </div>
