@@ -28,6 +28,7 @@ import { anniversairesDesPartenaires, etatPartageFiches, partenairesFiches } fro
 import { libelleDelai } from "@/lib/rh/anniversaires-regles";
 import { LIBELLE_CONTRAT, LIBELLE_ROLE } from "@/lib/rh/fiche-affichage";
 import { getT } from "@/lib/i18n/langue";
+import { compterDemandesEnAttente } from "@/lib/rh/demande-collaborateur";
 
 const LIBELLE_TYPE_CONGE: Record<string, string> = { CONGE_PAYE: m("Congé payé"), MALADIE: m("Maladie"), SANS_SOLDE: m("Sans solde"), AUTRE: m("Autre") };
 const LIBELLE_TYPE_DEPART: Record<string, string> = { DEMISSION: m("Démission"), LICENCIEMENT: m("Licenciement"), FIN_CONTRAT: m("Fin de contrat"), AUTRE: m("Autre") };
@@ -172,6 +173,8 @@ export default async function PageRH() {
   });
 
   const { activite, projetsDisponible, rhDisponible, dossiers, demandesEnAttente, departsEnAttente, nomParDossierRHId, rapport, anniversaires, dossierParUtilisateur, anniversairesGroupe, lienGroupe, souhaitAnniversaire } = donnees;
+  // Fiches demandées par des Managers, en attente de la confirmation de l'Administrateur (0 pour les autres rôles).
+  const demandesAConfirmer = rhDisponible && utilisateurConnecte.role === "ADMIN" ? await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => compterDemandesEnAttente(tx, utilisateurConnecte)) : 0;
   const anniversairesTous = [...anniversaires.map((a) => ({ ...a, entrepriseNom: null as string | null })), ...anniversairesGroupe].sort((a, b) => a.jours - b.jours || a.nom.localeCompare(b.nom, "fr"));
   const anniversairesParUtilisateur = Object.fromEntries(anniversaires.filter((a) => a.type === "UTILISATEUR").map((a) => [a.id, a]));
   const aFichePresence = (await droitSurFiche(utilisateurConnecte)) !== null;
@@ -207,6 +210,13 @@ export default async function PageRH() {
                 {t("Groupe")}
               </Link>
             ) : null}
+            {(utilisateurConnecte.role === "ADMIN" || utilisateurConnecte.role === "MANAGER") && peut(utilisateurConnecte, "RH", "CREER") ? (
+              <Link href="/app/rh/a-confirmer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                <ClipboardCheck className="size-3.5" aria-hidden />
+                {utilisateurConnecte.role === "ADMIN" ? t("Fiches à confirmer") : t("Mes demandes de fiche")}
+                {demandesAConfirmer > 0 ? <span className="rounded-full bg-marque-orange px-1.5 text-xs font-medium text-white tabular-nums">{demandesAConfirmer}</span> : null}
+              </Link>
+            ) : null}
             {peut(utilisateurConnecte, "RH", "CREER") ? (
               <Link href="/app/rh/nouveau" className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                 <UserPlus className="size-3.5" aria-hidden />
@@ -216,6 +226,16 @@ export default async function PageRH() {
           </div>
         ) : null}
       </div>
+
+      {demandesAConfirmer > 0 ? (
+        <Link href="/app/rh/a-confirmer" className="flex items-center justify-between gap-3 rounded-2xl border border-marque-orange/40 bg-marque-orange-50 px-4 py-3 text-sm transition-colors hover:bg-marque-orange-100 dark:bg-marque-orange-900/10">
+          <span className="flex items-center gap-2 font-medium">
+            <ClipboardCheck className="size-4 text-marque-orange-600" aria-hidden />
+            {demandesAConfirmer === 1 ? t("1 fiche attend votre confirmation") : t("{n} fiches attendent votre confirmation", { n: String(demandesAConfirmer) })}
+          </span>
+          <span className="text-primary">{t("Voir")}</span>
+        </Link>
+      ) : null}
 
       {demandesEnAttente.length > 0 ? (
         <div className="flex flex-col gap-3">

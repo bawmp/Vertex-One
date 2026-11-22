@@ -6041,6 +6041,47 @@ export const mission = pgTable(
 ).enableRLS();
 
 /**
+ * Demande de création de fiche (2026-11-22) : un Manager qui veut ajouter un collaborateur dépose une DEMANDE, que l'Administrateur confirme
+ * (en pouvant corriger les informations) avant qu'aucune invitation ne parte. Tant qu'elle n'est pas confirmée, il n'existe ni invitation, ni
+ * compte, ni fiche. Aucun salaire ici : la rémunération est saisie par l'Administrateur seul, sur la fiche, une fois le compte activé.
+ * Les jours sont des textes AAAA-MM-JJ. statut : EN_ATTENTE | CONFIRMEE | REFUSEE | ANNULEE.
+ */
+export const demandeCollaborateur = pgTable(
+  "demande_collaborateur",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    demandeParId: text("demande_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    email: text("email").notNull(),
+    poste: text("poste").notNull(),
+    typeContrat: text("type_contrat").notNull(),
+    dateEmbauche: text("date_embauche").notNull(),
+    dateFin: text("date_fin"),
+    dateNaissance: text("date_naissance"),
+    responsableId: text("responsable_id"),
+    statut: text("statut").notNull().default("EN_ATTENTE"),
+    motifRefus: text("motif_refus"),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    decideLe: timestamp("decide_le"),
+    decideParId: text("decide_par_id"),
+    invitationId: text("invitation_id"),
+  },
+  (table) => [
+    index("demande_collaborateur_entreprise_idx").on(table.entrepriseId),
+    uniqueIndex("demande_collaborateur_en_attente_unique").on(table.entrepriseId, table.email).where(sql`${table.statut} = 'EN_ATTENTE'`),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
  * Transfert d'un employé d'une entreprise à une autre du MÊME groupe (2026-11-22). Une demande vit en DEUX lignes miroir, une dans chaque
  * entreprise (sens SORTANT chez l'entreprise d'origine, ENTRANT chez celle d'accueil, reliées par `transfertId`) : la RLS reste strictement par
  * entreprise, sans lecture croisée. Les noms sont recopiés à la création (l'autre entreprise ne lit jamais les tables de celle-ci). Rien ne

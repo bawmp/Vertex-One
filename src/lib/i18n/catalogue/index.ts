@@ -30,6 +30,7 @@ import { PAIEMENT_COMPTE } from "./paiement-compte";
 import { DEVIS_MODIFICATION } from "./devis-modification";
 import { MISSIONS } from "./missions";
 import { TRANSFERTS } from "./transferts";
+import { DEMANDE_COLLABORATEUR } from "./demande-collaborateur";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -60,4 +61,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...DEVIS_MODIFICATION,
   ...MISSIONS,
   ...TRANSFERTS,
+  ...DEMANDE_COLLABORATEUR,
 };

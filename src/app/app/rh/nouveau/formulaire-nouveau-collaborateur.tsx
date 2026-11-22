@@ -68,7 +68,9 @@ export function FormulaireNouveauCollaborateur({ personnes, choixResponsable }: 
         <p className="text-xs text-muted-foreground">{t("Vous serez le responsable de cette personne.")}</p>
       )}
       <p className="text-xs text-muted-foreground">
-        {t("La personne reçoit un email pour créer son compte (rôle Employé) ; sa fiche se crée à ce moment-là, avec ces informations. Elle y ajoutera sa photo et complétera ses coordonnées. Le salaire n'est pas saisi ici : seul l'Administrateur le renseigne, depuis la fiche.")}
+        {choixResponsable
+          ? t("La personne reçoit un email pour créer son compte (rôle Employé) ; sa fiche se crée à ce moment-là, avec ces informations. Elle y ajoutera sa photo et complétera ses coordonnées. Le salaire n'est pas saisi ici : seul l'Administrateur le renseigne, depuis la fiche.")
+          : t("Votre demande est transmise à l'Administrateur, qui doit confirmer la fiche : la personne n'est invitée qu'après sa confirmation. Le salaire n'est pas saisi ici : seul l'Administrateur le renseigne, depuis la fiche, et il reste visible de lui et de la personne seulement.")}
       </p>
       {etat?.erreur ? <p role="alert" className="text-sm text-destructive">{etat.erreur}</p> : null}
       {etat?.succes ? (
@@ -79,7 +81,7 @@ export function FormulaireNouveauCollaborateur({ personnes, choixResponsable }: 
       ) : null}
       <Button type="submit" disabled={enCours} className="self-start">
         {enCours ? <Spinner /> : <Send data-icon="inline-start" aria-hidden />}
-        {t("Créer la fiche et inviter")}
+        {choixResponsable ? t("Créer la fiche et inviter") : t("Envoyer la demande à l'Administrateur")}
       </Button>
     </form>
   );

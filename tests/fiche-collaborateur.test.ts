@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db, avecEntreprise } from "@/db/client";
-import { contact, dossier, dossierRH, entreprise, invitation, projet, rappelAnniversaire, tache, tacheCrm, utilisateur } from "@/db/schema";
+import { contact, demandeCollaborateur, dossier, dossierRH, entreprise, invitation, projet, rappelAnniversaire, tache, tacheCrm, utilisateur } from "@/db/schema";
 import { supprimerEntrepriseDeTest } from "./aide-nettoyage";
 import type { UtilisateurConnecte } from "@/lib/session";
 
@@ -11,6 +11,7 @@ const envoyes: { to: string; subject: string; html: string }[] = [];
 vi.mock("@/lib/email/client", () => ({ envoyerEmail: async (m: { to: string; subject: string; html: string }) => { envoyes.push(m); return { envoye: true }; } }));
 vi.mock("@/lib/invitations/envoi", () => ({ envoyerEmailInvitation: async () => ({ envoye: true }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/server", () => ({ after: (travail: () => unknown) => { void travail(); } }));
 vi.mock("@/lib/i18n/langue", () => ({ getT: async () => Object.assign((texte: string, v?: Record<string, string | number>) => (v ? texte.replace(/{(w+)}/g, (b, k: string) => String(v[k] ?? b)) : texte), { locale: "fr-FR" }) }));
 vi.mock("next/navigation", () => ({ redirect: (u: string) => { throw new Error(`REDIRECT ${u}`); } }));
 let connecte: UtilisateurConnecte | null = null;
@@ -252,14 +253,22 @@ describe("Fiche collaborateur — base réelle", () => {
     connecte = sess("managerA", "MANAGER", A);
     const r = await inviterCollaborateur(null, formulaire(base));
     expect(r?.succes).toBeTruthy();
-    const [inv] = await avecEntreprise(A, (tx) => tx.select().from(invitation).where(eq(invitation.email, base.email)));
-    expect(inv).toMatchObject({ roleProposee: "EMPLOYE", typeContratPropose: "CDD", managerPropose: id.managerA, dateNaissancePropose: "1999-04-20", postePropose: "Assistant" });
-    expect(Object.keys(inv)).not.toContain("salaire");
-    // Le responsable demandé par un Manager est ignoré (il l'est d'office).
-    connecte = sess("managerA", "MANAGER", A);
+    // Un Manager dépose une DEMANDE : ni invitation ni compte tant que l'Administrateur n'a pas confirmé ; jamais de salaire.
+    expect(await avecEntreprise(A, (tx) => tx.select().from(invitation).where(eq(invitation.email, base.email)))).toHaveLength(0);
+    const [dem] = await avecEntreprise(A, (tx) => tx.select().from(demandeCollaborateur).where(eq(demandeCollaborateur.email, base.email)));
+    expect(dem).toMatchObject({ statut: "EN_ATTENTE", demandeParId: id.managerA, responsableId: id.managerA, typeContrat: "CDD", dateNaissance: "1999-04-20", poste: "Assistant" });
+    expect(Object.keys(dem)).not.toContain("salaire");
+    // Une deuxième demande pour la même adresse est refusée ; le responsable demandé par un Manager est ignoré (il l'est d'office).
+    expect((await inviterCollaborateur(null, formulaire(base)))?.erreur).toMatch(/déjà en attente/);
     await inviterCollaborateur(null, formulaire({ ...base, email: `deux-${suffixe}@vertexone.test`, responsableId: id.horsEquipeA }));
-    const [inv2] = await avecEntreprise(A, (tx) => tx.select().from(invitation).where(eq(invitation.email, `deux-${suffixe}@vertexone.test`)));
-    expect(inv2.managerPropose).toBe(id.managerA);
+    const [dem2] = await avecEntreprise(A, (tx) => tx.select().from(demandeCollaborateur).where(eq(demandeCollaborateur.email, `deux-${suffixe}@vertexone.test`)));
+    expect(dem2.responsableId).toBe(id.managerA);
+    // L'Administrateur, lui, invite directement (aucune confirmation à se demander à lui-même).
+    connecte = sess("adminA", "ADMIN", A);
+    expect((await inviterCollaborateur(null, formulaire({ ...base, email: `direct-${suffixe}@vertexone.test` })))?.succes).toBeTruthy();
+    const [inv] = await avecEntreprise(A, (tx) => tx.select().from(invitation).where(eq(invitation.email, `direct-${suffixe}@vertexone.test`)));
+    expect(inv).toMatchObject({ roleProposee: "EMPLOYE", typeContratPropose: "CDD", dateNaissancePropose: "1999-04-20", postePropose: "Assistant" });
+    expect(Object.keys(inv)).not.toContain("salaire");
     // Un Employé n'a pas ce droit ; l'Administrateur ne peut pas désigner le responsable d'une autre entreprise.
     connecte = sess("equipeA", "EMPLOYE", A);
     expect((await inviterCollaborateur(null, formulaire({ ...base, email: `trois-${suffixe}@vertexone.test` })))?.erreur).toMatch(/pas le droit/);
