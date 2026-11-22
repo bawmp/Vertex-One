@@ -12,6 +12,8 @@ export async function supprimerEntrepriseDeTest(nomEntreprise: string): Promise<
   try {
     const ids = (await c.query("select id from entreprise where nom = $1", [nomEntreprise])).rows.map((r) => r.id as string);
     if (ids.length === 0) return;
+    // Les transferts entre entreprises d'un groupe se référencent en croix (origine / accueil) : on les retire d'abord, quelle que soit la ligne.
+    await c.query("delete from transfert_employe where entreprise_source_id = any($1) or entreprise_cible_id = any($1)", [ids]);
     const tables = (await c.query("select table_name from information_schema.columns where column_name = 'entreprise_id' and table_schema = 'public'")).rows
       .map((r) => r.table_name as string)
       .filter((t) => t !== "entreprise");

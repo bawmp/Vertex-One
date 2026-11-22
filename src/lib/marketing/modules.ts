@@ -173,6 +173,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Rappel des anniversaires : carte à venir pour l'administrateur et les managers, et un email chaque matin à l'administrateur et au responsable de la personne"),
       m("Une même personne ne peut travailler que dans une seule entreprise d'un groupe : l'embauche est refusée si elle est déjà employée ailleurs dans le groupe (reconnue par email, téléphone, ou nom et date de naissance)"),
       m("Un employé ou un stagiaire n'a accès qu'à sa fiche, ses tâches et au chat : les autres modules s'ouvrent un par un, au choix de l'administrateur"),
+      m("Transferts d'employés : faites passer un collaborateur d'une entreprise du groupe à une autre, avec l'accord des deux administrateurs, en gardant son compte et sa fiche"),
       m("Missions : confiez à chaque collaborateur des missions de la semaine, du mois, de longue durée ou permanentes, avec résultat attendu, avancement et points de suivi"),
       m("Tâches du poste : les responsabilités permanentes ou récurrentes de chaque collaborateur (relances, clôtures, rapports), posées par l'administrateur ou son manager et visibles sur sa fiche"),
       m("Organigramme de l'équipe en arbre, et mot d'anniversaire envoyé à la personne si vous l'activez"),

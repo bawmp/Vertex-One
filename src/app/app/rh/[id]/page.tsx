@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and, ne } from "drizzle-orm";
-import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, ClipboardList, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, Target, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, ClipboardList, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, Target, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -320,6 +320,12 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               <LogOut className="size-3.5" aria-hidden />
               {t("Départ")}
             </Link>
+            {utilisateurConnecte.role === "ADMIN" && !estProprietaire && (ligne.role === "EMPLOYE" || ligne.role === "MANAGER") ? (
+              <Link href={`/app/rh/transferts?personne=${ligne.utilisateurId}`} className={lienHero}>
+                <ArrowRightLeft className="size-3.5" aria-hidden />
+                {t("Transférer")}
+              </Link>
+            ) : null}
             {peutModifierDossier ? (
               <Link href={`/app/rh/${ligne.id}/export`} className={lienHero}>
                 <Download className="size-3.5" aria-hidden />

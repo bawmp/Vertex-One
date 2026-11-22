@@ -29,6 +29,7 @@ import { PROSPECTS_AUTO } from "./prospects-auto";
 import { PAIEMENT_COMPTE } from "./paiement-compte";
 import { DEVIS_MODIFICATION } from "./devis-modification";
 import { MISSIONS } from "./missions";
+import { TRANSFERTS } from "./transferts";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -58,4 +59,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...PAIEMENT_COMPTE,
   ...DEVIS_MODIFICATION,
   ...MISSIONS,
+  ...TRANSFERTS,
 };

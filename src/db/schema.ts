@@ -6041,6 +6041,58 @@ export const mission = pgTable(
 ).enableRLS();
 
 /**
+ * Transfert d'un employé d'une entreprise à une autre du MÊME groupe (2026-11-22). Une demande vit en DEUX lignes miroir, une dans chaque
+ * entreprise (sens SORTANT chez l'entreprise d'origine, ENTRANT chez celle d'accueil, reliées par `transfertId`) : la RLS reste strictement par
+ * entreprise, sans lecture croisée. Les noms sont recopiés à la création (l'autre entreprise ne lit jamais les tables de celle-ci). Rien ne
+ * bouge avant l'accord de l'Administrateur d'accueil. statut : EN_ATTENTE | ACCEPTE | REFUSE | ANNULE.
+ */
+export const transfertEmploye = pgTable(
+  "transfert_employe",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    sens: text("sens").notNull(), // SORTANT | ENTRANT
+    transfertId: text("transfert_id").notNull(),
+    entrepriseSourceId: text("entreprise_source_id")
+      .notNull()
+      .references(() => entreprise.id),
+    entrepriseCibleId: text("entreprise_cible_id")
+      .notNull()
+      .references(() => entreprise.id),
+    nomEntrepriseSource: text("nom_entreprise_source").notNull(),
+    nomEntrepriseCible: text("nom_entreprise_cible").notNull(),
+    utilisateurSourceId: text("utilisateur_source_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    nomPersonne: text("nom_personne").notNull(),
+    poste: text("poste"),
+    rolePersonne: text("role_personne").notNull(),
+    message: text("message"),
+    statut: text("statut").notNull().default("EN_ATTENTE"),
+    proposeParId: text("propose_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    nomProposePar: text("nom_propose_par").notNull(),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    decideLe: timestamp("decide_le"),
+    motifDecision: text("motif_decision"),
+    nouvelUtilisateurId: text("nouvel_utilisateur_id"),
+  },
+  (table) => [
+    index("transfert_employe_entreprise_idx").on(table.entrepriseId),
+    index("transfert_employe_transfert_idx").on(table.transfertId),
+    uniqueIndex("transfert_employe_en_attente_unique").on(table.utilisateurSourceId, table.sens).where(sql`${table.statut} = 'EN_ATTENTE'`),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
  * Rapport écrit adressé à un supérieur (2026-11-10). Un Employé écrit à l'un des Managers de l'entreprise ; un Manager écrit à son supérieur
  * (son responsable direct et ceux au-dessus de lui) ou à un Administrateur. Confidentiel : seuls l'auteur et le destinataire le lisent,
  * l'Administrateur compris quand il n'est ni l'un ni l'autre. Jamais supprimé ni modifié après l'envoi (c'est une trace écrite).
