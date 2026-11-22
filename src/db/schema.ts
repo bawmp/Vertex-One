@@ -5997,6 +5997,50 @@ export const tachePoste = pgTable(
 ).enableRLS();
 
 /**
+ * Missions (2026-11-22) : ce qu'une personne doit accomplir sur une durée donnée — la semaine, le mois, une longue période — ou en
+ * permanence. Différent des tâches du poste (liste de responsabilités sans suivi) et des tâches de projet (ponctuelles, liées à un
+ * client) : une mission a un résultat attendu, une période, un avancement et un point de suivi. Posée par l'Administrateur ou le manager
+ * de la personne (jamais par elle-même) ; la personne en suit l'avancement. Les jours sont des textes AAAA-MM-JJ lus à l'heure de Douala.
+ * horizon : HEBDOMADAIRE | MENSUELLE | LONGUE_DUREE | PERMANENTE (sans date de fin) ; statut : EN_COURS | TERMINEE | ANNULEE.
+ */
+export const mission = pgTable(
+  "mission",
+  {
+    id: text("id").primaryKey().$defaultFn(() => createId()),
+    entrepriseId: text("entreprise_id")
+      .notNull()
+      .references(() => entreprise.id),
+    utilisateurId: text("utilisateur_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    titre: text("titre").notNull(),
+    description: text("description"),
+    resultatAttendu: text("resultat_attendu"),
+    horizon: text("horizon").notNull(),
+    dateDebut: text("date_debut").notNull(),
+    dateFin: text("date_fin"),
+    statut: text("statut").notNull().default("EN_COURS"),
+    avancement: integer("avancement").notNull().default(0),
+    noteSuivi: text("note_suivi"),
+    suiviLe: timestamp("suivi_le"),
+    creeParId: text("cree_par_id")
+      .notNull()
+      .references(() => utilisateur.id),
+    creeLe: timestamp("cree_le").notNull().defaultNow(),
+    termineeLe: timestamp("terminee_le"),
+  },
+  (table) => [
+    index("mission_entreprise_idx").on(table.entrepriseId),
+    index("mission_utilisateur_idx").on(table.utilisateurId),
+    pgPolicy("isolation_entreprise", {
+      for: "all",
+      using: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+      withCheck: sql`${table.entrepriseId} = current_setting('app.entreprise_id', true)`,
+    }),
+  ]
+).enableRLS();
+
+/**
  * Rapport écrit adressé à un supérieur (2026-11-10). Un Employé écrit à l'un des Managers de l'entreprise ; un Manager écrit à son supérieur
  * (son responsable direct et ceux au-dessus de lui) ou à un Administrateur. Confidentiel : seuls l'auteur et le destinataire le lisent,
  * l'Administrateur compris quand il n'est ni l'un ni l'autre. Jamais supprimé ni modifié après l'envoi (c'est une trace écrite).

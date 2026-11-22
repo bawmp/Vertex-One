@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { eq, desc, and, ne } from "drizzle-orm";
-import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, ClipboardList, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
+import { ArrowLeft, Award, Briefcase, Building2, Cake, CalendarDays, CalendarRange, ClipboardList, Clock, Download, FolderOpen, Hash, Hourglass, IdCard, ListChecks, LogOut, Target, MapPin, Phone, ShieldAlert, ShieldCheck, UserRound, Wallet, Wifi } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
 import { entreprise, dossierRH, utilisateur, demandeConge, evaluation, pointage, politiqueConge, politiqueCongePalier, revisionSalaire, documentRH, regularisationPointage, shift, service, autorisationDepartementRh } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
@@ -42,6 +42,10 @@ import { ageAu, libelleDelai, prochainAnniversaire } from "@/lib/rh/anniversaire
 import { estEnRetard, tachesDuCollaborateur } from "@/lib/rh/taches-collaborateur";
 import { lireTachesPoste, peutGererTachesPoste } from "@/lib/rh/taches-poste";
 import { ListeTachesPoste } from "./carte-taches-poste";
+import { lireMissions, peutGererMissions, personnesAssignables } from "@/lib/rh/missions";
+import { etatMission, joursRestants as joursRestantsMission } from "@/lib/rh/missions-regles";
+import { aujourdhuiDouala } from "@/lib/facturation/promesse-regles";
+import { FormulaireMission, ListeMissions, type MissionAffichee } from "../missions/liste-missions";
 import { getT } from "@/lib/i18n/langue";
 
 
@@ -101,6 +105,31 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
     // Tâches du poste : lisibles par qui voit la fiche (déjà contrôlé ci-dessus) ; poser ou retirer = Administrateur ou manager dont la portée RH contient la personne.
     const tachesPoste = await lireTachesPoste(tx, utilisateurConnecte.entrepriseId, ligne.utilisateurId);
     const peutGererTaches = peutGererTachesPoste(utilisateurConnecte, ligne.utilisateurId, utilisateurConnecte.role === "ADMIN" ? "TOUT" : await idsVisibles(tx, utilisateurConnecte, "RH"));
+
+    // Missions : lues avec la portée de qui regarde la fiche ; confier, annuler ou supprimer = Administrateur ou manager dont la portée contient la personne.
+    const jourDouala = aujourdhuiDouala();
+    const idsRH = utilisateurConnecte.role === "ADMIN" ? "TOUT" : await idsVisibles(tx, utilisateurConnecte, "RH");
+    const missionsLues = await lireMissions(tx, utilisateurConnecte, { utilisateurId: ligne.utilisateurId });
+    const missions: MissionAffichee[] = missionsLues.map((l) => ({
+      id: l.id,
+      utilisateurId: l.utilisateurId,
+      nomPersonne: l.nomPersonne,
+      titre: l.titre,
+      description: l.description,
+      resultatAttendu: l.resultatAttendu,
+      horizon: l.horizon,
+      dateDebut: l.dateDebut,
+      dateFin: l.dateFin,
+      statut: l.statut,
+      avancement: l.avancement,
+      noteSuivi: l.noteSuivi,
+      suiviLe: l.suiviLe ? l.suiviLe.toISOString() : null,
+      etat: etatMission(l, jourDouala),
+      joursRestants: joursRestantsMission(l.dateFin, jourDouala),
+      peutSuivre: l.utilisateurId === utilisateurConnecte.utilisateurId || peutGererMissions(utilisateurConnecte, l.utilisateurId, idsRH),
+      peutGerer: peutGererMissions(utilisateurConnecte, l.utilisateurId, idsRH),
+    }));
+    const personnesMissions = (await personnesAssignables(tx, utilisateurConnecte)).filter((p) => p.id === ligne.utilisateurId);
 
     const demandes = await tx.select().from(demandeConge).where(eq(demandeConge.dossierRHId, id)).orderBy(desc(demandeConge.creeLe));
 
@@ -219,12 +248,15 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       nomDepartementActuel: departementActuel?.nom ?? null,
       tachesPoste,
       peutGererTaches,
+      missions,
+      personnesMissions,
+      jourDouala,
       departementsAutorises: autorisationsExistantes.map((a) => a.serviceId),
     };
   });
 
   if (!donnees) notFound();
-  const { ligne, taches, tachesPoste, peutGererTaches, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, primes, paiements, modifsAutresEntreprises, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
+  const { ligne, taches, tachesPoste, peutGererTaches, missions, personnesMissions, jourDouala, demandes, evaluations, pointageDuJour, estProprietaire, politiquesActives, politiqueAssignee, revisionsSalaire, primes, paiements, modifsAutresEntreprises, documentsRH, regularisations, shiftsActifs, collegues, services, nomDepartementActuel, departementsAutorises } = donnees;
 
   const peutVoirSalaireIci = calculerPeutVoirSalaire(utilisateurConnecte, ligne.utilisateurId);
   const peutModifierDossier = utilisateurConnecte.role === "ADMIN";
@@ -315,6 +347,11 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
         <div className="flex min-w-0 flex-col gap-6">
           <CarteFiche icone={ClipboardList} titre={t("Tâches du poste")} aide={t("Ses responsabilités dans son poste, visibles de la personne et de son manager")}>
             <ListeTachesPoste taches={tachesPoste.map((x) => ({ id: x.id, titre: x.titre, description: x.description, frequence: x.frequence }))} peutGerer={peutGererTaches} cibleId={ligne.utilisateurId} dossierRHId={ligne.id} />
+          </CarteFiche>
+
+          <CarteFiche icone={Target} titre={t("Missions")} aide={t("Ce qu'elle doit accomplir : la semaine, le mois, sur la durée ou en permanence")}>
+            <ListeMissions missions={missions} />
+            <FormulaireMission personnes={personnesMissions} personneFixeId={ligne.utilisateurId} aujourdhui={jourDouala} />
           </CarteFiche>
 
           <CarteFiche icone={ListChecks} titre={t("Tâches")} aide={t("Projets et activités CRM qui lui sont assignés")}>

@@ -1317,6 +1317,13 @@
       "when": 1796277720000,
       "tag": "0187_contre_proposition_devis",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1796364120000,
+      "tag": "0188_missions",
+      "breakpoints": true
     }
   ]
 }
