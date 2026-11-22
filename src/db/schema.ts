@@ -6028,6 +6028,12 @@ export const mission = pgTable(
       .references(() => utilisateur.id),
     creeLe: timestamp("cree_le").notNull().defaultNow(),
     termineeLe: timestamp("terminee_le"),
+    // Renouvellement automatique (2026-11-22) : une mission hebdomadaire ou mensuelle qui se recrée toute seule à la fin de sa période
+    // (le worker la clôture, statut CLOTUREE, et crée la suivante avec le même texte et un avancement à zéro). `precedenteId` chaîne les
+    // périodes ; `suivanteCreeeLe` empêche tout double renouvellement.
+    reconduction: boolean("reconduction").notNull().default(false),
+    precedenteId: text("precedente_id"),
+    suivanteCreeeLe: timestamp("suivante_creee_le"),
   },
   (table) => [
     index("mission_entreprise_idx").on(table.entrepriseId),

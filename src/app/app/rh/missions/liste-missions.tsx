@@ -1,15 +1,15 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition, type ComponentType } from "react";
-import { Ban, CalendarDays, CalendarRange, CheckCircle2, Clock, Flag, PartyPopper, Plus, Repeat, RotateCcw, Target, Trash2, TriangleAlert } from "lucide-react";
+import { Ban, CalendarDays, CalendarRange, CheckCircle2, Clock, Flag, PartyPopper, Plus, Repeat, Repeat2, RotateCcw, Target, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarCollaborateur } from "@/components/avatar-collaborateur";
-import { creerMissionAction, gererMissionAction, suivreMissionAction } from "@/lib/actions/missions";
-import { ETAT_MISSION, HORIZONS, LIBELLE_HORIZON, aUnAvancement, type EtatMission, type HorizonMission } from "@/lib/rh/missions-regles";
+import { creerMissionAction, definirReconductionAction, gererMissionAction, suivreMissionAction } from "@/lib/actions/missions";
+import { ETAT_MISSION, HORIZONS, LIBELLE_HORIZON, aUnAvancement, peutSeRenouveler, type EtatMission, type HorizonMission } from "@/lib/rh/missions-regles";
 import { useT } from "@/lib/i18n/contexte";
 import { m } from "@/lib/i18n/catalogue";
 
@@ -24,12 +24,14 @@ export type MissionAffichee = {
   horizon: HorizonMission;
   dateDebut: string;
   dateFin: string | null;
-  statut: "EN_COURS" | "TERMINEE" | "ANNULEE";
+  statut: "EN_COURS" | "TERMINEE" | "ANNULEE" | "CLOTUREE";
   avancement: number;
   noteSuivi: string | null;
   suiviLe: string | null;
   etat: EtatMission;
   joursRestants: number | null;
+  /** Se recrée toute seule à la fin de sa période (missions de la semaine et du mois). */
+  reconduction: boolean;
   peutSuivre: boolean;
   peutGerer: boolean;
 };
@@ -39,14 +41,15 @@ type IconeLucide = ComponentType<{ className?: string; "aria-hidden"?: boolean }
 const ICONE_HORIZON: Record<HorizonMission, IconeLucide> = { HEBDOMADAIRE: CalendarDays, MENSUELLE: CalendarRange, LONGUE_DUREE: Flag, PERMANENTE: Repeat };
 
 /** Pastille de couleur de l'icône d'horizon, et liseré de la carte, selon l'état : le retard saute aux yeux, le terminé rassure. */
-const LISERE: Record<EtatMission, string> = { EN_RETARD: "bg-destructive", EN_COURS: "bg-primary", A_VENIR: "bg-marque-orange", TERMINEE: "bg-emerald-500", ANNULEE: "bg-muted-foreground/30" };
-const BARRE: Record<EtatMission, string> = { EN_RETARD: "bg-destructive", EN_COURS: "bg-primary", A_VENIR: "bg-marque-orange", TERMINEE: "bg-emerald-500", ANNULEE: "bg-muted-foreground/40" };
+const LISERE: Record<EtatMission, string> = { EN_RETARD: "bg-destructive", EN_COURS: "bg-primary", A_VENIR: "bg-marque-orange", TERMINEE: "bg-emerald-500", ANNULEE: "bg-muted-foreground/30", CLOTUREE: "bg-muted-foreground/30" };
+const BARRE: Record<EtatMission, string> = { EN_RETARD: "bg-destructive", EN_COURS: "bg-primary", A_VENIR: "bg-marque-orange", TERMINEE: "bg-emerald-500", ANNULEE: "bg-muted-foreground/40", CLOTUREE: "bg-muted-foreground/40" };
 const PASTILLE: Record<EtatMission, string> = {
   EN_RETARD: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
   EN_COURS: "bg-marque-bleu-100 text-marque-bleu-800 dark:bg-marque-bleu-800 dark:text-marque-bleu-50",
   A_VENIR: "bg-marque-orange-100 text-marque-orange-600 dark:bg-marque-orange-900/30",
   TERMINEE: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
   ANNULEE: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
+  CLOTUREE: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400",
 };
 const PALIERS = [0, 25, 50, 75, 100];
 
@@ -74,6 +77,13 @@ function CarteMission({ mission: x, afficherPersonne }: { mission: MissionAffich
       const r = await suivreMissionAction(x.id, avancement, note, terminer);
       if (r?.erreur) setErreur(r.erreur);
       else setOuvert(false);
+    });
+  }
+  function basculerReconduction(actif: boolean) {
+    setErreur(null);
+    startTransition(async () => {
+      const r = await definirReconductionAction(x.id, actif);
+      if (r?.erreur) setErreur(r.erreur);
     });
   }
   function gerer(action: "ANNULER" | "ROUVRIR" | "SUPPRIMER") {
@@ -104,6 +114,12 @@ function CarteMission({ mission: x, afficherPersonne }: { mission: MissionAffich
             <span>{t(LIBELLE_HORIZON[x.horizon])}</span>
             <span aria-hidden>·</span>
             <span>{x.dateFin ? t("Du {debut} au {fin}", { debut: jour(x.dateDebut), fin: jour(x.dateFin) }) : t("Depuis le {debut}", { debut: jour(x.dateDebut) })}</span>
+            {x.reconduction && x.statut !== "ANNULEE" ? (
+              <span className="inline-flex items-center gap-1 text-marque-bleu-700 dark:text-marque-bleu-200">
+                <Repeat2 className="size-3" aria-hidden />
+                {x.horizon === "HEBDOMADAIRE" ? t("Se renouvelle chaque semaine") : t("Se renouvelle chaque mois")}
+              </span>
+            ) : null}
             {echeance ? (
               <span className={`inline-flex items-center gap-1 font-medium ${x.etat === "EN_RETARD" ? "text-destructive" : "text-foreground"}`}>
                 <Clock className="size-3" aria-hidden />
@@ -197,13 +213,19 @@ function CarteMission({ mission: x, afficherPersonne }: { mission: MissionAffich
             {t("Mettre à jour")}
           </Button>
         ) : null}
+        {x.peutGerer && x.statut !== "ANNULEE" && peutSeRenouveler(x.horizon) ? (
+          <Button type="button" size="sm" variant="ghost" disabled={enCours} onClick={() => basculerReconduction(!x.reconduction)}>
+            <Repeat2 data-icon="inline-start" aria-hidden />
+            {x.reconduction ? t("Arrêter le renouvellement") : t("Renouveler automatiquement")}
+          </Button>
+        ) : null}
         {x.peutGerer && actif ? (
           <Button type="button" size="sm" variant="ghost" disabled={enCours} onClick={() => gerer("ANNULER")}>
             <Ban data-icon="inline-start" aria-hidden />
             {t("Annuler la mission")}
           </Button>
         ) : null}
-        {x.peutGerer && !actif ? (
+        {x.peutGerer && !actif && x.statut !== "CLOTUREE" ? (
           <Button type="button" size="sm" variant="ghost" disabled={enCours} onClick={() => gerer("ROUVRIR")}>
             <RotateCcw data-icon="inline-start" aria-hidden />
             {t("Rouvrir")}
@@ -295,7 +317,7 @@ export function ListeMissions({ missions, afficherPersonne = false, vide }: { mi
 
       {closes.length > 0 ? (
         <details className="group rounded-2xl border border-border">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium select-none">{t("Terminées et annulées ({n})", { n: String(closes.length) })}</summary>
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium select-none">{t("Missions passées ({n})", { n: String(closes.length) })}</summary>
           <ul className="flex flex-col gap-3 border-t border-border p-3">
             {closes.map((x) => (
               <CarteMission key={x.id} mission={x} afficherPersonne={afficherPersonne} />
@@ -386,6 +408,12 @@ export function FormulaireMission({ personnes, personneFixeId, aujourdhui }: { p
           })}
         </div>
         <p className="text-xs text-muted-foreground">{t(AIDE_HORIZON[horizon])}</p>
+      {peutSeRenouveler(horizon) ? (
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" name="reconduction" defaultChecked className="size-4 accent-primary" />
+          {horizon === "HEBDOMADAIRE" ? t("Renouveler automatiquement chaque semaine") : t("Renouveler automatiquement chaque mois")}
+        </label>
+      ) : null}
       </fieldset>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

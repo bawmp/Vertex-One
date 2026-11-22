@@ -50,3 +50,8 @@
 # Du lundi au samedi a 7h15 (UTC, soit 8h15 a Douala) : relance automatique des prospects qualifies (e-mails modeles a J+3, J+7, J+14 par defaut),
 # pour les seules entreprises qui l'ont activee (reglage desactive par defaut), plafonnee par jour (2026-11-19).
 15 7 * * 1-6 verifier-sequences-prospects
+
+# Quotidiennement a 23h15 (UTC, soit 00h15 a Douala) : renouvelle les missions de la semaine et du mois dont la periode est finie
+# (cloture de la periode, creation de la suivante, un email par personne). Les missions de la semaine finissent le dimanche : la nouvelle
+# semaine commence donc le lundi des minuit (2026-11-22).
+15 23 * * * verifier-missions

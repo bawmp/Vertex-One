@@ -47,6 +47,8 @@ async function main() {
   const { default: anniversairesEntreprise } = await import("./tasks/anniversaires-entreprise");
   const { default: verifierSequencesProspects } = await import("./tasks/verifier-sequences-prospects");
   const { default: sequenceProspectsEntreprise } = await import("./tasks/sequence-prospects-entreprise");
+  const { default: verifierMissions } = await import("./tasks/verifier-missions");
+  const { default: renouvelerMissionsEntreprise } = await import("./tasks/renouveler-missions-entreprise");
   const { default: verifierBoutiques } = await import("./tasks/verifier-boutiques");
   const { default: synchroniserBoutiquesEntreprise } = await import("./tasks/synchroniser-boutiques-entreprise");
 
@@ -74,6 +76,8 @@ async function main() {
       "anniversaires-entreprise": anniversairesEntreprise,
       "verifier-sequences-prospects": verifierSequencesProspects,
       "sequence-prospects-entreprise": sequenceProspectsEntreprise,
+      "verifier-missions": verifierMissions,
+      "renouveler-missions-entreprise": renouvelerMissionsEntreprise,
       "verifier-boutiques": verifierBoutiques,
       "synchroniser-boutiques-entreprise": synchroniserBoutiquesEntreprise,
     },

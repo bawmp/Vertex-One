@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import type { TransactionDrizzle } from "@/db/client";
 import { entreprise, mission, utilisateur } from "@/db/schema";
 import { m } from "@/lib/i18n/catalogue";
@@ -8,8 +8,8 @@ import { idsVisibles } from "@/lib/portee";
 import type { UtilisateurConnecte } from "@/lib/session";
 import { aujourdhuiDouala } from "@/lib/facturation/promesse-regles";
 import { peutGererTachesPoste } from "./taches-poste";
-import { gabaritMissionConfiee } from "./missions-email";
-import { aUnAvancement, MAX_MISSIONS_ACTIVES, validerMission, validerSuivi, type HorizonMission, type SaisieMission, type StatutMission } from "./missions-regles";
+import { gabaritMissionConfiee, gabaritMissionsRenouvelees } from "./missions-email";
+import { aUnAvancement, MAX_MISSIONS_ACTIVES, peutSeRenouveler, prochainePeriode, validerMission, validerSuivi, type HorizonMission, type SaisieMission, type StatutMission } from "./missions-regles";
 
 /**
  * Missions (accès base). Qui voit : la personne, son manager (portée RH) et l'Administrateur. Qui pose, annule, rouvre, supprime : l'Administrateur,
@@ -38,6 +38,7 @@ export type MissionLue = {
   suiviLe: Date | null;
   creeLe: Date;
   termineeLe: Date | null;
+  reconduction: boolean;
 };
 
 /** Même règle que les tâches du poste : Administrateur, ou Manager (droit RH/MODIFIER) dont la portée contient la personne, jamais elle-même. */
@@ -77,6 +78,7 @@ export async function lireMissions(tx: TransactionDrizzle, u: UtilisateurConnect
       suiviLe: mission.suiviLe,
       creeLe: mission.creeLe,
       termineeLe: mission.termineeLe,
+      reconduction: mission.reconduction,
     })
     .from(mission)
     .innerJoin(utilisateur, eq(mission.utilisateurId, utilisateur.id))
@@ -181,4 +183,73 @@ export async function gererMission(tx: TransactionDrizzle, u: UtilisateurConnect
     await tx.update(mission).set({ statut: "EN_COURS", termineeLe: null }).where(filtre);
   }
   return { ok: true };
+}
+
+/**
+ * Active ou coupe le renouvellement automatique d'une mission de la semaine ou du mois : réservé à qui gère la personne. Une mission annulée ne
+ * se renouvelle jamais (annuler une mission arrête donc la série).
+ */
+export async function definirReconduction(tx: TransactionDrizzle, u: UtilisateurConnecte, missionId: string, actif: boolean): Promise<Resultat> {
+  const l = await lireUne(tx, u.entrepriseId, missionId);
+  if (!l) return { ok: false, erreur: m("Mission introuvable.") };
+  if (!peutGererMissions(u, l.utilisateurId, await porteeRH(tx, u))) return { ok: false, erreur: m("Vous n'avez pas le droit de modifier cette mission.") };
+  if (!peutSeRenouveler(l.horizon)) return { ok: false, erreur: m("Seules les missions de la semaine et du mois peuvent se renouveler.") };
+  if (l.statut === "ANNULEE") return { ok: false, erreur: m("Une mission annulée ne se renouvelle pas.") };
+  await tx.update(mission).set({ reconduction: actif === true }).where(and(eq(mission.id, missionId), eq(mission.entrepriseId, u.entrepriseId)));
+  return { ok: true };
+}
+
+/**
+ * Renouvelle les missions dont la période est finie (appelé chaque nuit par le worker, une entreprise à la fois, dans sa transaction RLS).
+ * Pour chaque mission `reconduction` dont la fin est passée, jamais annulée, de quelqu'un d'encore actif : elle est CLOTUREE si elle était en cours
+ * (l'avancement atteint reste, c'est l'historique de la période), et la suivante est créée — même texte, même personne, même auteur, avancement à zéro.
+ * Idempotent : la mission est « réservée » (`suivante_creee_le`) AVANT la création, donc deux passages simultanés ne créent jamais deux suites.
+ * Renvoie un email par personne, regroupant ses missions renouvelées.
+ */
+export async function renouvelerMissions(tx: TransactionDrizzle, entrepriseId: string, aujourdhui: string): Promise<{ renouvelees: number; courriers: { to: string; sujet: string; html: string }[] }> {
+  const echues = await tx
+    .select({ m: mission, nom: utilisateur.nomComplet, email: utilisateur.email })
+    .from(mission)
+    .innerJoin(utilisateur, eq(mission.utilisateurId, utilisateur.id))
+    .where(and(eq(mission.entrepriseId, entrepriseId), eq(utilisateur.entrepriseId, entrepriseId), eq(utilisateur.statut, "ACTIF"), eq(mission.reconduction, true), isNull(mission.suivanteCreeeLe), ne(mission.statut, "ANNULEE"), lt(mission.dateFin, aujourdhui)));
+
+  const parPersonne = new Map<string, { nom: string; email: string; missions: { titre: string; resultatAttendu: string | null; dateDebut: string; dateFin: string }[] }>();
+  let renouvelees = 0;
+  for (const { m: ancienne, nom, email } of echues) {
+    const periode = prochainePeriode(ancienne.horizon, ancienne.dateFin, aujourdhui);
+    if (!periode) continue;
+    // Réservation d'abord : seul le passage qui la prend crée la suivante.
+    const reservee = await tx
+      .update(mission)
+      .set({ suivanteCreeeLe: sql`now()`, statut: ancienne.statut === "EN_COURS" ? "CLOTUREE" : ancienne.statut })
+      .where(and(eq(mission.id, ancienne.id), eq(mission.entrepriseId, entrepriseId), isNull(mission.suivanteCreeeLe)))
+      .returning({ id: mission.id });
+    if (reservee.length === 0) continue;
+    await tx.insert(mission).values({
+      entrepriseId,
+      utilisateurId: ancienne.utilisateurId,
+      titre: ancienne.titre,
+      description: ancienne.description,
+      resultatAttendu: ancienne.resultatAttendu,
+      horizon: ancienne.horizon,
+      dateDebut: periode.dateDebut,
+      dateFin: periode.dateFin,
+      creeParId: ancienne.creeParId,
+      reconduction: true,
+      precedenteId: ancienne.id,
+    });
+    renouvelees++;
+    const p = parPersonne.get(ancienne.utilisateurId) ?? { nom, email, missions: [] };
+    p.missions.push({ titre: ancienne.titre, resultatAttendu: ancienne.resultatAttendu, dateDebut: periode.dateDebut, dateFin: periode.dateFin });
+    parPersonne.set(ancienne.utilisateurId, p);
+  }
+
+  const base = (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  const courriers = [...parPersonne.values()]
+    .filter((p) => p.email)
+    .map((p) => {
+      const { sujet, html } = gabaritMissionsRenouvelees({ nomPersonne: p.nom, missions: p.missions, lien: `${base}/app/rh/missions` });
+      return { to: p.email, sujet, html };
+    });
+  return { renouvelees, courriers };
 }

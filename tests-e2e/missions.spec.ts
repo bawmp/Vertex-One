@@ -30,9 +30,12 @@ test("Missions : confiées par l'Administrateur, suivies par l'employé, lisible
   await admin.getByLabel("Confier à").selectOption({ label: "Bob Employé" });
   await admin.getByLabel("Mission", { exact: true }).fill("Signer 5 nouveaux clients");
   await admin.getByText("Mensuelle", { exact: true }).click();
+  await expect(admin.getByLabel("Renouveler automatiquement chaque mois")).toBeChecked();
   await admin.getByLabel("Résultat attendu (optionnel)").fill("5 contrats signés avant la fin du mois");
   await admin.getByRole("button", { name: "Confier la mission" }).click();
   await expect(admin.getByText("Mission confiée.")).toBeVisible({ timeout: 60_000 });
+  // La case « renouveler » est cochée par défaut pour une mission du mois : l'étiquette s'affiche sur la carte.
+  await expect(admin.getByText("Se renouvelle chaque mois").first()).toBeVisible({ timeout: 60_000 });
 
   // 2. Missions supplémentaires posées en base : en retard, longue durée avancée, permanente.
   const [{ id: entrepriseId }] = await db.select({ id: entreprise.id }).from(entreprise).where(eq(entreprise.nom, equipe.nomEntreprise));

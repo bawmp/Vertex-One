@@ -127,6 +127,7 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
       etat: etatMission(l, jourDouala),
       joursRestants: joursRestantsMission(l.dateFin, jourDouala),
       peutSuivre: l.utilisateurId === utilisateurConnecte.utilisateurId || peutGererMissions(utilisateurConnecte, l.utilisateurId, idsRH),
+      reconduction: l.reconduction,
       peutGerer: peutGererMissions(utilisateurConnecte, l.utilisateurId, idsRH),
     }));
     const personnesMissions = (await personnesAssignables(tx, utilisateurConnecte)).filter((p) => p.id === ligne.utilisateurId);

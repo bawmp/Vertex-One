@@ -9,7 +9,7 @@ import { getT } from "@/lib/i18n/langue";
 import { m } from "@/lib/i18n/catalogue";
 import { peut } from "@/lib/permissions";
 import { alerterParEmail } from "@/lib/notifications/equipe";
-import { creerMission, gererMission, ressourcesHumainesDisponibles, suivreMission } from "@/lib/rh/missions";
+import { creerMission, definirReconduction, gererMission, ressourcesHumainesDisponibles, suivreMission } from "@/lib/rh/missions";
 
 export type EtatMission = { erreur?: string; message?: string } | null;
 type Retour = { erreur?: string } | null;
@@ -38,6 +38,7 @@ export async function creerMissionAction(_etat: EtatMission, formData: FormData)
       horizon: champ("horizon"),
       dateDebut: champ("dateDebut"),
       dateFin: champ("dateFin"),
+      reconduction: champ("reconduction"),
     });
   });
   if (!r.ok) return { erreur: t(r.erreur) };
@@ -72,6 +73,20 @@ export async function gererMissionAction(missionId: string, action: "ANNULER" | 
   const r = await avecEntreprise(u.entrepriseId, async (tx) => {
     if (!(await ressourcesHumainesDisponibles(tx, u.entrepriseId))) return { ok: false as const, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
     return gererMission(tx, u, String(missionId), action);
+  });
+  if (!r.ok) return { erreur: t(r.erreur) };
+  rafraichir();
+  return null;
+}
+
+/** Active ou coupe le renouvellement automatique d'une mission de la semaine ou du mois (qui gère la personne, côté serveur). */
+export async function definirReconductionAction(missionId: string, actif: boolean): Promise<Retour> {
+  const t = await getT();
+  const u = await recupererUtilisateurConnecte();
+  if (!u) redirect("/connexion");
+  const r = await avecEntreprise(u.entrepriseId, async (tx) => {
+    if (!(await ressourcesHumainesDisponibles(tx, u.entrepriseId))) return { ok: false as const, erreur: m("Votre abonnement est suspendu : renouvelez-le pour accéder à cette fonctionnalité.") };
+    return definirReconduction(tx, u, String(missionId), actif === true);
   });
   if (!r.ok) return { erreur: t(r.erreur) };
   rafraichir();

@@ -24,3 +24,17 @@ export function gabaritMissionConfiee(p: { nomPersonne: string; confieePar: stri
   ];
   return { sujet: `Nouvelle mission ${LIBELLE_FR[v.horizon] ?? ""} : ${v.titre}`.replace(/\s+/g, " ").trim(), html: lignes.filter(Boolean).join("") };
 }
+
+/** Email envoyé UNE fois par personne quand ses missions de la semaine ou du mois viennent d'être renouvelées. Tout texte est échappé. */
+export function gabaritMissionsRenouvelees(p: { nomPersonne: string; missions: { titre: string; resultatAttendu: string | null; dateDebut: string; dateFin: string }[]; lien: string }): { sujet: string; html: string } {
+  const lignes = p.missions.map((x) => `<li><strong>${echapper(x.titre)}</strong> — du ${jourLisible(x.dateDebut)} au ${jourLisible(x.dateFin)}${x.resultatAttendu ? `<br>Résultat attendu : ${echapper(x.resultatAttendu)}` : ""}</li>`).join("");
+  return {
+    sujet: p.missions.length === 1 ? `Mission renouvelée : ${p.missions[0].titre}`.replace(/\s+/g, " ").trim() : `${p.missions.length} missions renouvelées pour la nouvelle période`,
+    html: [
+      `<p>Bonjour ${echapper(p.nomPersonne)},</p>`,
+      `<p>${p.missions.length === 1 ? "Votre mission est renouvelée" : "Vos missions sont renouvelées"} pour la nouvelle période, avec un avancement remis à zéro :</p>`,
+      `<ul>${lignes}</ul>`,
+      `<p>Suivez-les et laissez vos points de suivi depuis <a href="${echapper(p.lien)}">vos missions</a>.</p>`,
+    ].join(""),
+  };
+}

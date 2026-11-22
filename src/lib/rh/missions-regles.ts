@@ -23,8 +23,9 @@ export const TITRE_SECTION_HORIZON: Record<HorizonMission, string> = {
   PERMANENTE: m("Missions permanentes"),
 };
 
-export type StatutMission = "EN_COURS" | "TERMINEE" | "ANNULEE";
-export type EtatMission = "A_VENIR" | "EN_COURS" | "EN_RETARD" | "TERMINEE" | "ANNULEE";
+/** CLOTUREE : période close par le renouvellement automatique (l'avancement atteint reste, c'est l'historique de la période). */
+export type StatutMission = "EN_COURS" | "TERMINEE" | "ANNULEE" | "CLOTUREE";
+export type EtatMission = "A_VENIR" | "EN_COURS" | "EN_RETARD" | "TERMINEE" | "ANNULEE" | "CLOTUREE";
 
 export const ETAT_MISSION: Record<EtatMission, { libelle: string; variante: "info" | "success" | "warning" | "danger" | "neutral" }> = {
   A_VENIR: { libelle: m("À venir"), variante: "neutral" },
@@ -32,6 +33,7 @@ export const ETAT_MISSION: Record<EtatMission, { libelle: string; variante: "inf
   EN_RETARD: { libelle: m("En retard"), variante: "danger" },
   TERMINEE: { libelle: m("Terminée"), variante: "success" },
   ANNULEE: { libelle: m("Annulée"), variante: "neutral" },
+  CLOTUREE: { libelle: m("Période terminée"), variante: "neutral" },
 };
 
 /** Missions en cours ou à venir au plus par personne : au-delà, il faut en terminer ou en annuler avant d'en confier d'autres. */
@@ -63,8 +65,8 @@ export function finDeMission(horizon: HorizonMission, dateDebut: string, dateFin
   return null;
 }
 
-export type SaisieMission = { titre: string; description: string; resultatAttendu: string; horizon: string; dateDebut: string; dateFin: string };
-export type ValeursMission = { titre: string; description: string | null; resultatAttendu: string | null; horizon: HorizonMission; dateDebut: string; dateFin: string | null };
+export type SaisieMission = { titre: string; description: string; resultatAttendu: string; horizon: string; dateDebut: string; dateFin: string; reconduction?: string };
+export type ValeursMission = { titre: string; description: string | null; resultatAttendu: string | null; horizon: HorizonMission; dateDebut: string; dateFin: string | null; reconduction: boolean };
 
 /** Valide et nettoie la saisie ; les messages sont des clés françaises traduites par l'appelant. `aujourdhui` est un jour AAAA-MM-JJ de Douala. */
 export function validerMission(s: SaisieMission, aujourdhui: string): { ok: true; valeurs: ValeursMission } | { ok: false; erreur: string } {
@@ -90,7 +92,9 @@ export function validerMission(s: SaisieMission, aujourdhui: string): { ok: true
     dateFinSaisie = s.dateFin;
   }
 
-  return { ok: true, valeurs: { titre, description: description || null, resultatAttendu: resultatAttendu || null, horizon, dateDebut: s.dateDebut, dateFin: finDeMission(horizon, s.dateDebut, dateFinSaisie) } };
+  // Le renouvellement n'existe que pour une mission de la semaine ou du mois ; coché sur une autre durée, il est ignoré.
+  const reconduction = peutSeRenouveler(horizon) && ["on", "true", "1"].includes(String(s.reconduction ?? "").toLowerCase());
+  return { ok: true, valeurs: { titre, description: description || null, resultatAttendu: resultatAttendu || null, horizon, dateDebut: s.dateDebut, dateFin: finDeMission(horizon, s.dateDebut, dateFinSaisie), reconduction } };
 }
 
 /** Avancement (entier de 0 à 100) et point de suivi de la personne. */
@@ -106,6 +110,7 @@ export function validerSuivi(avancementBrut: unknown, noteBrute: string): { ok: 
 export function etatMission(mission: { statut: string; dateDebut: string; dateFin: string | null }, aujourdhui: string): EtatMission {
   if (mission.statut === "TERMINEE") return "TERMINEE";
   if (mission.statut === "ANNULEE") return "ANNULEE";
+  if (mission.statut === "CLOTUREE") return "CLOTUREE";
   if (mission.dateDebut > aujourdhui) return "A_VENIR";
   if (mission.dateFin && mission.dateFin < aujourdhui) return "EN_RETARD";
   return "EN_COURS";
@@ -119,4 +124,29 @@ export function joursRestants(dateFin: string | null, aujourdhui: string): numbe
 /** Une mission permanente n'a pas de pourcentage : elle se suit par des points de suivi. */
 export function aUnAvancement(horizon: string): boolean {
   return horizon !== "PERMANENTE";
+}
+
+/** Seules les missions de la semaine et du mois se renouvellent : une longue durée a sa propre fin, une permanente n'en a pas. */
+export function peutSeRenouveler(horizon: string): boolean {
+  return horizon === "HEBDOMADAIRE" || horizon === "MENSUELLE";
+}
+
+/** Nombre maximal de périodes sautées d'un coup si le worker est resté arrêté longtemps (garde-fou, jamais atteint en pratique). */
+const SAUTS_MAX = 120;
+
+/**
+ * Période qui suit une mission renouvelable : elle commence le lendemain de la fin de la précédente. Si le worker est resté arrêté et que cette
+ * période est déjà passée, on saute jusqu'à celle qui contient aujourd'hui (on ne recrée jamais des semaines mortes). Null si l'horizon ne se
+ * renouvelle pas ou si la mission n'a pas de fin.
+ */
+export function prochainePeriode(horizon: string, dateFin: string | null, aujourdhui: string): { dateDebut: string; dateFin: string } | null {
+  if (!peutSeRenouveler(horizon) || !dateFin) return null;
+  let debut = ajouterJours(dateFin, 1);
+  for (let i = 0; i < SAUTS_MAX; i++) {
+    const fin = finDeMission(horizon as HorizonMission, debut, null);
+    if (!fin) return null;
+    if (fin >= aujourdhui) return { dateDebut: debut, dateFin: fin };
+    debut = ajouterJours(fin, 1);
+  }
+  return null;
 }

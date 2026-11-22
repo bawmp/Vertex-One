@@ -59,6 +59,7 @@ export default async function PageMissions() {
       etat: etatMission(l, aujourdhui),
       joursRestants: joursRestants(l.dateFin, aujourdhui),
       peutSuivre: l.utilisateurId === u.utilisateurId || peutGererMissions(u, l.utilisateurId, ids),
+      reconduction: l.reconduction,
       peutGerer: peutGererMissions(u, l.utilisateurId, ids),
     }));
     return { affichees, personnes };
