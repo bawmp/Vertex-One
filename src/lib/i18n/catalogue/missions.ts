@@ -63,4 +63,8 @@ export const MISSIONS: Record<string, string> = {
   "Une mission permanente ne se termine pas : annulez-la si elle n'a plus lieu d'être.": "A permanent mission does not end: cancel it if it is no longer needed.",
   "Missions : confiez à chaque collaborateur des missions de la semaine, du mois, de longue durée ou permanentes, avec résultat attendu, avancement et points de suivi": "Missions: give each team member weekly, monthly, long-term or permanent missions, with an expected result, progress tracking and progress notes",
   "Vous n'avez pas le droit de modifier cette mission.": "You are not allowed to change this mission.",
+  "Vue d'ensemble des missions de l'équipe": "Team missions overview",
+  "Personne": "Person",
+  "Terminées": "Completed",
+  "aucune mission": "no missions",
 };

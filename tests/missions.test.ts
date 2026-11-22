@@ -161,6 +161,19 @@ describe("Missions — base réelle", () => {
     expect((await suivre(sess("employeA", "EMPLOYE", "A"), missionEmploye, 10, "", false)).ok).toBe(false);
   }, 180_000);
 
+  test("terminer : la personne, son manager et l'Administrateur seulement — ni un collègue, ni le manager d'une autre équipe", async () => {
+    const hebdo = (await lire(sess("adminA", "ADMIN", "A"))).filter((x) => x.horizon === "HEBDOMADAIRE" && x.statut === "EN_COURS");
+    expect(hebdo.length).toBe(1);
+    const terminer = (u: UtilisateurConnecte) => avecEntreprise(u.entrepriseId, (tx) => suivreMission(tx, u, hebdo[0].id, { avancement: 100, note: "", terminer: true }));
+    expect((await terminer(sess("collegueA", "EMPLOYE", "A"))).ok).toBe(false);
+    expect((await terminer(sess("autreManagerA", "MANAGER", "A"))).ok).toBe(false);
+    expect((await terminer(sess("managerA", "MANAGER", "A"))).ok).toBe(true);
+    expect((await lire(sess("employeA", "EMPLOYE", "A"))).find((x) => x.id === hebdo[0].id)?.statut).toBe("TERMINEE");
+    // l'Administrateur termine aussi (mission longue durée de la même personne)
+    const longue = (await lire(sess("adminA", "ADMIN", "A"))).find((x) => x.horizon === "LONGUE_DUREE")!;
+    expect((await avecEntreprise(ent.A, (tx) => suivreMission(tx, sess("adminA", "ADMIN", "A"), longue.id, { avancement: 100, note: "", terminer: true }))).ok).toBe(true);
+  }, 180_000);
+
   test("annuler, rouvrir, supprimer : à qui gère la personne seulement", async () => {
     const gerer = (u: UtilisateurConnecte, mid: string, a: "ANNULER" | "ROUVRIR" | "SUPPRIMER") => avecEntreprise(u.entrepriseId, (tx) => gererMission(tx, u, mid, a));
     expect((await gerer(sess("employeA", "EMPLOYE", "A"), missionPermanente, "ANNULER")).ok).toBe(false);

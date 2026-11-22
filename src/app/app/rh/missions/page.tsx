@@ -64,6 +64,23 @@ export default async function PageMissions() {
   const autres = affichees.filter((x) => x.utilisateurId !== u.utilisateurId);
   const personnesAvecMissions = [...new Map(autres.map((x) => [x.utilisateurId, x.nomPersonne])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
 
+  // Vue d'ensemble : une ligne par personne que l'on gère (y compris celles sans mission), pour voir d'un coup d'œil qui est chargé ou en retard sans ouvrir de fiche.
+  const nomsEquipe = new Map<string, string>(personnes.filter((p) => p.id !== u.utilisateurId).map((p) => [p.id, p.nom]));
+  for (const [id, nom] of personnesAvecMissions) nomsEquipe.set(id, nom);
+  const synthese = [...nomsEquipe.entries()]
+    .map(([id, nom]) => {
+      const siennes = autres.filter((x) => x.utilisateurId === id);
+      return {
+        id,
+        nom,
+        total: siennes.length,
+        enCours: siennes.filter((x) => x.etat === "EN_COURS" || x.etat === "A_VENIR").length,
+        enRetard: siennes.filter((x) => x.etat === "EN_RETARD").length,
+        terminees: siennes.filter((x) => x.etat === "TERMINEE").length,
+      };
+    })
+    .sort((a, b) => b.enRetard - a.enRetard || a.nom.localeCompare(b.nom));
+
   return (
     <div className="flex max-w-3xl flex-col gap-8">
       <div>
@@ -79,12 +96,47 @@ export default async function PageMissions() {
       {personnes.length > 0 || autres.length > 0 ? (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">{t("Missions de l'équipe")}</h2>
+          {synthese.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("Vue d'ensemble des missions de l'équipe")}</caption>
+                <thead>
+                  <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                    <th className="px-3.5 py-2 font-medium">{t("Personne")}</th>
+                    <th className="px-3.5 py-2 text-right font-medium whitespace-nowrap">{t("En cours")}</th>
+                    <th className="px-3.5 py-2 text-right font-medium whitespace-nowrap">{t("En retard")}</th>
+                    <th className="px-3.5 py-2 text-right font-medium whitespace-nowrap">{t("Terminées")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {synthese.map((l) => (
+                    <tr key={l.id} className="border-b last:border-0">
+                      <td className="px-3.5 py-2">
+                        {l.total > 0 ? (
+                          <a href={`#personne-${l.id}`} className="text-primary underline-offset-4 hover:underline">
+                            {l.nom}
+                          </a>
+                        ) : (
+                          <span>
+                            {l.nom} <span className="text-xs text-muted-foreground">· {t("aucune mission")}</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2 text-right tabular-nums">{l.enCours}</td>
+                      <td className={`px-3.5 py-2 text-right tabular-nums ${l.enRetard > 0 ? "font-medium text-destructive" : ""}`}>{l.enRetard}</td>
+                      <td className="px-3.5 py-2 text-right tabular-nums">{l.terminees}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
           <FormulaireMission personnes={personnes} aujourdhui={aujourdhui} />
           {personnesAvecMissions.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("Aucune mission confiée à l'équipe pour l'instant.")}</p>
           ) : (
             personnesAvecMissions.map(([id, nom]) => (
-              <div key={id} className="flex flex-col gap-2">
+              <div key={id} id={`personne-${id}`} className="flex scroll-mt-20 flex-col gap-2">
                 <h3 className="text-base font-medium">{nom}</h3>
                 <ListeMissions missions={autres.filter((x) => x.utilisateurId === id)} />
               </div>
