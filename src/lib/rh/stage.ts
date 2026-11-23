@@ -247,7 +247,7 @@ export async function convertirStagiaireEnInvitation(
 export async function supprimerStagiaireAcademique(tx: TransactionDrizzle, entrepriseId: string, id: string): Promise<{ erreur?: string }> {
   const [fiche] = await tx.select({ invitationId: stagiaireAcademique.invitationId }).from(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, id), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
   if (!fiche) return { erreur: m("Fiche introuvable.") };
-  if (fiche.invitationId) return { erreur: m("Ce stagiaire a été embauché : la fiche garde la trace de l'embauche et ne peut pas être supprimée.") };
+  if (fiche.invitationId) return { erreur: m("Ce stagiaire a été embauché : il est maintenant un collaborateur. Supprimez sa fiche depuis sa fiche RH (Ressources humaines).") };
   await tx.delete(stagiaireAcademique).where(and(eq(stagiaireAcademique.id, id), eq(stagiaireAcademique.entrepriseId, entrepriseId)));
   return {};
 }

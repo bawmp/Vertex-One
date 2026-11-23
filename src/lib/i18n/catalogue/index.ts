@@ -32,6 +32,7 @@ import { MISSIONS } from "./missions";
 import { TRANSFERTS } from "./transferts";
 import { DEMANDE_COLLABORATEUR } from "./demande-collaborateur";
 import { PROSPECTS_TRANSFERT } from "./prospects-transfert";
+import { SUPPRESSION_FICHE } from "./suppression-fiche";
 
 export const CATALOGUE_EN: Record<string, string> = {
   ...COMMUN,
@@ -64,4 +65,5 @@ export const CATALOGUE_EN: Record<string, string> = {
   ...TRANSFERTS,
   ...DEMANDE_COLLABORATEUR,
   ...PROSPECTS_TRANSFERT,
+  ...SUPPRESSION_FICHE,
 };

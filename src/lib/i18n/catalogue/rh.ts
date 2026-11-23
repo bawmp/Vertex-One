@@ -543,7 +543,6 @@ export const RH: Record<string, string> = {
   "Ce stage est déjà clos.": "This internship is already closed.",
   "Ce stagiaire a déjà été embauché.": "This intern has already been hired.",
   "Cette fiche n'a pas d'adresse email : impossible d'envoyer une invitation.": "This record has no email address: cannot send an invitation.",
-  "Ce stagiaire a été embauché : la fiche garde la trace de l'embauche et ne peut pas être supprimée.": "This intern was hired: the record keeps track of the hiring and cannot be deleted.",
   "Activité CRM": "CRM activity",
   "Cette personne est déjà employée dans une autre entreprise de votre groupe : elle ne peut l'être que dans une seule.": "This person is already employed by another company in your group: they can only work for one.",
   "Tâches du poste": "Role tasks",

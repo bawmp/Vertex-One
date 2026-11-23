@@ -178,6 +178,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Transferts d'employés : faites passer un collaborateur d'une entreprise du groupe à une autre, avec l'accord des deux administrateurs, en gardant son compte et sa fiche"),
       m("Missions : confiez à chaque collaborateur des missions de la semaine, du mois, de longue durée ou permanentes, avec résultat attendu, avancement et points de suivi"),
       m("Tâches du poste : les responsabilités permanentes ou récurrentes de chaque collaborateur (relances, clôtures, rapports), posées par l'administrateur ou son manager et visibles sur sa fiche"),
+      m("Suppression d'une fiche : l'administrateur efface définitivement la fiche d'un collaborateur (données personnelles, congés, évaluations, documents), avec confirmation en tapant son nom ; refusée si un salaire a déjà été payé"),
       m("Organigramme de l'équipe en arbre, et mot d'anniversaire envoyé à la personne si vous l'activez"),
       m("Un manager peut créer la fiche d'un employé, d'un stagiaire ou d'un prestataire sans jamais voir ni saisir le salaire, réservé à l'administrateur"),
       m("Demandes de congés avec politiques configurables, pointage, suivi d'activité par employé"),

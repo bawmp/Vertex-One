@@ -20,6 +20,7 @@ import { FormulaireDemandeConge } from "./formulaire-demande-conge";
 import { ListeDemandesConge } from "./liste-demandes-conge";
 import { FormulaireDossierRH } from "./formulaire-dossier-rh";
 import { BlocStagePro } from "./bloc-stage-pro";
+import { BoutonSupprimerFiche } from "./bouton-supprimer-fiche";
 import { joursRestants as joursRestantsStage } from "@/lib/rh/stage";
 import { FormulaireEvaluation } from "./formulaire-evaluation";
 import { ListeEvaluations } from "./liste-evaluations";
@@ -544,6 +545,10 @@ export default async function PageDossierRH({ params }: { params: Promise<{ id: 
               <FormulaireDocumentRH dossierRHId={ligne.id} />
               <ListeDocumentsRH documents={documentsRH} dossierRHId={ligne.id} peutSupprimer={peutModifierDossier} />
             </CarteFiche>
+          ) : null}
+
+          {utilisateurConnecte.role === "ADMIN" && !estProprietaire && (ligne.role === "EMPLOYE" || ligne.role === "MANAGER") ? (
+            <BoutonSupprimerFiche utilisateurId={ligne.utilisateurId} nom={ligne.nomComplet} salaireDejaPaye={paiements.length > 0} />
           ) : null}
         </aside>
       </div>
