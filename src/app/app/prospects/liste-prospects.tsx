@@ -18,6 +18,7 @@ import type { InfoAuto } from "@/lib/crm/sequence-prospects";
 import { elementsACompleter } from "@/lib/email/modeles";
 import { useT } from "@/lib/i18n/contexte";
 import { PanneauRelance } from "./panneau-relance";
+import { BoutonTransferer, type Collaborateur } from "./bouton-transferer";
 import { ResumeAuto } from "./resume-auto";
 
 export type LigneProspect = {
@@ -30,6 +31,7 @@ export type LigneProspect = {
   qualifieLe: string;
   derniereRelanceLe: string | null;
   nbRelances: number;
+  assigneAId: string;
   assigneANom: string | null;
   sourceExterne: string | null;
   etat: EtatRelanceProspect;
@@ -39,7 +41,18 @@ export type LigneProspect = {
 
 type Filtre = "TOUS" | "A_RELANCER" | "RAPPELS" | "RECENTS";
 
-export function ListeProspects({ prospects, nomEntreprise, peutModifier }: { prospects: LigneProspect[]; nomEntreprise: string; peutModifier: boolean }) {
+export function ListeProspects({
+  prospects,
+  nomEntreprise,
+  peutModifier,
+  collaborateurs,
+}: {
+  prospects: LigneProspect[];
+  nomEntreprise: string;
+  peutModifier: boolean;
+  /** Collègues à qui confier un prospect ; vide = la personne connectée ne peut pas transférer (seuls l'Administrateur et les Managers le peuvent). */
+  collaborateurs: Collaborateur[];
+}) {
   const t = useT();
   const [recherche, setRecherche] = useState("");
   const [filtre, setFiltre] = useState<Filtre>("TOUS");
@@ -248,6 +261,7 @@ export function ListeProspects({ prospects, nomEntreprise, peutModifier }: { pro
                           {t("Devenir client")}
                         </Button>
                       )}
+                      {collaborateurs.length > 0 ? <BoutonTransferer leadId={p.id} assigneAId={p.assigneAId} collaborateurs={collaborateurs} /> : null}
                     </div>
                   ) : null}
                 </div>

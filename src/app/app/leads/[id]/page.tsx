@@ -1,9 +1,11 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Phone, Mail, Building2, BellRing, MessageCircle, PhoneCall, StickyNote } from "lucide-react";
 import { avecEntreprise } from "@/db/client";
-import { entreprise, lead } from "@/db/schema";
+import { entreprise, lead, utilisateur } from "@/db/schema";
+import { collaborateursPourTransfert } from "@/lib/crm/transfert-prospect";
+import { BoutonTransferer } from "../../prospects/bouton-transferer";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { idsVisibles } from "@/lib/portee";
@@ -41,11 +43,16 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
     const estProspect = ligne.statut === "QUALIFIE" && !ligne.convertiLe;
     const historique = estProspect || ligne.convertiLe ? await historiqueRelances(tx, ligne.id) : [];
     const [ent] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
-    return { ligne, historique, nomEntreprise: ent?.nom ?? "", config: await lireConfiguration(tx, utilisateurConnecte.entrepriseId) };
+    const [suivi] = await tx
+      .select({ nom: utilisateur.nomComplet })
+      .from(utilisateur)
+      .where(and(eq(utilisateur.id, ligne.assigneAId), eq(utilisateur.entrepriseId, utilisateurConnecte.entrepriseId)));
+    const collaborateurs = ligne.convertiLe ? [] : (await collaborateursPourTransfert(tx, utilisateurConnecte)).map((c) => ({ id: c.id, nom: c.nomComplet }));
+    return { ligne, historique, nomEntreprise: ent?.nom ?? "", config: await lireConfiguration(tx, utilisateurConnecte.entrepriseId), suiviPar: suivi?.nom ?? null, collaborateurs };
   });
 
   if (!donnees) notFound();
-  const { ligne: fiche, historique, nomEntreprise, config } = donnees;
+  const { ligne: fiche, historique, nomEntreprise, config, suiviPar, collaborateurs } = donnees;
   const info = STATUT_LEAD[fiche.statut];
   const peutModifier = peut(utilisateurConnecte, "CRM", "MODIFIER");
   const modifierNotesAction = modifierNotesLead.bind(null, fiche.id);
@@ -86,6 +93,7 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
                 {fiche.email}
               </span>
             ) : null}
+            {suiviPar ? <span>{t("Suivi par {nom}", { nom: suiviPar })}</span> : null}
             {auto ? <ResumeAuto auto={auto} /> : null}
             {estProspect && fiche.rappelLe ? (
               <span className="flex items-center gap-1.5">
@@ -113,6 +121,12 @@ export default async function PageFicheLead({ params }: { params: Promise<{ id: 
       </div>
 
       {peutModifier && !fiche.convertiLe ? <ChangeurStatutLead leadId={fiche.id} statutActuel={fiche.statut} /> : null}
+
+      {collaborateurs.length > 0 ? (
+        <div>
+          <BoutonTransferer leadId={fiche.id} assigneAId={fiche.assigneAId} collaborateurs={collaborateurs} />
+        </div>
+      ) : null}
 
       {!fiche.convertiLe && fiche.statut !== "QUALIFIE" ? (
         <p className="text-sm text-muted-foreground">

@@ -57,6 +57,7 @@ export const MODULES_MARKETING: ModuleMarketing[] = [
       m("Modèles de messages à envoyer à un client depuis sa fiche (ex. « votre profil est dans le bassin Entrée express »), modifiables, avec blocage de l'envoi tant qu'un élément à compléter reste entre crochets"),
       m("Un espace « Prospects qualifiés » : un lead qualifié n'entre pas directement dans vos contacts, vous le relancez par e-mail ou sur WhatsApp (message déjà écrit, modèles modifiables) avec un historique et des rappels, puis vous le faites entrer dans vos contacts quand il devient client"),
       m("Relance des prospects qualifiés en série : écrivez le même message personnalisé à plusieurs prospects d'un coup, ou activez la relance automatique (désactivée par défaut) qui envoie des e-mails modèles aux dates choisies, avec un plafond par jour, jusqu'à ce que le prospect réponde ou devienne client"),
+      m("Transfert d'un prospect : l'administrateur ou un manager confie un prospect à un collègue de l'entreprise, avec un message ; l'historique des relances suit le prospect et le collègue est prévenu par email"),
       m("Suivi des prospects du statut Nouveau à Gagné/Perdu, avec qualification et proposition comme étapes intermédiaires"),
       m("Chaque opportunité est assignée à une personne précise, avec une visibilité selon la portée (toute l'équipe, son équipe, ou seulement les siennes)"),
       m("Tâches et réunions rattachées directement à une opportunité"),

@@ -7,6 +7,7 @@ import { entreprise } from "@/db/schema";
 import { recupererUtilisateurConnecte } from "@/lib/session";
 import { peut } from "@/lib/permissions";
 import { listerProspectsQualifies } from "@/lib/crm/prospects-donnees";
+import { collaborateursPourTransfert } from "@/lib/crm/transfert-prospect";
 import { etatRelance } from "@/lib/crm/prospects";
 import { infoAuto } from "@/lib/crm/sequence-prospects";
 import { lireConfiguration } from "@/lib/crm/sequence-prospects-executer";
@@ -19,9 +20,10 @@ export default async function PageProspectsQualifies() {
   const utilisateurConnecte = await recupererUtilisateurConnecte();
   if (!utilisateurConnecte) redirect("/connexion");
 
-  const { prospects, nomEntreprise, config } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
+  const { prospects, nomEntreprise, config, collaborateurs } = await avecEntreprise(utilisateurConnecte.entrepriseId, async (tx) => {
     const [ent] = await tx.select({ nom: entreprise.nom }).from(entreprise).where(eq(entreprise.id, utilisateurConnecte.entrepriseId));
     return {
+      collaborateurs: (await collaborateursPourTransfert(tx, utilisateurConnecte)).map((c) => ({ id: c.id, nom: c.nomComplet })),
       prospects: await listerProspectsQualifies(tx, utilisateurConnecte),
       nomEntreprise: ent?.nom ?? "",
       config: await lireConfiguration(tx, utilisateurConnecte.entrepriseId),
@@ -41,6 +43,7 @@ export default async function PageProspectsQualifies() {
     qualifieLe: (p.qualifieLe ?? p.creeLe).toISOString(),
     derniereRelanceLe: p.derniereRelanceLe ? p.derniereRelanceLe.toISOString() : null,
     nbRelances: p.nbRelances,
+    assigneAId: p.assigneAId,
     assigneANom: p.assigneANom,
     sourceExterne: p.sourceExterne,
     etat: etatRelance({ rappelLe: p.rappelLe, derniereRelanceLe: p.derniereRelanceLe }, maintenant),
@@ -77,7 +80,7 @@ export default async function PageProspectsQualifies() {
         </div>
       </div>
 
-      <ListeProspects prospects={lignes} nomEntreprise={nomEntreprise} peutModifier={peut(utilisateurConnecte, "CRM", "MODIFIER")} />
+      <ListeProspects prospects={lignes} nomEntreprise={nomEntreprise} peutModifier={peut(utilisateurConnecte, "CRM", "MODIFIER")} collaborateurs={collaborateurs} />
     </div>
   );
 }

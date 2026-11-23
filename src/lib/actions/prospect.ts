@@ -4,6 +4,7 @@ import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { avecEntreprise, type TransactionDrizzle } from "@/db/client";
 import { entreprise, lead, relanceProspect } from "@/db/schema";
 import { recupererUtilisateurConnecte, type UtilisateurConnecte } from "@/lib/session";
@@ -13,6 +14,8 @@ import { expediteurDe } from "@/lib/email/expediteur";
 import { elementsACompleter } from "@/lib/email/modeles";
 import { validerPiecesEmail } from "@/lib/email/pieces-jointes";
 import { convertirLead } from "@/lib/crm/conversion";
+import { transfererProspect } from "@/lib/crm/transfert-prospect";
+import { alerterParEmail } from "@/lib/notifications/equipe";
 import { envoyerEmailAuProspect, honorerRappel } from "@/lib/crm/relance-email";
 import { LONGUEUR_MAX_RELANCE, NB_MAX_ENVOIS_GROUPES, lienWhatsApp, remplirModeleRelance } from "@/lib/crm/prospects";
 import { DELAI_MAX_JOURS, PLAFOND_MAX, ecrireDelais, lireDelais } from "@/lib/crm/sequence-prospects";
@@ -284,6 +287,28 @@ export async function devenirClient(leadId: string): Promise<{ erreur: string } 
   revalidatePath("/app/contacts");
   if (resultat.erreur !== undefined || !resultat.contactId) return { erreur: resultat.erreur ?? t("Prospect introuvable ou déjà devenu client.") };
   redirect(`/app/contacts/${resultat.contactId}`);
+}
+
+/**
+ * Confier un prospect à un collègue de la même entreprise (Administrateur ou Manager). Droit, portée et destinataire sont revérifiés en base par
+ * `transfererProspect` ; le courrier au destinataire part APRÈS la réponse (jamais bloquant).
+ */
+export async function transfererProspectAction(leadId: string, destinataireId: string, motif: string): Promise<{ erreur?: string; ok?: boolean; destinataire?: string }> {
+  const t = await getT();
+  const utilisateurConnecte = await recupererUtilisateurConnecte();
+  if (!utilisateurConnecte) redirect("/connexion");
+
+  const r = await avecEntreprise(utilisateurConnecte.entrepriseId, (tx) => transfererProspect(tx, utilisateurConnecte, leadId, destinataireId, motif));
+  if (!r.ok) return { erreur: t(r.erreur) };
+  if (r.email) {
+    const { to, sujet, html } = r.email;
+    after(() => alerterParEmail([to], sujet, html));
+  }
+
+  revalidatePath("/app/prospects");
+  revalidatePath("/app/leads");
+  revalidatePath(`/app/leads/${leadId}`);
+  return { ok: true, destinataire: r.destinataire };
 }
 
 /**
